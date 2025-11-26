@@ -40,6 +40,7 @@
 
 ## 文档
 
+- [开发进度 / Development Progress](docs/开发进度%20-%20Development%20Progress.md) - 当前开发进度和要点记录
 - [环境设置指南](docs/环境设置指南.md) - 完整的环境设置和操作说明
 - [需求文档](docs/Personal%20Sous%20Chef%20Proposal%20-%20FRs%20and%20NFRs.md) - 功能需求和非功能需求
 - [数据交换格式](docs/Personal%20Chef%20Data%20Exchange%20JSON%20Format.md) - API 数据格式规范
