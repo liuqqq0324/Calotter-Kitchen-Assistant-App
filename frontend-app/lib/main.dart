@@ -1,4 +1,10 @@
 import 'package:flutter/material.dart';
+import 'pages/landing_page.dart';
+import 'pages/home_page.dart';
+import 'pages/recipes_page.dart';
+import 'pages/scan_page.dart';
+import 'pages/inventory_page.dart';
+import 'pages/profile_view_page.dart';
 
 void main() {
   runApp(const SousChefApp());
@@ -12,10 +18,10 @@ class SousChefApp extends StatelessWidget {
     return MaterialApp(
       title: 'Sous Chef',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.green), // 主题色设为绿色
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
         useMaterial3: true,
       ),
-      home: const MainScaffold(),
+      home: const LandingPage(),
     );
   }
 }
@@ -28,13 +34,15 @@ class MainScaffold extends StatefulWidget {
 }
 
 class _MainScaffoldState extends State<MainScaffold> {
-  int _selectedIndex = 0; // 当前选中的是第几个页面
+  int _selectedIndex = 0;
 
-  // 这里定义三个页面（暂时用占位符）
-  final List<Widget> _pages = <Widget>[
-    const Center(child: Text('Page 1: Inventory List (To be implemented)')),
-    const Center(child: Text('Page 2: Camera/Scanner (To be implemented)')),
-    const Center(child: Text('Page 3: Recipes (To be implemented)')),
+  // 5个页面：Home, Recipes, Scan, Inventory, My
+  final List<Widget> _pages = const <Widget>[
+    HomePage(),
+    RecipesPage(),
+    ScanPage(),
+    InventoryPage(),
+    ProfileViewPage(),
   ];
 
   void _onItemTapped(int index) {
@@ -46,21 +54,92 @@ class _MainScaffoldState extends State<MainScaffold> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Personal Sous Chef'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+      body: _pages[_selectedIndex],
+      bottomNavigationBar: _buildCustomBottomNav(),
+    );
+  }
+
+  Widget _buildCustomBottomNav() {
+    return Container(
+      height: 70,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 4,
+            offset: const Offset(0, -2),
+          ),
+        ],
       ),
-      body: _pages[_selectedIndex], // 显示当前选中的页面
-      bottomNavigationBar: NavigationBar(
-        // Material 3 风格导航栏
-        onDestinationSelected: _onItemTapped,
-        selectedIndex: _selectedIndex,
-        destinations: const <Widget>[
-          NavigationDestination(icon: Icon(Icons.kitchen), label: 'Inventory'),
-          NavigationDestination(icon: Icon(Icons.camera_alt), label: 'Scan'),
-          NavigationDestination(
-            icon: Icon(Icons.restaurant_menu),
-            label: 'Recipes',
+      child: Stack(
+        children: [
+          // 底部导航栏内容
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildNavItem(Icons.home, 'Home', 0),
+              _buildNavItem(Icons.restaurant_menu, 'Recipes', 1),
+              // Scan位置留空，用FAB覆盖
+              const SizedBox(width: 56),
+              _buildNavItem(Icons.kitchen, 'Inventory', 3),
+              _buildNavItem(Icons.person, 'My', 4),
+            ],
+          ),
+          // 中间的圆形FAB按钮（Scan）
+          Center(
+            child: GestureDetector(
+              onTap: () {
+                _onItemTapped(2); // 切换到Scan页面
+              },
+              child: Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: _selectedIndex == 2
+                      ? Theme.of(context).colorScheme.primary
+                      : Colors.grey[400],
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: const Icon(Icons.add, color: Colors.white, size: 32),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNavItem(IconData icon, String label, int index) {
+    final isSelected = _selectedIndex == index;
+    return GestureDetector(
+      onTap: () => _onItemTapped(index),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            icon,
+            color: isSelected
+                ? Theme.of(context).colorScheme.primary
+                : Colors.grey[600],
+            size: 24,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: isSelected
+                  ? Theme.of(context).colorScheme.primary
+                  : Colors.grey[600],
+            ),
           ),
         ],
       ),
