@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'profile_edit_page.dart';
 import 'settings_page.dart';
+import 'preferences_list_page.dart';
+import 'taboos_list_page.dart';
+import 'allergies_list_page.dart';
 
 class ProfileViewPage extends StatelessWidget {
   const ProfileViewPage({super.key});
@@ -117,18 +120,36 @@ class ProfileViewPage extends StatelessWidget {
             const SizedBox(height: 40),
             // 设置项
             ListTile(
-              title: const Text('Preference'),
+              title: const Text('Preferences'),
               trailing: const Icon(Icons.arrow_forward_ios, size: 16),
               onTap: () {
-                // TODO: 导航到偏好设置页
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const PreferencesListPage()),
+                );
               },
             ),
             ListTile(
               title: const Text('Taboos'),
-              subtitle: const Text('过敏'),
               trailing: const Icon(Icons.arrow_forward_ios, size: 16),
               onTap: () {
-                // TODO: 导航到禁忌设置页
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const TaboosListPage()),
+                );
+              },
+            ),
+            ListTile(
+              title: const Text('Allergies'),
+              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const AllergiesListPage()),
+                );
               },
             ),
             const SizedBox(height: 40),
