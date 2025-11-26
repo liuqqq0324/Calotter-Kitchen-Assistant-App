@@ -33,7 +33,7 @@ class _MainScaffoldState extends State<MainScaffold> {
   // 这里定义三个页面（暂时用占位符）
   final List<Widget> _pages = <Widget>[
     const Center(child: Text('Page 1: Inventory List (To be implemented)')),
-    const Center(child: Text('Page 2: Camera/Scan (To be implemented)')),
+    const Center(child: Text('Page 2: Camera/Scanner (To be implemented)')),
     const Center(child: Text('Page 3: Recipes (To be implemented)')),
   ];
 
@@ -51,18 +51,13 @@ class _MainScaffoldState extends State<MainScaffold> {
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       body: _pages[_selectedIndex], // 显示当前选中的页面
-      bottomNavigationBar: NavigationBar( // Material 3 风格导航栏
+      bottomNavigationBar: NavigationBar(
+        // Material 3 风格导航栏
         onDestinationSelected: _onItemTapped,
         selectedIndex: _selectedIndex,
         destinations: const <Widget>[
-          NavigationDestination(
-            icon: Icon(Icons.kitchen),
-            label: 'Inventory',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.camera_alt),
-            label: 'Scan',
-          ),
+          NavigationDestination(icon: Icon(Icons.kitchen), label: 'Inventory'),
+          NavigationDestination(icon: Icon(Icons.camera_alt), label: 'Scan'),
           NavigationDestination(
             icon: Icon(Icons.restaurant_menu),
             label: 'Recipes',
