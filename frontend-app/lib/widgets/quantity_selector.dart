@@ -218,7 +218,7 @@ class _QuantitySelectorState extends State<QuantitySelector> {
                   fontSize: 11,
                   fontStyle: FontStyle.italic,
                   color: Colors.orange, // 🔥 变橙色，暗示可点击
-                  decoration: TextDecoration.underline, // 加下划线
+                  // decoration: TextDecoration.underline, // 加下划线
                   decorationStyle: TextDecorationStyle.dotted,
                 ),
               ),

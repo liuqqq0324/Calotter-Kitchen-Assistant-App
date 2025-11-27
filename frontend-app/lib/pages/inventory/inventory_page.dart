@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:personal_sous_chef/models/ingredient.dart';
 import 'package:personal_sous_chef/pages/inventory/edit_ingredient_page.dart';
-import 'package:personal_sous_chef/widgets/quantity_selector.dart';
+import 'package:personal_sous_chef/widgets/ingredient_card.dart';
 import 'package:personal_sous_chef/data/static_data.dart'; // 引入数据文件
+import 'package:personal_sous_chef/pages/add_item/add_item_page.dart';
 
 // =========================================================
 // 2. 页面主体区域 (Main Widget)
@@ -249,124 +250,18 @@ class _InventoryPageState extends State<InventoryPage>
 
   // --- 模块 2: 食材卡片 (布局优化版：控制器右上角) ---
   Widget _buildIngredientCard(Ingredient item) {
-    Color cardColor = Colors.white;
-    double elevation = 2.0;
-    Color statusColor = Colors.grey;
-
-    if (item.isExpired) {
-      cardColor = Colors.red.shade50;
-      elevation = 8.0;
-      statusColor = Colors.red;
-    } else if (item.isExpiringSoon) {
-      cardColor = Colors.orange.shade50;
-      elevation = 4.0;
-      statusColor = Colors.orange.shade800;
-    }
-
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      elevation: elevation,
-      color: cardColor,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-
-      // 🔥 修复核心：只有这一个 GestureDetector，不要 InkWell
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque, // 确保点击空白处也生效
-        onTap: () {
-          // 2. 收起键盘
-          FocusScope.of(context).unfocus();
-
-          // 3. 执行跳转
-          _navigateToEdit(item);
-        },
-
-        child: Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 1. 左侧图片占位符
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade300, width: 2),
-                  borderRadius: BorderRadius.circular(8),
-                  color: Colors.white,
-                ),
-                child: Center(
-                  child: Text(
-                    item.imagePlaceholder,
-                    style: const TextStyle(fontSize: 30),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-
-              // 2. 右侧内容区域
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // 第一层：名字 (左对齐)
-                    Text(
-                      item.name,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: item.isExpired ? Colors.red : Colors.black87,
-                        height: 1.1,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-
-                    // 第二层：数量控制器 (右对齐)
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 4.0),
-                        child: QuantitySelector(
-                          initialValue: item.quantity,
-                          unit: item.unit,
-                          onChanged: (val) => item.quantity = val,
-                        ),
-                      ),
-                    ),
-
-                    // 第三层：过期时间 (左对齐)
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.access_time,
-                          size: 12,
-                          color: Colors.grey,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          "${item.expiryDate.day}/${item.expiryDate.month}",
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: statusColor,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        const Text(
-                          "Exp",
-                          style: TextStyle(fontSize: 11, color: Colors.grey),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+    // 现在的调用非常清爽
+    return IngredientCard(
+      item: item,
+      useStatusColors: true, // 开启变色警告
+      onTap: () => _navigateToEdit(item), // 点击卡片跳转
+      onQuantityChanged: (val) {
+        // 更新数量 (setState 可加可不加，因为 QuantitySelector 内部有状态)
+        // 这里加 setState 是为了确保排序逻辑等可能依赖数量的地方能刷新
+        item.quantity = val;
+      },
+      // unitOptions 不传 -> 默认只读单位
+      // onExpiryTap 不传 -> 日期不可点
     );
   }
 
@@ -520,8 +415,15 @@ class _InventoryPageState extends State<InventoryPage>
                   FloatingActionButton.small(
                     heroTag: "btn_camera",
                     onPressed: () {
-                      _toggleExpand();
-                      print("📷 跳转到拍照页面 (TODO)");
+                      _toggleExpand(); // 收起菜单
+
+                      // 🔥 跳转到 AddItemPage
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const AddItemPage(),
+                        ),
+                      );
                     },
                     backgroundColor: Colors.orange.shade100,
                     child: const Icon(Icons.camera_alt, color: Colors.orange),
