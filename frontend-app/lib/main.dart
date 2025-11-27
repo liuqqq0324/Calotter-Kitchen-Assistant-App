@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'pages/inventory/inventory_page.dart';
 
 void main() {
   runApp(const SousChefApp());
@@ -35,7 +36,7 @@ class _MainScaffoldState extends State<MainScaffold> {
     const Center(child: Text('Page 1: Homepage')),
     const Center(child: Text('Page 2: Recipes')),
     const Center(child: Text('Page 3: Add Items')), // 中间的加号页面
-    const Center(child: Text('Page 4: Inventory')), // 原来的库存页移到这里了
+    const InventoryPage(), // 原来的库存页移到这里了
     const Center(child: Text('Page 5: User Profile')),
   ];
 
@@ -77,7 +78,7 @@ class _MainScaffoldState extends State<MainScaffold> {
           // 3. Add Items (突出显示的中间按钮)
           NavigationDestination(
             // 这里特意把 size 设大到 40 (默认是24)，并使用了圆形加号图标
-            icon: Icon(Icons.add_circle, size: 40, color: Colors.green),
+            icon: Icon(Icons.add_circle, size: 40, color: Colors.orange),
             label: 'Add',
           ),
 
@@ -85,7 +86,7 @@ class _MainScaffoldState extends State<MainScaffold> {
           NavigationDestination(
             icon: Icon(Icons.kitchen_outlined),
             selectedIcon: Icon(Icons.kitchen),
-            label: 'Fridge', // 改个短点的名字适合导航栏
+            label: 'Kitchen', // 改个短点的名字适合导航栏
           ),
 
           // 5. UserInfo
