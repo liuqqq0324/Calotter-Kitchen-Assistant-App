@@ -75,13 +75,20 @@ class _AddItemPageState extends State<AddItemPage> {
                   "Tap the icon to take a photo or upload from gallery",
               icon: Icons.add_a_photo_outlined,
               btnText: "Upload Photo",
-              onTap: () {
-                Navigator.push(
+              onTap: () async {
+                // 🔥 加上 async
+                // 1. 等待 Review 页面返回结果
+                final result = await Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (context) => const ReviewIngredientsPage(),
                   ),
                 );
+
+                // 2. 如果拿到了结果 (List<Ingredient>)，就继续往回传
+                if (result != null && context.mounted) {
+                  Navigator.pop(context, result);
+                }
               },
             ),
 
@@ -91,13 +98,20 @@ class _AddItemPageState extends State<AddItemPage> {
               instruction: "Select a video file to analyze ingredients",
               icon: Icons.video_file_outlined,
               btnText: "Upload Video",
-              onTap: () {
-                Navigator.push(
+              onTap: () async {
+                // 🔥 加上 async
+                // 1. 等待 Review 页面返回结果
+                final result = await Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (context) => const ReviewIngredientsPage(),
                   ),
                 );
+
+                // 2. 如果拿到了结果 (List<Ingredient>)，就继续往回传
+                if (result != null && context.mounted) {
+                  Navigator.pop(context, result);
+                }
               },
             ),
 
@@ -237,13 +251,20 @@ class _AddItemPageState extends State<AddItemPage> {
                 const SizedBox(height: 20),
                 // 开始检测按钮
                 FloatingActionButton.large(
-                  onPressed: () {
-                    Navigator.push(
+                  onPressed: () async {
+                    // 🔥 加上 async
+                    // 1. 等待返回
+                    final result = await Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => const ReviewIngredientsPage(),
                       ),
                     );
+
+                    // 2. 接力回传
+                    if (result != null && context.mounted) {
+                      Navigator.pop(context, result);
+                    }
                   },
                   backgroundColor: Colors.white,
                   child: const Icon(

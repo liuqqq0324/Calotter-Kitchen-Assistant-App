@@ -20,7 +20,7 @@ class _InventoryPageState extends State<InventoryPage>
     with SingleTickerProviderStateMixin {
   // --- 数据源：食材列表 ---
   // 在真实App中，这些数据通常来自后端 API 或本地数据库
-  final List<Ingredient> _ingredients = List.from(kInitialIngredients);
+  late List<Ingredient> _ingredients;
 
   final List<Cookware> _cookwares = [
     Cookware(
@@ -43,6 +43,7 @@ class _InventoryPageState extends State<InventoryPage>
   @override
   void initState() {
     super.initState();
+    _ingredients = kInitialIngredients;
     _sortItems(); // 进来先排个序
     // 🔥 初始化动画 (200毫秒快进快出)
     _animationController = AnimationController(
@@ -169,7 +170,7 @@ class _InventoryPageState extends State<InventoryPage>
       body: Stack(
         children: [
           ListView.builder(
-            padding: const EdgeInsets.only(bottom: 80, top: 10),
+            padding: const EdgeInsets.only(bottom: 100, top: 5),
             itemCount: _ingredients.length,
             itemBuilder: (context, index) {
               final item = _ingredients[index];
@@ -190,14 +191,14 @@ class _InventoryPageState extends State<InventoryPage>
                     vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.orange.shade100, // 浅橙色背景 (参考你的截图)
+                    color: Colors.red.shade100, // 浅橙色背景 (参考你的截图)
                     borderRadius: BorderRadius.circular(12),
                   ),
                   alignment: Alignment.centerRight, // 图标靠右
                   padding: const EdgeInsets.only(right: 20), // 图标距离右边缘的距离
                   child: const Icon(
                     Icons.delete, // 垃圾桶图标
-                    color: Colors.black87, // 深色图标
+                    color: Colors.red, // 深色图标
                     size: 30,
                   ),
                 ),
@@ -241,6 +242,56 @@ class _InventoryPageState extends State<InventoryPage>
                 color: Colors.black54, // 半透明黑底
                 width: double.infinity,
                 height: double.infinity,
+              ),
+            ),
+          if (!_isExpanded)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 20, // 悬浮在底部
+              child: Center(
+                child: Container(
+                  height: 50,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Colors.orange, Colors.deepOrange],
+                    ),
+                    borderRadius: BorderRadius.circular(25),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.orange.withOpacity(0.4),
+                        blurRadius: 10,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      // TODO: 跳转到 Recipe 页，并带上当前库存数据
+                      print("生成食谱！");
+                    },
+                    icon: Icon(
+                      Icons.auto_awesome,
+                      color: Colors.white,
+                    ), // AI 的图标
+                    label: Text(
+                      "Generate Recipe",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(25),
+                      ),
+                      padding: EdgeInsets.symmetric(horizontal: 24),
+                    ),
+                  ),
+                ),
               ),
             ),
         ],
@@ -414,16 +465,35 @@ class _InventoryPageState extends State<InventoryPage>
                 children: [
                   FloatingActionButton.small(
                     heroTag: "btn_camera",
-                    onPressed: () {
+                    onPressed: () async {
+                      // 🔥 加上 async
                       _toggleExpand(); // 收起菜单
 
-                      // 🔥 跳转到 AddItemPage
-                      Navigator.push(
+                      // 1. 跳转到 AddItemPage 并等待最终结果
+                      final newItems = await Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => const AddItemPage(),
                         ),
                       );
+
+                      // 2. 如果带回了数据，更新列表！
+                      if (newItems != null && newItems is List<Ingredient>) {
+                        setState(() {
+                          _ingredients.addAll(newItems); // 合并新数据
+                          _sortItems(); // 重新排序
+                        });
+
+                        // 3. 弹窗提示成功
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              "${newItems.length} items added successfully!",
+                            ),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      }
                     },
                     backgroundColor: Colors.orange.shade100,
                     child: const Icon(Icons.camera_alt, color: Colors.orange),

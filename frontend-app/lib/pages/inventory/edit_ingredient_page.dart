@@ -69,7 +69,7 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
         );
       },
     );
-    if (picked != null && picked != _expiryDate) {
+    if (picked != null && picked != _expiryDate && mounted) {
       setState(() {
         _expiryDate = picked;
       });
