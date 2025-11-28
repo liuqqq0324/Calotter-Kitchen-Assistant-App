@@ -53,7 +53,13 @@ class _ReviewIngredientsPageState extends State<ReviewIngredientsPage> {
         child: child!,
       ),
     );
-    if (picked != null) setState(() => item.expiryDate = picked);
+
+    // 🔥 安全检查：等待日历关闭后，先看一眼页面还在不在
+    if (!mounted) return;
+
+    if (picked != null) {
+      setState(() => item.expiryDate = picked);
+    }
   }
 
   @override
@@ -129,9 +135,17 @@ class _ReviewIngredientsPageState extends State<ReviewIngredientsPage> {
                   content: Text("${item.name} removed"),
                   action: SnackBarAction(
                     label: "UNDO",
-                    onPressed: () => setState(
-                      () => _detectedItems.insert(index, removedItem),
-                    ),
+                    onPressed: () {
+                      // 🔥 安全检查：如果页面已经关了，就别刷新了
+                      if (!mounted) return;
+
+                      setState(() {
+                        // 这里用 insert 插回原位是安全的，
+                        // 因为 Review 页面不像 Inventory 页面那样会实时排序，
+                        // 它是维持用户扫描顺序的，所以插回 index 没问题。
+                        _detectedItems.insert(index, removedItem);
+                      });
+                    },
                   ),
                 ),
               );

@@ -175,7 +175,7 @@ class _InventoryPageState extends State<InventoryPage>
                 ),
                 onDismissed: (direction) {
                   final deletedItem = item;
-                  final deletedIndex = index;
+                  // final deletedIndex = index;
 
                   setState(() {
                     _ingredients.removeAt(index);
@@ -187,8 +187,12 @@ class _InventoryPageState extends State<InventoryPage>
                       action: SnackBarAction(
                         label: "UNDO",
                         onPressed: () {
+                          if (!mounted) return;
                           setState(() {
-                            _ingredients.insert(deletedIndex, deletedItem);
+                            // 🔥 修复：改为 add，避免 Index 越界
+                            _ingredients.add(deletedItem);
+                            // 重新排序，恢复正确的顺序
+                            _sortItems();
                           });
                         },
                       ),

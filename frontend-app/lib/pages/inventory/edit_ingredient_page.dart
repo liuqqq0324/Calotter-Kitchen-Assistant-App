@@ -49,14 +49,14 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
   }
 
   // 日期选择器逻辑
+  // 日期选择器逻辑
   Future<void> _selectDate() async {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: _expiryDate,
       firstDate: DateTime(2000),
-      lastDate: DateTime.now().add(const Duration(days: 365 * 5)), // 5年内
+      lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
       builder: (context, child) {
-        // 自定义日历颜色为橙色
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.light(
@@ -69,7 +69,12 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
         );
       },
     );
-    if (picked != null && picked != _expiryDate && mounted) {
+
+    // 🔥 优化：先检查 mounted，如果不在线直接返回，干脆利落
+    if (!mounted) return;
+
+    // 🔥 业务逻辑：此时已经很安全了，不需要再写 && mounted
+    if (picked != null && picked != _expiryDate) {
       setState(() {
         _expiryDate = picked;
       });
