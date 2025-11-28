@@ -2,12 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:personal_sous_chef/models/ingredient.dart';
 import 'package:personal_sous_chef/pages/inventory/edit_ingredient_page.dart';
 import 'package:personal_sous_chef/widgets/ingredient_card.dart';
-import 'package:personal_sous_chef/data/static_data.dart'; // 引入数据文件
+import 'package:personal_sous_chef/data/static_data.dart'; // 引入全局数据
 import 'package:personal_sous_chef/pages/add_item/add_item_page.dart';
-
-// =========================================================
-// 2. 页面主体区域 (Main Widget)
-// =========================================================
+import 'package:personal_sous_chef/widgets/generate_recipe_button.dart'; // 引入复用按钮
+import 'package:personal_sous_chef/main.dart'; // 🔥 引入 main.dart 以访问 MainScaffoldState
 
 class InventoryPage extends StatefulWidget {
   const InventoryPage({super.key});
@@ -18,8 +16,7 @@ class InventoryPage extends StatefulWidget {
 
 class _InventoryPageState extends State<InventoryPage>
     with SingleTickerProviderStateMixin {
-  // --- 数据源：食材列表 ---
-  // 在真实App中，这些数据通常来自后端 API 或本地数据库
+  // 不要在定义时初始化，在 build 里同步
   late List<Ingredient> _ingredients;
 
   final List<Cookware> _cookwares = [
@@ -39,20 +36,17 @@ class _InventoryPageState extends State<InventoryPage>
   late Animation<double> _expandAnimation;
   bool _isExpanded = false;
 
-  // 初始化状态：页面第一次加载时执行
   @override
   void initState() {
     super.initState();
-    _ingredients = kInitialIngredients;
-    _sortItems(); // 进来先排个序
-    // 🔥 初始化动画 (200毫秒快进快出)
+    // 🔥 1. 移除这里的数据初始化，只保留动画逻辑
+
     _animationController = AnimationController(
       value: _isExpanded ? 1.0 : 0.0,
       duration: const Duration(milliseconds: 250),
       vsync: this,
     );
 
-    // 使用 CurvedAnimation 让弹跳更自然
     _expandAnimation = CurvedAnimation(
       curve: Curves.fastOutSlowIn,
       parent: _animationController,
@@ -61,11 +55,10 @@ class _InventoryPageState extends State<InventoryPage>
 
   @override
   void dispose() {
-    _animationController.dispose(); // 记得销毁
+    _animationController.dispose();
     super.dispose();
   }
 
-  // 🔥 切换展开/收起状态
   void _toggleExpand() {
     setState(() {
       _isExpanded = !_isExpanded;
@@ -78,31 +71,27 @@ class _InventoryPageState extends State<InventoryPage>
   }
 
   // --- 逻辑方法：排序 ---
-  // 规则：过期的排最前 -> 临期的排中间 -> 正常的排最后
+  // 🔥 2. 去掉 setState，使其变为纯数据操作，方便在 build 中调用
   void _sortItems() {
-    setState(() {
-      _ingredients.sort((a, b) {
-        if (a.isExpired && !b.isExpired) return -1; // a过期，a排前
-        if (!a.isExpired && b.isExpired) return 1; // b过期，b排前
-        return a.expiryDate.compareTo(b.expiryDate); // 否则按时间先后排
-      });
+    _ingredients.sort((a, b) {
+      if (a.isExpired && !b.isExpired) return -1;
+      if (!a.isExpired && b.isExpired) return 1;
+      return a.expiryDate.compareTo(b.expiryDate);
     });
   }
 
   // --- 逻辑：跳转编辑/添加 ---
-  // 增加 isNew 参数，默认为 false (编辑模式)
   void _navigateToEdit(Ingredient item, {bool isNew = false}) async {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => EditIngredientPage(
-          ingredient: item,
-          isNew: isNew, // 🔥 传进去
-        ),
+        builder: (context) =>
+            EditIngredientPage(ingredient: item, isNew: isNew),
       ),
     );
 
-    // 处理返回结果
+    if (!mounted) return;
+
     if (result == 'delete') {
       setState(() {
         _ingredients.remove(item);
@@ -111,116 +100,93 @@ class _InventoryPageState extends State<InventoryPage>
         context,
       ).showSnackBar(SnackBar(content: Text("${item.name} removed.")));
     } else if (result == true) {
-      // 🔥 核心修改在这里：
       setState(() {
         if (isNew) {
-          // 如果是新增模式，并且用户点了 Done，我们需要把这个临时对象正式加入列表
+          // 因为 _ingredients 引用的是 kInitialIngredients，直接 add 即可
           _ingredients.add(item);
-
-          // (可选) 可以在这里加个 SnackBar 提示添加成功
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(SnackBar(content: Text("${item.name} added!")));
         }
-
-        // 无论是新增还是编辑，回来都要重新排序
-        _sortItems();
+        // 不需要手动调 _sortItems，因为 setState 会触发 build，build 里会自动排序
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // DefaultTabController 用于管理 Tab 的切换逻辑
+    // 🔥 3. 核心修复：每次构建时同步全局数据并排序
+    // 这样当 Add 流程结束后回到这里，数据会自动刷新
+    _ingredients = kInitialIngredients;
+    _sortItems();
+
     return DefaultTabController(
-      length: 2, // 这里的 2 对应下面 TabBar 的两个 Tab
+      length: 2,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('My Kitchen'),
-          // TabBar 是顶部的导航条
           bottom: const TabBar(
             tabs: [
-              Tab(icon: Icon(Icons.egg_alt), text: 'Ingredients'), // Tab 1 标题
-              Tab(icon: Icon(Icons.soup_kitchen), text: 'Cookware'), // Tab 2 标题
+              Tab(icon: Icon(Icons.egg_alt), text: 'Ingredients'),
+              Tab(icon: Icon(Icons.soup_kitchen), text: 'Cookware'),
             ],
           ),
         ),
-        // TabBarView 是下方对应的内容区域，必须和 tabs 数量一致
         body: TabBarView(
-          children: [
-            _buildIngredientPage(), // 对应 Tab 1 的页面内容
-            _buildCookwareGrid(), // 对应 Tab 2 的页面内容
-          ],
+          children: [_buildIngredientPage(), _buildCookwareGrid()],
         ),
       ),
     );
   }
 
   // =========================================================
-  // 3. UI 构建方法 (Private Helper Methods)
+  // UI 构建方法
   // =========================================================
 
-  // --- 模块 1: 食材页面列表 ---
-  // --- 模块 1: 食材页面列表 (带侧滑删除) ---
   Widget _buildIngredientPage() {
     return Scaffold(
       backgroundColor: Colors.transparent,
-      // 🔥 替换为我们写的复杂按钮组
       floatingActionButton: _buildExpandableFab(),
       body: Stack(
         children: [
+          // 列表区域
           ListView.builder(
-            padding: const EdgeInsets.only(bottom: 100, top: 5),
+            padding: const EdgeInsets.only(bottom: 100, top: 5), // 🔥 底部留白给按钮
             itemCount: _ingredients.length,
             itemBuilder: (context, index) {
               final item = _ingredients[index];
-
-              // 🔥 核心修改：用 Dismissible 包裹卡片
               return Dismissible(
-                // 1. Key: 必须是唯一的！用来识别删除的是哪一个
-                key: ValueKey(item.name + item.expiryDate.toString()),
-
-                // 2. 方向：只允许从右往左滑 (End to Start)
+                key: ValueKey(
+                  item.name + item.expiryDate.toString(),
+                ), // 确保 Key 唯一
                 direction: DismissDirection.endToStart,
-
-                // 3. 背景：滑动时露出的红色垃圾桶区域
                 background: Container(
-                  // 保证背景和卡片的大小、圆角、间距完全一致，看起来才像“背后”
                   margin: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.red.shade100, // 浅橙色背景 (参考你的截图)
+                    color: Colors.red.shade100,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  alignment: Alignment.centerRight, // 图标靠右
-                  padding: const EdgeInsets.only(right: 20), // 图标距离右边缘的距离
-                  child: const Icon(
-                    Icons.delete, // 垃圾桶图标
-                    color: Colors.red, // 深色图标
-                    size: 30,
-                  ),
+                  alignment: Alignment.centerRight,
+                  padding: const EdgeInsets.only(right: 20),
+                  child: const Icon(Icons.delete, color: Colors.red, size: 30),
                 ),
-
-                // 4. 逻辑：当滑动完成，真正删除数据
                 onDismissed: (direction) {
-                  // 先暂存被删除的数据（为了做撤销功能）
                   final deletedItem = item;
                   final deletedIndex = index;
 
                   setState(() {
-                    _ingredients.removeAt(index); // 从列表移除
+                    _ingredients.removeAt(index);
                   });
 
-                  // 底部提示：已删除 + 撤销按钮
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text("${deletedItem.name} deleted"),
                       action: SnackBarAction(
                         label: "UNDO",
                         onPressed: () {
-                          // 撤销操作：把数据插回去
                           setState(() {
                             _ingredients.insert(deletedIndex, deletedItem);
                           });
@@ -229,68 +195,36 @@ class _InventoryPageState extends State<InventoryPage>
                     ),
                   );
                 },
-
-                // 5. 子组件：原本的卡片
                 child: _buildIngredientCard(item),
               );
             },
           ),
+
+          // 展开菜单时的半透明遮罩
           if (_isExpanded)
             GestureDetector(
-              onTap: _toggleExpand, // 点击空白处收起
+              onTap: _toggleExpand,
               child: Container(
-                color: Colors.black54, // 半透明黑底
+                color: Colors.black54,
                 width: double.infinity,
                 height: double.infinity,
               ),
             ),
+
+          // 🔥 4. 底部“生成食谱”按钮 (使用你的 GenerateRecipeButton)
           if (!_isExpanded)
             Positioned(
               left: 0,
               right: 0,
-              bottom: 20, // 悬浮在底部
+              bottom: 20,
               child: Center(
-                child: Container(
-                  height: 50,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Colors.orange, Colors.deepOrange],
-                    ),
-                    borderRadius: BorderRadius.circular(25),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.orange.withOpacity(0.4),
-                        blurRadius: 10,
-                        offset: Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      // TODO: 跳转到 Recipe 页，并带上当前库存数据
-                      print("生成食谱！");
-                    },
-                    icon: Icon(
-                      Icons.auto_awesome,
-                      color: Colors.white,
-                    ), // AI 的图标
-                    label: Text(
-                      "Generate Recipe",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      shadowColor: Colors.transparent,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(25),
-                      ),
-                      padding: EdgeInsets.symmetric(horizontal: 24),
-                    ),
-                  ),
+                child: GenerateRecipeButton(
+                  onPressed: () {
+                    // 跳转逻辑：查找 MainScaffoldState 并切换 Tab
+                    context
+                        .findAncestorStateOfType<MainScaffoldState>()
+                        ?.switchTab(1);
+                  },
                 ),
               ),
             ),
@@ -299,33 +233,27 @@ class _InventoryPageState extends State<InventoryPage>
     );
   }
 
-  // --- 模块 2: 食材卡片 (布局优化版：控制器右上角) ---
   Widget _buildIngredientCard(Ingredient item) {
-    // 现在的调用非常清爽
     return IngredientCard(
       item: item,
-      useStatusColors: true, // 开启变色警告
-      onTap: () => _navigateToEdit(item), // 点击卡片跳转
+      useStatusColors: true,
+      onTap: () => _navigateToEdit(item),
       onQuantityChanged: (val) {
-        // 更新数量 (setState 可加可不加，因为 QuantitySelector 内部有状态)
-        // 这里加 setState 是为了确保排序逻辑等可能依赖数量的地方能刷新
+        // 更新数量
         item.quantity = val;
+        // 注意：这里没调用 setState，如果需要即时排序变化，可以加 setState(() {})
       },
-      // unitOptions 不传 -> 默认只读单位
-      // onExpiryTap 不传 -> 日期不可点
     );
   }
 
-  // --- 模块 3: 炊具网格 (和之前保持一致) ---
   Widget _buildCookwareGrid() {
     return GridView.builder(
       padding: const EdgeInsets.all(16),
-      // gridDelegate 控制网格怎么排 (这里是一行 2 个)
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         mainAxisSpacing: 10,
         crossAxisSpacing: 10,
-        childAspectRatio: 1.2, // 宽比高稍微大一点
+        childAspectRatio: 1.2,
       ),
       itemCount: _cookwares.length,
       itemBuilder: (context, index) {
@@ -341,12 +269,10 @@ class _InventoryPageState extends State<InventoryPage>
         : Colors.grey.shade100;
 
     return GestureDetector(
-      // 点击切换拥有的状态
       onTap: () {
         setState(() {
           item.isAvailable = !item.isAvailable;
         });
-        // 显示底部的提示条 SnackBar
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -360,7 +286,7 @@ class _InventoryPageState extends State<InventoryPage>
         );
       },
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300), // 动画过渡时间
+        duration: const Duration(milliseconds: 300),
         decoration: BoxDecoration(
           color: bgColor,
           borderRadius: BorderRadius.circular(12),
@@ -368,7 +294,6 @@ class _InventoryPageState extends State<InventoryPage>
             color: item.isAvailable ? Colors.orange : Colors.grey.shade300,
             width: 2,
           ),
-          // 如果拥有，加一个绿色的阴影
           boxShadow: item.isAvailable
               ? [
                   BoxShadow(
@@ -411,17 +336,15 @@ class _InventoryPageState extends State<InventoryPage>
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        // 1. 上面的小按钮：手动输入
+        // 1. 手动输入按钮
         SizeTransition(
           sizeFactor: _expandAnimation,
           child: FadeTransition(
             opacity: _expandAnimation,
             child: Container(
               margin: const EdgeInsets.only(bottom: 10),
-
-              // 🔥🔥🔥 核心修复：这里必须加一个 Row！
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.end, // 强制靠右
+                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   FloatingActionButton.small(
                     heroTag: "btn_manual",
@@ -445,54 +368,46 @@ class _InventoryPageState extends State<InventoryPage>
                   ),
                 ],
               ),
-
-              // 🔥🔥🔥 Row 结束
             ),
           ),
         ),
 
-        // 2. 上面的小按钮：拍照
+        // 2. 拍照按钮
         SizeTransition(
           sizeFactor: _expandAnimation,
           child: FadeTransition(
             opacity: _expandAnimation,
             child: Container(
               margin: const EdgeInsets.only(bottom: 10),
-
-              // 🔥🔥🔥 核心修复：这里也要加 Row！
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.end, // 强制靠右
+                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   FloatingActionButton.small(
                     heroTag: "btn_camera",
                     onPressed: () async {
-                      // 🔥 加上 async
-                      _toggleExpand(); // 收起菜单
+                      _toggleExpand();
 
-                      // 1. 跳转到 AddItemPage 并等待最终结果
-                      final newItems = await Navigator.push(
+                      // 🔥 5. 修正跳转逻辑：适配 Review 页的新流程
+                      final result = await Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => const AddItemPage(),
                         ),
                       );
 
-                      // 2. 如果带回了数据，更新列表！
-                      if (newItems != null && newItems is List<Ingredient>) {
-                        setState(() {
-                          _ingredients.addAll(newItems); // 合并新数据
-                          _sortItems(); // 重新排序
-                        });
+                      if (!mounted) return;
 
-                        // 3. 弹窗提示成功
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              "${newItems.length} items added successfully!",
-                            ),
-                            backgroundColor: Colors.green,
-                          ),
-                        );
+                      // 处理 AddItemPage (ReviewPage) 返回的指令
+                      if (result == 'recipe') {
+                        // 如果用户想生成食谱，跳转 Tab
+                        context
+                            .findAncestorStateOfType<MainScaffoldState>()
+                            ?.switchTab(1);
+                      } else {
+                        // 否则 (比如返回 'kitchen' 或 null)，只需刷新当前页
+                        setState(() {
+                          // 触发 build，重新拉取全局数据并显示
+                        });
                       }
                     },
                     backgroundColor: Colors.orange.shade100,
@@ -500,13 +415,11 @@ class _InventoryPageState extends State<InventoryPage>
                   ),
                 ],
               ),
-
-              // 🔥🔥🔥 Row 结束
             ),
           ),
         ),
 
-        // 3. 大按钮 (保持不变)
+        // 3. 主开关按钮
         FloatingActionButton(
           heroTag: "btn_main",
           onPressed: _toggleExpand,
