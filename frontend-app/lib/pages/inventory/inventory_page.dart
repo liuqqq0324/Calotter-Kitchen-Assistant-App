@@ -6,6 +6,8 @@ import 'package:personal_sous_chef/data/static_data.dart'; // 引入全局数据
 import 'package:personal_sous_chef/pages/add_item/add_item_page.dart';
 import 'package:personal_sous_chef/widgets/generate_recipe_button.dart'; // 引入复用按钮
 import 'package:personal_sous_chef/main.dart'; // 🔥 引入 main.dart 以访问 MainScaffoldState
+import 'package:personal_sous_chef/models/cookware.dart';
+import 'package:personal_sous_chef/widgets/item_toggle_grid.dart';
 
 class InventoryPage extends StatefulWidget {
   const InventoryPage({super.key});
@@ -18,19 +20,8 @@ class _InventoryPageState extends State<InventoryPage>
     with SingleTickerProviderStateMixin {
   // 不要在定义时初始化，在 build 里同步
   late List<Ingredient> _ingredients;
-
-  final List<Cookware> _cookwares = [
-    Cookware(
-      name: 'Frying Pan',
-      icon: Icons.circle_outlined,
-      isAvailable: true,
-    ),
-    Cookware(name: 'Stock Pot', icon: Icons.coffee, isAvailable: true),
-    Cookware(name: 'Oven', icon: Icons.microwave, isAvailable: false),
-    Cookware(name: 'Blender', icon: Icons.electric_bolt, isAvailable: false),
-    Cookware(name: 'Knife Set', icon: Icons.cut, isAvailable: true),
-    Cookware(name: 'Rice Cooker', icon: Icons.rice_bowl, isAvailable: false),
-  ];
+  late List<Cookware> _seasonings;
+  late List<Cookware> _cookwares;
 
   late AnimationController _animationController;
   late Animation<double> _expandAnimation;
@@ -40,6 +31,9 @@ class _InventoryPageState extends State<InventoryPage>
   void initState() {
     super.initState();
     // 🔥 1. 移除这里的数据初始化，只保留动画逻辑
+
+    _seasonings = kBasicSeasonings;
+    _cookwares = kBasicCookware;
 
     _animationController = AnimationController(
       value: _isExpanded ? 1.0 : 0.0,
@@ -113,6 +107,26 @@ class _InventoryPageState extends State<InventoryPage>
     }
   }
 
+  // 🔥 2. 抽离通用的 Toggle 逻辑
+  // 这样 调料 和 炊具 都可以用这一个方法来处理点击
+  void _handleItemToggle(Cookware item) {
+    setState(() {
+      item.isAvailable = !item.isAvailable;
+    });
+    // 震动反馈或提示
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          item.isAvailable ? '${item.name} added!' : '${item.name} removed.',
+        ),
+        duration: const Duration(milliseconds: 500),
+        behavior: SnackBarBehavior.floating, // 悬浮样式更好看
+        width: 200, // 窄一点
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // 🔥 3. 核心修复：每次构建时同步全局数据并排序
@@ -121,19 +135,33 @@ class _InventoryPageState extends State<InventoryPage>
     _sortItems();
 
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('My Kitchen'),
           bottom: const TabBar(
             tabs: [
               Tab(icon: Icon(Icons.egg_alt), text: 'Ingredients'),
+              Tab(icon: Icon(Icons.local_dining), text: 'Seasonings'), // 新增调料
               Tab(icon: Icon(Icons.soup_kitchen), text: 'Cookware'),
             ],
           ),
         ),
         body: TabBarView(
-          children: [_buildIngredientPage(), _buildCookwareGrid()],
+          children: [
+            _buildIngredientPage(),
+            // 🔥 4. 使用复用组件渲染 调料 (Seasonings)
+            ItemToggleGrid(
+              items: _seasonings,
+              onToggle: _handleItemToggle, // 传入逻辑
+            ),
+
+            // 🔥 5. 使用复用组件渲染 炊具 (Cookware)
+            ItemToggleGrid(
+              items: _cookwares,
+              onToggle: _handleItemToggle, // 传入相同的逻辑
+            ),
+          ],
         ),
       ),
     );
@@ -247,91 +275,6 @@ class _InventoryPageState extends State<InventoryPage>
         item.quantity = val;
         // 注意：这里没调用 setState，如果需要即时排序变化，可以加 setState(() {})
       },
-    );
-  }
-
-  Widget _buildCookwareGrid() {
-    return GridView.builder(
-      padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        mainAxisSpacing: 10,
-        crossAxisSpacing: 10,
-        childAspectRatio: 1.2,
-      ),
-      itemCount: _cookwares.length,
-      itemBuilder: (context, index) {
-        return _buildCookwareCard(_cookwares[index]);
-      },
-    );
-  }
-
-  Widget _buildCookwareCard(Cookware item) {
-    final color = item.isAvailable ? Colors.orange : Colors.grey;
-    final bgColor = item.isAvailable
-        ? Colors.orange.shade50
-        : Colors.grey.shade100;
-
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          item.isAvailable = !item.isAvailable;
-        });
-        ScaffoldMessenger.of(context).hideCurrentSnackBar();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              item.isAvailable
-                  ? '${item.name} added!'
-                  : '${item.name} removed.',
-            ),
-            duration: const Duration(milliseconds: 500),
-          ),
-        );
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: item.isAvailable ? Colors.orange : Colors.grey.shade300,
-            width: 2,
-          ),
-          boxShadow: item.isAvailable
-              ? [
-                  BoxShadow(
-                    color: Colors.orange.withOpacity(0.2),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  ),
-                ]
-              : [],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(item.icon, size: 40, color: color),
-            const SizedBox(height: 10),
-            Text(
-              item.name,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: item.isAvailable ? Colors.black87 : Colors.grey,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              item.isAvailable ? 'Available' : 'Not Owned',
-              style: TextStyle(
-                color: color,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 

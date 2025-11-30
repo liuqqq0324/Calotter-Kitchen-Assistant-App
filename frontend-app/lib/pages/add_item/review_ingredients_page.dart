@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:personal_sous_chef/models/ingredient.dart';
 import 'package:personal_sous_chef/widgets/ingredient_card.dart';
 import 'package:personal_sous_chef/data/static_data.dart'; // 🔥 必须引入，用于更新全局数据
+import 'package:personal_sous_chef/pages/inventory/edit_ingredient_page.dart'; // 🔥 引入编辑页
 
 class ReviewIngredientsPage extends StatefulWidget {
   const ReviewIngredientsPage({super.key});
@@ -173,8 +174,47 @@ class _ReviewIngredientsPageState extends State<ReviewIngredientsPage> {
             children: [
               // Add Manually
               TextButton.icon(
-                onPressed: () {
-                  /* 跳转手动添加页逻辑 */
+                onPressed: () async {
+                  // 1. 创建一个临时的“空白”食材对象
+                  final newIngredient = Ingredient(
+                    name: "", // 留空，让用户填
+                    expiryDate: DateTime.now().add(
+                      const Duration(days: 7),
+                    ), // 默认过期时间
+                    quantity: 1,
+                    unit: 'pcs',
+                    imagePlaceholder: '📝', // 给个默认图标
+                  );
+
+                  // 2. 跳转到编辑页 (复用 isNew 逻辑)
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => EditIngredientPage(
+                        ingredient: newIngredient, // 把空白对象传过去
+                        isNew: true, // 🔥 标记为新建模式
+                      ),
+                    ),
+                  );
+
+                  // 3. 安全检查
+                  if (!mounted) return;
+
+                  // 4. 如果返回 true (代表用户点了 Done)，则加入列表
+                  if (result == true) {
+                    setState(() {
+                      // EditIngredientPage 是直接修改传入的对象的，
+                      // 所以此时 newIngredient 已经被填入了名字和数量
+                      _detectedItems.add(newIngredient);
+                    });
+
+                    // 可选：给个小提示
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text("Added ${newIngredient.name} manually"),
+                      ),
+                    );
+                  }
                 },
                 icon: const Icon(
                   Icons.add_circle_outline,

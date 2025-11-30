@@ -25,11 +25,3 @@ class Ingredient {
     return diff >= 0 && diff <= 3;
   }
 }
-
-class Cookware {
-  String name;
-  IconData icon;
-  bool isAvailable; // 是否拥有这个炊具
-
-  Cookware({required this.name, required this.icon, this.isAvailable = false});
-}
