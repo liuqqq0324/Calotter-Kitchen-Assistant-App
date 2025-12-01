@@ -13,8 +13,8 @@ COMMENT ON COLUMN sous_chef_cms.cms_session.user_id IS 'User id;Who performed th
 COMMENT ON COLUMN sous_chef_cms.cms_session.start_time IS 'Start time;Cooking start time';
 COMMENT ON COLUMN sous_chef_cms.cms_session.end_time IS 'End time;Cooking end time';
 COMMENT ON COLUMN sous_chef_cms.cms_session.meal_type IS 'Meal type;Meal type: [0 - other / unknown, 1 - breakfast, 2 - lunch, 3 - dinner, 4 - midnight snack, 5 - snack]';
-COMMENT ON COLUMN sous_chef_cms.cms_session.note IS 'Overall note;Overall note (e.g., "for mom's birthday celebration"';
-COMMENT ON TABLE sous_chef_cms.cms_session IS 'cms_session;This table records the start and end times for all users' cooking sessions, along with which meal they prepared.';
+COMMENT ON COLUMN sous_chef_cms.cms_session.note IS 'Overall note;Overall note (e.g., "for mom birthday celebration"';
+COMMENT ON TABLE sous_chef_cms.cms_session IS 'cms_session;This table records the start and end times for all user cooking sessions, along with which meal they prepared.';
 
 CREATE INDEX gk_cooking_history_user_id ON sous_chef_cms.cms_session (
     user_id ASC

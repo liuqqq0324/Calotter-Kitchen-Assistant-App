@@ -18,7 +18,7 @@ COMMENT ON COLUMN sous_chef_ims.ims_ingredient.current_unit IS 'Current unit;Cur
 COMMENT ON COLUMN sous_chef_ims.ims_ingredient.expiration_date IS 'Date of expiration;When the ingredient expires (for expiration display and reminder function)';
 COMMENT ON COLUMN sous_chef_ims.ims_ingredient.storage_location IS 'Location of storage;Where the ingredient stores (e.g., refrigerator, cabinetry)';
 COMMENT ON COLUMN sous_chef_ims.ims_ingredient.category_type IS 'Type of category;Redundant field or enumeration (e.g., "INGREDIENT" or "CONDIMENT")';
-COMMENT ON TABLE sous_chef_ims.ims_ingredient IS 'ims_ingredient;This table stores all users' ingredients. Each record contains the ingredient's basic information and specifies which user owns it.';
+COMMENT ON TABLE sous_chef_ims.ims_ingredient IS 'ims_ingredient;This table stores all user ingredients. Each record contains the ingredient basic information and specifies which user owns it.';
 
 CREATE INDEX gk_user_pantry_user_id ON sous_chef_ims.ims_ingredient (
     user_id ASC
