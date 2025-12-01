@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:personal_sous_chef/pages/inventory/inventory_page.dart'; // 建议检查路径是否正确
-import 'package:personal_sous_chef/pages/add_item/add_item_page.dart';
 import 'package:personal_sous_chef/pages/home/home_page.dart';
-// import 'package:personal_sous_chef/data/static_data.dart'; // 如果 main.dart 没直接用到这个，可以注释掉
-// import 'package:personal_sous_chef/models/ingredient.dart'; // 同上
+
 
 // 1. 定义全局 Key
 final GlobalKey<MainScaffoldState> mainScaffoldKey =
     GlobalKey<MainScaffoldState>();
+import 'pages/inventory/inventory_page.dart';
+import 'pages/add_item/add_item_page.dart';
+import 'pages/recipes/recipes_home_page.dart';
 
 void main() {
   runApp(const SousChefApp());
@@ -48,7 +48,7 @@ class MainScaffoldState extends State<MainScaffold> {
   // 因为 AddItemPage 或 InventoryPage 可能包含非 const 的逻辑
   late final List<Widget> _pages = <Widget>[
     const HomePage(),
-    const Center(child: Text('Page 2: Recipes')),
+    const RecipesHomePage(),
     const AddItemPage(), // 去掉 const
     const InventoryPage(), // 去掉 const
     const Center(child: Text('Page 5: User Profile')),
