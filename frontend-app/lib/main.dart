@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'pages/inventory/inventory_page.dart';
 import 'pages/add_item/add_item_page.dart';
+import 'pages/recipes/recipes_home_page.dart';
 
 void main() {
   runApp(const SousChefApp());
@@ -35,7 +36,7 @@ class _MainScaffoldState extends State<MainScaffold> {
   // 修改 _MainScaffoldState 类里面的 _pages 变量
   final List<Widget> _pages = <Widget>[
     const Center(child: Text('Page 1: Homepage')),
-    const Center(child: Text('Page 2: Recipes')),
+    const RecipesHomePage(),
     const AddItemPage(), // 中间的加号页面
     const InventoryPage(), // 原来的库存页移到这里了
     const Center(child: Text('Page 5: User Profile')),
