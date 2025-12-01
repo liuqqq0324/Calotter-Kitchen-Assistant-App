@@ -5,6 +5,7 @@ import 'package:personal_sous_chef/pages/home/home_page.dart';
 // import 'package:personal_sous_chef/data/static_data.dart'; // 如果 main.dart 没直接用到这个，可以注释掉
 // import 'package:personal_sous_chef/models/ingredient.dart'; // 同上
 import 'package:personal_sous_chef/pages/test_pages/backend_test_page.dart';
+import 'package:personal_sous_chef/pages/recipes/recipes_home_page.dart';
 
 // 1. 定义全局 Key
 final GlobalKey<MainScaffoldState> mainScaffoldKey =
