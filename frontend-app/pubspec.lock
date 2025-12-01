@@ -107,6 +107,7 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+<<<<<<< HEAD
   flutter_web_plugins:
     dependency: transitive
     description: flutter
@@ -130,6 +131,10 @@ packages:
     version: "0.15.6"
   http:
     dependency: transitive
+=======
+  http:
+    dependency: "direct main"
+>>>>>>> origin/yhua
     description:
       name: http
       sha256: "87721a4a50b19c7f1d49001e51409bddc46303966ce89a65af4f4e6004896412"
@@ -397,6 +402,7 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.1.1"
+<<<<<<< HEAD
   xdg_directories:
     dependency: transitive
     description:
@@ -405,6 +411,8 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.1.0"
+=======
+>>>>>>> origin/yhua
 sdks:
   dart: ">=3.10.1 <4.0.0"
   flutter: ">=3.35.0"
