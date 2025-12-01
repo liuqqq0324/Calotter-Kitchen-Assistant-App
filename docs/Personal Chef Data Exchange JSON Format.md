@@ -98,3 +98,7 @@ tags:
 
 # D. IMS (Inventory Management Service)
 ## 1. Add to Inventory Request (F -> B)
+
+# E. CMS (Cooking Management Service)
+
+# F. RMS (Recipe Management Service)
