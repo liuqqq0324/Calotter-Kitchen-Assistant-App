@@ -1,5 +1,3 @@
-import 'package:flutter/material.dart';
-
 class Ingredient {
   String name; // 食材名称
   DateTime expiryDate; // 过期时间

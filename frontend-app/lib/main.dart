@@ -4,6 +4,9 @@ import 'package:personal_sous_chef/pages/add_item/add_item_page.dart';
 import 'package:personal_sous_chef/pages/home/home_page.dart';
 // import 'package:personal_sous_chef/data/static_data.dart'; // 如果 main.dart 没直接用到这个，可以注释掉
 // import 'package:personal_sous_chef/models/ingredient.dart'; // 同上
+import 'package:personal_sous_chef/pages/test_pages/backend_test_page.dart';
+import 'dart:convert';
+import 'package:personal_sous_chef/config/api_config.dart';
 
 // 1. 定义全局 Key
 final GlobalKey<MainScaffoldState> mainScaffoldKey =
@@ -47,11 +50,11 @@ class MainScaffoldState extends State<MainScaffold> {
   // 🔥 修复点 5: 为了安全起见，去掉这里的 const
   // 因为 AddItemPage 或 InventoryPage 可能包含非 const 的逻辑
   late final List<Widget> _pages = <Widget>[
-    const HomePage(),
-    const Center(child: Text('Page 2: Recipes')),
-    const AddItemPage(), // 去掉 const
-    const InventoryPage(), // 去掉 const
-    const Center(child: Text('Page 5: User Profile')),
+    HomePage(),
+    Center(child: Text('Page 2: Recipes')),
+    AddItemPage(), // 去掉 const
+    InventoryPage(), // 去掉 const
+    BackendTestPage(),
   ];
 
   // 公开的切换方法

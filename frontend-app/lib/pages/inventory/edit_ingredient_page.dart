@@ -24,9 +24,6 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
   late String _unit;
   late DateTime _expiryDate;
 
-  // 单位选项列表
-  final List<String> _unitOptions = ['pcs', 'g', 'kg', 'ml', 'L', 'blocks'];
-
   @override
   void initState() {
     super.initState();
@@ -318,25 +315,6 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  // 封装大圆按钮
-  Widget _buildCircleBtn({
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        width: 50, // 大尺寸
-        height: 50,
-        decoration: const BoxDecoration(
-          color: Colors.orange, // 橙色实心
-          shape: BoxShape.circle,
-        ),
-        child: Icon(icon, color: Colors.white, size: 30),
       ),
     );
   }
