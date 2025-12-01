@@ -1,0 +1,5 @@
+# C# ignore list
+[Bb]in/
+[Oo]bj/
+.vs/
+*.user
