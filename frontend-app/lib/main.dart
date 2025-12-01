@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:personal_sous_chef/pages/home/home_page.dart';
-
+import 'pages/inventory/inventory_page.dart';
+import 'pages/add_item/add_item_page.dart';
+import 'pages/recipes/recipes_home_page.dart';
 
 // 1. 定义全局 Key
 final GlobalKey<MainScaffoldState> mainScaffoldKey =
     GlobalKey<MainScaffoldState>();
-import 'pages/inventory/inventory_page.dart';
-import 'pages/add_item/add_item_page.dart';
-import 'pages/recipes/recipes_home_page.dart';
 
 void main() {
   runApp(const SousChefApp());
