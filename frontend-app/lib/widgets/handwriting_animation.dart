@@ -61,4 +61,3 @@ class _HandwritingAnimationState extends State<HandwritingAnimation> {
     );
   }
 }
-

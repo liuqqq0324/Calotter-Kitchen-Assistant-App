@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:personal_sous_chef/pages/home/home_page.dart';
-<<<<<<< HEAD
 import 'pages/inventory/inventory_page.dart';
 import 'pages/add_item/add_item_page.dart';
 import 'pages/recipes/recipes_home_page.dart';
-=======
 // import 'package:personal_sous_chef/data/static_data.dart'; // 如果 main.dart 没直接用到这个，可以注释掉
 // import 'package:personal_sous_chef/models/ingredient.dart'; // 同上
 import 'package:personal_sous_chef/pages/test_pages/backend_test_page.dart';
->>>>>>> origin/yhua
 
 // 1. 定义全局 Key
 final GlobalKey<MainScaffoldState> mainScaffoldKey =
@@ -49,21 +46,11 @@ class MainScaffold extends StatefulWidget {
 class MainScaffoldState extends State<MainScaffold> {
   int _selectedIndex = 0;
 
-<<<<<<< HEAD
-  // 🔥 修复点 5: 为了安全起见，去掉这里的 const
-  // 因为 AddItemPage 或 InventoryPage 可能包含非 const 的逻辑
-  late final List<Widget> _pages = <Widget>[
-    const HomePage(),
-    const RecipesHomePage(),
-    const AddItemPage(), // 去掉 const
-    const InventoryPage(), // 去掉 const
-    const Center(child: Text('Page 5: User Profile')),
-=======
   // ✅ 改为 Getter (每次调用都生成新的 Widget 列表)
   // 这样能确保当你 setState 时，InventoryPage 会被重新构建
   List<Widget> get _pages => [
     HomePage(),
-    Center(child: Text('Page 2: Recipes')),
+    RecipesHomePage(),
     AddItemPage(),
 
     // 🔥 关键：去掉 const！
@@ -72,7 +59,6 @@ class MainScaffoldState extends State<MainScaffold> {
     InventoryPage(), // 👈 其实如果不去掉 const，只要 _pages 是 getter 也能生效，但建议去掉 const 保持动态性
 
     const BackendTestPage(),
->>>>>>> origin/yhua
   ];
 
   // 公开的切换方法
