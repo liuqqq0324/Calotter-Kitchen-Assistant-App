@@ -1,31 +1,33 @@
 import 'package:flutter/material.dart';
+// Modified by Chase: Import user static data / 由 Chase 修改：导入用户静态数据
+import '../../../data/user_static_data.dart';
 
-class TaboosListPage extends StatefulWidget {
-  const TaboosListPage({super.key});
+class PreferencesListPage extends StatefulWidget {
+  const PreferencesListPage({super.key});
 
   @override
-  State<TaboosListPage> createState() => _TaboosListPageState();
+  State<PreferencesListPage> createState() => _PreferencesListPageState();
 }
 
-class _TaboosListPageState extends State<TaboosListPage> {
-  // 假数据
-  List<String> taboos = ['Pork', 'Beef', 'Alcohol'];
-
+class _PreferencesListPageState extends State<PreferencesListPage> {
   final TextEditingController _textController = TextEditingController();
 
-  void _addTaboo() {
+  // Modified by Chase: Use global kCurrentUser.preferences instead of local data / 由 Chase 修改：使用全局 kCurrentUser.preferences 而不是本地数据
+  void _addPreference() {
     final text = _textController.text.trim();
     if (text.isNotEmpty) {
       setState(() {
-        taboos.add(text);
+        // Modified by Chase: Directly modify global kCurrentUser.preferences / 由 Chase 修改：直接修改全局 kCurrentUser.preferences
+        kCurrentUser.preferences.add(text);
         _textController.clear();
       });
     }
   }
 
-  void _removeTaboo(int index) {
+  void _removePreference(int index) {
     setState(() {
-      taboos.removeAt(index);
+      // Modified by Chase: Directly modify global kCurrentUser.preferences / 由 Chase 修改：直接修改全局 kCurrentUser.preferences
+      kCurrentUser.preferences.removeAt(index);
     });
   }
 
@@ -37,19 +39,20 @@ class _TaboosListPageState extends State<TaboosListPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Modified by Chase: Sync with global data in build method (following InventoryPage pattern) / 由 Chase 修改：在 build 方法中同步全局数据（遵循 InventoryPage 模式）
+    final preferences = kCurrentUser.preferences;
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Taboos'),
-      ),
+      appBar: AppBar(title: const Text('Preferences')),
       body: Column(
         children: [
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.all(16),
-              itemCount: taboos.length,
+              itemCount: preferences.length,
               itemBuilder: (context, index) {
                 return Dismissible(
-                  key: Key(taboos[index]),
+                  key: Key(preferences[index]),
                   direction: DismissDirection.endToStart,
                   background: Container(
                     alignment: Alignment.centerRight,
@@ -58,13 +61,11 @@ class _TaboosListPageState extends State<TaboosListPage> {
                     child: const Icon(Icons.delete, color: Colors.white),
                   ),
                   onDismissed: (direction) {
-                    _removeTaboo(index);
+                    _removePreference(index);
                   },
                   child: Card(
                     margin: const EdgeInsets.only(bottom: 8),
-                    child: ListTile(
-                      title: Text(taboos[index]),
-                    ),
+                    child: ListTile(title: Text(preferences[index])),
                   ),
                 );
               },
@@ -89,19 +90,19 @@ class _TaboosListPageState extends State<TaboosListPage> {
                   child: TextField(
                     controller: _textController,
                     decoration: const InputDecoration(
-                      hintText: 'Add taboo',
+                      hintText: 'Add preference',
                       border: OutlineInputBorder(),
                       contentPadding: EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 12,
                       ),
                     ),
-                    onSubmitted: (_) => _addTaboo(),
+                    onSubmitted: (_) => _addPreference(),
                   ),
                 ),
                 const SizedBox(width: 8),
                 IconButton(
-                  onPressed: _addTaboo,
+                  onPressed: _addPreference,
                   icon: const Icon(Icons.add_circle),
                   iconSize: 40,
                   color: Theme.of(context).colorScheme.primary,
@@ -114,4 +115,3 @@ class _TaboosListPageState extends State<TaboosListPage> {
     );
   }
 }
-

@@ -1,19 +1,18 @@
 import 'package:flutter/material.dart';
 import 'profile_view_page.dart';
+// Modified by Chase: Import user static data / 由 Chase 修改：导入用户静态数据
+import '../../../data/user_static_data.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // 假数据
-    const username = 'Chase_70_70';
-    const email = 'chase666@gmail.com';
+    // Modified by Chase: Read data from global kCurrentUser instead of hardcoded values / 由 Chase 修改：从全局 kCurrentUser 读取数据，而不是硬编码值
+    final user = kCurrentUser;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Settings'),
-      ),
+      appBar: AppBar(title: const Text('Settings')),
       body: Column(
         children: [
           // 用户信息区域（可点击返回）
@@ -22,7 +21,8 @@ class SettingsPage extends StatelessWidget {
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(
-                    builder: (context) => const ProfileViewPage()),
+                  builder: (context) => const ProfileViewPage(),
+                ),
               );
             },
             child: Padding(
@@ -40,7 +40,7 @@ class SettingsPage extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          username,
+                          user.username,
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -48,7 +48,7 @@ class SettingsPage extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          email,
+                          user.email,
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.grey[600],
@@ -70,7 +70,9 @@ class SettingsPage extends StatelessWidget {
             onTap: () {
               // TODO: 导航到修改密码页
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Change Password (To be implemented)')),
+                const SnackBar(
+                  content: Text('Change Password (To be implemented)'),
+                ),
               );
             },
           ),
@@ -98,7 +100,8 @@ class SettingsPage extends StatelessWidget {
                 builder: (context) => AlertDialog(
                   title: const Text('Delete Account'),
                   content: const Text(
-                      'Are you sure you want to delete your account? This action cannot be undone.'),
+                    'Are you sure you want to delete your account? This action cannot be undone.',
+                  ),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(context),
@@ -109,12 +112,11 @@ class SettingsPage extends StatelessWidget {
                         Navigator.pop(context);
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                              content: Text('Delete Account (To be implemented)')),
+                            content: Text('Delete Account (To be implemented)'),
+                          ),
                         );
                       },
-                      style: TextButton.styleFrom(
-                        foregroundColor: Colors.red,
-                      ),
+                      style: TextButton.styleFrom(foregroundColor: Colors.red),
                       child: const Text('Delete'),
                     ),
                   ],
@@ -127,4 +129,3 @@ class SettingsPage extends StatelessWidget {
     );
   }
 }
-

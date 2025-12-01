@@ -1,31 +1,33 @@
 import 'package:flutter/material.dart';
+// Modified by Chase: Import user static data / 由 Chase 修改：导入用户静态数据
+import '../../../data/user_static_data.dart';
 
-class AllergiesListPage extends StatefulWidget {
-  const AllergiesListPage({super.key});
+class TaboosListPage extends StatefulWidget {
+  const TaboosListPage({super.key});
 
   @override
-  State<AllergiesListPage> createState() => _AllergiesListPageState();
+  State<TaboosListPage> createState() => _TaboosListPageState();
 }
 
-class _AllergiesListPageState extends State<AllergiesListPage> {
-  // 假数据
-  List<String> allergies = ['Peanuts', 'Shellfish', 'Dairy'];
-
+class _TaboosListPageState extends State<TaboosListPage> {
   final TextEditingController _textController = TextEditingController();
 
-  void _addAllergy() {
+  // Modified by Chase: Use global kCurrentUser.taboos instead of local data / 由 Chase 修改：使用全局 kCurrentUser.taboos 而不是本地数据
+  void _addTaboo() {
     final text = _textController.text.trim();
     if (text.isNotEmpty) {
       setState(() {
-        allergies.add(text);
+        // Modified by Chase: Directly modify global kCurrentUser.taboos / 由 Chase 修改：直接修改全局 kCurrentUser.taboos
+        kCurrentUser.taboos.add(text);
         _textController.clear();
       });
     }
   }
 
-  void _removeAllergy(int index) {
+  void _removeTaboo(int index) {
     setState(() {
-      allergies.removeAt(index);
+      // Modified by Chase: Directly modify global kCurrentUser.taboos / 由 Chase 修改：直接修改全局 kCurrentUser.taboos
+      kCurrentUser.taboos.removeAt(index);
     });
   }
 
@@ -37,19 +39,20 @@ class _AllergiesListPageState extends State<AllergiesListPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Modified by Chase: Sync with global data in build method (following InventoryPage pattern) / 由 Chase 修改：在 build 方法中同步全局数据（遵循 InventoryPage 模式）
+    final taboos = kCurrentUser.taboos;
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Allergies'),
-      ),
+      appBar: AppBar(title: const Text('Taboos')),
       body: Column(
         children: [
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.all(16),
-              itemCount: allergies.length,
+              itemCount: taboos.length,
               itemBuilder: (context, index) {
                 return Dismissible(
-                  key: Key(allergies[index]),
+                  key: Key(taboos[index]),
                   direction: DismissDirection.endToStart,
                   background: Container(
                     alignment: Alignment.centerRight,
@@ -58,13 +61,11 @@ class _AllergiesListPageState extends State<AllergiesListPage> {
                     child: const Icon(Icons.delete, color: Colors.white),
                   ),
                   onDismissed: (direction) {
-                    _removeAllergy(index);
+                    _removeTaboo(index);
                   },
                   child: Card(
                     margin: const EdgeInsets.only(bottom: 8),
-                    child: ListTile(
-                      title: Text(allergies[index]),
-                    ),
+                    child: ListTile(title: Text(taboos[index])),
                   ),
                 );
               },
@@ -89,19 +90,19 @@ class _AllergiesListPageState extends State<AllergiesListPage> {
                   child: TextField(
                     controller: _textController,
                     decoration: const InputDecoration(
-                      hintText: 'Add allergy',
+                      hintText: 'Add taboo',
                       border: OutlineInputBorder(),
                       contentPadding: EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 12,
                       ),
                     ),
-                    onSubmitted: (_) => _addAllergy(),
+                    onSubmitted: (_) => _addTaboo(),
                   ),
                 ),
                 const SizedBox(width: 8),
                 IconButton(
-                  onPressed: _addAllergy,
+                  onPressed: _addTaboo,
                   icon: const Icon(Icons.add_circle),
                   iconSize: 40,
                   color: Theme.of(context).colorScheme.primary,
@@ -114,4 +115,3 @@ class _AllergiesListPageState extends State<AllergiesListPage> {
     );
   }
 }
-

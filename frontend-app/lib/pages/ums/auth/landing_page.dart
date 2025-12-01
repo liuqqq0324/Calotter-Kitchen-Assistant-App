@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'login_page.dart';
 import 'registration_page.dart';
-import '../widgets/video_background.dart';
-import '../widgets/handwriting_animation.dart';
-import '../widgets/gradient_button.dart';
+// Modified by Chase: Fixed import paths after moving to ums/auth/ folder / 由 Chase 修改：移动到 ums/auth/ 文件夹后修复导入路径
+// Need to go up 3 levels to reach lib/widgets/ / 需要向上3级才能到达 lib/widgets/
+import '../../../widgets/video_background.dart';
+import '../../../widgets/handwriting_animation.dart';
+import '../../../widgets/gradient_button.dart';
 
 class LandingPage extends StatelessWidget {
   const LandingPage({super.key});

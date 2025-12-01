@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import '../main.dart';
-import '../widgets/video_background.dart';
-import '../widgets/gradient_button.dart';
+// Modified by Chase: Fixed import paths after moving to ums/auth/ folder / 由 Chase 修改：移动到 ums/auth/ 文件夹后修复导入路径
+// Need to go up 3 levels to reach lib/main.dart and lib/widgets/ / 需要向上3级才能到达 lib/main.dart 和 lib/widgets/
+import '../../../main.dart';
+import '../../../widgets/video_background.dart';
+import '../../../widgets/gradient_button.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class LoginPage extends StatelessWidget {
