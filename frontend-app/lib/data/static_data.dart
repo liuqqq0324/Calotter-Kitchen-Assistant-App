@@ -1,7 +1,9 @@
 // lib/data/static_data.dart
-import 'package:personal_sous_chef/models/ingredient.dart'; // 1. 引入 Model
+import 'package:flutter/material.dart'; // 需要引入 material 库来使用 IconData
+import 'package:personal_sous_chef/models/ingredient.dart';
+import 'package:personal_sous_chef/models/cookware.dart'; // 🔥 引入 Cookware 模型
 
-// 2. 所有合法的食材名称库 (用于搜索补全)
+// 1. 食材名称补全库 (保持不变)
 const List<String> kAllIngredients = [
   'Apple',
   'Banana',
@@ -30,7 +32,7 @@ const List<String> kAllIngredients = [
   'Yogurt',
 ];
 
-// 3. 所有合法的单位选项
+// 2. 单位库 (保持不变)
 const List<String> kUnitOptions = [
   'pcs',
   'g',
@@ -42,8 +44,7 @@ const List<String> kUnitOptions = [
   'bag',
 ];
 
-// 4. 初始库存 mock 数据 (把原来写在 Page 里的搬过来)
-// 注意：这里不能用 const，因为 DateTime.now() 是运行时动态的
+// 3. 初始食材库存 (保持不变)
 final List<Ingredient> kInitialIngredients = [
   Ingredient(
     name: "Beef Steak",
@@ -80,4 +81,34 @@ final List<Ingredient> kInitialIngredients = [
     unit: 'pcs',
     imagePlaceholder: '🥕',
   ),
+];
+
+// 🔥 4. 新增：预设调味料列表 (Pantry Staples)
+// 这里我们复用 Cookware 模型，因为结构一样
+final List<Cookware> kBasicSeasonings = [
+  Cookware(name: 'Salt', icon: Icons.grain, isAvailable: true),
+  Cookware(
+    name: 'Sugar',
+    icon: Icons.check_box_outline_blank,
+    isAvailable: true,
+  ),
+  Cookware(name: 'Black Pepper', icon: Icons.scatter_plot, isAvailable: true),
+  Cookware(name: 'Soy Sauce', icon: Icons.invert_colors, isAvailable: true),
+  Cookware(name: 'Olive Oil', icon: Icons.opacity, isAvailable: true),
+  Cookware(name: 'Vinegar', icon: Icons.science, isAvailable: false),
+  Cookware(name: 'Garlic Powder', icon: Icons.spa, isAvailable: false),
+  Cookware(name: 'Chili Flakes', icon: Icons.whatshot, isAvailable: false),
+  Cookware(name: 'Ketchup', icon: Icons.fastfood, isAvailable: false),
+];
+
+// 🔥 5. 新增：预设炊具列表 (Tools)
+final List<Cookware> kBasicCookware = [
+  Cookware(name: 'Frying Pan', icon: Icons.circle_outlined, isAvailable: true),
+  Cookware(name: 'Stock Pot', icon: Icons.coffee, isAvailable: true),
+  Cookware(name: 'Chef Knife', icon: Icons.cut, isAvailable: true),
+  Cookware(name: 'Cutting Board', icon: Icons.dashboard, isAvailable: true),
+  Cookware(name: 'Oven', icon: Icons.microwave, isAvailable: false),
+  Cookware(name: 'Blender', icon: Icons.electric_bolt, isAvailable: false),
+  Cookware(name: 'Rice Cooker', icon: Icons.rice_bowl, isAvailable: false),
+  Cookware(name: 'Whisk', icon: Icons.loop, isAvailable: false),
 ];

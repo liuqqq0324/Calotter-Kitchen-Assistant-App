@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
-import 'pages/inventory/inventory_page.dart';
-import 'pages/add_item/add_item_page.dart';
-import 'pages/recipes/recipes_home_page.dart';
+import 'package:personal_sous_chef/pages/inventory/inventory_page.dart'; // 建议检查路径是否正确
+import 'package:personal_sous_chef/pages/add_item/add_item_page.dart';
+import 'package:personal_sous_chef/pages/home/home_page.dart';
+// import 'package:personal_sous_chef/data/static_data.dart'; // 如果 main.dart 没直接用到这个，可以注释掉
+// import 'package:personal_sous_chef/models/ingredient.dart'; // 同上
+import 'package:personal_sous_chef/pages/test_pages/backend_test_page.dart';
+
+// 1. 定义全局 Key
+final GlobalKey<MainScaffoldState> mainScaffoldKey =
+    GlobalKey<MainScaffoldState>();
 
 void main() {
   runApp(const SousChefApp());
@@ -15,34 +22,70 @@ class SousChefApp extends StatelessWidget {
     return MaterialApp(
       title: 'Sous Chef',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepOrange), // 主题色
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepOrange),
         useMaterial3: true,
       ),
-      home: const MainScaffold(),
+      // 🔥 修复点 1: 去掉这里的 const！
+      // 🔥 修复点 2: 显式把全局 key 传给 MainScaffold
+      home: MainScaffold(key: mainScaffoldKey),
     );
   }
 }
 
 class MainScaffold extends StatefulWidget {
+  // 🔥 修复点 3: 构造函数接收 key 并传给 super
+  // 因为我们要在运行时传入 key，所以这里最好也去掉 const (虽然留着也不一定会错，但去掉更稳妥)
   const MainScaffold({super.key});
 
   @override
-  State<MainScaffold> createState() => _MainScaffoldState();
+  State<MainScaffold> createState() => MainScaffoldState();
 }
 
-class _MainScaffoldState extends State<MainScaffold> {
-  int _selectedIndex = 0; // 当前选中的是第几个页面
+// 🔥 修复点 4: 确保类名是 MainScaffoldState (公有，没下划线)，方便外部引用
+class MainScaffoldState extends State<MainScaffold> {
+  int _selectedIndex = 0;
 
-  // 修改 _MainScaffoldState 类里面的 _pages 变量
-  final List<Widget> _pages = <Widget>[
-    const Center(child: Text('Page 1: Homepage')),
-    const RecipesHomePage(),
-    const AddItemPage(), // 中间的加号页面
-    const InventoryPage(), // 原来的库存页移到这里了
-    const Center(child: Text('Page 5: User Profile')),
+  // ✅ 改为 Getter (每次调用都生成新的 Widget 列表)
+  // 这样能确保当你 setState 时，InventoryPage 会被重新构建
+  List<Widget> get _pages => [
+    HomePage(),
+    RecipesHomePage(),
+    AddItemPage(),
+
+    // 🔥 关键：去掉 const！
+    // 这样每次 _pages 被读取时，都会创建一个新的 InventoryPage 引用
+    // Flutter 比较时发现引用变了，就会去触发它的 build()
+    InventoryPage(), // 👈 其实如果不去掉 const，只要 _pages 是 getter 也能生效，但建议去掉 const 保持动态性
+
+    const BackendTestPage(),
   ];
 
-  void _onItemTapped(int index) {
+  // 公开的切换方法
+  void switchTab(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
+  void _onItemTapped(int index) async {
+    if (index == 2) {
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const AddItemPage()),
+      );
+
+      if (result != null) {
+        setState(() {
+          if (result == 'kitchen') {
+            _selectedIndex = 3;
+          } else if (result == 'recipe') {
+            _selectedIndex = 1;
+          }
+        });
+      }
+      return;
+    }
+
     setState(() {
       _selectedIndex = index;
     });
@@ -55,43 +98,33 @@ class _MainScaffoldState extends State<MainScaffold> {
         title: const Text('Personal Sous Chef'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
-      body: _pages[_selectedIndex], // 显示当前选中的页面
-      // 修改 build 方法里的 bottomNavigationBar 部分
+      // 安全检查：防止索引越界
+      body: _selectedIndex < _pages.length ? _pages[_selectedIndex] : _pages[0],
+
       bottomNavigationBar: NavigationBar(
         onDestinationSelected: _onItemTapped,
         selectedIndex: _selectedIndex,
-        // 这里可以控制标签是否一直显示，或者只在选中时显示
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         destinations: const <Widget>[
-          // 1. Homepage
           NavigationDestination(
             icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home), // 选中时变实心，交互感更好
+            selectedIcon: Icon(Icons.home),
             label: 'Home',
           ),
-
-          // 2. Recipes
           NavigationDestination(
             icon: Icon(Icons.menu_book_outlined),
             selectedIcon: Icon(Icons.menu_book),
             label: 'Recipes',
           ),
-
-          // 3. Add Items (突出显示的中间按钮)
           NavigationDestination(
-            // 这里特意把 size 设大到 40 (默认是24)，并使用了圆形加号图标
             icon: Icon(Icons.add_circle, size: 40, color: Colors.orange),
             label: 'Add',
           ),
-
-          // 4. Inventory (原来的冰箱)
           NavigationDestination(
             icon: Icon(Icons.kitchen_outlined),
             selectedIcon: Icon(Icons.kitchen),
-            label: 'Kitchen', // 改个短点的名字适合导航栏
+            label: 'Kitchen',
           ),
-
-          // 5. UserInfo
           NavigationDestination(
             icon: Icon(Icons.person_outline),
             selectedIcon: Icon(Icons.person),

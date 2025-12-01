@@ -1,5 +1,3 @@
-import 'package:flutter/material.dart';
-
 class Ingredient {
   String name; // 食材名称
   DateTime expiryDate; // 过期时间
@@ -24,12 +22,4 @@ class Ingredient {
     final diff = expiryDate.difference(DateTime.now()).inDays;
     return diff >= 0 && diff <= 3;
   }
-}
-
-class Cookware {
-  String name;
-  IconData icon;
-  bool isAvailable; // 是否拥有这个炊具
-
-  Cookware({required this.name, required this.icon, this.isAvailable = false});
 }
