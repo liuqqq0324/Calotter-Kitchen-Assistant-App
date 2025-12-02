@@ -16,6 +16,55 @@ tags:
 
 ## 1. Backend -> AI Engine
 ```JSON
+{
+  "inventory": [
+    {
+      "name": "chicken thigh",
+      "amount_value": 500,
+      "amount_unit": "g",
+      "expires_at": "2025-11-29"
+    },
+    {
+      "name": "broccoli",
+      "amount_value": 300,
+      "amount_unit": "g",
+      "expires_at": "2025-11-30"
+    },
+    {
+      "name": "rice",
+      "amount_value": 400,
+      "amount_unit": "g",
+      "expires_at": null
+    }
+  ],
+  "calorie_target": {
+    "min_total_kcal": 1500,
+    "max_total_kcal": 1800
+  },
+  "servings": 1,
+  "diet_preferences": {
+    "cuisine_preferences": ["chinese", "japanese"],
+    "taste_preferences": ["light", "umami"],
+    "avoid_ingredients": ["coriander"],
+    "allergies": []
+  },
+  "generation_settings": {
+    "dish_count": 1,
+    "max_cooking_time_min": 40,
+    "difficulty_target": "easy"
+  },
+  "cookers": [
+    "stove",
+    "rice_cooker"
+  ],
+  "seasonings": [
+    "salt",
+    "sugar",
+    "black_pepper",
+    "soy_sauce",
+    "olive_oil"
+  ]
+}
 
 ```
 
@@ -23,6 +72,170 @@ tags:
 
 ## 1. AI-Engine -> Backend
 ```JSON
+{
+  "menus": [
+    {
+      "menu_id": 1,
+      "recipes": [
+        {
+          "title": "Garlic Butter Chicken with Steamed Broccoli",
+          "short_description": "Pan-seared chicken thigh with garlic butter sauce and light steamed broccoli.",
+          "servings": 1,
+          "cooking_time_min": 30,
+          "difficulty": "easy",
+          "total_calories_estimate": 650,
+          "ingredients": [
+            {
+              "name": "chicken thigh",
+              "amount_value": 200,
+              "amount_unit": "g",
+              "is_optional": false,
+              "category": "main"
+            },
+            {
+              "name": "broccoli",
+              "amount_value": 150,
+              "amount_unit": "g",
+              "is_optional": false,
+              "category": "main"
+            },
+            {
+              "name": "rice",
+              "amount_value": 80,
+              "amount_unit": "g",
+              "is_optional": false,
+              "category": "main"
+            },
+            {
+              "name": "olive oil",
+              "amount_value": 10,
+              "amount_unit": "ml",
+              "is_optional": false,
+              "category": "seasoning"
+            },
+            {
+              "name": "salt",
+              "amount_value": 3,
+              "amount_unit": "g",
+              "is_optional": false,
+              "category": "seasoning"
+            },
+            {
+              "name": "black pepper",
+              "amount_value": 1,
+              "amount_unit": "g",
+              "is_optional": true,
+              "category": "seasoning"
+            },
+            {
+              "name": "soy_sauce",
+              "amount_value": 5,
+              "amount_unit": "ml",
+              "is_optional": true,
+              "category": "seasoning"
+            }
+          ],
+          "steps": [
+            {
+              "step_number": 1,
+              "instruction": "Season the chicken thigh with salt and black pepper.",
+              "step_time_min": 5
+            },
+            {
+              "step_number": 2,
+              "instruction": "Pan-fry the chicken with olive oil over medium heat until cooked through.",
+              "step_time_min": 15
+            },
+            {
+              "step_number": 3,
+              "instruction": "Steam the broccoli until just tender.",
+              "step_time_min": 7
+            },
+            {
+              "step_number": 4,
+              "instruction": "Plate the rice, sliced chicken and broccoli, drizzle with a little soy sauce if desired.",
+              "step_time_min": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "menu_id": 2,
+      "recipes": [
+        {
+          "title": "Light Chicken and Broccoli Rice Bowl",
+          "short_description": "One-bowl light rice dish with simmered chicken and broccoli.",
+          "servings": 1,
+          "cooking_time_min": 25,
+          "difficulty": "easy",
+          "total_calories_estimate": 580,
+          "ingredients": [
+            {
+              "name": "chicken thigh",
+              "amount_value": 180,
+              "amount_unit": "g",
+              "is_optional": false,
+              "category": "main"
+            },
+            {
+              "name": "broccoli",
+              "amount_value": 120,
+              "amount_unit": "g",
+              "is_optional": false,
+              "category": "main"
+            },
+            {
+              "name": "rice",
+              "amount_value": 90,
+              "amount_unit": "g",
+              "is_optional": false,
+              "category": "main"
+            },
+            {
+              "name": "soy_sauce",
+              "amount_value": 8,
+              "amount_unit": "ml",
+              "is_optional": false,
+              "category": "seasoning"
+            },
+            {
+              "name": "salt",
+              "amount_value": 2,
+              "amount_unit": "g",
+              "is_optional": false,
+              "category": "seasoning"
+            },
+            {
+              "name": "olive_oil",
+              "amount_value": 5,
+              "amount_unit": "ml",
+              "is_optional": true,
+              "category": "seasoning"
+            }
+          ],
+          "steps": [
+            {
+              "step_number": 1,
+              "instruction": "Cook the rice in the rice cooker according to package instructions.",
+              "step_time_min": 15
+            },
+            {
+              "step_number": 2,
+              "instruction": "Stir-fry chicken pieces with a little oil until they change color.",
+              "step_time_min": 5
+            },
+            {
+              "step_number": 3,
+              "instruction": "Add broccoli, soy sauce, salt and a splash of water, simmer until broccoli is tender and chicken is cooked through.",
+              "step_time_min": 5
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
 
 ```
 
@@ -102,3 +315,395 @@ tags:
 # E. CMS (Cooking Management Service)
 
 # F. RMS (Recipe Management Service)
+## 1. Generate Menus (F -> B)
+- Request method and path: `POST /api/recipes/generate`
+- Request header:
+  - Authorization: Bearer `<accessToken>`
+  - Content-Type: application/json
+- Request body:
+
+```JSON
+{
+  "inventory": [
+    {
+      "name": "chicken thigh",
+      "amount_value": 500,
+      "amount_unit": "g",
+      "expires_at": "2025-11-29"
+    },
+    {
+      "name": "broccoli",
+      "amount_value": 300,
+      "amount_unit": "g",
+      "expires_at": "2025-11-30"
+    },
+    {
+      "name": "rice",
+      "amount_value": 400,
+      "amount_unit": "g",
+      "expires_at": null
+    }
+  ],
+  "calorie_target": {
+    "min_total_kcal": 1500,
+    "max_total_kcal": 1800
+  },
+  "servings": 1,
+  "diet_preferences": {
+    "cuisine_preferences": ["chinese", "japanese"],
+    "taste_preferences": ["light", "umami"],
+    "avoid_ingredients": ["coriander"],
+    "allergies": []
+  },
+  "generation_settings": {
+    "dish_count": 1,
+    "max_cooking_time_min": 40,
+    "difficulty_target": "easy"
+  },
+  "cookers": [
+    "stove",
+    "rice_cooker"
+  ],
+  "seasonings": [
+    "salt",
+    "sugar",
+    "black_pepper",
+    "soy_sauce",
+    "olive_oil"
+  ]
+}
+```
+- Response (B->F):
+
+```JSON
+{
+  "menus": [
+    {
+      "menu_id": 1,
+      "recipes": [
+        {
+          "title": "Garlic Butter Chicken with Steamed Broccoli",
+          "short_description": "Pan-seared chicken thigh with garlic butter sauce and steamed broccoli.",
+          "servings": 1,
+          "cooking_time_min": 30,
+          "difficulty": "easy",
+          "total_calories_estimate": 650,
+          "ingredients": [
+            {
+              "name": "chicken thigh",
+              "amount_value": 200,
+              "amount_unit": "g",
+              "is_optional": false
+            },
+            {
+              "name": "broccoli",
+              "amount_value": 150,
+              "amount_unit": "g",
+              "is_optional": false
+            },
+            {
+              "name": "rice",
+              "amount_value": 80,
+              "amount_unit": "g",
+              "is_optional": false
+            },
+            {
+              "name": "olive oil",
+              "amount_value": 10,
+              "amount_unit": "ml",
+              "is_optional": false
+            },
+            {
+              "name": "salt",
+              "amount_value": 3,
+              "amount_unit": "g",
+              "is_optional": false
+            },
+            {
+              "name": "black pepper",
+              "amount_value": 1,
+              "amount_unit": "g",
+              "is_optional": true
+            }
+          ],
+          "steps": [
+            {
+              "step_number": 1,
+              "instruction": "Season the chicken thigh with salt and black pepper.",
+              "step_time_min": 5
+            },
+            {
+              "step_number": 2,
+              "instruction": "Pan-fry the chicken with olive oil over medium heat until cooked through.",
+              "step_time_min": 15
+            },
+            {
+              "step_number": 3,
+              "instruction": "Steam the broccoli until just tender.",
+              "step_time_min": 7
+            },
+            {
+              "step_number": 4,
+              "instruction": "Plate the rice, sliced chicken and broccoli.",
+              "step_time_min": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "menu_id": 2,
+      "recipes": [
+        {
+          "title": "Light Chicken and Broccoli Rice Bowl",
+          "short_description": "One-bowl light rice dish with simmered chicken and broccoli.",
+          "servings": 1,
+          "cooking_time_min": 25,
+          "difficulty": "easy",
+          "total_calories_estimate": 580,
+          "ingredients": [
+            {
+              "name": "chicken thigh",
+              "amount_value": 180,
+              "amount_unit": "g",
+              "is_optional": false
+            },
+            {
+              "name": "broccoli",
+              "amount_value": 120,
+              "amount_unit": "g",
+              "is_optional": false
+            },
+            {
+              "name": "rice",
+              "amount_value": 90,
+              "amount_unit": "g",
+              "is_optional": false
+            },
+            {
+              "name": "soy_sauce",
+              "amount_value": 8,
+              "amount_unit": "ml",
+              "is_optional": false
+            },
+            {
+              "name": "salt",
+              "amount_value": 2,
+              "amount_unit": "g",
+              "is_optional": false
+            }
+          ],
+          "steps": [
+            {
+              "step_number": 1,
+              "instruction": "Cook the rice in the rice cooker according to package instructions.",
+              "step_time_min": 15
+            },
+            {
+              "step_number": 2,
+              "instruction": "Stir-fry chicken pieces with a little oil until they change color.",
+              "step_time_min": 5
+            },
+            {
+              "step_number": 3,
+              "instruction": "Add broccoli, soy sauce, salt and a splash of water, simmer until broccoli is tender and chicken is cooked through.",
+              "step_time_min": 5
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+## 2. Get Default Recipe Preferences (F -> B)
+- Request method and path: GET /api/recipes/preferences/default
+- Request header:
+	- Authorization: Bearer <accessToken>
+- Response (B -> F):
+
+```JSON
+{
+  "servings": 1,
+  "generation_settings": {
+    "dish_count": 1,
+    "max_cooking_time_min": 40,
+    "difficulty_target": "easy"
+  },
+  "diet_preferences": {
+    "cuisine_preferences": ["chinese", "japanese"],
+    "taste_preferences": ["light"],
+    "avoid_ingredients": [],
+    "allergies": []
+  },
+  "calorie_target": {
+    "min_total_kcal": 1500,
+    "max_total_kcal": 1800
+  }
+}
+```
+
+## 3. Get Favorite Recipes List (F -> B)
+- Request method and path: GET /api/users/me/favorite-recipes
+- Request header:
+	- Authorization: Bearer <accessToken>
+- Response (B -> F):
+
+```JSON
+{
+  "recipes": [
+    {
+      "recipeId": "rec_123456",
+      "title": "Tomato Egg Stir-fry",
+      "short_description": "Light Chinese-style stir fry with tomato and egg.",
+      "servings": 1,
+      "cooking_time_min": 15,
+      "difficulty": "easy",
+      "total_calories_estimate": 320
+    },
+    {
+      "recipeId": "rec_987654",
+      "title": "Garlic Butter Chicken",
+      "short_description": "Pan-seared chicken with garlic butter sauce.",
+      "servings": 1,
+      "cooking_time_min": 30,
+      "difficulty": "medium",
+      "total_calories_estimate": 800
+    }
+  ]
+}
+```
+
+## 4. Get Favorite Recipe Detail (F -> B)
+- Request method and path: GET /api/users/me/favorite-recipes/{recipeId}
+- Request header:
+	- Authorization: Bearer <accessToken>
+- Response (B -> F):
+
+```JSON
+{
+  "recipeId": "rec_123456",
+  "title": "Tomato Egg Stir-fry",
+  "short_description": "Light Chinese-style stir fry with tomato and egg.",
+  "servings": 1,
+  "cooking_time_min": 15,
+  "difficulty": "easy",
+  "total_calories_estimate": 320,
+  "ingredients": [
+    {
+      "name": "egg",
+      "amount_value": 2,
+      "amount_unit": "piece",
+      "is_optional": false
+    },
+    {
+      "name": "tomato",
+      "amount_value": 150,
+      "amount_unit": "g",
+      "is_optional": false
+    },
+    {
+      "name": "salt",
+      "amount_value": 2,
+      "amount_unit": "g",
+      "is_optional": false
+    }
+  ],
+  "steps": [
+    {
+      "step_number": 1,
+      "instruction": "Beat the eggs with a pinch of salt.",
+      "step_time_min": 3
+    },
+    {
+      "step_number": 2,
+      "instruction": "Stir-fry tomatoes until soft, then add eggs.",
+      "step_time_min": 7
+    },
+    {
+      "step_number": 3,
+      "instruction": "Season to taste and serve hot.",
+      "step_time_min": 5
+    }
+  ]
+}
+```
+
+## 5. Add favourite Recipe (F -> B)
+- Request method and path: POST /api/users/me/favorite-recipes
+- Request header:
+	- Authorization: Bearer <accessToken>
+	- Content-Type: application/json
+- Request body:
+
+```JSON
+{
+  "source": "generated_menu",
+  "recipe": {
+    "title": "Tomato Egg Stir-fry",
+    "short_description": "Light Chinese-style stir fry with tomato and egg.",
+    "servings": 1,
+    "cooking_time_min": 15,
+    "difficulty": "easy",
+    "total_calories_estimate": 320,
+    "ingredients": [
+      {
+        "name": "egg",
+        "amount_value": 2,
+        "amount_unit": "piece",
+        "is_optional": false
+      },
+      {
+        "name": "tomato",
+        "amount_value": 150,
+        "amount_unit": "g",
+        "is_optional": false
+      },
+      {
+        "name": "salt",
+        "amount_value": 2,
+        "amount_unit": "g",
+        "is_optional": false
+      }
+    ],
+    "steps": [
+      {
+        "step_number": 1,
+        "instruction": "Beat the eggs with a pinch of salt.",
+        "step_time_min": 3
+      },
+      {
+        "step_number": 2,
+        "instruction": "Stir-fry tomatoes until soft, then add eggs.",
+        "step_time_min": 7
+      },
+      {
+        "step_number": 3,
+        "instruction": "Season to taste and serve hot.",
+        "step_time_min": 5
+      }
+    ]
+  }
+}
+```
+- Response (B -> F):
+
+```JSON
+{
+  "recipeId": "rec_123456",
+  "message": "Recipe added to favorites"
+}
+```
+
+## 7. Remove Favorite Recipe (F -> B)
+- Request method and path: DELETE /api/users/me/favorite-recipes/{recipeId}
+- Request header:
+	- Authorization: Bearer <accessToken>
+- Response (B -> F):
+
+```JSON
+{
+  "message": "Recipe removed from favorites"
+}
+```
