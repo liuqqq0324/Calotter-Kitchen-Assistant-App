@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:personal_sous_chef/pages/home/home_page.dart';
 import 'package:personal_sous_chef/pages/inventory/inventory_page.dart';
 import 'package:personal_sous_chef/pages/add_item/add_item_page.dart';
@@ -27,6 +28,39 @@ class SousChefApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepOrange),
         useMaterial3: true,
+        // 手绘风格字体主题
+        textTheme: TextTheme(
+          displayLarge: GoogleFonts.caveat(
+            fontSize: 48,
+            fontWeight: FontWeight.bold,
+          ),
+          displayMedium: GoogleFonts.caveat(
+            fontSize: 36,
+            fontWeight: FontWeight.bold,
+          ),
+          displaySmall: GoogleFonts.caveat(
+            fontSize: 28,
+            fontWeight: FontWeight.w600,
+          ),
+          headlineMedium: GoogleFonts.caveat(
+            fontSize: 24,
+            fontWeight: FontWeight.w600,
+          ),
+          titleLarge: GoogleFonts.kalam(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+          ),
+          bodyLarge: GoogleFonts.kalam(
+            fontSize: 16,
+          ),
+          bodyMedium: GoogleFonts.kalam(
+            fontSize: 14,
+          ),
+          labelLarge: GoogleFonts.caveat(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ),
       // Modified by Chase: Changed app entry point to LandingPage / 由 Chase 修改：将应用入口改为启动页
       // Users will see login/registration options first / 用户首先看到登录/注册选项
@@ -99,8 +133,15 @@ class MainScaffoldState extends State<MainScaffold> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Personal Sous Chef'),
+        title: Text(
+          'Personal Sous Chef',
+          style: GoogleFonts.caveat(
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        elevation: 0,
       ),
       // 安全检查：防止索引越界
       body: _selectedIndex < _pages.length ? _pages[_selectedIndex] : _pages[0],

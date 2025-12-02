@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 // Need to go up 3 levels to reach lib/main.dart and lib/widgets/ / 需要向上3级才能到达 lib/main.dart 和 lib/widgets/
 import '../../../main.dart';
 import '../../../widgets/video_background.dart';
-import '../../../widgets/gradient_button.dart';
+import '../../../widgets/sketchy_button.dart';
+import '../../../widgets/sketchy_card.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class LoginPage extends StatelessWidget {
@@ -15,8 +16,9 @@ class LoginPage extends StatelessWidget {
       appBar: AppBar(
         title: Text(
           'Log in',
-          style: GoogleFonts.poppins(
-            fontWeight: FontWeight.w600,
+          style: GoogleFonts.caveat(
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
           ),
         ),
         backgroundColor: Colors.transparent,
@@ -33,8 +35,12 @@ class LoginPage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 60),
-                // Log in with email or username
-                InkWell(
+                // Log in with email or username - 手绘风格卡片
+                SketchyCard(
+                  backgroundColor: Colors.white.withOpacity(0.95),
+                  borderColor: Colors.black87,
+                  borderWidth: 2.0,
+                  padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
                   onTap: () {
                     // 直接进入主应用（demo模式）
                     Navigator.pushReplacement(
@@ -43,48 +49,31 @@ class LoginPage extends StatelessWidget {
                           builder: (context) => const MainScaffold()),
                     );
                   },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 20, horizontal: 24),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.9),
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Log in with email → or username',
+                        style: GoogleFonts.kalam(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
                         ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Log in with email → or username',
-                          style: GoogleFonts.poppins(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        Icon(
-                          Icons.arrow_forward,
-                          color: Colors.green.shade600,
-                        ),
-                      ],
-                    ),
+                      ),
+                      Icon(
+                        Icons.arrow_forward,
+                        color: Colors.green.shade600,
+                      ),
+                    ],
                   ),
                 ),
                 const Spacer(),
-                // Back 按钮
-                GradientButton(
+                // Back 按钮 - 手绘风格
+                SketchyButton(
                   text: 'Back',
                   icon: Icons.arrow_back,
-                  gradientColors: [
-                    Colors.grey.shade600,
-                    Colors.grey.shade800,
-                  ],
+                  backgroundColor: Colors.grey.shade600,
+                  borderColor: Colors.grey.shade800,
                   onPressed: () {
                     Navigator.pop(context);
                   },

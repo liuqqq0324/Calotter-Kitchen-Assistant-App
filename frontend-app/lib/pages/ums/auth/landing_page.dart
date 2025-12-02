@@ -5,7 +5,7 @@ import 'registration_page.dart';
 // Need to go up 3 levels to reach lib/widgets/ / 需要向上3级才能到达 lib/widgets/
 import '../../../widgets/video_background.dart';
 import '../../../widgets/handwriting_animation.dart';
-import '../../../widgets/gradient_button.dart';
+import '../../../widgets/sketchy_button.dart';
 
 class LandingPage extends StatelessWidget {
   const LandingPage({super.key});
@@ -32,10 +32,12 @@ class LandingPage extends StatelessWidget {
                   animationDuration: Duration(seconds: 2),
                 ),
                 const SizedBox(height: 60),
-                // Log in 按钮
-                GradientButton(
+                // Log in 按钮 - 手绘风格
+                SketchyButton(
                   text: 'Log in',
                   icon: Icons.arrow_forward,
+                  backgroundColor: Colors.orange.shade400,
+                  borderColor: Colors.deepOrange.shade700,
                   onPressed: () {
                     Navigator.push(
                       context,
@@ -44,14 +46,12 @@ class LandingPage extends StatelessWidget {
                   },
                 ),
                 const SizedBox(height: 20),
-                // Sign up 按钮
-                GradientButton(
+                // Sign up 按钮 - 手绘风格
+                SketchyButton(
                   text: 'Sign up',
                   icon: Icons.arrow_forward,
-                  gradientColors: [
-                    Colors.green.shade400,
-                    Colors.blue.shade400,
-                  ],
+                  backgroundColor: Colors.green.shade400,
+                  borderColor: Colors.green.shade700,
                   onPressed: () {
                     Navigator.push(
                       context,
