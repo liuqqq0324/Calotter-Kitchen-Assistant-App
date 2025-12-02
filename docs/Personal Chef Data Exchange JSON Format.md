@@ -306,6 +306,167 @@ tags:
 	}
 }
 ```
+## 7. Get User Preferences Request (F -> B)
+
+Request method and path: GET /api/ums/user/preferences?id=2345678765678
+
+Request header:
+
+Authorization: Bearer
+
+Context-Type: application/json
+
+## 8. Get User Preferences Response (B -> F)
+
+```json
+{
+	"userId": 2345678765678,
+	"preferences": {
+		"dietaryType": "vegetarian",
+		"cuisineTypes": ["Italian", "Chinese", "Japanese"],
+		"spiceLevel": "medium",
+		"cookingTimePreference": "30-60min"
+	}
+}
+```
+
+## 9. Update User Preferences Request (F -> B)
+
+Request method and path: PUT /api/ums/user/preferences?id=2345678765678
+
+Request header:
+
+Authorization: Bearer
+
+Context-Type: application/json
+
+Request body:
+
+```json
+{
+	"dietaryType": "vegetarian",
+	"cuisineTypes": ["Italian", "Chinese", "Japanese"],
+	"spiceLevel": "medium",
+	"cookingTimePreference": "30-60min"
+}
+```
+
+## 10. Update User Preferences Response (B -> F)
+
+```json
+{
+	"userId": 2345678765678,
+	"message": "User preferences updated successfully"
+}
+```
+
+## 11. Get User Taboos Request (F -> B)
+
+Request method and path: GET /api/ums/user/taboos?id=2345678765678
+
+Request header:
+
+Authorization: Bearer
+
+Context-Type: application/json
+
+## 12. Get User Taboos Response (B -> F)
+
+```json
+{
+	"userId": 2345678765678,
+	"taboos": [
+		"pork",
+		"beef"
+	]
+}
+```
+
+## 13. Update User Taboos Request (F -> B)
+
+Request method and path: PUT /api/ums/user/taboos?id=2345678765678
+
+Request header:
+
+Authorization: Bearer
+
+Context-Type: application/json
+
+Request body:
+
+```json
+{
+	"taboos": [
+		"pork",
+		"beef",
+		"alcohol"
+	]
+}
+```
+
+## 14. Update User Taboos Response (B -> F)
+
+```json
+{
+	"userId": 2345678765678,
+	"message": "User taboos updated successfully"
+}
+```
+
+## 15. Get User Allergies Request (F -> B)
+
+Request method and path: GET /api/ums/user/allergies?id=2345678765678
+
+Request header:
+
+Authorization: Bearer
+
+Context-Type: application/json
+
+## 16. Get User Allergies Response (B -> F)
+
+```json
+{
+	"userId": 2345678765678,
+	"allergies": [
+		"peanuts",
+		"shellfish",
+		"dairy"
+	]
+}
+```
+
+## 17. Update User Allergies Request (F -> B)
+
+Request method and path: PUT /api/ums/user/allergies?id=2345678765678
+
+Request header:
+
+Authorization: Bearer
+
+Context-Type: application/json
+
+Request body:
+
+```json
+{
+	"allergies": [
+		"peanuts",
+		"shellfish",
+		"dairy",
+		"eggs"
+	]
+}
+```
+
+## 18. Update User Allergies Response (B -> F)
+
+```json
+{
+	"userId": 2345678765678,
+	"message": "User allergies updated successfully"
+}
+```
 
 ## 
 
