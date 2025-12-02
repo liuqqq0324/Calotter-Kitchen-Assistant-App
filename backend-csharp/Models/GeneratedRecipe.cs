@@ -1,4 +1,5 @@
 // Models/GeneratedRecipe.cs
+namespace SousChefBackend.Models;
 
 public class GeneratedRecipe
 {
