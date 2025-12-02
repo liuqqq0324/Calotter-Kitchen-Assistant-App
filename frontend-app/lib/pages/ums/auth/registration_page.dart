@@ -35,7 +35,7 @@ class RegistrationPage extends StatelessWidget {
               borderWidth: 2.0,
               padding: const EdgeInsets.all(16),
               child: Row(
-                children: [
+              children: [
                   SketchyBorder(
                     borderColor: Colors.black87,
                     borderWidth: 2.0,
@@ -43,21 +43,21 @@ class RegistrationPage extends StatelessWidget {
                     roughness: 2.0,
                     child: const CircleAvatar(
                       radius: 38,
-                      backgroundColor: Colors.grey,
-                      child: Icon(Icons.person, size: 40, color: Colors.white),
+                  backgroundColor: Colors.grey,
+                  child: Icon(Icons.person, size: 40, color: Colors.white),
                     ),
-                  ),
-                  const SizedBox(width: 16),
+                ),
+                const SizedBox(width: 16),
                   Expanded(
-                    child: Text(
-                      'Upload your picture',
+                  child: Text(
+                    'Upload your picture',
                       style: GoogleFonts.kalam(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
-                    ),
                   ),
-                ],
+                ),
+              ],
               ),
             ),
             const SizedBox(height: 40),
@@ -70,7 +70,7 @@ class RegistrationPage extends StatelessWidget {
               child: TextField(
                 style: GoogleFonts.kalam(fontSize: 16),
                 decoration: InputDecoration(
-                  labelText: 'Username',
+                labelText: 'Username',
                   labelStyle: GoogleFonts.kalam(
                     color: Colors.grey[700],
                   ),
@@ -89,13 +89,13 @@ class RegistrationPage extends StatelessWidget {
                 style: GoogleFonts.kalam(fontSize: 16),
                 keyboardType: TextInputType.emailAddress,
                 decoration: InputDecoration(
-                  labelText: 'Email',
+                labelText: 'Email',
                   labelStyle: GoogleFonts.kalam(
                     color: Colors.grey[700],
                   ),
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.all(16),
-                ),
+              ),
               ),
             ),
             const SizedBox(height: 16),
@@ -108,13 +108,13 @@ class RegistrationPage extends StatelessWidget {
                 style: GoogleFonts.kalam(fontSize: 16),
                 obscureText: true,
                 decoration: InputDecoration(
-                  labelText: 'Password',
+                labelText: 'Password',
                   labelStyle: GoogleFonts.kalam(
                     color: Colors.grey[700],
                   ),
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.all(16),
-                ),
+              ),
               ),
             ),
             const SizedBox(height: 16),
@@ -127,13 +127,13 @@ class RegistrationPage extends StatelessWidget {
                 style: GoogleFonts.kalam(fontSize: 16),
                 obscureText: true,
                 decoration: InputDecoration(
-                  labelText: 'Confirm Password',
+                labelText: 'Confirm Password',
                   labelStyle: GoogleFonts.kalam(
                     color: Colors.grey[700],
                   ),
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.all(16),
-                ),
+              ),
               ),
             ),
             const SizedBox(height: 40),
@@ -143,14 +143,14 @@ class RegistrationPage extends StatelessWidget {
               isFullWidth: true,
               backgroundColor: Colors.orange.shade400,
               borderColor: Colors.deepOrange.shade700,
-              onPressed: () {
-                // 直接进入主应用（demo模式）
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => const MainScaffold()),
-                );
-              },
+                onPressed: () {
+                  // 直接进入主应用（demo模式）
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => const MainScaffold()),
+                  );
+                },
             ),
             const SizedBox(height: 20),
             // Back 按钮 - 手绘风格

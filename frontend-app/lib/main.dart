@@ -14,6 +14,9 @@ import 'package:personal_sous_chef/pages/ums/profile/profile_view_page.dart';
 final GlobalKey<MainScaffoldState> mainScaffoldKey =
     GlobalKey<MainScaffoldState>();
 
+// 2. 定义全局 RouteObserver 用于监听路由变化
+final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
+
 void main() {
   runApp(const SousChefApp());
 }
@@ -25,6 +28,7 @@ class SousChefApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Sous Chef',
+      navigatorObservers: [routeObserver], // 添加路由观察者
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepOrange),
         useMaterial3: true,

@@ -22,6 +22,26 @@ class HandwritingAnimation extends StatefulWidget {
 
 class _HandwritingAnimationState extends State<HandwritingAnimation> {
   bool _animationComplete = false;
+  int _animationKey = 0; // 用于强制重置 AnimatedTextKit
+
+  @override
+  void initState() {
+    super.initState();
+    // 每次创建新实例时，重置动画状态
+    _animationComplete = false;
+  }
+
+  @override
+  void didUpdateWidget(HandwritingAnimation oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 当 key 改变时（父组件传入新的 key），重置动画
+    if (oldWidget.key != widget.key) {
+      setState(() {
+        _animationComplete = false;
+        _animationKey++;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,8 +58,9 @@ class _HandwritingAnimationState extends State<HandwritingAnimation> {
       );
     }
 
-    // 手写动画效果
+    // 手写动画效果 - 使用 key 确保每次重置时完全重建
     return AnimatedTextKit(
+      key: ValueKey(_animationKey), // 使用内部 key 强制重建
       animatedTexts: [
         TypewriterAnimatedText(
           widget.text,

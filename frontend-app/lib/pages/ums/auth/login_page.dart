@@ -26,8 +26,10 @@ class LoginPage extends StatelessWidget {
       ),
       extendBodyBehindAppBar: true,
       body: VideoBackground(
-        // 使用与启动页相同的视频或不同的视频
-        videoUrl: 'https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4',
+        // 使用与启动页相同的本地视频
+        videoPath: 'assets/videos/meow.mp4',
+        // 或者使用网络视频（备用，已注释）
+        // videoUrl: 'https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4',
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(24.0),
