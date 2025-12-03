@@ -3,62 +3,88 @@ using Microsoft.EntityFrameworkCore;
 using SousChefBackend.Data;
 using SousChefBackend.DTOs.Auth;
 using SousChefBackend.Models;
+using SousChefBackend.Services;
+using BCrypt.Net;
 
 namespace SousChefBackend.Controllers;
 
-[ApiController] // 标记这是一个 API 控制器
-[Route("api/[controller]")] // 路由地址: api/Auth
+[ApiController]
+[Route("api/ums/auth")]
 public class AuthController : ControllerBase
 {
-    private readonly AppDbContext _context;
+    private readonly ApplicationDbContext _context;
+    private readonly JwtService _jwtService;
 
-    // 构造函数：注入数据库上下文
-    public AuthController(AppDbContext context)
+    public AuthController(ApplicationDbContext context, JwtService jwtService)
     {
         _context = context;
+        _jwtService = jwtService;
     }
 
-    // POST: api/Auth/login
-    [HttpPost("login")]
-    public async Task<ActionResult<LoginResponse>> Login(LoginRequest request)
+    // 注册
+    [HttpPost("register")]
+    public async Task<IActionResult> Register([FromBody] RegisterRequest request)
     {
-        // 1. 去数据库查有没有这个名字的人
-        var user = await _context.Users
-            .Include(u => u.Kitchen) // 🔥 连表查询：顺便把他的厨房信息也查出来
-            .FirstOrDefaultAsync(u => u.Username == request.Username);
+        if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Password))
+            return BadRequest(new { message = "Username and password required" });
 
-        // 2. 检查用户是否存在
-        if (user == null)
-        {
-            return Unauthorized("User not found."); // 401 错误
-        }
+        if (await _context.Users.AnyAsync(u => u.Username == request.Username))
+            return Conflict(new { message = "Username exists" });
 
-        // 3. 检查密码 (这里暂时用明文比对，以后再加 Hash)
-        if (user.Password != request.Password)
+        var user = new User
         {
-            return Unauthorized("Wrong password."); // 401 错误
-        }
-
-        // 4. 检查有没有厨房 (如果没有，这是数据异常，我们临时创建一个)
-        if (user.Kitchen == null)
-        {
-            // 容错处理：万一这个用户没厨房，现场给他造一个
-            var newKitchen = new Kitchen { UserId = user.Id };
-            _context.Kitchens.Add(newKitchen);
-            await _context.SaveChangesAsync();
-            user.Kitchen = newKitchen;
-        }
-
-        // 5. 登录成功！组装数据返回给前端
-        var response = new LoginResponse
-        {
-            Id = user.Id,
-            Username = user.Username,
-            Email = user.Email,
-            KitchenId = user.Kitchen.Id, // 把厨房 ID 给前端
-            Token = "fake-jwt-token-for-dev" 
+            Username = request.Username,
+            Email = request.Email,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+            
+            // 🔥 注册即送厨房！
+            Kitchen = new Kitchen() 
         };
 
-        return Ok(response); // 200 OK
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+
+        return Ok(new RegisterResponse { UserId = user.UserId, Message = "Registered successfully" });
+    }
+
+    // 登录
+    [HttpPost("login")]
+    public async Task<IActionResult> Login([FromBody] LoginRequest request)
+    {
+        // 🔥 必须 Include Kitchen，否则 user.Kitchen 是 null
+        var user = await _context.Users
+            .Include(u => u.Kitchen) 
+            .FirstOrDefaultAsync(u => u.Username == request.Identifier || u.Email == request.Identifier);
+
+        if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
+        {
+            return Unauthorized(new { message = "Invalid credentials" });
+        }
+
+        // 厨房自愈 (如果老数据没厨房，现场造一个)
+        int kitchenId = 0;
+        if (user.Kitchen == null)
+        {
+            var newKitchen = new Kitchen { UserId = user.UserId };
+            _context.Kitchens.Add(newKitchen);
+            await _context.SaveChangesAsync();
+            kitchenId = newKitchen.Id;
+        }
+        else
+        {
+            kitchenId = user.Kitchen.Id;
+        }
+
+        // 生成 Token
+        var token = _jwtService.GenerateToken(user.UserId, user.Username);
+
+        return Ok(new LoginResponse
+        {
+            UserId = user.UserId,
+            KitchenId = kitchenId, // 🔥 前端拿去查库存
+            Token = new TokenInfo { AccessToken = token }
+        });
     }
 }

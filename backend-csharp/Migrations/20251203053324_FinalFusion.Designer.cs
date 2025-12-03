@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using SousChefBackend.Data;
@@ -10,10 +11,12 @@ using SousChefBackend.Data;
 
 namespace SousChefBackend.Migrations
 {
-    [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20251203053324_FinalFusion")]
+    partial class FinalFusion
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -70,6 +73,55 @@ namespace SousChefBackend.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("AiGenerationSessions");
+                });
+
+            modelBuilder.Entity("SousChefBackend.Models.GeneratedRecipe", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CookingTimeMin")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Difficulty")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("GeneratedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("IngredientsJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Servings")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ShortDescription")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("StepsJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<double>("TotalCaloriesEstimate")
+                        .HasColumnType("double precision");
+
+                    b.Property<string>("UsedCookwaresJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("GeneratedRecipes");
                 });
 
             modelBuilder.Entity("SousChefBackend.Models.GeneratedRecipeOption", b =>
@@ -173,8 +225,8 @@ namespace SousChefBackend.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("UserId")
-                        .HasColumnType("integer");
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
 
                     b.HasKey("Id");
 
@@ -182,13 +234,6 @@ namespace SousChefBackend.Migrations
                         .IsUnique();
 
                     b.ToTable("Kitchens");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            UserId = 1
-                        });
                 });
 
             modelBuilder.Entity("SousChefBackend.Models.MyCookware", b =>
@@ -293,62 +338,18 @@ namespace SousChefBackend.Migrations
                             Id = 5,
                             AiCode = "rice_cooker",
                             Name = "Rice Cooker"
-                        });
-                });
-
-            modelBuilder.Entity("SousChefBackend.Models.StandardCuisine", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("AiCode")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Name")
-                        .IsUnique();
-
-                    b.ToTable("StandardCuisines");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            AiCode = "chinese",
-                            Name = "Chinese"
                         },
                         new
                         {
-                            Id = 2,
-                            AiCode = "italian",
-                            Name = "Italian"
+                            Id = 6,
+                            AiCode = "pressure_cooker",
+                            Name = "Pressure Cooker"
                         },
                         new
                         {
-                            Id = 3,
-                            AiCode = "japanese",
-                            Name = "Japanese"
-                        },
-                        new
-                        {
-                            Id = 4,
-                            AiCode = "mexican",
-                            Name = "Mexican"
-                        },
-                        new
-                        {
-                            Id = 5,
-                            AiCode = "western",
-                            Name = "Western"
+                            Id = 7,
+                            AiCode = "blender",
+                            Name = "Blender"
                         });
                 });
 
@@ -455,6 +456,30 @@ namespace SousChefBackend.Migrations
                             Category = "Nuts",
                             ImageUrl = "",
                             Name = "Peanut"
+                        },
+                        new
+                        {
+                            Id = 10,
+                            BaseUnit = "g",
+                            Category = "Vegetable",
+                            ImageUrl = "",
+                            Name = "Carrot"
+                        },
+                        new
+                        {
+                            Id = 11,
+                            BaseUnit = "ml",
+                            Category = "Dairy",
+                            ImageUrl = "",
+                            Name = "Milk"
+                        },
+                        new
+                        {
+                            Id = 12,
+                            BaseUnit = "g",
+                            Category = "Dairy",
+                            ImageUrl = "",
+                            Name = "Cheese"
                         });
                 });
 
@@ -512,229 +537,167 @@ namespace SousChefBackend.Migrations
                         new
                         {
                             Id = 6,
+                            AiCode = "vinegar",
+                            Name = "Vinegar"
+                        },
+                        new
+                        {
+                            Id = 7,
                             AiCode = "chili_powder",
                             Name = "Chili Powder"
-                        });
-                });
-
-            modelBuilder.Entity("SousChefBackend.Models.StandardTaste", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("AiCode")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Name")
-                        .IsUnique();
-
-                    b.ToTable("StandardTastes");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            AiCode = "spicy",
-                            Name = "Spicy"
                         },
                         new
                         {
-                            Id = 2,
-                            AiCode = "sweet",
-                            Name = "Sweet"
-                        },
-                        new
-                        {
-                            Id = 3,
-                            AiCode = "sour",
-                            Name = "Sour"
-                        },
-                        new
-                        {
-                            Id = 4,
-                            AiCode = "salty",
-                            Name = "Salty"
-                        },
-                        new
-                        {
-                            Id = 5,
-                            AiCode = "light",
-                            Name = "Light"
+                            Id = 8,
+                            AiCode = "garlic_powder",
+                            Name = "Garlic Powder"
                         });
                 });
 
             modelBuilder.Entity("SousChefBackend.Models.User", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<long>("UserId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                        .HasColumnType("bigint")
+                        .HasColumnName("user_id");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("UserId"));
 
                     b.Property<int?>("Age")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("age");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
 
                     b.Property<string>("Email")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("email");
 
                     b.Property<string>("Gender")
-                        .HasColumnType("text");
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("gender");
 
-                    b.Property<double?>("HeightCm")
-                        .HasColumnType("double precision");
+                    b.Property<int?>("Height")
+                        .HasColumnType("integer")
+                        .HasColumnName("height");
 
-                    b.Property<string>("Password")
+                    b.Property<string>("PasswordHash")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("password_hash");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
 
                     b.Property<string>("Username")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("username");
 
-                    b.Property<double?>("WeightKg")
-                        .HasColumnType("double precision");
+                    b.Property<int?>("Weight")
+                        .HasColumnType("integer")
+                        .HasColumnName("weight");
 
-                    b.HasKey("Id");
+                    b.HasKey("UserId");
 
-                    b.ToTable("Users");
+                    b.HasIndex("Email")
+                        .IsUnique();
 
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Age = 25,
-                            Email = "admin@souschef.com",
-                            Gender = "Male",
-                            HeightCm = 175.0,
-                            Password = "password123",
-                            Username = "chef_admin",
-                            WeightKg = 70.0
-                        });
+                    b.HasIndex("Username")
+                        .IsUnique();
+
+                    b.ToTable("users");
                 });
 
             modelBuilder.Entity("SousChefBackend.Models.UserAllergy", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
-                    b.Property<int>("StandardIngredientId")
-                        .HasColumnType("integer");
+                    b.Property<string>("Allergy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("allergy");
 
-                    b.Property<int>("UserPreferenceId")
-                        .HasColumnType("integer");
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("user_id");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("StandardIngredientId");
+                    b.HasIndex("UserId");
 
-                    b.HasIndex("UserPreferenceId");
-
-                    b.ToTable("UserAllergies");
-                });
-
-            modelBuilder.Entity("SousChefBackend.Models.UserCuisinePref", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("StandardCuisineId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("UserPreferenceId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("StandardCuisineId");
-
-                    b.HasIndex("UserPreferenceId");
-
-                    b.ToTable("UserCuisinePrefs");
+                    b.ToTable("user_allergies");
                 });
 
             modelBuilder.Entity("SousChefBackend.Models.UserPreference", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
-                    b.Property<int?>("MaxCalories")
-                        .HasColumnType("integer");
+                    b.Property<string>("PreferenceType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("preference_type");
 
-                    b.Property<int?>("MinCalories")
-                        .HasColumnType("integer");
+                    b.Property<string>("PreferenceValue")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("preference_value");
 
-                    b.Property<int>("UserId")
-                        .HasColumnType("integer");
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("user_id");
 
                     b.HasKey("Id");
 
-                    b.ToTable("UserPreferences");
+                    b.HasIndex("UserId");
+
+                    b.ToTable("user_preferences");
                 });
 
             modelBuilder.Entity("SousChefBackend.Models.UserTaboo", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
-                    b.Property<int>("StandardIngredientId")
-                        .HasColumnType("integer");
+                    b.Property<string>("Taboo")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("taboo");
 
-                    b.Property<int>("UserPreferenceId")
-                        .HasColumnType("integer");
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("user_id");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("StandardIngredientId");
+                    b.HasIndex("UserId");
 
-                    b.HasIndex("UserPreferenceId");
-
-                    b.ToTable("UserTaboos");
-                });
-
-            modelBuilder.Entity("SousChefBackend.Models.UserTastePref", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("StandardTasteId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("UserPreferenceId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("StandardTasteId");
-
-                    b.HasIndex("UserPreferenceId");
-
-                    b.ToTable("UserTastePrefs");
+                    b.ToTable("user_taboos");
                 });
 
             modelBuilder.Entity("SousChefBackend.Models.GeneratedRecipeOption", b =>
@@ -765,11 +728,13 @@ namespace SousChefBackend.Migrations
 
             modelBuilder.Entity("SousChefBackend.Models.Kitchen", b =>
                 {
-                    b.HasOne("SousChefBackend.Models.User", null)
+                    b.HasOne("SousChefBackend.Models.User", "User")
                         .WithOne("Kitchen")
                         .HasForeignKey("SousChefBackend.Models.Kitchen", "UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("SousChefBackend.Models.MyCookware", b =>
@@ -808,70 +773,35 @@ namespace SousChefBackend.Migrations
 
             modelBuilder.Entity("SousChefBackend.Models.UserAllergy", b =>
                 {
-                    b.HasOne("SousChefBackend.Models.StandardIngredient", "StandardIngredient")
-                        .WithMany()
-                        .HasForeignKey("StandardIngredientId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("SousChefBackend.Models.UserPreference", null)
+                    b.HasOne("SousChefBackend.Models.User", "User")
                         .WithMany("Allergies")
-                        .HasForeignKey("UserPreferenceId")
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("StandardIngredient");
+                    b.Navigation("User");
                 });
 
-            modelBuilder.Entity("SousChefBackend.Models.UserCuisinePref", b =>
+            modelBuilder.Entity("SousChefBackend.Models.UserPreference", b =>
                 {
-                    b.HasOne("SousChefBackend.Models.StandardCuisine", "StandardCuisine")
-                        .WithMany()
-                        .HasForeignKey("StandardCuisineId")
+                    b.HasOne("SousChefBackend.Models.User", "User")
+                        .WithMany("Preferences")
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("SousChefBackend.Models.UserPreference", null)
-                        .WithMany("CuisinePrefs")
-                        .HasForeignKey("UserPreferenceId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("StandardCuisine");
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("SousChefBackend.Models.UserTaboo", b =>
                 {
-                    b.HasOne("SousChefBackend.Models.StandardIngredient", "StandardIngredient")
-                        .WithMany()
-                        .HasForeignKey("StandardIngredientId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("SousChefBackend.Models.UserPreference", null)
+                    b.HasOne("SousChefBackend.Models.User", "User")
                         .WithMany("Taboos")
-                        .HasForeignKey("UserPreferenceId")
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("StandardIngredient");
-                });
-
-            modelBuilder.Entity("SousChefBackend.Models.UserTastePref", b =>
-                {
-                    b.HasOne("SousChefBackend.Models.StandardTaste", "StandardTaste")
-                        .WithMany()
-                        .HasForeignKey("StandardTasteId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("SousChefBackend.Models.UserPreference", null)
-                        .WithMany("TastePrefs")
-                        .HasForeignKey("UserPreferenceId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("StandardTaste");
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("SousChefBackend.Models.AiGenerationSession", b =>
@@ -890,18 +820,13 @@ namespace SousChefBackend.Migrations
 
             modelBuilder.Entity("SousChefBackend.Models.User", b =>
                 {
-                    b.Navigation("Kitchen");
-                });
-
-            modelBuilder.Entity("SousChefBackend.Models.UserPreference", b =>
-                {
                     b.Navigation("Allergies");
 
-                    b.Navigation("CuisinePrefs");
+                    b.Navigation("Kitchen");
+
+                    b.Navigation("Preferences");
 
                     b.Navigation("Taboos");
-
-                    b.Navigation("TastePrefs");
                 });
 #pragma warning restore 612, 618
         }

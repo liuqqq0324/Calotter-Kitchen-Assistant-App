@@ -62,8 +62,8 @@ public class GeneratedRecipeOption
     public string Difficulty { get; set; } = string.Empty;
 
     // 详情 (JSONB)
-    public string IngredientsJson { get; set; } 
-    public string StepsJson { get; set; }
+    public string IngredientsJson { get; set; } = "[]";
+    public string StepsJson { get; set; } = "[]";
 
     // 🔥 [新增] AI 实际生成的份量 (可能跟请求的不一样)
     public int Servings { get; set; } 

@@ -1,14 +1,17 @@
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace SousChefBackend.Models;
 
 public class Kitchen
 {
-    public int Id { get; set; }
+    public int Id { get; set; } // 厨房ID还是用 int 没问题
     
-    // 简单起见，先假设 User 是 1。后期再做登录关联。
-    public int UserId { get; set; } 
+    // 🔥 适配 User 表的主键类型 (long)
+    public long UserId { get; set; } 
+    public User? User { get; set; }
 
-    // 三大金刚：库存、炊具、调料
-    // List = new(); 这种写法是为了防止空指针报错
+    // 三大金刚
     public List<InventoryItem> InventoryItems { get; set; } = new();
     public List<MyCookware> MyCookwares { get; set; } = new();
     public List<MySeasoning> MySeasonings { get; set; } = new();

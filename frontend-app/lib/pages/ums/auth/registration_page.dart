@@ -6,9 +6,108 @@ import '../../../main.dart';
 import '../../../widgets/sketchy_button.dart';
 import '../../../widgets/sketchy_card.dart';
 import '../../../widgets/sketchy_border.dart';
+import '../../../services/auth_service.dart';
 
-class RegistrationPage extends StatelessWidget {
+class RegistrationPage extends StatefulWidget {
   const RegistrationPage({super.key});
+
+  @override
+  State<RegistrationPage> createState() => _RegistrationPageState();
+}
+
+class _RegistrationPageState extends State<RegistrationPage> {
+  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
+  bool _isLoading = false;
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
+
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleRegister() async {
+    final username = _usernameController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+    final confirmPassword = _confirmPasswordController.text;
+
+    if (username.isEmpty || email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Please fill in all fields',
+            style: GoogleFonts.kalam(),
+          ),
+          backgroundColor: Colors.red.shade300,
+        ),
+      );
+      return;
+    }
+
+    if (password != confirmPassword) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Passwords do not match',
+            style: GoogleFonts.kalam(),
+          ),
+          backgroundColor: Colors.red.shade300,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    // Call backend API for registration
+    final result = await AuthService.register(
+      username: username,
+      email: email,
+      password: password,
+      confirmPassword: confirmPassword,
+    );
+
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+
+      if (result['success'] == true) {
+        // Registration successful, show success message and navigate to login
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Registration successful! Please login.',
+              style: GoogleFonts.kalam(),
+            ),
+            backgroundColor: Colors.green.shade300,
+          ),
+        );
+        Navigator.pop(context);
+      } else {
+        // Show error message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              result['error'] ?? 'Registration failed',
+              style: GoogleFonts.kalam(),
+            ),
+            backgroundColor: Colors.red.shade300,
+          ),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -68,6 +167,7 @@ class RegistrationPage extends StatelessWidget {
               borderWidth: 2.0,
               padding: EdgeInsets.zero,
               child: TextField(
+                controller: _usernameController,
                 style: GoogleFonts.kalam(fontSize: 16),
                 decoration: InputDecoration(
                 labelText: 'Username',
@@ -86,6 +186,7 @@ class RegistrationPage extends StatelessWidget {
               borderWidth: 2.0,
               padding: EdgeInsets.zero,
               child: TextField(
+                controller: _emailController,
                 style: GoogleFonts.kalam(fontSize: 16),
                 keyboardType: TextInputType.emailAddress,
                 decoration: InputDecoration(
@@ -105,8 +206,9 @@ class RegistrationPage extends StatelessWidget {
               borderWidth: 2.0,
               padding: EdgeInsets.zero,
               child: TextField(
+                controller: _passwordController,
                 style: GoogleFonts.kalam(fontSize: 16),
-                obscureText: true,
+                obscureText: _obscurePassword,
                 decoration: InputDecoration(
                 labelText: 'Password',
                   labelStyle: GoogleFonts.kalam(
@@ -114,6 +216,17 @@ class RegistrationPage extends StatelessWidget {
                   ),
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.all(16),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                      color: Colors.grey[700],
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _obscurePassword = !_obscurePassword;
+                      });
+                    },
+                  ),
               ),
               ),
             ),
@@ -124,8 +237,9 @@ class RegistrationPage extends StatelessWidget {
               borderWidth: 2.0,
               padding: EdgeInsets.zero,
               child: TextField(
+                controller: _confirmPasswordController,
                 style: GoogleFonts.kalam(fontSize: 16),
-                obscureText: true,
+                obscureText: _obscureConfirmPassword,
                 decoration: InputDecoration(
                 labelText: 'Confirm Password',
                   labelStyle: GoogleFonts.kalam(
@@ -133,24 +247,28 @@ class RegistrationPage extends StatelessWidget {
                   ),
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.all(16),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscureConfirmPassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                      color: Colors.grey[700],
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _obscureConfirmPassword = !_obscureConfirmPassword;
+                      });
+                    },
+                  ),
               ),
               ),
             ),
             const SizedBox(height: 40),
             // Confirm 按钮 - 手绘风格
             SketchyButton(
-              text: 'confirm',
+              text: _isLoading ? 'Registering...' : 'confirm',
               isFullWidth: true,
               backgroundColor: Colors.orange.shade400,
               borderColor: Colors.deepOrange.shade700,
-                onPressed: () {
-                  // 直接进入主应用（demo模式）
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => const MainScaffold()),
-                  );
-                },
+              onPressed: _isLoading ? () {} : () => _handleRegister(),
             ),
             const SizedBox(height: 20),
             // Back 按钮 - 手绘风格

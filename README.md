@@ -12,31 +12,36 @@
 
 ## 快速开始
 
-**详细的环境设置和操作指南，请查看：[环境设置指南](docs/环境设置指南.md)**
+**📖 详细启动指南：请查看 [启动指南.md](启动指南.md) 或 [STARTUP_GUIDE.md](STARTUP_GUIDE.md)**
 
 ### 简要步骤
 
 1. **安装前置要求**
-   - Flutter SDK (3.10.1+)
-   - Docker 和 Docker Compose
-   - Python 3.11+ (AI 引擎需要)
+   - Docker Desktop（用于 PostgreSQL 数据库）
+   - .NET SDK 10.0（用于 C# 后端）
+   - Flutter SDK 3.10.1+（用于 Flutter 前端）
+   - Android Studio（用于 Android 模拟器）
 
-2. **设置 Flutter 前端**
+2. **启动数据库**
    ```bash
-   cd frontend-app
-   flutter pub get
+   docker-compose up -d postgres
    ```
 
 3. **启动后端服务**
    ```bash
-   docker-compose up -d
+   cd backend-csharp
+   dotnet restore  # 首次运行需要
+   dotnet run
    ```
 
-4. **运行 Flutter 应用**
+4. **启动前端应用**
    ```bash
    cd frontend-app
+   flutter pub get  # 首次运行需要
    flutter run
    ```
+
+**⚠️ 重要提示：** 请按照 [启动指南.md](启动指南.md) 中的详细步骤操作，确保所有服务按正确顺序启动。
 
 ## 文档
 

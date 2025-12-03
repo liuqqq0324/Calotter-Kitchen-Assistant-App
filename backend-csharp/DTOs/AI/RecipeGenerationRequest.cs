@@ -24,12 +24,12 @@ public class RecipeGenerationRequest
 // 对应 Python inventory 里的 item
 public class AiInventoryItem
 {
-    public string Name { get; set; } // 英文名，来自 StandardIngredient
+    public string Name { get; set; } = string.Empty;// 英文名，来自 StandardIngredient
     public double AmountValue { get; set; }
     
     // 🔥 重点：Python 只要 "g", "ml", "piece"
     // 你的 C# 逻辑里必须把 "kg" 转成 "1000g"，把 "L" 转成 "1000ml"
-    public string AmountUnit { get; set; } 
+    public string AmountUnit { get; set; } = string.Empty;
     
     public string? ExpiresAt { get; set; } // "2025-12-01"
 }

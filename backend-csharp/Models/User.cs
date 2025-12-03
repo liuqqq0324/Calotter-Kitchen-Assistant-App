@@ -1,73 +1,110 @@
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace SousChefBackend.Models;
 
+[Table("users")]
 public class User
 {
-    public int Id { get; set; }
+    [Key]
+    [Column("user_id")]
+    public long UserId { get; set; }
+
+    [Required]
+    [MaxLength(100)]
+    [Column("username")]
     public string Username { get; set; } = string.Empty;
-    public string Password { get; set; } = string.Empty; // 暂时存明文，后面再加加密
+
+    [Required]
+    [MaxLength(255)]
+    [Column("email")]
     public string Email { get; set; } = string.Empty;
 
-    // 🔥 [新增] 身体数据 (可空，因为用户刚注册可能不想填)
-    public double? HeightCm { get; set; }
-    public double? WeightKg { get; set; }
-    public int? Age { get; set; }
-    public string? Gender { get; set; } // "Male", "Female", "Other"
+    [Required]
+    [Column("password_hash")]
+    public string PasswordHash { get; set; } = string.Empty;
 
-    // 导航属性
-    public Kitchen? Kitchen { get; set; }
+    [Column("age")] public int? Age { get; set; }
+    [MaxLength(20)] [Column("gender")] public string? Gender { get; set; }
+    [Column("height")] public int? Height { get; set; }
+    [Column("weight")] public int? Weight { get; set; }
+
+    [Column("created_at")] public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    [Column("updated_at")] public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    // 朋友定义的偏好关系
+    public virtual ICollection<UserPreference> Preferences { get; set; } = new List<UserPreference>();
+    public virtual ICollection<UserTaboo> Taboos { get; set; } = new List<UserTaboo>();
+    public virtual ICollection<UserAllergy> Allergies { get; set; } = new List<UserAllergy>();
+
+    // 🔥 [我们植入的核心] 厨房关联 (一对一)
+    public virtual Kitchen? Kitchen { get; set; }
 }
 
+// ... (保留下面的 UserPreference, UserTaboo, UserAllergy 类定义，保持不变) ...
+// 为了篇幅我不重复粘贴 UserPreference 等类，请保留你文件里原有的
+
+[Table("user_preferences")]
 public class UserPreference
 {
-    public int Id { get; set; }
-    public int UserId { get; set; }
+    [Key]
+    [Column("id")]
+    public long Id { get; set; }
 
-    // [新增] 目标热量 (可空，闭区间)
-    // 如果用户不填，就是 null，AI 就不会收到限制
-    public int? MinCalories { get; set; }
-    public int? MaxCalories { get; set; }
+    [Required]
+    [Column("user_id")]
+    public long UserId { get; set; }
 
-    // 下面是多对多关系，通过中间表实现
-    public List<UserAllergy> Allergies { get; set; } = new();
-    public List<UserTaboo> Taboos { get; set; } = new();
-    public List<UserCuisinePref> CuisinePrefs { get; set; } = new();
-    public List<UserTastePref> TastePrefs { get; set; } = new();
+    [Required]
+    [MaxLength(100)]
+    [Column("preference_type")]
+    public string PreferenceType { get; set; } = string.Empty; // "dietaryType", "cuisineTypes", "spiceLevel", "cookingTimePreference"
+
+    [Required]
+    [MaxLength(255)]
+    [Column("preference_value")]
+    public string PreferenceValue { get; set; } = string.Empty;
+
+    [ForeignKey("UserId")]
+    public virtual User User { get; set; } = null!;
 }
 
-// 关联表 1: 用户过敏 -> 指向标准食材
-public class UserAllergy 
+[Table("user_taboos")]
+public class UserTaboo
 {
-    public int Id { get; set; }
-    public int UserPreferenceId { get; set; }
-    
-    // 复用 StandardIngredient
-    public int StandardIngredientId { get; set; }
-    public StandardIngredient StandardIngredient { get; set; }
+    [Key]
+    [Column("id")]
+    public long Id { get; set; }
+
+    [Required]
+    [Column("user_id")]
+    public long UserId { get; set; }
+
+    [Required]
+    [MaxLength(100)]
+    [Column("taboo")]
+    public string Taboo { get; set; } = string.Empty;
+
+    [ForeignKey("UserId")]
+    public virtual User User { get; set; } = null!;
 }
 
-// 关联表 2: 用户禁忌 -> 指向标准食材 (逻辑同上，但语义不同)
-public class UserTaboo 
+[Table("user_allergies")]
+public class UserAllergy
 {
-    public int Id { get; set; }
-    public int UserPreferenceId { get; set; }
-    public int StandardIngredientId { get; set; }
-    public StandardIngredient StandardIngredient { get; set; }
-}
+    [Key]
+    [Column("id")]
+    public long Id { get; set; }
 
-// 关联表 3: 菜系偏好
-public class UserCuisinePref
-{
-    public int Id { get; set; }
-    public int UserPreferenceId { get; set; }
-    public int StandardCuisineId { get; set; }
-    public StandardCuisine StandardCuisine { get; set; }
-}
+    [Required]
+    [Column("user_id")]
+    public long UserId { get; set; }
 
-// 关联表 4: 口味偏好
-public class UserTastePref
-{
-    public int Id { get; set; }
-    public int UserPreferenceId { get; set; }
-    public int StandardTasteId { get; set; }
-    public StandardTaste StandardTaste { get; set; }
+    [Required]
+    [MaxLength(100)]
+    [Column("allergy")]
+    public string Allergy { get; set; } = string.Empty;
+
+    [ForeignKey("UserId")]
+    public virtual User User { get; set; } = null!;
 }

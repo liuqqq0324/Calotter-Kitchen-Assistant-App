@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace SousChefBackend.Models;
 
 // 用户的炊具 (开关)
