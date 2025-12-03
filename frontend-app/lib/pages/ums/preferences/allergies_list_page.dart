@@ -1,31 +1,33 @@
 import 'package:flutter/material.dart';
+// Modified by Chase: Import user static data / 由 Chase 修改：导入用户静态数据
+import '../../../data/user_static_data.dart';
 
-class PreferencesListPage extends StatefulWidget {
-  const PreferencesListPage({super.key});
+class AllergiesListPage extends StatefulWidget {
+  const AllergiesListPage({super.key});
 
   @override
-  State<PreferencesListPage> createState() => _PreferencesListPageState();
+  State<AllergiesListPage> createState() => _AllergiesListPageState();
 }
 
-class _PreferencesListPageState extends State<PreferencesListPage> {
-  // 假数据
-  List<String> preferences = ['Vegetarian', 'Low Carb', 'Gluten Free'];
-
+class _AllergiesListPageState extends State<AllergiesListPage> {
   final TextEditingController _textController = TextEditingController();
 
-  void _addPreference() {
+  // Modified by Chase: Use global kCurrentUser.allergies instead of local data / 由 Chase 修改：使用全局 kCurrentUser.allergies 而不是本地数据
+  void _addAllergy() {
     final text = _textController.text.trim();
     if (text.isNotEmpty) {
       setState(() {
-        preferences.add(text);
+        // Modified by Chase: Directly modify global kCurrentUser.allergies / 由 Chase 修改：直接修改全局 kCurrentUser.allergies
+        kCurrentUser.allergies.add(text);
         _textController.clear();
       });
     }
   }
 
-  void _removePreference(int index) {
+  void _removeAllergy(int index) {
     setState(() {
-      preferences.removeAt(index);
+      // Modified by Chase: Directly modify global kCurrentUser.allergies / 由 Chase 修改：直接修改全局 kCurrentUser.allergies
+      kCurrentUser.allergies.removeAt(index);
     });
   }
 
@@ -37,19 +39,20 @@ class _PreferencesListPageState extends State<PreferencesListPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Modified by Chase: Sync with global data in build method (following InventoryPage pattern) / 由 Chase 修改：在 build 方法中同步全局数据（遵循 InventoryPage 模式）
+    final allergies = kCurrentUser.allergies;
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Preferences'),
-      ),
+      appBar: AppBar(title: const Text('Allergies')),
       body: Column(
         children: [
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.all(16),
-              itemCount: preferences.length,
+              itemCount: allergies.length,
               itemBuilder: (context, index) {
                 return Dismissible(
-                  key: Key(preferences[index]),
+                  key: Key(allergies[index]),
                   direction: DismissDirection.endToStart,
                   background: Container(
                     alignment: Alignment.centerRight,
@@ -58,13 +61,11 @@ class _PreferencesListPageState extends State<PreferencesListPage> {
                     child: const Icon(Icons.delete, color: Colors.white),
                   ),
                   onDismissed: (direction) {
-                    _removePreference(index);
+                    _removeAllergy(index);
                   },
                   child: Card(
                     margin: const EdgeInsets.only(bottom: 8),
-                    child: ListTile(
-                      title: Text(preferences[index]),
-                    ),
+                    child: ListTile(title: Text(allergies[index])),
                   ),
                 );
               },
@@ -89,19 +90,19 @@ class _PreferencesListPageState extends State<PreferencesListPage> {
                   child: TextField(
                     controller: _textController,
                     decoration: const InputDecoration(
-                      hintText: 'Add preference',
+                      hintText: 'Add allergy',
                       border: OutlineInputBorder(),
                       contentPadding: EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 12,
                       ),
                     ),
-                    onSubmitted: (_) => _addPreference(),
+                    onSubmitted: (_) => _addAllergy(),
                   ),
                 ),
                 const SizedBox(width: 8),
                 IconButton(
-                  onPressed: _addPreference,
+                  onPressed: _addAllergy,
                   icon: const Icon(Icons.add_circle),
                   iconSize: 40,
                   color: Theme.of(context).colorScheme.primary,
@@ -114,4 +115,3 @@ class _PreferencesListPageState extends State<PreferencesListPage> {
     );
   }
 }
-

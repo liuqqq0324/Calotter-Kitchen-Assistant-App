@@ -1,11 +1,13 @@
 // lib/pages/recipes/recipes_home_page.dart
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:personal_sous_chef/data/collected_recipes_store.dart';
 import 'package:personal_sous_chef/models/recipe_models.dart';
 import 'package:personal_sous_chef/pages/recipes/recipe_generate_page.dart';
 import 'package:personal_sous_chef/pages/recipes/recipe_filter_page.dart';
 import 'package:personal_sous_chef/pages/recipes/recipe_instruction_page.dart';
 import 'package:personal_sous_chef/widgets/generate_recipe_button.dart';
+import 'package:personal_sous_chef/widgets/sketchy_card.dart';
 
 class RecipesHomePage extends StatefulWidget {
   const RecipesHomePage({super.key});
@@ -85,13 +87,14 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 顶部标题 + Filter 按钮
+            // 顶部标题 + Filter 按钮 - 手绘风格
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   'My Recipes',
-                  style: theme.textTheme.headlineSmall?.copyWith(
+                  style: GoogleFonts.caveat(
+                    fontSize: 32,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -101,23 +104,23 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                     foregroundColor: Colors.deepOrange,
                   ),
                   icon: const Icon(Icons.filter_list),
-                  label: const Text('Filter'),
+                  label: Text(
+                    'Filter',
+                    style: GoogleFonts.kalam(fontSize: 16),
+                  ),
                 ),
               ],
             ),
 
             const SizedBox(height: 8),
 
-            // 如果有 filter，总结一下当前条件
+            // 如果有 filter，总结一下当前条件 - 手绘风格
             if (summaryText != null) ...[
-              Container(
-                width: double.infinity,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.06),
-                  borderRadius: BorderRadius.circular(12),
-                ),
+              SketchyCard(
+                backgroundColor: Colors.orange.withOpacity(0.1),
+                borderColor: Colors.deepOrange.shade700,
+                borderWidth: 2.0,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 child: Row(
                   children: [
                     const Icon(
@@ -129,9 +132,10 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                     Expanded(
                       child: Text(
                         summaryText,
-                        style: theme.textTheme.bodySmall?.copyWith(
+                        style: GoogleFonts.kalam(
+                          fontSize: 14,
                           color: Colors.deepOrange.shade700,
-                          fontWeight: FontWeight.w500,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
@@ -141,9 +145,9 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                           _currentFilter = null;
                         });
                       },
-                      child: const Text(
+                      child: Text(
                         'Clear',
-                        style: TextStyle(fontSize: 12),
+                        style: GoogleFonts.kalam(fontSize: 12),
                       ),
                     ),
                   ],
@@ -171,16 +175,17 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                           const SizedBox(height: 12),
                           Text(
                             "You haven't saved any recipes yet.",
-                            style: TextStyle(
+                            style: GoogleFonts.kalam(
+                              fontSize: 16,
                               color: Colors.grey.shade600,
                             ),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             "Tap the button below to generate your first menu.",
-                            style: TextStyle(
+                            style: GoogleFonts.kalam(
+                              fontSize: 14,
                               color: Colors.grey.shade500,
-                              fontSize: 13,
                             ),
                           ),
                         ],
@@ -194,15 +199,16 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                     separatorBuilder: (_, __) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       if (index == 0) {
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 4),
-                          child: Text(
-                            'Collected menus',
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Text(
+                          'Collected menus',
+                          style: GoogleFonts.caveat(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
                           ),
-                        );
+                        ),
+                      );
                       }
 
                       final menu = favorites[index - 1];
@@ -275,13 +281,13 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
           ),
         );
       },
-      child: Card(
+      child: SketchyCard(
+        backgroundColor: Colors.white,
+        borderColor: Colors.black87,
+        borderWidth: 2.0,
         margin: EdgeInsets.zero,
-        elevation: 3,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Padding(
-          padding: const EdgeInsets.all(14.0),
-          child: Row(
+        padding: const EdgeInsets.all(14.0),
+        child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // 左侧：emoji 圆卡片
@@ -311,7 +317,8 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                       children: [
                         Text(
                           'Menu ${menu.menuId}',
-                          style: theme.textTheme.titleMedium?.copyWith(
+                          style: GoogleFonts.caveat(
+                            fontSize: 22,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -351,7 +358,8 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                       primaryRecipe.shortDescription,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall?.copyWith(
+                      style: GoogleFonts.kalam(
+                        fontSize: 14,
                         color: Colors.grey[700],
                       ),
                     ),
@@ -361,7 +369,7 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                     if (recipeTitles.length == 1)
                       Text(
                         recipeTitles.first,
-                        style: theme.textTheme.bodyMedium,
+                        style: GoogleFonts.kalam(fontSize: 16),
                       )
                     else
                       Column(
@@ -374,7 +382,7 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                               Expanded(
                                 child: Text(
                                   title,
-                                  style: theme.textTheme.bodyMedium,
+                                  style: GoogleFonts.kalam(fontSize: 16),
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
@@ -393,8 +401,10 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                         const SizedBox(width: 4),
                         Text(
                           '~ ${menu.totalCookingTimeMin} min',
-                          style: theme.textTheme.bodySmall
-                              ?.copyWith(color: Colors.grey[700]),
+                          style: GoogleFonts.kalam(
+                            fontSize: 12,
+                            color: Colors.grey[700],
+                          ),
                         ),
                         const SizedBox(width: 12),
                         Icon(Icons.local_fire_department,
@@ -402,8 +412,10 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                         const SizedBox(width: 4),
                         Text(
                           '${menu.totalCalories.toStringAsFixed(0)} kcal',
-                          style: theme.textTheme.bodySmall
-                              ?.copyWith(color: Colors.grey[700]),
+                          style: GoogleFonts.kalam(
+                            fontSize: 12,
+                            color: Colors.grey[700],
+                          ),
                         ),
                       ],
                     ),
@@ -411,7 +423,6 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                 ),
               ),
             ],
-          ),
         ),
       ),
     );

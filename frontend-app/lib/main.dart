@@ -1,15 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:personal_sous_chef/pages/home/home_page.dart';
-import 'pages/inventory/inventory_page.dart';
-import 'pages/add_item/add_item_page.dart';
-import 'pages/recipes/recipes_home_page.dart';
+import 'package:personal_sous_chef/pages/inventory/inventory_page.dart';
+import 'package:personal_sous_chef/pages/add_item/add_item_page.dart';
+import 'package:personal_sous_chef/pages/recipes/recipes_home_page.dart';
+// Modified by Chase: Import authentication and profile pages / 由 Chase 修改：导入认证和用户资料页面
+import 'package:personal_sous_chef/pages/ums/auth/landing_page.dart';
+import 'package:personal_sous_chef/pages/ums/profile/profile_view_page.dart';
 // import 'package:personal_sous_chef/data/static_data.dart'; // 如果 main.dart 没直接用到这个，可以注释掉
 // import 'package:personal_sous_chef/models/ingredient.dart'; // 同上
-import 'package:personal_sous_chef/pages/test_pages/backend_test_page.dart';
 
 // 1. 定义全局 Key
 final GlobalKey<MainScaffoldState> mainScaffoldKey =
     GlobalKey<MainScaffoldState>();
+
+// 2. 定义全局 RouteObserver 用于监听路由变化
+final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
 
 void main() {
   runApp(const SousChefApp());
@@ -22,13 +28,47 @@ class SousChefApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Sous Chef',
+      navigatorObservers: [routeObserver], // 添加路由观察者
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepOrange),
         useMaterial3: true,
+        // 手绘风格字体主题
+        textTheme: TextTheme(
+          displayLarge: GoogleFonts.caveat(
+            fontSize: 48,
+            fontWeight: FontWeight.bold,
+          ),
+          displayMedium: GoogleFonts.caveat(
+            fontSize: 36,
+            fontWeight: FontWeight.bold,
+          ),
+          displaySmall: GoogleFonts.caveat(
+            fontSize: 28,
+            fontWeight: FontWeight.w600,
+          ),
+          headlineMedium: GoogleFonts.caveat(
+            fontSize: 24,
+            fontWeight: FontWeight.w600,
+          ),
+          titleLarge: GoogleFonts.kalam(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+          ),
+          bodyLarge: GoogleFonts.kalam(
+            fontSize: 16,
+          ),
+          bodyMedium: GoogleFonts.kalam(
+            fontSize: 14,
+          ),
+          labelLarge: GoogleFonts.caveat(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ),
-      // 🔥 修复点 1: 去掉这里的 const！
-      // 🔥 修复点 2: 显式把全局 key 传给 MainScaffold
-      home: MainScaffold(key: mainScaffoldKey),
+      // Modified by Chase: Changed app entry point to LandingPage / 由 Chase 修改：将应用入口改为启动页
+      // Users will see login/registration options first / 用户首先看到登录/注册选项
+      home: const LandingPage(),
     );
   }
 }
@@ -57,8 +97,9 @@ class MainScaffoldState extends State<MainScaffold> {
     // 这样每次 _pages 被读取时，都会创建一个新的 InventoryPage 引用
     // Flutter 比较时发现引用变了，就会去触发它的 build()
     InventoryPage(), // 👈 其实如果不去掉 const，只要 _pages 是 getter 也能生效，但建议去掉 const 保持动态性
-
-    const BackendTestPage(),
+    // Modified by Chase: Replaced BackendTestPage with ProfileViewPage / 由 Chase 修改：将测试页面替换为用户资料页面
+    // This matches the "Me" navigation label / 这符合导航栏的 "Me" 标签
+    const ProfileViewPage(),
   ];
 
   // 公开的切换方法
@@ -96,8 +137,15 @@ class MainScaffoldState extends State<MainScaffold> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Personal Sous Chef'),
+        title: Text(
+          'Personal Sous Chef',
+          style: GoogleFonts.caveat(
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        elevation: 0,
       ),
       // 安全检查：防止索引越界
       body: _selectedIndex < _pages.length ? _pages[_selectedIndex] : _pages[0],
