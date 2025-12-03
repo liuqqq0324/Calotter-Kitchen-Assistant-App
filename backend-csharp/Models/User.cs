@@ -4,7 +4,17 @@ public class User
 {
     public int Id { get; set; }
     public string Username { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty; // 暂时存明文，后面再加加密
     public string Email { get; set; } = string.Empty;
+
+    // 🔥 [新增] 身体数据 (可空，因为用户刚注册可能不想填)
+    public double? HeightCm { get; set; }
+    public double? WeightKg { get; set; }
+    public int? Age { get; set; }
+    public string? Gender { get; set; } // "Male", "Female", "Other"
+
+    // 导航属性
+    public Kitchen? Kitchen { get; set; }
 }
 
 public class UserPreference

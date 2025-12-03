@@ -9,8 +9,8 @@ class ApiConfig {
   // 你的电脑 IP (Win+R -> cmd -> ipconfig -> IPv4)
   // 如果用模拟器，请填 "10.0.2.2"
 
-  static const String serverIp = "10.0.2.2";
-  //static const String serverIp = "172.23.170.226";
+  //static const String serverIp = "10.0.2.2";
+  static const String serverIp = "172.23.177.5";
 
   // C# 后端的端口 (查看 C# 项目终端显示的 http://0.0.0.0:xxxx)
   static const String port = "5108";

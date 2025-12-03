@@ -7,6 +7,11 @@ import '../../../widgets/sketchy_button.dart';
 import '../../../widgets/sketchy_card.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:personal_sous_chef/config/api_config.dart'; // 引入你的配置
+
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
 
@@ -16,10 +21,7 @@ class LoginPage extends StatelessWidget {
       appBar: AppBar(
         title: Text(
           'Log in',
-          style: GoogleFonts.caveat(
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-          ),
+          style: GoogleFonts.caveat(fontSize: 28, fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -42,14 +44,72 @@ class LoginPage extends StatelessWidget {
                   backgroundColor: Colors.white.withOpacity(0.95),
                   borderColor: Colors.black87,
                   borderWidth: 2.0,
-                  padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
-                  onTap: () {
-                    // 直接进入主应用（demo模式）
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => const MainScaffold()),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 20,
+                    horizontal: 24,
+                  ),
+                  onTap: () async {
+                    // 🔥 [新增] 显示 Loading (简单用个 SnackBar)
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Logging in as Test Admin..."),
+                      ),
                     );
+
+                    try {
+                      // 1. 准备假数据 (对应数据库里的 Seed Data)
+                      final loginBody = {
+                        "username": "chef_admin",
+                        "password": "password123",
+                      };
+
+                      // 2. 发送请求
+                      final url = Uri.parse(
+                        '${ApiConfig.baseUrl}/api/Auth/login',
+                      );
+                      final response = await http.post(
+                        url,
+                        headers: {"Content-Type": "application/json"},
+                        body: jsonEncode(loginBody),
+                      );
+
+                      // 3. 处理结果
+                      if (response.statusCode == 200) {
+                        final data = jsonDecode(response.body);
+
+                        // 4. 保存 Token 和 UserID
+                        final prefs = await SharedPreferences.getInstance();
+                        await prefs.setString('token', data['token']);
+                        await prefs.setInt('userId', data['id']);
+                        await prefs.setInt('kitchenId', data['kitchenId']);
+
+                        if (!context.mounted) return;
+
+                        // 5. 跳转主页
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const MainScaffold(),
+                          ),
+                        );
+                      } else {
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text("Login Failed: ${response.body}"),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text("Connection Error: $e"),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
                   },
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -62,10 +122,7 @@ class LoginPage extends StatelessWidget {
                           color: Colors.black87,
                         ),
                       ),
-                      Icon(
-                        Icons.arrow_forward,
-                        color: Colors.green.shade600,
-                      ),
+                      Icon(Icons.arrow_forward, color: Colors.green.shade600),
                     ],
                   ),
                 ),

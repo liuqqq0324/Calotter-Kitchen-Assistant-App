@@ -11,6 +11,9 @@ public class GeneratedRecipe
     public int CookingTimeMin { get; set; }
     public string Difficulty { get; set; } // easy, medium, hard
     public double TotalCaloriesEstimate { get; set; }
+
+    // 🔥 [新增] 
+    public string UsedCookwaresJson { get; set; } = "[]";
     
     // 步骤 (存 JSONB)
     // 对应 Python output: steps array

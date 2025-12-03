@@ -1,34 +1,46 @@
 namespace SousChefBackend.Models;
 
-// 记录每一次向 LLM 发起的请求 (Session)
 public class AiGenerationSession
 {
     public int Id { get; set; }
-    public int KitchenId { get; set; } // 谁发起的
-    
+    public int KitchenId { get; set; } 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     // ==================
-    // Request 快照 (发送给 AI 的参数)
+    // Request 快照 - 基础信息
     // ==================
-    
     public int Servings { get; set; } // 用餐人数
-    
-    // 这次请求的特定卡路里限制 (可能覆盖用户的默认设置)
     public int? TargetMinCalories { get; set; } 
     public int? TargetMaxCalories { get; set; }
 
-    // 🔥 关键：库存快照 (JSON)
-    // 存: [{"name": "Beef", "qty": 500, "unit": "g"}, ...]
-    public string InventorySnapshotJson { get; set; } = string.Empty;
+    // ==================
+    // Request 快照 - 生成设置 (补全这里!)
+    // ==================
+    // 对应 generation_settings.dish_count
+    public int DishCount { get; set; } = 1; 
 
-    // 🔥 关键：偏好快照 (JSON)
-    // 存: { "cuisines": ["Sichuan"], "tastes": ["Spicy"], "allergies": ["Peanut"] }
-    // 为什么不存外键？因为用户这次可能想尝试不一样的口味，覆盖默认设置。
-    public string PreferencesSnapshotJson { get; set; } = string.Empty;
+    // 对应 generation_settings.max_cooking_time_min
+    public int? MaxCookingTimeMin { get; set; } 
+
+    // 对应 generation_settings.difficulty_target (easy, medium, hard)
+    public string DifficultyTarget { get; set; } = "medium";
 
     // ==================
-    // Response 结果 (AI 返回的 5 个选项)
+    // Request 快照 - 复杂对象 (JSON)
+    // ==================
+    
+    // 对应 inventory
+    public string InventorySnapshotJson { get; set; } = string.Empty;
+
+    // 对应 diet_preferences (Cuisine, Taste, Allergy, Taboo)
+    public string PreferencesSnapshotJson { get; set; } = string.Empty;
+
+    // 🔥 [新增] 对应 cookers
+    // 存: ["stove", "oven", "air_fryer"]
+    public string CookersSnapshotJson { get; set; } = "[]"; 
+
+    // ==================
+    // Response 结果
     // ==================
     public List<GeneratedRecipeOption> GeneratedOptions { get; set; } = new();
 }
@@ -52,6 +64,12 @@ public class GeneratedRecipeOption
     // 详情 (JSONB)
     public string IngredientsJson { get; set; } 
     public string StepsJson { get; set; }
+
+    // 🔥 [新增] AI 实际生成的份量 (可能跟请求的不一样)
+    public int Servings { get; set; } 
+
+    // 🔥 [新增] 这道菜实际用到的炊具
+    public string UsedCookwaresJson { get; set; } = "[]";
 
     // 用户操作状态
     public bool IsSelected { get; set; } = false; // 用户是否最终选择了这一道去做

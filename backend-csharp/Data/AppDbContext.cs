@@ -110,5 +110,30 @@ public class AppDbContext : DbContext
         new StandardTaste { Id = 4, Name = "Salty", AiCode = "salty" },
         new StandardTaste { Id = 5, Name = "Light", AiCode = "light" }
     );
+
+    // 🔥 [新增] 预置 1 个用户
+    modelBuilder.Entity<User>().HasData(
+        new User 
+        { 
+            Id = 1, 
+            Username = "chef_admin", 
+            Password = "password123", // 测试用密码
+            Email = "admin@souschef.com",
+            HeightCm = 175,
+            WeightKg = 70,
+            Age = 25,
+            Gender = "Male"
+        }
+    );
+
+    // 🔥 [新增] 预置 1 个厨房 (对应这个用户)
+    // 既然 User 1 对应 Kitchen 1，我们必须把这个厨房造出来，否则用户登录后没厨房用
+    modelBuilder.Entity<Kitchen>().HasData(
+        new Kitchen 
+        { 
+            Id = 1, 
+            UserId = 1 
+        }
+    );
 }
 }

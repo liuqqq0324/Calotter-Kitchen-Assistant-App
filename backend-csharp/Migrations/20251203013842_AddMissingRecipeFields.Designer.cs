@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using SousChefBackend.Data;
@@ -11,9 +12,11 @@ using SousChefBackend.Data;
 namespace SousChefBackend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251203013842_AddMissingRecipeFields")]
+    partial class AddMissingRecipeFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -178,17 +181,7 @@ namespace SousChefBackend.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UserId")
-                        .IsUnique();
-
                     b.ToTable("Kitchens");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            UserId = 1
-                        });
                 });
 
             modelBuilder.Entity("SousChefBackend.Models.MyCookware", b =>
@@ -581,20 +574,7 @@ namespace SousChefBackend.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int?>("Age")
-                        .HasColumnType("integer");
-
                     b.Property<string>("Email")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Gender")
-                        .HasColumnType("text");
-
-                    b.Property<double?>("HeightCm")
-                        .HasColumnType("double precision");
-
-                    b.Property<string>("Password")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -602,25 +582,9 @@ namespace SousChefBackend.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<double?>("WeightKg")
-                        .HasColumnType("double precision");
-
                     b.HasKey("Id");
 
                     b.ToTable("Users");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Age = 25,
-                            Email = "admin@souschef.com",
-                            Gender = "Male",
-                            HeightCm = 175.0,
-                            Password = "password123",
-                            Username = "chef_admin",
-                            WeightKg = 70.0
-                        });
                 });
 
             modelBuilder.Entity("SousChefBackend.Models.UserAllergy", b =>
@@ -763,15 +727,6 @@ namespace SousChefBackend.Migrations
                     b.Navigation("StandardIngredient");
                 });
 
-            modelBuilder.Entity("SousChefBackend.Models.Kitchen", b =>
-                {
-                    b.HasOne("SousChefBackend.Models.User", null)
-                        .WithOne("Kitchen")
-                        .HasForeignKey("SousChefBackend.Models.Kitchen", "UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("SousChefBackend.Models.MyCookware", b =>
                 {
                     b.HasOne("SousChefBackend.Models.Kitchen", null)
@@ -886,11 +841,6 @@ namespace SousChefBackend.Migrations
                     b.Navigation("MyCookwares");
 
                     b.Navigation("MySeasonings");
-                });
-
-            modelBuilder.Entity("SousChefBackend.Models.User", b =>
-                {
-                    b.Navigation("Kitchen");
                 });
 
             modelBuilder.Entity("SousChefBackend.Models.UserPreference", b =>
