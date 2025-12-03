@@ -12,6 +12,7 @@ import '../../../data/user_static_data.dart';
 import '../../../widgets/sketchy_card.dart';
 import '../../../widgets/sketchy_button.dart';
 import '../../../widgets/sketchy_border.dart';
+import '../../../services/user_service.dart';
 
 // Modified by Chase: Changed to StatefulWidget to support refresh after edit / 由 Chase 修改：改为 StatefulWidget 以支持编辑后刷新
 class ProfileViewPage extends StatefulWidget {
@@ -22,11 +23,64 @@ class ProfileViewPage extends StatefulWidget {
 }
 
 class _ProfileViewPageState extends State<ProfileViewPage> {
+  Map<String, dynamic>? _userData;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    final result = await UserService.getUserBriefInfo();
+    if (result['success'] == true && mounted) {
+      setState(() {
+        _userData = result['data'];
+        _isLoading = false;
+      });
+    } else {
+      // Fallback to static data if API fails
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Modified by Chase: Read data from global kCurrentUser instead of hardcoded values / 由 Chase 修改：从全局 kCurrentUser 读取数据，而不是硬编码值
-    // This will read the latest data every time build is called / 每次 build 被调用时都会读取最新数据
-    final user = kCurrentUser;
+    // Use API data if available, otherwise fallback to static data
+    final user = _userData != null
+        ? UserProfile(
+            username: _userData!['userName'] ?? 'Unknown',
+            email: _userData!['email'] ?? '',
+            age: _userData!['profile']?['age']?.toString() ?? '',
+            gender: '', // Not in API response
+            height: _userData!['profile']?['height']?.toString() ?? '',
+            weight: _userData!['profile']?['weight']?.toString() ?? '',
+          )
+        : kCurrentUser;
+
+    if (_isLoading) {
+      return Scaffold(
+        appBar: AppBar(
+          title: Text(
+            'Profile',
+            style: GoogleFonts.caveat(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -49,7 +103,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
               );
               // Modified by Chase: Refresh page if edit was saved / 由 Chase 修改：如果编辑已保存则刷新页面
               if (result == true) {
-                setState(() {});
+                _loadUserData(); // Reload from API
               }
             },
             child: Text(

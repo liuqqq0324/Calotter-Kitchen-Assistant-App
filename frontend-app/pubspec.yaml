@@ -47,6 +47,9 @@ dependencies:
   # Network requests
   http: ^1.6.0
 
+  # Local storage for token
+  shared_preferences: ^2.3.3
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

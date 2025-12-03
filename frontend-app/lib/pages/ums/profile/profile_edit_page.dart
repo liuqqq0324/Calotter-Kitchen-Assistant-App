@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 // Modified by Chase: Import user static data / 由 Chase 修改：导入用户静态数据
 import '../../../data/user_static_data.dart';
+import '../../../services/user_service.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class ProfileEditPage extends StatefulWidget {
   const ProfileEditPage({super.key});
@@ -192,20 +194,46 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
         title: const Text('Edit Profile'),
         actions: [
           TextButton(
-            onPressed: () {
-              // Modified by Chase: Save changes to global kCurrentUser / 由 Chase 修改：保存更改到全局 kCurrentUser
-              kCurrentUser.username = usernameController.text;
-              kCurrentUser.email = emailController.text;
-              kCurrentUser.gender = genderController.text;
+            onPressed: () async {
+              // Save to backend API
+              final age = int.tryParse(ageController.text);
+              final height = int.tryParse(heightController.text.replaceAll(' cm', '').trim());
+              final weight = int.tryParse(weightController.text.replaceAll(' kg', '').trim());
+
+              final result = await UserService.updateUserInfo(
+                age: age,
+                height: height,
+                weight: weight,
+              );
+
+              if (result['success'] == true) {
+                // Also update local static data for compatibility
               kCurrentUser.age = ageController.text;
               kCurrentUser.height = heightController.text;
               kCurrentUser.weight = weightController.text;
 
               // Modified by Chase: Return true to notify parent page to refresh / 由 Chase 修改：返回 true 通知父页面刷新
               Navigator.pop(context, true);
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(const SnackBar(content: Text('Profile saved')));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Profile saved',
+                      style: GoogleFonts.kalam(),
+                    ),
+                    backgroundColor: Colors.green.shade300,
+                  ),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      result['error'] ?? 'Failed to save profile',
+                      style: GoogleFonts.kalam(),
+                    ),
+                    backgroundColor: Colors.red.shade300,
+                  ),
+                );
+              }
             },
             child: const Text('Save'),
           ),
