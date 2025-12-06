@@ -55,11 +55,11 @@ builder.Services.AddScoped<JwtService>();
 
 var app = builder.Build();
 
-// Ensure database is created
+// Apply migrations to database
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    dbContext.Database.EnsureCreated();
+    dbContext.Database.Migrate();
 }
 
 // Configure the HTTP request pipeline.

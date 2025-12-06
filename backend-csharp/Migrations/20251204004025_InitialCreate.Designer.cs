@@ -12,8 +12,8 @@ using SousChefBackend.Data;
 namespace SousChefBackend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251203053324_FinalFusion")]
-    partial class FinalFusion
+    [Migration("20251204004025_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
