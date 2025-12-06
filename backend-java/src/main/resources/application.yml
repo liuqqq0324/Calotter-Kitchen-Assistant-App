@@ -3,7 +3,7 @@ spring:
     name: sous-chef-backend
   
   datasource:
-    url: jdbc:postgresql://localhost:5432/SousChefDb
+    url: jdbc:postgresql://shadow-db:5432/SousChefDb
     username: postgres
     password: mysecretpassword
     driver-class-name: org.postgresql.Driver

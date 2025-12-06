@@ -12,3 +12,4 @@ public interface UserAllergyRepository extends JpaRepository<UserAllergy, Long> 
     void deleteByUserId(Long userId);
 }
 
+

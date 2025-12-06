@@ -35,3 +35,4 @@ public class MySeasoning {
     private StandardSeasoning standardSeasoning;
 }
 
+

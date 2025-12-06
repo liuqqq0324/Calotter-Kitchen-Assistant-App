@@ -12,3 +12,4 @@ public interface UserTabooRepository extends JpaRepository<UserTaboo, Long> {
     void deleteByUserId(Long userId);
 }
 
+

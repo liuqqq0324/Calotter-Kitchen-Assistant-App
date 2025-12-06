@@ -50,3 +50,4 @@ public class GeneratedRecipe {
     private LocalDateTime generatedAt = LocalDateTime.now();
 }
 
+

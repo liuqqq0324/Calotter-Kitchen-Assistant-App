@@ -28,3 +28,4 @@ public class UserTaboo {
     private User user;
 }
 
+

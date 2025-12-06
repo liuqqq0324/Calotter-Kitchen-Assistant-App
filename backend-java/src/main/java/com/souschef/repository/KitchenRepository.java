@@ -11,3 +11,4 @@ public interface KitchenRepository extends JpaRepository<Kitchen, Integer> {
     Optional<Kitchen> findByUserId(Long userId);
 }
 
+

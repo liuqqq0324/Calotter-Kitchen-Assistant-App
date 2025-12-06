@@ -10,3 +10,4 @@ public class UserTaboosResponse {
     private List<String> taboos = new ArrayList<>();
 }
 
+

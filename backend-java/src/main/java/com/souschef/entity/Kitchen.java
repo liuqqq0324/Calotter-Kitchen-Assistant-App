@@ -37,3 +37,4 @@ public class Kitchen {
     private List<MySeasoning> mySeasonings = new ArrayList<>();
 }
 
+

@@ -24,3 +24,4 @@ public class StandardSeasoning {
     private String aiCode;
 }
 
+

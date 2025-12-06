@@ -28,3 +28,4 @@ public class UserAllergy {
     private User user;
 }
 
+

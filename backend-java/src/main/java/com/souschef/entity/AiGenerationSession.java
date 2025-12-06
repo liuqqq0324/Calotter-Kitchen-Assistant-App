@@ -58,3 +58,4 @@ public class AiGenerationSession {
     private List<GeneratedRecipeOption> generatedOptions = new ArrayList<>();
 }
 
+

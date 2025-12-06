@@ -10,3 +10,4 @@ public class UserAllergiesResponse {
     private List<String> allergies = new ArrayList<>();
 }
 
+
