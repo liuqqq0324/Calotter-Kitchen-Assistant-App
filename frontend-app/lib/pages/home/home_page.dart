@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:personal_sous_chef/widgets/sketchy_card.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -21,61 +23,48 @@ class HomePage extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. 欢迎标语
+          // 1. 欢迎标语 - 手绘风格
           Text(
             greeting,
-            style: const TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
+            style: SketchyTextStyle.title(context),
           ),
-          const Text(
+          const SizedBox(height: 8),
+          Text(
             "Ready to cook something delicious?",
-            style: TextStyle(fontSize: 16, color: Colors.grey),
+            style: SketchyTextStyle.body(context).copyWith(
+              color: Colors.grey[700],
+            ),
           ),
 
           const SizedBox(height: 30),
 
-          // 2. 冰箱状态卡片 (Dashboard)
-          Container(
+          // 2. 厨房状态卡片 - 手绘风格
+          SketchyCard(
+            backgroundColor: Colors.orange.shade400,
+            borderColor: Colors.deepOrange.shade700,
+            borderWidth: 2.5,
             padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.orange.shade400, Colors.deepOrange.shade600],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.orange.withOpacity(0.3),
-                  blurRadius: 10,
-                  offset: const Offset(0, 5),
-                ),
-              ],
-            ),
             child: Row(
               children: [
-                const Icon(Icons.kitchen, size: 50, color: Colors.white),
+                Icon(Icons.kitchen, size: 50, color: Colors.white),
                 const SizedBox(width: 20),
-                const Column(
+                Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       "Your Kitchen",
-                      style: TextStyle(
+                      style: GoogleFonts.kalam(
                         color: Colors.white70,
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    SizedBox(height: 5),
+                    const SizedBox(height: 5),
                     Text(
                       "3 Items Expiring", // 这里以后接真实数据
-                      style: TextStyle(
+                      style: GoogleFonts.caveat(
                         color: Colors.white,
-                        fontSize: 20,
+                        fontSize: 24,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -87,40 +76,37 @@ class HomePage extends StatelessWidget {
 
           const SizedBox(height: 30),
 
-          // 3. 每日推荐标题
-          const Text(
+          // 3. 每日推荐标题 - 手绘风格
+          Text(
             "Recipe of the Day",
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
+            style: SketchyTextStyle.heading(context),
           ),
           const SizedBox(height: 15),
 
-          // 4. 推荐食谱卡片
-          Container(
-            height: 200,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.shade200,
-                  blurRadius: 10,
-                  offset: const Offset(0, 5),
-                ),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(20),
+          // 4. 推荐食谱卡片 - 手绘风格
+          SketchyCard(
+            backgroundColor: Colors.white,
+            borderColor: Colors.black87,
+            borderWidth: 2.0,
+            padding: EdgeInsets.zero,
+            child: Container(
+              height: 200,
+              width: double.infinity,
               child: Stack(
                 children: [
-                  // 模拟图片背景 (用个色块代替，或者换成 Image.network)
+                  // 模拟图片背景
                   Container(
-                    color: Colors.grey.shade300,
-                    child: const Center(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.grey.shade300,
+                          Colors.grey.shade400,
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
+                    child: Center(
                       child: Icon(
                         Icons.fastfood,
                         size: 80,
@@ -148,7 +134,7 @@ class HomePage extends StatelessWidget {
                     ),
                   ),
                   // 文字信息
-                  const Positioned(
+                  Positioned(
                     bottom: 20,
                     left: 20,
                     child: Column(
@@ -156,15 +142,18 @@ class HomePage extends StatelessWidget {
                       children: [
                         Text(
                           "Creamy Mushroom Soup",
-                          style: TextStyle(
+                          style: GoogleFonts.caveat(
                             color: Colors.white,
-                            fontSize: 18,
+                            fontSize: 22,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                         Text(
                           "20 mins • Easy",
-                          style: TextStyle(color: Colors.white70, fontSize: 14),
+                          style: GoogleFonts.kalam(
+                            color: Colors.white70,
+                            fontSize: 14,
+                          ),
                         ),
                       ],
                     ),

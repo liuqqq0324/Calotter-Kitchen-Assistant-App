@@ -92,3 +92,9 @@ app.*.map.json
 
 # Exceptions to above rules.
 !/android/app/src/main/AndroidManifest.xml
+
+# C# ignore list
+[Bb]in/
+[Oo]bj/
+.vs/
+*.user

@@ -1,0 +1,39 @@
+spring:
+  application:
+    name: sous-chef-backend
+  
+  datasource:
+    url: jdbc:postgresql://shadow-db:5432/SousChefDb
+    username: postgres
+    password: mysecretpassword
+    driver-class-name: org.postgresql.Driver
+  
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+  
+  sql:
+    init:
+      mode: never
+      data-locations: classpath:data.sql
+
+server:
+  port: 8080
+
+jwt:
+  key: YourSuperSecretKeyForJWTTokenGenerationThatShouldBeAtLeast32CharactersLong!
+  issuer: SousChefBackend
+  audience: SousChefFrontend
+  expiration: 3000 # seconds
+
+logging:
+  level:
+    root: INFO
+    org.springframework.web: INFO
+    org.hibernate: INFO
+

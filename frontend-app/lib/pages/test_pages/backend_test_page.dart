@@ -25,25 +25,18 @@ class _BackendTestPageState extends State<BackendTestPage> {
       _responseMessage = "Connecting to C# Backend...";
     });
 
-    // 🔥 2. 原来的那些 const IP 和 Port 统统删掉
-    // 直接使用配置文件里的 baseUrl
     final String baseUrl = ApiConfig.baseUrl;
 
-    // 打印一下方便调试，看看拼出来的对不对
-    print("正在尝试连接: $baseUrl");
-
     try {
-      // 假设你在 C# 里写的接口是 [HttpGet] public IActionResult Get() ...
-      // 且 Controller 上的 Route 是 [Route("[controller]")] -> 对应 /weatherforecast 或 /hello
-      final url = Uri.parse('$baseUrl/hello'); // 👈 记得改成你 C# 里的控制器名字
-
+      final url = Uri.parse('$baseUrl/hello');
       final response = await http.get(url);
 
+      // 🔥 修复点 1：请求回来后，先检查页面还在不在
+      if (!mounted) return;
+
       if (response.statusCode == 200) {
-        // 成功连通！
         final data = jsonDecode(response.body);
         setState(() {
-          // 假设 C# 返回的是 { "Message": "..." }，注意 C# 默认属性首字母大写
           _responseMessage =
               "Success! \nServer says: ${data['Message'] ?? data}";
         });
@@ -53,14 +46,20 @@ class _BackendTestPageState extends State<BackendTestPage> {
         });
       }
     } catch (e) {
+      // 🔥 修复点 2：在 catch 里也要检查，因为报错时页面可能也已经关了
+      if (!mounted) return;
+
       setState(() {
         _responseMessage =
             "Connection Failed!\nCheck if C# app is running.\nError: $e";
       });
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      // 🔥 修复点 3：finally 里也要检查
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 

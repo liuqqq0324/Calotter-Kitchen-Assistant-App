@@ -1,23 +1,27 @@
 // Models/GeneratedRecipe.cs
+namespace SousChefBackend.Models;
 
 public class GeneratedRecipe
 {
     public int Id { get; set; }
     // 对应 output_schema 里的 menus -> recipes
-    public string Title { get; set; }
-    public string ShortDescription { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string ShortDescription { get; set; } = string.Empty;
     public int Servings { get; set; }
     public int CookingTimeMin { get; set; }
-    public string Difficulty { get; set; } // easy, medium, hard
+    public string Difficulty { get; set; } = string.Empty; // easy, medium, hard
     public double TotalCaloriesEstimate { get; set; }
+
+    // 🔥 [新增] 
+    public string UsedCookwaresJson { get; set; } = "[]";
     
     // 步骤 (存 JSONB)
     // 对应 Python output: steps array
-    public string StepsJson { get; set; } 
+    public string StepsJson { get; set; } = "[]"; 
     
     // 食材 (存 JSONB 或者关联表)
     // 对应 Python output: ingredients array
-    public string IngredientsJson { get; set; } 
+    public string IngredientsJson { get; set; } = "[]";
     
     public DateTime GeneratedAt { get; set; } = DateTime.Now;
 }
