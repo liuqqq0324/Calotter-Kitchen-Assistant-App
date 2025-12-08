@@ -82,7 +82,7 @@ public class JwtService {
         try {
             Claims claims = extractAllClaims(token);
             return claims.getIssuer().equals(issuer) && 
-                   claims.getAudience().equals(audience) &&
+                   claims.getAudience().contains(audience) &&
                    !isTokenExpired(token);
         } catch (Exception e) {
             return false;

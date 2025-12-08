@@ -3,9 +3,9 @@ spring:
     name: sous-chef-backend
   
   datasource:
-    url: jdbc:postgresql://shadow-db:5432/SousChefDb
-    username: postgres
-    password: mysecretpassword
+    url: jdbc:postgresql://localhost:5432/souschef_db
+    username: chef
+    password: chef_password
     driver-class-name: org.postgresql.Driver
   
   jpa:
