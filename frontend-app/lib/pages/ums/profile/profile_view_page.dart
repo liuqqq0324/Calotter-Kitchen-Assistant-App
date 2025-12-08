@@ -61,7 +61,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
             username: _userData!['userName'] ?? 'Unknown',
             email: _userData!['email'] ?? '',
             age: _userData!['profile']?['age']?.toString() ?? '',
-            gender: '', // Not in API response
+            gender: _userData!['profile']?['gender'] ?? '',
             height: _userData!['profile']?['height']?.toString() ?? '',
             weight: _userData!['profile']?['weight']?.toString() ?? '',
           )
@@ -86,10 +86,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
       appBar: AppBar(
         title: Text(
           'Profile',
-          style: GoogleFonts.caveat(
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-          ),
+          style: GoogleFonts.caveat(fontSize: 28, fontWeight: FontWeight.bold),
         ),
         actions: [
           TextButton(
@@ -185,10 +182,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    user.age,
-                    style: GoogleFonts.kalam(fontSize: 16),
-                  ),
+                  Text(user.age, style: GoogleFonts.kalam(fontSize: 16)),
                   const SizedBox(height: 20),
                   Text(
                     'Gender',
@@ -199,10 +193,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    user.gender,
-                    style: GoogleFonts.kalam(fontSize: 16),
-                  ),
+                  Text(user.gender, style: GoogleFonts.kalam(fontSize: 16)),
                   const SizedBox(height: 20),
                   Text(
                     'Height',
@@ -213,10 +204,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    user.height,
-                    style: GoogleFonts.kalam(fontSize: 16),
-                  ),
+                  Text(user.height, style: GoogleFonts.kalam(fontSize: 16)),
                   const SizedBox(height: 20),
                   Text(
                     'Weight',
@@ -227,10 +215,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    user.weight,
-                    style: GoogleFonts.kalam(fontSize: 16),
-                  ),
+                  Text(user.weight, style: GoogleFonts.kalam(fontSize: 16)),
                 ],
               ),
             ),

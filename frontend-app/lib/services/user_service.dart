@@ -17,14 +17,19 @@ class UserService {
   static Future<Map<String, dynamic>> getUserBriefInfo({String? userId}) async {
     try {
       final userIdParam = userId ?? await AuthService.getUserId();
-      final url = Uri.parse('${ApiConfig.baseUrl}/api/ums/user?id=$userIdParam');
+      final url = Uri.parse(
+        '${ApiConfig.baseUrl}/api/ums/user?id=$userIdParam',
+      );
       final response = await http.get(url, headers: await _getHeaders());
 
       final data = jsonDecode(response.body);
       if (response.statusCode == 200) {
         return {'success': true, 'data': data};
       } else {
-        return {'success': false, 'error': data['message'] ?? 'Failed to get user info'};
+        return {
+          'success': false,
+          'error': data['message'] ?? 'Failed to get user info',
+        };
       }
     } catch (e) {
       return {'success': false, 'error': 'Network error: $e'};
@@ -35,12 +40,15 @@ class UserService {
   static Future<Map<String, dynamic>> updateUserInfo({
     String? userId,
     int? age,
+    String? gender,
     int? height,
     int? weight,
   }) async {
     try {
       final userIdParam = userId ?? await AuthService.getUserId();
-      final url = Uri.parse('${ApiConfig.baseUrl}/api/ums/user?id=$userIdParam');
+      final url = Uri.parse(
+        '${ApiConfig.baseUrl}/api/ums/user?id=$userIdParam',
+      );
       final response = await http.put(
         url,
         headers: await _getHeaders(),
@@ -48,6 +56,7 @@ class UserService {
           'userId': int.parse(userIdParam ?? '0'),
           'profile': {
             'age': age,
+            'gender': gender,
             'height': height,
             'weight': weight,
           },
@@ -58,7 +67,10 @@ class UserService {
       if (response.statusCode == 200) {
         return {'success': true, 'data': data};
       } else {
-        return {'success': false, 'error': data['message'] ?? 'Failed to update user info'};
+        return {
+          'success': false,
+          'error': data['message'] ?? 'Failed to update user info',
+        };
       }
     } catch (e) {
       return {'success': false, 'error': 'Network error: $e'};
@@ -66,17 +78,24 @@ class UserService {
   }
 
   // Get user preferences
-  static Future<Map<String, dynamic>> getUserPreferences({String? userId}) async {
+  static Future<Map<String, dynamic>> getUserPreferences({
+    String? userId,
+  }) async {
     try {
       final userIdParam = userId ?? await AuthService.getUserId();
-      final url = Uri.parse('${ApiConfig.baseUrl}/api/ums/user/preferences?id=$userIdParam');
+      final url = Uri.parse(
+        '${ApiConfig.baseUrl}/api/ums/user/preferences?id=$userIdParam',
+      );
       final response = await http.get(url, headers: await _getHeaders());
 
       final data = jsonDecode(response.body);
       if (response.statusCode == 200) {
         return {'success': true, 'data': data};
       } else {
-        return {'success': false, 'error': data['message'] ?? 'Failed to get preferences'};
+        return {
+          'success': false,
+          'error': data['message'] ?? 'Failed to get preferences',
+        };
       }
     } catch (e) {
       return {'success': false, 'error': 'Network error: $e'};
@@ -93,7 +112,9 @@ class UserService {
   }) async {
     try {
       final userIdParam = userId ?? await AuthService.getUserId();
-      final url = Uri.parse('${ApiConfig.baseUrl}/api/ums/user/preferences?id=$userIdParam');
+      final url = Uri.parse(
+        '${ApiConfig.baseUrl}/api/ums/user/preferences?id=$userIdParam',
+      );
       final response = await http.put(
         url,
         headers: await _getHeaders(),
@@ -109,7 +130,10 @@ class UserService {
       if (response.statusCode == 200) {
         return {'success': true, 'data': data};
       } else {
-        return {'success': false, 'error': data['message'] ?? 'Failed to update preferences'};
+        return {
+          'success': false,
+          'error': data['message'] ?? 'Failed to update preferences',
+        };
       }
     } catch (e) {
       return {'success': false, 'error': 'Network error: $e'};
@@ -120,14 +144,19 @@ class UserService {
   static Future<Map<String, dynamic>> getUserTaboos({String? userId}) async {
     try {
       final userIdParam = userId ?? await AuthService.getUserId();
-      final url = Uri.parse('${ApiConfig.baseUrl}/api/ums/user/taboos?id=$userIdParam');
+      final url = Uri.parse(
+        '${ApiConfig.baseUrl}/api/ums/user/taboos?id=$userIdParam',
+      );
       final response = await http.get(url, headers: await _getHeaders());
 
       final data = jsonDecode(response.body);
       if (response.statusCode == 200) {
         return {'success': true, 'data': data};
       } else {
-        return {'success': false, 'error': data['message'] ?? 'Failed to get taboos'};
+        return {
+          'success': false,
+          'error': data['message'] ?? 'Failed to get taboos',
+        };
       }
     } catch (e) {
       return {'success': false, 'error': 'Network error: $e'};
@@ -141,20 +170,23 @@ class UserService {
   }) async {
     try {
       final userIdParam = userId ?? await AuthService.getUserId();
-      final url = Uri.parse('${ApiConfig.baseUrl}/api/ums/user/taboos?id=$userIdParam');
+      final url = Uri.parse(
+        '${ApiConfig.baseUrl}/api/ums/user/taboos?id=$userIdParam',
+      );
       final response = await http.put(
         url,
         headers: await _getHeaders(),
-        body: jsonEncode({
-          'taboos': taboos,
-        }),
+        body: jsonEncode({'taboos': taboos}),
       );
 
       final data = jsonDecode(response.body);
       if (response.statusCode == 200) {
         return {'success': true, 'data': data};
       } else {
-        return {'success': false, 'error': data['message'] ?? 'Failed to update taboos'};
+        return {
+          'success': false,
+          'error': data['message'] ?? 'Failed to update taboos',
+        };
       }
     } catch (e) {
       return {'success': false, 'error': 'Network error: $e'};
@@ -165,14 +197,19 @@ class UserService {
   static Future<Map<String, dynamic>> getUserAllergies({String? userId}) async {
     try {
       final userIdParam = userId ?? await AuthService.getUserId();
-      final url = Uri.parse('${ApiConfig.baseUrl}/api/ums/user/allergies?id=$userIdParam');
+      final url = Uri.parse(
+        '${ApiConfig.baseUrl}/api/ums/user/allergies?id=$userIdParam',
+      );
       final response = await http.get(url, headers: await _getHeaders());
 
       final data = jsonDecode(response.body);
       if (response.statusCode == 200) {
         return {'success': true, 'data': data};
       } else {
-        return {'success': false, 'error': data['message'] ?? 'Failed to get allergies'};
+        return {
+          'success': false,
+          'error': data['message'] ?? 'Failed to get allergies',
+        };
       }
     } catch (e) {
       return {'success': false, 'error': 'Network error: $e'};
@@ -186,24 +223,26 @@ class UserService {
   }) async {
     try {
       final userIdParam = userId ?? await AuthService.getUserId();
-      final url = Uri.parse('${ApiConfig.baseUrl}/api/ums/user/allergies?id=$userIdParam');
+      final url = Uri.parse(
+        '${ApiConfig.baseUrl}/api/ums/user/allergies?id=$userIdParam',
+      );
       final response = await http.put(
         url,
         headers: await _getHeaders(),
-        body: jsonEncode({
-          'allergies': allergies,
-        }),
+        body: jsonEncode({'allergies': allergies}),
       );
 
       final data = jsonDecode(response.body);
       if (response.statusCode == 200) {
         return {'success': true, 'data': data};
       } else {
-        return {'success': false, 'error': data['message'] ?? 'Failed to update allergies'};
+        return {
+          'success': false,
+          'error': data['message'] ?? 'Failed to update allergies',
+        };
       }
     } catch (e) {
       return {'success': false, 'error': 'Network error: $e'};
     }
   }
 }
-

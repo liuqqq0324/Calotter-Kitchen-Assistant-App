@@ -12,6 +12,7 @@ public class UserBriefInfoResponse {
     @Data
     public static class UserProfile {
         private Integer age;
+        private String gender;
         private Integer height;
         private Integer weight;
     }

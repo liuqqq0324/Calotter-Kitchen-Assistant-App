@@ -72,6 +72,7 @@ public class UserController {
         
         UserBriefInfoResponse.UserProfile profile = new UserBriefInfoResponse.UserProfile();
         profile.setAge(user.getAge());
+        profile.setGender(user.getGender());
         profile.setHeight(user.getHeight());
         profile.setWeight(user.getWeight());
         response.setProfile(profile);
@@ -98,6 +99,7 @@ public class UserController {
         User user = userOpt.get();
         if (request.getProfile() != null) {
             user.setAge(request.getProfile().getAge());
+            user.setGender(request.getProfile().getGender());
             user.setHeight(request.getProfile().getHeight());
             user.setWeight(request.getProfile().getWeight());
         }

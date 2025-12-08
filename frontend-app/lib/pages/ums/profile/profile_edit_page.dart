@@ -12,7 +12,7 @@ class ProfileEditPage extends StatefulWidget {
 }
 
 class _ProfileEditPageState extends State<ProfileEditPage> {
-  // Modified by Chase: Initialize controllers from global kCurrentUser / 由 Chase 修改：从全局 kCurrentUser 初始化控制器
+  // Modified by Chase: Initialize controllers from API data / 由 Chase 修改：从 API 数据初始化控制器
   late TextEditingController usernameController;
   late TextEditingController emailController;
   late TextEditingController genderController;
@@ -33,22 +33,64 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
   final TextEditingController allergiesInputController =
       TextEditingController();
 
+  bool _isLoading = true;
+  Map<String, dynamic>? _userData;
+
   @override
   void initState() {
     super.initState();
-    // Modified by Chase: Initialize from global kCurrentUser / 由 Chase 修改：从全局 kCurrentUser 初始化
-    final user = kCurrentUser;
-    usernameController = TextEditingController(text: user.username);
-    emailController = TextEditingController(text: user.email);
-    genderController = TextEditingController(text: user.gender);
-    ageController = TextEditingController(text: user.age);
-    heightController = TextEditingController(text: user.height);
-    weightController = TextEditingController(text: user.weight);
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    final result = await UserService.getUserBriefInfo();
+    if (result['success'] == true && mounted) {
+      setState(() {
+        _userData = result['data'];
+        // Initialize controllers from API data
+        final data = result['data'];
+        usernameController = TextEditingController(
+          text: data['userName'] ?? '',
+        );
+        emailController = TextEditingController(text: data['email'] ?? '');
+        genderController = TextEditingController(
+          text: data['profile']?['gender'] ?? '',
+        );
+        ageController = TextEditingController(
+          text: data['profile']?['age']?.toString() ?? '',
+        );
+        heightController = TextEditingController(
+          text: data['profile']?['height']?.toString() ?? '',
+        );
+        weightController = TextEditingController(
+          text: data['profile']?['weight']?.toString() ?? '',
+        );
+        _isLoading = false;
+      });
+    } else {
+      // Fallback to static data if API fails
+      if (mounted) {
+        final user = kCurrentUser;
+        usernameController = TextEditingController(text: user.username);
+        emailController = TextEditingController(text: user.email);
+        genderController = TextEditingController(text: user.gender);
+        ageController = TextEditingController(text: user.age);
+        heightController = TextEditingController(text: user.height);
+        weightController = TextEditingController(text: user.weight);
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
 
     // Modified by Chase: Get references to global lists / 由 Chase 修改：获取全局列表的引用
-    preferences = user.preferences;
-    taboos = user.taboos;
-    allergies = user.allergies;
+    preferences = kCurrentUser.preferences;
+    taboos = kCurrentUser.taboos;
+    allergies = kCurrentUser.allergies;
   }
 
   void _addPreference() {
@@ -107,6 +149,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
 
   @override
   void dispose() {
+    // Dispose controllers safely (they are always initialized in _loadUserData)
     usernameController.dispose();
     emailController.dispose();
     genderController.dispose();
@@ -189,6 +232,13 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Edit Profile')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Edit Profile'),
@@ -197,29 +247,33 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
             onPressed: () async {
               // Save to backend API
               final age = int.tryParse(ageController.text);
-              final height = int.tryParse(heightController.text.replaceAll(' cm', '').trim());
-              final weight = int.tryParse(weightController.text.replaceAll(' kg', '').trim());
+              final gender = genderController.text.trim();
+              final height = int.tryParse(
+                heightController.text.replaceAll(' cm', '').trim(),
+              );
+              final weight = int.tryParse(
+                weightController.text.replaceAll(' kg', '').trim(),
+              );
 
               final result = await UserService.updateUserInfo(
                 age: age,
+                gender: gender.isNotEmpty ? gender : null,
                 height: height,
                 weight: weight,
               );
 
               if (result['success'] == true) {
                 // Also update local static data for compatibility
-              kCurrentUser.age = ageController.text;
-              kCurrentUser.height = heightController.text;
-              kCurrentUser.weight = weightController.text;
+                kCurrentUser.age = ageController.text;
+                kCurrentUser.gender = genderController.text;
+                kCurrentUser.height = heightController.text;
+                kCurrentUser.weight = weightController.text;
 
-              // Modified by Chase: Return true to notify parent page to refresh / 由 Chase 修改：返回 true 通知父页面刷新
-              Navigator.pop(context, true);
+                // Modified by Chase: Return true to notify parent page to refresh / 由 Chase 修改：返回 true 通知父页面刷新
+                Navigator.pop(context, true);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(
-                      'Profile saved',
-                      style: GoogleFonts.kalam(),
-                    ),
+                    content: Text('Profile saved', style: GoogleFonts.kalam()),
                     backgroundColor: Colors.green.shade300,
                   ),
                 );
