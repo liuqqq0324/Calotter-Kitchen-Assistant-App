@@ -30,14 +30,14 @@ public class RecipeController {
                         .body(new ErrorResponse("servings is required and must be greater than 0"));
             }
             
-            if (request.getDishCount() == null || request.getDishCount() <= 0) {
+            if (request.getResolvedDishCount() == null || request.getResolvedDishCount() <= 0) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                         .body(new ErrorResponse("dishCount is required and must be greater than 0"));
             }
             
             List<RecipeMenuResponse> menus = recipeService.generateRecipeMenus(request);
             
-            return ResponseEntity.ok(menus);
+            return ResponseEntity.ok(new RecipeGenerateResponse(menus));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new ErrorResponse("Failed to generate recipes: " + e.getMessage()));
@@ -75,4 +75,3 @@ public class RecipeController {
         }
     }
 }
-

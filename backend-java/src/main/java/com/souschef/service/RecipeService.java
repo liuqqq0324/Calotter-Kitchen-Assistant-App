@@ -49,7 +49,7 @@ public class RecipeService {
         }
         
         // 将食谱分组为菜单（每个菜单包含request.dishCount个食谱）
-        int dishCount = request.getDishCount() != null ? request.getDishCount() : 1;
+        int dishCount = request.getResolvedDishCount() != null ? request.getResolvedDishCount() : 1;
         int menuCount = Math.min(5, (recipes.size() + dishCount - 1) / dishCount); // 最多5个菜单
         
         List<RecipeMenuResponse> menus = new ArrayList<>();
@@ -76,24 +76,27 @@ public class RecipeService {
         return recipes.stream()
                 .filter(recipe -> {
                     // 难度筛选
-                    if (request.getDifficultyTarget() != null && !request.getDifficultyTarget().isEmpty()) {
+                    String difficultyTarget = request.getResolvedDifficultyTarget();
+                    if (difficultyTarget != null && !difficultyTarget.isEmpty()) {
                         String difficulty = convertDifficultyLevel(recipe.getDifficultyLevel());
-                        if (!request.getDifficultyTarget().equalsIgnoreCase(difficulty)) {
+                        if (!difficultyTarget.equalsIgnoreCase(difficulty)) {
                             return false;
                         }
                     }
                     
                     // 时间筛选
-                    if (request.getMaxCookingTimeMin() != null) {
+                    Integer maxCookingTime = request.getResolvedMaxCookingTimeMin();
+                    if (maxCookingTime != null) {
                         if (recipe.getTotalTimeMinutes() != null && 
-                            recipe.getTotalTimeMinutes() > request.getMaxCookingTimeMin()) {
+                            recipe.getTotalTimeMinutes() > maxCookingTime) {
                             return false;
                         }
                     }
                     
                     // 卡路里筛选
-                    if (request.getCalorieTarget() != null && recipe.getCaloriesPerServing() != null) {
-                        if (recipe.getCaloriesPerServing() > request.getCalorieTarget()) {
+                    Double maxCalorie = request.getResolvedMaxCalorie();
+                    if (maxCalorie != null && recipe.getCaloriesPerServing() != null) {
+                        if (recipe.getCaloriesPerServing() > maxCalorie) {
                             return false;
                         }
                     }
@@ -120,7 +123,7 @@ public class RecipeService {
      */
     public RecipeResponse convertToRecipeResponse(Recipe recipe) {
         RecipeResponse response = new RecipeResponse();
-        response.setId(String.valueOf(recipe.getId()));
+        response.setRecipeId(String.valueOf(recipe.getId()));
         response.setTitle(recipe.getName());
         response.setShortDescription(recipe.getDescription() != null ? recipe.getDescription() : "");
         response.setServings(recipe.getServingSize() != null ? recipe.getServingSize() : 1);
@@ -200,4 +203,3 @@ public class RecipeService {
         }
     }
 }
-
