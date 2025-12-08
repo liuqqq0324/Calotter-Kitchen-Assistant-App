@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  # 给我们的数据库服务起个名
+  shadow-db:
+    image: postgres:15-alpine  # 指定要用 PostgreSQL 15 的轻量版
+    container_name: sous_chef_shadow_db
+    restart: always # 如果崩了自动重启
+    environment:
+      POSTGRES_USER: postgres       # 默认管理员账号
+      POSTGRES_PASSWORD: mysecretpassword # 🔥 设置密码，记好了！
+      POSTGRES_DB: SousChefDb       # 默认创建的数据库名
+    ports:
+      - "5432:5432" # 端口映射：把你电脑的 5432 端口连到盒子里的 5432
+    volumes:
+      - postgres_data:/var/lib/postgresql/data # 数据持久化：哪怕你删了容器，数据还在
+
+volumes:
+  postgres_data:
+
+
