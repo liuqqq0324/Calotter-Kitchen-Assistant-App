@@ -24,6 +24,7 @@ spring:
 
 server:
   port: 8080
+  #todo-需要改为9000端口
 
 jwt:
   key: YourSuperSecretKeyForJWTTokenGenerationThatShouldBeAtLeast32CharactersLong!

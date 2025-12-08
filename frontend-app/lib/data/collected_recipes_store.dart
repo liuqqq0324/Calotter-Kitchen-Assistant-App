@@ -1,37 +1,32 @@
 // lib/data/collected_recipes_store.dart
+// Favorite store now works at recipe level, not menu level.
+
 import 'package:flutter/foundation.dart';
-import 'package:personal_sous_chef/data/mock_recipes.dart';
 import 'package:personal_sous_chef/models/recipe_models.dart';
 
-/// In-memory store for collected (favorite) recipe menus.
-/// Uses a ValueNotifier so UI can listen for updates without a full state management lib.
 class CollectedRecipesStore {
-  static final ValueNotifier<List<RecipeMenuModel>> favorites =
-      ValueNotifier<List<RecipeMenuModel>>([
-    // 初始放入一些 mock 收藏，展示在首页
-    kMockRecipeMenus[0],
-    kMockRecipeMenus[1],
-  ]);
+  static final ValueNotifier<List<RecipeModel>> favorites =
+      ValueNotifier<List<RecipeModel>>([]);
 
-  static bool isCollected(RecipeMenuModel menu) {
-    return favorites.value.any((m) => m.menuId == menu.menuId);
+  static bool isCollected(RecipeModel recipe) {
+    return favorites.value.any((r) => r.id == recipe.id);
   }
 
-  static void add(RecipeMenuModel menu) {
-    if (isCollected(menu)) return;
-    favorites.value = [...favorites.value, menu];
+  static void add(RecipeModel recipe) {
+    if (isCollected(recipe)) return;
+    favorites.value = [...favorites.value, recipe];
   }
 
-  static void remove(RecipeMenuModel menu) {
+  static void remove(RecipeModel recipe) {
     favorites.value =
-        favorites.value.where((m) => m.menuId != menu.menuId).toList();
+        favorites.value.where((r) => r.id != recipe.id).toList();
   }
 
-  static void toggle(RecipeMenuModel menu) {
-    if (isCollected(menu)) {
-      remove(menu);
+  static void toggle(RecipeModel recipe) {
+    if (isCollected(recipe)) {
+      remove(recipe);
     } else {
-      add(menu);
+      add(recipe);
     }
   }
 }
