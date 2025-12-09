@@ -8,7 +8,7 @@ class RecipeApiService {
   static Future<List<RecipeMenuModel>> generateMenus(
     Map<String, dynamic>? filter,
   ) async {
-    final url = Uri.parse('${ApiConfig.baseUrl}/api/rms/recipe/generate');
+    final url = Uri.parse('${ApiConfig.recipeBaseUrl}/api/recipes/generate');
 
     final body = _buildRequestBody(filter);
 

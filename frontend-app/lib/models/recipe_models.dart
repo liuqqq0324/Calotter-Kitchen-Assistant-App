@@ -84,8 +84,15 @@ class RecipeModel {
     final recipesSteps = (json['steps'] as List?) ?? [];
     final ingredientsJson = (json['ingredients'] as List?) ?? [];
 
+    final rawId = (json['id'] ?? json['recipe_id'] ?? json['recipeId'] ?? '').toString();
+    final resolvedId = rawId.isNotEmpty
+        ? rawId
+        : (json['title']?.toString().isNotEmpty == true
+            ? 'recipe_${json['title'].toString().hashCode}'
+            : 'recipe_${DateTime.now().microsecondsSinceEpoch}');
+
     return RecipeModel(
-      id: (json['id'] ?? json['recipe_id'] ?? json['recipeId'] ?? '').toString(),
+      id: resolvedId,
       title: json['title']?.toString() ?? 'Untitled recipe',
       shortDescription: json['short_description']?.toString() ??
           json['shortDescription']?.toString() ??

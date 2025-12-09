@@ -66,9 +66,9 @@ class SousChefApp extends StatelessWidget {
           ),
         ),
       ),
-      // Modified by Chase: Changed app entry point to LandingPage / 由 Chase 修改：将应用入口改为启动页
-      // Users will see login/registration options first / 用户首先看到登录/注册选项
-      home: const LandingPage(),
+      // Modified for local testing: bypass auth landing and go straight to main scaffold
+      // home: const LandingPage(),
+      home: const MainScaffold(),
     );
   }
 }
@@ -84,7 +84,8 @@ class MainScaffold extends StatefulWidget {
 
 // 🔥 修复点 4: 确保类名是 MainScaffoldState (公有，没下划线)，方便外部引用
 class MainScaffoldState extends State<MainScaffold> {
-  int _selectedIndex = 0;
+  // Start on Recipes tab (index 1) for quick testing; change back to 0 if needed.
+  int _selectedIndex = 1;
 
   // ✅ 改为 Getter (每次调用都生成新的 Widget 列表)
   // 这样能确保当你 setState 时，InventoryPage 会被重新构建
