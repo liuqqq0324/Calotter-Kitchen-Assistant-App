@@ -1,5 +1,8 @@
 package com.calotter.recipe.api;
 
+import com.calotter.recipe.service.AiRecipeService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -10,14 +13,25 @@ import java.util.*;
 @RestController
 public class RecipeApiController {
 
+    private static final Logger log = LoggerFactory.getLogger(RecipeApiController.class);
+    private final AiRecipeService aiRecipeService;
+
+    public RecipeApiController(AiRecipeService aiRecipeService) {
+        this.aiRecipeService = aiRecipeService;
+    }
+
     @PostMapping("/api/recipes/generate")
     public GeneratedMenusResponse generateMenus(@RequestBody GenerateMenusRequest req) {
-        // Return a fixed example as documentation shows
-        GeneratedMenusResponse r = new GeneratedMenusResponse();
-        r.menus = new ArrayList<>();
-        r.menus.add(sampleMenu(1));
-        r.menus.add(sampleMenu(2));
-        return r;
+        try {
+            return aiRecipeService.generateMenus(req);
+        } catch (Exception e) {
+            log.warn("AI generation failed, falling back to sample menus: {}", e.getMessage());
+            GeneratedMenusResponse r = new GeneratedMenusResponse();
+            r.menus = new ArrayList<>();
+            r.menus.add(sampleMenu(1));
+            r.menus.add(sampleMenu(2));
+            return r;
+        }
     }
 
     @GetMapping("/api/recipes/preferences/default")
