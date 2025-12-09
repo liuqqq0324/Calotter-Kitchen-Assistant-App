@@ -31,6 +31,7 @@ dependencies:
   flutter:
     sdk: flutter
 
+
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
@@ -44,6 +45,16 @@ dependencies:
   # Network requests
   http: ^1.6.0
   shared_preferences: ^2.5.3
+
+  onnxruntime: ^1.4.1
+
+  image_picker: ^1.0.4
+  image: ^4.0.17 
+
+
+  path_provider: ^2.1.1
+
+
 
 dev_dependencies:
   flutter_test:
@@ -73,6 +84,7 @@ flutter:
     - assets/sketch.png
     - assets/fonts/
     - assets/fonts/caveat/
+    - assets/models/
   fonts:
     - family: Caveat
       fonts:
@@ -80,6 +92,7 @@ flutter:
         - asset: assets/fonts/caveat/Caveat-Bold.ttf
         - asset: assets/fonts/caveat/Caveat-SemiBold.ttf
         - asset: assets/fonts/caveat/Caveat-Medium.ttf
+
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

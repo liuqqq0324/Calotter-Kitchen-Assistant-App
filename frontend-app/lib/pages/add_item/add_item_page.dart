@@ -1,5 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart'; // 🔥 1. 引入图片选择库
 import 'package:personal_sous_chef/pages/add_item/review_ingredients_page.dart';
+import 'package:personal_sous_chef/services/yolo_service.dart'; // 🔥 2. 引入 YOLO 服务
+import 'package:personal_sous_chef/models/ingredient.dart'; // 引入 Ingredient 模型
 
 class AddItemPage extends StatefulWidget {
   const AddItemPage({super.key});
@@ -9,11 +13,105 @@ class AddItemPage extends StatefulWidget {
 }
 
 class _AddItemPageState extends State<AddItemPage> {
+  // 🔥 3. 定义状态变量
+  final YoloService _yoloService = YoloService();
+  final ImagePicker _picker = ImagePicker();
+  bool _isLoading = false; // 控制加载遮罩显示
+
+  // 🔥 4. 核心逻辑：拍照 -> 识别 -> 跳转
+  Future<void> _handleImageInput(ImageSource source) async {
+    try {
+      // A. 拍照或选图
+      final XFile? photo = await _picker.pickImage(source: source);
+      if (photo == null) return; // 用户取消了
+
+      // B. 显示 Loading
+      setState(() => _isLoading = true);
+
+      // C. 调用 AI 服务
+      // 确保模型加载（虽然 Service 内部也会检查，这里显式调用更安全）
+      await _yoloService.loadModel();
+      final List<Ingredient> ingredients = await _yoloService.analyzeImage(
+        photo.path,
+      );
+
+      // D. 隐藏 Loading
+      setState(() => _isLoading = false);
+
+      if (!mounted) return;
+
+      if (ingredients.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("No ingredients detected. Please try again."),
+          ),
+        );
+        return;
+      }
+
+      // E. 跳转到 Review 页面，并传入识别结果
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ReviewIngredientsPage(
+            analyzedIngredients: ingredients, // 🔥 传入真实数据
+          ),
+        ),
+      );
+
+      // F. 如果 Review 页面完成了添加，继续回传结果给首页
+      // ✅ 修改后的写法
+      if (result != null) {
+        // 先检查页面是否还在
+        if (!mounted) return;
+        // 确认安全后，再使用 context
+        Navigator.pop(context, result);
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Error: $e")));
+      }
+    }
+  }
+
+  // 🔥 5. 辅助弹窗：让用户选相机还是相册
+  void _showPickerOptions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Wrap(
+            children: <Widget>[
+              ListTile(
+                leading: const Icon(Icons.photo_camera),
+                title: const Text('Take a Photo'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _handleImageInput(ImageSource.camera);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Choose from Gallery'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _handleImageInput(ImageSource.gallery);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    // 使用 DefaultTabController 管理 3 个 Tab
     return DefaultTabController(
-      length: 3, // Photo, Video, Live
+      length: 3,
       child: Scaffold(
         backgroundColor: Colors.white,
         appBar: AppBar(
@@ -28,20 +126,17 @@ class _AddItemPageState extends State<AddItemPage> {
             style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
           ),
           centerTitle: true,
-
-          // 🔥 核心布局：Tab 导航栏
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(50),
             child: Container(
               margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               height: 40,
               decoration: BoxDecoration(
-                color: Colors.grey.shade100, // 灰色背景
-                borderRadius: BorderRadius.circular(20), // 圆角胶囊形状
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(20),
               ),
               child: TabBar(
                 indicatorSize: TabBarIndicatorSize.tab,
-                // 选中时的样式：橙色胶囊
                 indicator: BoxDecoration(
                   color: Colors.orange,
                   borderRadius: BorderRadius.circular(20),
@@ -53,8 +148,8 @@ class _AddItemPageState extends State<AddItemPage> {
                     ),
                   ],
                 ),
-                labelColor: Colors.white, // 选中的文字颜色
-                unselectedLabelColor: Colors.grey.shade600, // 未选中的文字颜色
+                labelColor: Colors.white,
+                unselectedLabelColor: Colors.grey.shade600,
                 labelStyle: const TextStyle(fontWeight: FontWeight.bold),
                 tabs: const [
                   Tab(text: "Photo"),
@@ -66,64 +161,70 @@ class _AddItemPageState extends State<AddItemPage> {
           ),
         ),
 
-        body: TabBarView(
+        // 🔥 6. 使用 Stack 覆盖 Loading 层
+        body: Stack(
           children: [
-            // 1. Photo Tab
-            _buildUploadView(
-              title: "Upload Photo",
-              instruction:
-                  "Tap the icon to take a photo or upload from gallery",
-              icon: Icons.add_a_photo_outlined,
-              btnText: "Upload Photo",
-              onTap: () async {
-                // 🔥 加上 async
-                // 1. 等待 Review 页面返回结果
-                final result = await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const ReviewIngredientsPage(),
-                  ),
-                );
+            TabBarView(
+              children: [
+                // 1. Photo Tab
+                _buildUploadView(
+                  title: "Upload Photo",
+                  instruction: "Tap to take a photo or upload from gallery",
+                  icon: Icons.add_a_photo_outlined,
+                  btnText: "Take Photo / Upload",
+                  onTap: () => _showPickerOptions(context), // 🔥 绑定点击事件
+                ),
 
-                // 2. 如果拿到了结果 (List<Ingredient>)，就继续往回传
-                if (result != null && context.mounted) {
-                  Navigator.pop(context, result);
-                }
-              },
+                // 2. Video Tab (逻辑类似，暂时也绑一样的方法，或者后续你单独处理)
+                _buildUploadView(
+                  title: "Upload Video",
+                  instruction: "Select a video file to analyze ingredients",
+                  icon: Icons.video_file_outlined,
+                  btnText: "Upload Video",
+                  onTap: () => _showPickerOptions(context),
+                ),
+
+                // 3. Live Detection Tab
+                _buildLiveDetectionView(),
+              ],
             ),
 
-            // 2. Video Tab
-            _buildUploadView(
-              title: "Upload Video",
-              instruction: "Select a video file to analyze ingredients",
-              icon: Icons.video_file_outlined,
-              btnText: "Upload Video",
-              onTap: () async {
-                // 🔥 加上 async
-                // 1. 等待 Review 页面返回结果
-                final result = await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const ReviewIngredientsPage(),
+            // 🔥 7. Loading 遮罩层
+            if (_isLoading)
+              Container(
+                color: Colors.black54,
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const CircularProgressIndicator(color: Colors.orange),
+                      const SizedBox(height: 20),
+                      Text(
+                        "AI is identifying ingredients...",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          shadows: [
+                            Shadow(
+                              offset: const Offset(0, 1),
+                              blurRadius: 3.0,
+                              color: Colors.black.withOpacity(0.5),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                );
-
-                // 2. 如果拿到了结果 (List<Ingredient>)，就继续往回传
-                if (result != null && context.mounted) {
-                  Navigator.pop(context, result);
-                }
-              },
-            ),
-
-            // 3. Live Detection Tab (实时检测)
-            _buildLiveDetectionView(),
+                ),
+              ),
           ],
         ),
       ),
     );
   }
 
-  // --- 通用组件：上传视图 (用于 Photo 和 Video) ---
+  // --- 通用组件：上传视图 ---
   Widget _buildUploadView({
     required String title,
     required String instruction,
@@ -135,61 +236,54 @@ class _AddItemPageState extends State<AddItemPage> {
       padding: const EdgeInsets.all(24.0),
       child: Column(
         children: [
-          // 中间的虚线框占位符
           Expanded(
-            child: Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade50,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: Colors.grey.shade300,
-                  width: 2,
-                  style: BorderStyle
-                      .solid, // Flutter 原生不支持虚线，先用实线，或者引入 dotted_border 库
+            child: GestureDetector(
+              // 让整个区域都能点击
+              onTap: onTap,
+              child: Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.grey.shade300, width: 2),
                 ),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // 大图标背景
-                  Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade200,
-                      shape: BoxShape.circle,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 100,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade200,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(icon, size: 50, color: Colors.grey.shade500),
                     ),
-                    child: Icon(icon, size: 50, color: Colors.grey.shade500),
-                  ),
-                  const SizedBox(height: 20),
-                  // 文字说明
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 30),
-                    child: Text(
-                      instruction,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.grey.shade500,
-                        fontSize: 16,
+                    const SizedBox(height: 20),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 30),
+                      child: Text(
+                        instruction,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.grey.shade500,
+                          fontSize: 16,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
-
           const SizedBox(height: 30),
-
-          // 底部橙色按钮
           SizedBox(
             width: double.infinity,
             height: 55,
             child: ElevatedButton(
               onPressed: onTap,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange, // 暖色调
+                backgroundColor: Colors.orange,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(15),
                 ),
@@ -215,7 +309,6 @@ class _AddItemPageState extends State<AddItemPage> {
   Widget _buildLiveDetectionView() {
     return Stack(
       children: [
-        // 模拟相机预览背景
         Container(
           color: Colors.black87,
           child: const Center(
@@ -225,53 +318,8 @@ class _AddItemPageState extends State<AddItemPage> {
                 Icon(Icons.center_focus_weak, size: 100, color: Colors.white54),
                 SizedBox(height: 20),
                 Text(
-                  "Camera Preview Initializing...",
+                  "Coming Soon: Real-time Detection",
                   style: TextStyle(color: Colors.white54),
-                ),
-              ],
-            ),
-          ),
-        ),
-
-        // 底部的操作栏
-        Positioned(
-          bottom: 40,
-          left: 0,
-          right: 0,
-          child: Center(
-            child: Column(
-              children: [
-                const Text(
-                  "Point camera at ingredients",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                // 开始检测按钮
-                FloatingActionButton.large(
-                  onPressed: () async {
-                    // 🔥 加上 async
-                    // 1. 等待返回
-                    final result = await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const ReviewIngredientsPage(),
-                      ),
-                    );
-
-                    // 2. 接力回传
-                    if (result != null && context.mounted) {
-                      Navigator.pop(context, result);
-                    }
-                  },
-                  backgroundColor: Colors.white,
-                  child: const Icon(
-                    Icons.play_arrow,
-                    size: 40,
-                    color: Colors.orange,
-                  ),
                 ),
               ],
             ),

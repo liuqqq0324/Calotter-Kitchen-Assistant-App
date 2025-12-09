@@ -1,0 +1,96 @@
+标签数 >= 100 的文件列表 (共 21 个)
+================================================================================
+
+1. P1030278_JPG.rf.5a833fa1c4e4c1e76de05acc98f3a7fa.txt - 480 个标注
+   标签路径: training datasets/personal chef.v1i.yolov8/train/labels/P1030278_JPG.rf.5a833fa1c4e4c1e76de05acc98f3a7fa.txt
+   图片路径: training datasets/personal chef.v1i.yolov8/train/images/P1030278_JPG.rf.5a833fa1c4e4c1e76de05acc98f3a7fa.jpg
+
+2. P1030076_JPG.rf.e84ddc495191f38b9038f638268f9068.txt - 339 个标注
+   标签路径: training datasets/personal chef.v1i.yolov8/train/labels/P1030076_JPG.rf.e84ddc495191f38b9038f638268f9068.txt
+   图片路径: training datasets/personal chef.v1i.yolov8/train/images/P1030076_JPG.rf.e84ddc495191f38b9038f638268f9068.jpg
+
+3. P1030072_JPG.rf.5cecac822347ba7ff3f6972b28fb7fc4.txt - 337 个标注
+   标签路径: training datasets/personal chef.v1i.yolov8/train/labels/P1030072_JPG.rf.5cecac822347ba7ff3f6972b28fb7fc4.txt
+   图片路径: training datasets/personal chef.v1i.yolov8/train/images/P1030072_JPG.rf.5cecac822347ba7ff3f6972b28fb7fc4.jpg
+
+4. P1030277_JPG.rf.ca3595caa38a43cd434600aac756be86.txt - 334 个标注
+   标签路径: training datasets/personal chef.v1i.yolov8/train/labels/P1030277_JPG.rf.ca3595caa38a43cd434600aac756be86.txt
+   图片路径: training datasets/personal chef.v1i.yolov8/train/images/P1030277_JPG.rf.ca3595caa38a43cd434600aac756be86.jpg
+
+5. P1030078_JPG.rf.77432f10702d8550aa4ec522c4224049.txt - 288 个标注
+   标签路径: training datasets/personal chef.v1i.yolov8/train/labels/P1030078_JPG.rf.77432f10702d8550aa4ec522c4224049.txt
+   图片路径: training datasets/personal chef.v1i.yolov8/train/images/P1030078_JPG.rf.77432f10702d8550aa4ec522c4224049.jpg
+
+6. P1030065_JPG.rf.cd64c6cae9533edacb8a0fe5d74c0413.txt - 237 个标注
+   标签路径: training datasets/personal chef.v1i.yolov8/train/labels/P1030065_JPG.rf.cd64c6cae9533edacb8a0fe5d74c0413.txt
+   图片路径: training datasets/personal chef.v1i.yolov8/train/images/P1030065_JPG.rf.cd64c6cae9533edacb8a0fe5d74c0413.jpg
+
+7. P1030051_JPG.rf.7f9bf9a534ae986adb3892f68ae4e21c.txt - 212 个标注
+   标签路径: training datasets/personal chef.v1i.yolov8/train/labels/P1030051_JPG.rf.7f9bf9a534ae986adb3892f68ae4e21c.txt
+   图片路径: training datasets/personal chef.v1i.yolov8/train/images/P1030051_JPG.rf.7f9bf9a534ae986adb3892f68ae4e21c.jpg
+
+8. P1030062_JPG.rf.2e1b2139046b418c1b737c91a16bd35c.txt - 193 个标注
+   标签路径: training datasets/personal chef.v1i.yolov8/train/labels/P1030062_JPG.rf.2e1b2139046b418c1b737c91a16bd35c.txt
+   图片路径: training datasets/personal chef.v1i.yolov8/train/images/P1030062_JPG.rf.2e1b2139046b418c1b737c91a16bd35c.jpg
+
+9. P1030276_JPG.rf.c058fcca2d4bc35503bf2e6dd038a175.txt - 180 个标注
+   标签路径: training datasets/personal chef.v1i.yolov8/train/labels/P1030276_JPG.rf.c058fcca2d4bc35503bf2e6dd038a175.txt
+   图片路径: training datasets/personal chef.v1i.yolov8/train/images/P1030276_JPG.rf.c058fcca2d4bc35503bf2e6dd038a175.jpg
+
+10. P1030283_JPG.rf.0dc5609e3a58933e8019caabfda29c66.txt - 151 个标注
+   标签路径: training datasets/personal chef.v1i.yolov8/train/labels/P1030283_JPG.rf.0dc5609e3a58933e8019caabfda29c66.txt
+   图片路径: training datasets/personal chef.v1i.yolov8/train/images/P1030283_JPG.rf.0dc5609e3a58933e8019caabfda29c66.jpg
+
+11. P1030069_JPG.rf.d00992eb02330f33dbb1ca283cd8ed2e.txt - 150 个标注
+   标签路径: training datasets/personal chef.v1i.yolov8/train/labels/P1030069_JPG.rf.d00992eb02330f33dbb1ca283cd8ed2e.txt
+   图片路径: training datasets/personal chef.v1i.yolov8/train/images/P1030069_JPG.rf.d00992eb02330f33dbb1ca283cd8ed2e.jpg
+
+12. P1030272_JPG.rf.b5e857618ea7b8293e94228bd7e80148.txt - 145 个标注
+   标签路径: training datasets/personal chef.v1i.yolov8/train/labels/P1030272_JPG.rf.b5e857618ea7b8293e94228bd7e80148.txt
+   图片路径: training datasets/personal chef.v1i.yolov8/train/images/P1030272_JPG.rf.b5e857618ea7b8293e94228bd7e80148.jpg
+
+13. P1030064_JPG.rf.6fe2e03834d4ef719bf783acd1135dd2.txt - 139 个标注
+   标签路径: training datasets/personal chef.v1i.yolov8/train/labels/P1030064_JPG.rf.6fe2e03834d4ef719bf783acd1135dd2.txt
+   图片路径: training datasets/personal chef.v1i.yolov8/train/images/P1030064_JPG.rf.6fe2e03834d4ef719bf783acd1135dd2.txt
+
+14. P1030075_JPG.rf.b1c5cecca8d0e102d2af40be388ba5c6.txt - 138 个标注
+   标签路径: training datasets/personal chef.v1i.yolov8/train/labels/P1030075_JPG.rf.b1c5cecca8d0e102d2af40be388ba5c6.txt
+   图片路径: training datasets/personal chef.v1i.yolov8/train/images/P1030075_JPG.rf.b1c5cecca8d0e102d2af40be388ba5c6.jpg
+
+15. P1030057_JPG.rf.2ccca1eca30878a38faf623dd149b5f1.txt - 136 个标注
+   标签路径: training datasets/personal chef.v1i.yolov8/train/labels/P1030057_JPG.rf.2ccca1eca30878a38faf623dd149b5f1.txt
+   图片路径: training datasets/personal chef.v1i.yolov8/train/images/P1030057_JPG.rf.2ccca1eca30878a38faf623dd149b5f1.jpg
+
+16. P1030054_JPG.rf.b73a6bdc3d9739f80f1b129acd07a993.txt - 135 个标注
+   标签路径: training datasets/personal chef.v1i.yolov8/train/labels/P1030054_JPG.rf.b73a6bdc3d9739f80f1b129acd07a993.txt
+   图片路径: training datasets/personal chef.v1i.yolov8/train/images/P1030054_JPG.rf.b73a6bdc3d9739f80f1b129acd07a993.jpg
+
+17. P1030074_JPG.rf.0689d6015d0997a4f1b2cc930a193b6e.txt - 126 个标注
+   标签路径: training datasets/personal chef.v1i.yolov8/train/labels/P1030074_JPG.rf.0689d6015d0997a4f1b2cc930a193b6e.txt
+   图片路径: training datasets/personal chef.v1i.yolov8/train/images/P1030074_JPG.rf.0689d6015d0997a4f1b2cc930a193b6e.jpg
+
+18. P1030077_JPG.rf.ed02ce7d2b61e52adab10b55b769182b.txt - 125 个标注
+   标签路径: training datasets/personal chef.v1i.yolov8/train/labels/P1030077_JPG.rf.ed02ce7d2b61e52adab10b55b769182b.txt
+   图片路径: training datasets/personal chef.v1i.yolov8/train/images/P1030077_JPG.rf.ed02ce7d2b61e52adab10b55b769182b.jpg
+
+19. P1030079_JPG.rf.ac566c3c062a6cb1867536ce70921ecc.txt - 122 个标注
+   标签路径: training datasets/personal chef.v1i.yolov8/train/labels/P1030079_JPG.rf.ac566c3c062a6cb1867536ce70921ecc.txt
+   图片路径: training datasets/personal chef.v1i.yolov8/train/images/P1030079_JPG.rf.ac566c3c062a6cb1867536ce70921ecc.jpg
+
+20. P1030061_JPG.rf.9706784fada3b7d7a9a6cf116235cad7.txt - 121 个标注
+   标签路径: training datasets/personal chef.v1i.yolov8/train/labels/P1030061_JPG.rf.9706784fada3b7d7a9a6cf116235cad7.txt
+   图片路径: training datasets/personal chef.v1i.yolov8/train/images/P1030061_JPG.rf.9706784fada3b7d7a9a6cf116235cad7.jpg
+
+21. P1030056_JPG.rf.140ee00c4ce700a0268c33800d4cafd7.txt - 121 个标注
+   标签路径: training datasets/personal chef.v1i.yolov8/train/labels/P1030056_JPG.rf.140ee00c4ce700a0268c33800d4cafd7.txt
+   图片路径: training datasets/personal chef.v1i.yolov8/train/images/P1030056_JPG.rf.140ee00c4ce700a0268c33800d4cafd7.jpg
+
+================================================================================
+统计信息:
+- 总共 21 个文件
+- 标签数量范围: 121 - 480 个标注
+- 最多标签: 480 个 (P1030278_JPG.rf.5a833fa1c4e4c1e76de05acc98f3a7fa.txt)
+- 最少标签: 121 个 (2个文件)
+
+注意: 这些文件可能导致训练时出现张量尺寸不匹配错误
+

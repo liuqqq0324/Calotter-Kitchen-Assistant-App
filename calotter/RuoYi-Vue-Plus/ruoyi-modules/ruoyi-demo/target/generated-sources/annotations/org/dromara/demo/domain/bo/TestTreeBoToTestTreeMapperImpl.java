@@ -4,14 +4,12 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import javax.annotation.processing.Generated;
 import org.dromara.demo.domain.TestTree;
-import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-12-10T12:08:10+1300",
+    date = "2025-12-10T12:23:05+1300",
     comments = "version: 1.6.3, compiler: Eclipse JDT (IDE) 3.44.0.v20251118-1623, environment: Java 21.0.9 (Eclipse Adoptium)"
 )
-@Component
 public class TestTreeBoToTestTreeMapperImpl implements TestTreeBoToTestTreeMapper {
 
     @Override
