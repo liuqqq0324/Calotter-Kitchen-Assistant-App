@@ -1,0 +1,1 @@
+{"doc":"\n 桶访问策略配置\r\n\r\n @author 陈賝\r\n","fields":[{"name":"type","doc":"\n 桶 权限类型（数据库值）\r\n"},{"name":"bucketCannedACL","doc":"\n 桶 权限类型\r\n"},{"name":"objectCannedACL","doc":"\n 文件对象 权限类型\r\n"}],"enumConstants":[{"name":"PRIVATE","doc":"\n private\r\n"},{"name":"PUBLIC","doc":"\n public\r\n"},{"name":"CUSTOM","doc":"\n custom\r\n"}],"methods":[],"constructors":[]}

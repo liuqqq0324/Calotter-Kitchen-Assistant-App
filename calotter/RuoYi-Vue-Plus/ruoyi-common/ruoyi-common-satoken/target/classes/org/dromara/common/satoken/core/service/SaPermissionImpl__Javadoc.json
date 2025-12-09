@@ -1,0 +1,1 @@
+{"doc":"\n sa-token 权限管理实现类\r\n\r\n @author Lion Li\r\n","fields":[],"enumConstants":[],"methods":[{"name":"getPermissionList","paramTypes":["java.lang.Object","java.lang.String"],"doc":"\n 获取菜单权限列表\r\n"},{"name":"getRoleList","paramTypes":["java.lang.Object","java.lang.String"],"doc":"\n 获取角色权限列表\r\n"}],"constructors":[]}

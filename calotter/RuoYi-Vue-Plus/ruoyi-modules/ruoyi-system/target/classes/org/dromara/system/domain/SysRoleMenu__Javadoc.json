@@ -1,0 +1,1 @@
+{"doc":"\n 角色和菜单关联 sys_role_menu\r\n\r\n @author Lion Li\r\n","fields":[{"name":"roleId","doc":"\n 角色ID\r\n"},{"name":"menuId","doc":"\n 菜单ID\r\n"}],"enumConstants":[],"methods":[],"constructors":[]}

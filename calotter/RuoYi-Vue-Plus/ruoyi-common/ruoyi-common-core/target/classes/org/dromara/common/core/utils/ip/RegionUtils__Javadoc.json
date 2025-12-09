@@ -1,0 +1,1 @@
+{"doc":"\n 根据ip地址定位工具类，离线方式\r\n 参考地址：<a href=\"https://gitee.com/lionsoul/ip2region/tree/master/binding/java\">集成 ip2region 实现离线IP地址定位库</a>\r\n\r\n @author lishuyan\r\n","fields":[],"enumConstants":[],"methods":[{"name":"getCityInfo","paramTypes":["java.lang.String"],"doc":"\n 根据IP地址离线获取城市\r\n"}],"constructors":[]}

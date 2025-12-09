@@ -1,0 +1,1 @@
+{"doc":"\n 删除流程监听\r\n\r\n @author AprilWind\r\n","fields":[{"name":"tenantId","doc":"\n 租户ID\r\n"},{"name":"flowCode","doc":"\n 流程定义编码\r\n"},{"name":"businessId","doc":"\n 业务id\r\n"}],"enumConstants":[],"methods":[],"constructors":[]}

@@ -1,0 +1,1 @@
+{"doc":"\n 字典数据DTO\r\n\r\n @author AprilWind\r\n","fields":[{"name":"dictLabel","doc":"\n 字典标签\r\n"},{"name":"dictValue","doc":"\n 字典键值\r\n"},{"name":"isDefault","doc":"\n 是否默认（Y是 N否）\r\n"},{"name":"remark","doc":"\n 备注\r\n"}],"enumConstants":[],"methods":[],"constructors":[]}

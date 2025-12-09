@@ -1,0 +1,1 @@
+{"doc":"\n 部门\r\n\r\n @author AprilWind\r\n","fields":[{"name":"deptId","doc":"\n 部门ID\r\n"},{"name":"parentId","doc":"\n 父部门ID\r\n"},{"name":"deptName","doc":"\n 部门名称\r\n"}],"enumConstants":[],"methods":[],"constructors":[]}

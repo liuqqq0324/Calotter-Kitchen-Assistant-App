@@ -1,0 +1,1 @@
+{"doc":"\n 对象存储常量\r\n\r\n @author Lion Li\r\n","fields":[{"name":"DEFAULT_CONFIG_KEY","doc":"\n 默认配置KEY\r\n"},{"name":"PEREVIEW_LIST_RESOURCE_KEY","doc":"\n 预览列表资源开关Key\r\n"},{"name":"SYSTEM_DATA_IDS","doc":"\n 系统数据ids\r\n"},{"name":"CLOUD_SERVICE","doc":"\n 云服务商\r\n"},{"name":"IS_HTTPS","doc":"\n https 状态\r\n"}],"enumConstants":[],"methods":[],"constructors":[]}

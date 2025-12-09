@@ -1,0 +1,1 @@
+{"doc":"\n 流程变量参数\r\n\r\n @author may\r\n","fields":[{"name":"instanceId","doc":"\n 流程实例id\r\n"},{"name":"key","doc":"\n 流程变量key\r\n"},{"name":"value","doc":"\n 流程变量value\r\n"}],"enumConstants":[],"methods":[],"constructors":[]}

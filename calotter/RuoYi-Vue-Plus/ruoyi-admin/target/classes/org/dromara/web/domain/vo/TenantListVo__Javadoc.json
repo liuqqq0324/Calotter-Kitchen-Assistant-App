@@ -1,0 +1,1 @@
+{"doc":"\n 租户列表\r\n\r\n @author Lion Li\r\n","fields":[{"name":"tenantId","doc":"\n 租户编号\r\n"},{"name":"companyName","doc":"\n 企业名称\r\n"},{"name":"domain","doc":"\n 域名\r\n"}],"enumConstants":[],"methods":[],"constructors":[]}

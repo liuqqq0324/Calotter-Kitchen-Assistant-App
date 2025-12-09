@@ -1,0 +1,1 @@
+{"doc":"\n 模拟的数据库省市县\r\n","fields":[{"name":"id","doc":"\n 数据库id字段\r\n"},{"name":"pid","doc":"\n 数据库pid字段\r\n"},{"name":"name","doc":"\n 数据库name字段\r\n"},{"name":"pData","doc":"\n MyBatisPlus连带查询父数据\r\n"}],"enumConstants":[],"methods":[],"constructors":[]}

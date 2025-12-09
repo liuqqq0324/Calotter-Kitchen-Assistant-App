@@ -1,0 +1,1 @@
+{"doc":"\n 操作人类别\r\n\r\n @author ruoyi\r\n","fields":[],"enumConstants":[{"name":"OTHER","doc":"\n 其它\r\n"},{"name":"MANAGE","doc":"\n 后台用户\r\n"},{"name":"MOBILE","doc":"\n 手机端用户\r\n"}],"methods":[],"constructors":[]}

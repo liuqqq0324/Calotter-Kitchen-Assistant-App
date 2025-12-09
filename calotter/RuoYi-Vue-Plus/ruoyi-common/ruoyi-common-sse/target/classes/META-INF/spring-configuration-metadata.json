@@ -1,0 +1,26 @@
+{
+  "groups": [
+    {
+      "name": "sse",
+      "type": "org.dromara.common.sse.config.SseProperties",
+      "sourceType": "org.dromara.common.sse.config.SseProperties"
+    }
+  ],
+  "properties": [
+    {
+      "name": "sse.enabled",
+      "type": "java.lang.Boolean",
+      "sourceType": "org.dromara.common.sse.config.SseProperties"
+    },
+    {
+      "name": "sse.path",
+      "type": "java.lang.String",
+      "description": "路径",
+      "sourceType": "org.dromara.common.sse.config.SseProperties"
+    }
+  ],
+  "hints": [],
+  "ignored": {
+    "properties": []
+  }
+}

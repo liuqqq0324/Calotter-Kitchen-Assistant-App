@@ -1,0 +1,49 @@
+package ${packageName}.domain.bo;
+
+import ${packageName}.domain.${ClassName};
+import com.calotter.common.mybatis.core.domain.BaseEntity;
+import com.calotter.common.core.validate.AddGroup;
+import com.calotter.common.core.validate.EditGroup;
+import io.github.linpeilie.annotations.AutoMapper;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import jakarta.validation.constraints.*;
+#foreach ($import in $importList)
+import ${import};
+#end
+
+/**
+ * ${functionName} business object ${tableName}
+ *
+ * @author ${author}
+ */
+@Data
+@EqualsAndHashCode(callSuper = true)
+@AutoMapper(target = ${ClassName}.class, reverseConvertGenerate = false)
+public class ${ClassName}Bo extends BaseEntity {
+
+#foreach ($column in $columns)
+#if(!$table.isSuperColumn($column.javaField) && ($column.query || $column.insert || $column.edit))
+    /**
+     * $column.columnComment
+     */
+#if($column.insert && $column.edit)
+#set($Group="AddGroup.class, EditGroup.class")
+#elseif($column.insert)
+#set($Group="AddGroup.class")
+#elseif($column.edit)
+#set($Group="EditGroup.class")
+#end
+#if($column.required)
+#if($column.javaType == 'String')
+    @NotBlank(message = "$column.columnComment can not be empty", groups = { $Group })
+#else
+    @NotNull(message = "$column.columnComment can not be empty", groups = { $Group })
+#end
+#end
+    private $column.javaType $column.javaField;
+
+#end
+#end
+
+}

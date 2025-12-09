@@ -1,0 +1,80 @@
+{
+  "groups": [
+    {
+      "name": "api-decrypt",
+      "type": "org.dromara.common.encrypt.properties.ApiDecryptProperties",
+      "sourceType": "org.dromara.common.encrypt.properties.ApiDecryptProperties"
+    },
+    {
+      "name": "mybatis-encryptor",
+      "type": "org.dromara.common.encrypt.properties.EncryptorProperties",
+      "sourceType": "org.dromara.common.encrypt.properties.EncryptorProperties"
+    }
+  ],
+  "properties": [
+    {
+      "name": "api-decrypt.enabled",
+      "type": "java.lang.Boolean",
+      "description": "加密开关",
+      "sourceType": "org.dromara.common.encrypt.properties.ApiDecryptProperties"
+    },
+    {
+      "name": "api-decrypt.header-flag",
+      "type": "java.lang.String",
+      "description": "头部标识",
+      "sourceType": "org.dromara.common.encrypt.properties.ApiDecryptProperties"
+    },
+    {
+      "name": "api-decrypt.private-key",
+      "type": "java.lang.String",
+      "description": "请求解密私钥",
+      "sourceType": "org.dromara.common.encrypt.properties.ApiDecryptProperties"
+    },
+    {
+      "name": "api-decrypt.public-key",
+      "type": "java.lang.String",
+      "description": "响应加密公钥",
+      "sourceType": "org.dromara.common.encrypt.properties.ApiDecryptProperties"
+    },
+    {
+      "name": "mybatis-encryptor.algorithm",
+      "type": "org.dromara.common.encrypt.enumd.AlgorithmType",
+      "description": "默认算法",
+      "sourceType": "org.dromara.common.encrypt.properties.EncryptorProperties"
+    },
+    {
+      "name": "mybatis-encryptor.enable",
+      "type": "java.lang.Boolean",
+      "description": "过滤开关",
+      "sourceType": "org.dromara.common.encrypt.properties.EncryptorProperties"
+    },
+    {
+      "name": "mybatis-encryptor.encode",
+      "type": "org.dromara.common.encrypt.enumd.EncodeType",
+      "description": "编码方式，base64\/hex",
+      "sourceType": "org.dromara.common.encrypt.properties.EncryptorProperties"
+    },
+    {
+      "name": "mybatis-encryptor.password",
+      "type": "java.lang.String",
+      "description": "安全秘钥",
+      "sourceType": "org.dromara.common.encrypt.properties.EncryptorProperties"
+    },
+    {
+      "name": "mybatis-encryptor.private-key",
+      "type": "java.lang.String",
+      "description": "私钥",
+      "sourceType": "org.dromara.common.encrypt.properties.EncryptorProperties"
+    },
+    {
+      "name": "mybatis-encryptor.public-key",
+      "type": "java.lang.String",
+      "description": "公钥",
+      "sourceType": "org.dromara.common.encrypt.properties.EncryptorProperties"
+    }
+  ],
+  "hints": [],
+  "ignored": {
+    "properties": []
+  }
+}

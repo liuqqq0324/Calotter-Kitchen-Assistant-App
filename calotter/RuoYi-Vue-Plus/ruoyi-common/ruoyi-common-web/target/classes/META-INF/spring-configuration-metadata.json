@@ -1,0 +1,61 @@
+{
+  "groups": [
+    {
+      "name": "captcha",
+      "type": "org.dromara.common.web.config.properties.CaptchaProperties",
+      "sourceType": "org.dromara.common.web.config.properties.CaptchaProperties"
+    },
+    {
+      "name": "xss",
+      "type": "org.dromara.common.web.config.properties.XssProperties",
+      "sourceType": "org.dromara.common.web.config.properties.XssProperties"
+    }
+  ],
+  "properties": [
+    {
+      "name": "captcha.category",
+      "type": "org.dromara.common.web.enums.CaptchaCategory",
+      "description": "验证码类别",
+      "sourceType": "org.dromara.common.web.config.properties.CaptchaProperties"
+    },
+    {
+      "name": "captcha.char-length",
+      "type": "java.lang.Integer",
+      "description": "字符验证码长度",
+      "sourceType": "org.dromara.common.web.config.properties.CaptchaProperties"
+    },
+    {
+      "name": "captcha.enable",
+      "type": "java.lang.Boolean",
+      "sourceType": "org.dromara.common.web.config.properties.CaptchaProperties"
+    },
+    {
+      "name": "captcha.number-length",
+      "type": "java.lang.Integer",
+      "description": "数字验证码位数",
+      "sourceType": "org.dromara.common.web.config.properties.CaptchaProperties"
+    },
+    {
+      "name": "captcha.type",
+      "type": "org.dromara.common.web.enums.CaptchaType",
+      "description": "验证码类型",
+      "sourceType": "org.dromara.common.web.config.properties.CaptchaProperties"
+    },
+    {
+      "name": "xss.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Xss开关",
+      "sourceType": "org.dromara.common.web.config.properties.XssProperties"
+    },
+    {
+      "name": "xss.exclude-urls",
+      "type": "java.util.List<java.lang.String>",
+      "description": "排除路径",
+      "sourceType": "org.dromara.common.web.config.properties.XssProperties"
+    }
+  ],
+  "hints": [],
+  "ignored": {
+    "properties": []
+  }
+}

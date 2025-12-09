@@ -1,0 +1,1 @@
+{"doc":"\n 抄送对象\r\n\r\n @author AprilWind\r\n","fields":[{"name":"userId","doc":"\n 用户id\r\n"},{"name":"userName","doc":"\n 用户名称\r\n"}],"enumConstants":[],"methods":[],"constructors":[]}

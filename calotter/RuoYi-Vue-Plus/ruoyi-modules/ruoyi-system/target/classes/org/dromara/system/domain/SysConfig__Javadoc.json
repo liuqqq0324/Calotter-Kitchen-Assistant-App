@@ -1,0 +1,1 @@
+{"doc":"\n 参数配置表 sys_config\r\n\r\n @author Lion Li\r\n","fields":[{"name":"configId","doc":"\n 参数主键\r\n"},{"name":"configName","doc":"\n 参数名称\r\n"},{"name":"configKey","doc":"\n 参数键名\r\n"},{"name":"configValue","doc":"\n 参数键值\r\n"},{"name":"configType","doc":"\n 系统内置（Y是 N否）\r\n"},{"name":"remark","doc":"\n 备注\r\n"}],"enumConstants":[],"methods":[],"constructors":[]}

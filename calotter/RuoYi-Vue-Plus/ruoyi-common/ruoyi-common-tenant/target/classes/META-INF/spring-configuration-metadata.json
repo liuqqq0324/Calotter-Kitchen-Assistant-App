@@ -1,0 +1,27 @@
+{
+  "groups": [
+    {
+      "name": "tenant",
+      "type": "org.dromara.common.tenant.properties.TenantProperties",
+      "sourceType": "org.dromara.common.tenant.properties.TenantProperties"
+    }
+  ],
+  "properties": [
+    {
+      "name": "tenant.enable",
+      "type": "java.lang.Boolean",
+      "description": "是否启用",
+      "sourceType": "org.dromara.common.tenant.properties.TenantProperties"
+    },
+    {
+      "name": "tenant.excludes",
+      "type": "java.util.List<java.lang.String>",
+      "description": "排除表",
+      "sourceType": "org.dromara.common.tenant.properties.TenantProperties"
+    }
+  ],
+  "hints": [],
+  "ignored": {
+    "properties": []
+  }
+}

@@ -1,0 +1,1 @@
+{"doc":"\n 邮件登录对象\r\n\r\n @author Lion Li\r\n","fields":[{"name":"email","doc":"\n 邮箱\r\n"},{"name":"emailCode","doc":"\n 邮箱code\r\n"}],"enumConstants":[],"methods":[],"constructors":[]}

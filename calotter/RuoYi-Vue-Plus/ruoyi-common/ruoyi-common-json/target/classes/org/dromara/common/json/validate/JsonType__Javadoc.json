@@ -1,0 +1,1 @@
+{"doc":"\n JSON 类型枚举\r\n\r\n @author AprilWind\r\n","fields":[],"enumConstants":[{"name":"OBJECT","doc":"\n JSON 对象，例如 {\"a\":1}\r\n"},{"name":"ARRAY","doc":"\n JSON 数组，例如 [1,2,3]\r\n"},{"name":"ANY","doc":"\n 任意 JSON 类型，对象或数组都可以\r\n"}],"methods":[],"constructors":[]}

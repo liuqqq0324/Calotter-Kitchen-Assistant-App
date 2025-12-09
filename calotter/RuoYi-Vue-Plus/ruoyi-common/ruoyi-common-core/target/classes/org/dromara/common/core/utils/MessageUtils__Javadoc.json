@@ -1,0 +1,1 @@
+{"doc":"\n 获取i18n资源文件\r\n\r\n @author Lion Li\r\n","fields":[],"enumConstants":[],"methods":[{"name":"message","paramTypes":["java.lang.String","java.lang.Object[]"],"doc":"\n 根据消息键和参数 获取消息 委托给spring messageSource\r\n\r\n @param code 消息键\r\n @param args 参数\r\n @return 获取国际化翻译值\r\n"}],"constructors":[]}

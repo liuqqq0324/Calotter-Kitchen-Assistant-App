@@ -1,0 +1,1 @@
+{"doc":"\n redis缓存key前缀处理\r\n\r\n @author ye\r\n @date 2022/7/14 17:44\r\n @since 4.3.0\r\n","fields":[],"enumConstants":[],"methods":[{"name":"map","paramTypes":["java.lang.String"],"doc":"\n 增加前缀\r\n"},{"name":"unmap","paramTypes":["java.lang.String"],"doc":"\n 去除前缀\r\n"}],"constructors":[]}

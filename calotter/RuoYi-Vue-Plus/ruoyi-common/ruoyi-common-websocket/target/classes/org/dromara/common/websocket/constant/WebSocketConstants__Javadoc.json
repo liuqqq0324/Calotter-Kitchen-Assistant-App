@@ -1,0 +1,1 @@
+{"doc":"\n websocket的常量配置\r\n\r\n @author zendwang\r\n","fields":[{"name":"LOGIN_USER_KEY","doc":"\n websocketSession中的参数的key\r\n"},{"name":"WEB_SOCKET_TOPIC","doc":"\n 订阅的频道\r\n"},{"name":"PING","doc":"\n 前端心跳检查的命令\r\n"},{"name":"PONG","doc":"\n 服务端心跳恢复的字符串\r\n"}],"enumConstants":[],"methods":[],"constructors":[]}

@@ -1,0 +1,1 @@
+{"doc":"\n 校验框架配置类\r\n\r\n @author Lion Li\r\n","fields":[],"enumConstants":[],"methods":[{"name":"validator","paramTypes":["org.springframework.context.MessageSource"],"doc":"\n 配置校验框架 快速失败模式\r\n"}],"constructors":[]}

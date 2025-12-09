@@ -1,0 +1,1 @@
+{"doc":"\n 缓存信息\r\n\r\n @author Lion Li\r\n","fields":[{"name":"cacheName","doc":"\n 缓存名称\r\n"},{"name":"cacheKey","doc":"\n 缓存键名\r\n"},{"name":"cacheValue","doc":"\n 缓存内容\r\n"},{"name":"remark","doc":"\n 备注\r\n"}],"enumConstants":[],"methods":[],"constructors":[]}

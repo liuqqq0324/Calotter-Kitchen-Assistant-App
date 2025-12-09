@@ -1,0 +1,1 @@
+{"doc":"\n 线程池 配置属性\r\n\r\n @author Lion Li\r\n","fields":[{"name":"enabled","doc":"\n 是否开启线程池\r\n"},{"name":"queueCapacity","doc":"\n 队列最大长度\r\n"},{"name":"keepAliveSeconds","doc":"\n 线程池维护线程所允许的空闲时间\r\n"}],"enumConstants":[],"methods":[],"constructors":[]}

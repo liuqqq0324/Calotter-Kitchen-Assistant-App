@@ -1,0 +1,1 @@
+{"doc":"\n 角色和部门关联 sys_role_dept\r\n\r\n @author Lion Li\r\n","fields":[{"name":"roleId","doc":"\n 角色ID\r\n"},{"name":"deptId","doc":"\n 部门ID\r\n"}],"enumConstants":[],"methods":[],"constructors":[]}

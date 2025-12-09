@@ -1,0 +1,1 @@
+{"doc":"","fields":[{"name":"idCard","doc":"\n 身份证\r\n"},{"name":"phone","doc":"\n 电话\r\n"},{"name":"address","doc":"\n 地址\r\n"},{"name":"email","doc":"\n 邮箱\r\n"},{"name":"bankCard","doc":"\n 银行卡\r\n"}],"enumConstants":[],"methods":[],"constructors":[]}

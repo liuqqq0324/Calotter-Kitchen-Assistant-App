@@ -1,0 +1,1 @@
+{"doc":"\n 验证码配置\r\n\r\n @author Lion Li\r\n","fields":[],"enumConstants":[],"methods":[{"name":"circleCaptcha","paramTypes":[],"doc":"\n 圆圈干扰验证码\r\n"},{"name":"lineCaptcha","paramTypes":[],"doc":"\n 线段干扰的验证码\r\n"},{"name":"shearCaptcha","paramTypes":[],"doc":"\n 扭曲干扰验证码\r\n"}],"constructors":[]}

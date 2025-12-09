@@ -1,0 +1,1 @@
+{"doc":"\n 业务异常（支持占位符 {} ）\r\n\r\n @author ruoyi\r\n","fields":[{"name":"code","doc":"\n 错误码\r\n"},{"name":"message","doc":"\n 错误提示\r\n"},{"name":"detailMessage","doc":"\n 错误明细，内部调试错误\r\n"}],"enumConstants":[],"methods":[],"constructors":[]}

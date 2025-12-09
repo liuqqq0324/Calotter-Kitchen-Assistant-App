@@ -1,0 +1,1 @@
+{"doc":"\n 用户类型\r\n\r\n @author Lion Li\r\n","fields":[{"name":"userType","doc":"\n 用户类型标识（用于 token、权限识别等）\r\n"}],"enumConstants":[{"name":"SYS_USER","doc":"\n 后台系统用户\r\n"},{"name":"APP_USER","doc":"\n 移动客户端用户\r\n"}],"methods":[],"constructors":[]}
