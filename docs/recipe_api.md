@@ -101,3 +101,93 @@ Response body
 { "code": 400, "message": "bad request" }
 ```
 - AI 调用失败将回退示例菜单并返回 200；若要区分，可在 header 或日志中标记。
+
+## 3) 收藏列表
+
+`GET /api/users/me/favorite-recipes`
+
+Response
+```json
+{
+  "recipes": [
+    {
+      "recipeId": "rec_123456",
+      "title": "Tomato Egg Stir-fry",
+      "short_description": "Light Chinese-style stir fry with tomato and egg.",
+      "servings": 1,
+      "cooking_time_min": 15,
+      "difficulty": "easy",
+      "total_calories_estimate": 320
+    }
+  ]
+}
+```
+
+## 4) 收藏详情
+
+`GET /api/users/me/favorite-recipes/{recipeId}`
+
+Response
+```json
+{
+  "recipeId": "rec_123456",
+  "title": "Tomato Egg Stir-fry",
+  "short_description": "Light Chinese-style stir fry with tomato and egg.",
+  "servings": 1,
+  "cooking_time_min": 15,
+  "difficulty": "easy",
+  "total_calories_estimate": 320,
+  "ingredients": [
+    { "name": "egg", "amount_value": 2, "amount_unit": "piece", "is_optional": false },
+    { "name": "tomato", "amount_value": 150, "amount_unit": "g", "is_optional": false },
+    { "name": "salt", "amount_value": 2, "amount_unit": "g", "is_optional": false }
+  ],
+  "steps": [
+    { "step_number": 1, "instruction": "Beat the eggs with a pinch of salt.", "step_time_min": 3 },
+    { "step_number": 2, "instruction": "Stir-fry tomatoes until soft, then add eggs.", "step_time_min": 7 },
+    { "step_number": 3, "instruction": "Season to taste and serve hot.", "step_time_min": 5 }
+  ]
+}
+```
+
+## 5) 添加收藏
+
+`POST /api/users/me/favorite-recipes`
+
+Request
+```json
+{
+  "source": "generated_menu",
+  "recipe": {
+    "title": "Tomato Egg Stir-fry",
+    "short_description": "Light Chinese-style stir fry with tomato and egg.",
+    "servings": 1,
+    "cooking_time_min": 15,
+    "difficulty": "easy",
+    "total_calories_estimate": 320,
+    "ingredients": [
+      { "name": "egg", "amount_value": 2, "amount_unit": "piece", "is_optional": false },
+      { "name": "tomato", "amount_value": 150, "amount_unit": "g", "is_optional": false },
+      { "name": "salt", "amount_value": 2, "amount_unit": "g", "is_optional": false }
+    ],
+    "steps": [
+      { "step_number": 1, "instruction": "Beat the eggs with a pinch of salt.", "step_time_min": 3 },
+      { "step_number": 2, "instruction": "Stir-fry tomatoes until soft, then add eggs.", "step_time_min": 7 },
+      { "step_number": 3, "instruction": "Season to taste and serve hot.", "step_time_min": 5 }
+    ]
+  }
+}
+```
+Response
+```json
+{ "recipeId": "rec_123456", "message": "Recipe added to favorites" }
+```
+
+## 6) 取消收藏
+
+`DELETE /api/users/me/favorite-recipes/{recipeId}`
+
+Response
+```json
+{ "message": "Recipe removed from favorites" }
+```
