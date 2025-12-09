@@ -1,0 +1,14 @@
+org.dromara.workflow.domain.FlowSpelToFlowSpelVoMapper
+org.dromara.workflow.domain.vo.FlowSpelVoToFlowSpelMapper
+org.dromara.workflow.domain.vo.FlowCategoryVoToFlowCategoryMapper
+org.dromara.workflow.domain.bo.TestLeaveBoToTestLeaveMapper
+org.dromara.system.domain.vo.SysTenantVoToTenantListVoMapper
+org.dromara.system.domain.bo.SysOperLogBoToOperLogEventMapper
+org.dromara.workflow.domain.bo.FlowCategoryBoToFlowCategoryMapper
+org.dromara.workflow.domain.bo.FlowSpelBoToFlowSpelMapper
+org.dromara.workflow.domain.TestLeaveToTestLeaveVoMapper
+org.dromara.web.domain.vo.TenantListVoToSysTenantVoMapper
+org.dromara.common.log.event.OperLogEventToSysOperLogBoMapper
+org.dromara.system.domain.bo.SysOperLogBoToSysOperLogMapper
+org.dromara.workflow.domain.vo.TestLeaveVoToTestLeaveMapper
+org.dromara.workflow.domain.FlowCategoryToFlowCategoryVoMapper
