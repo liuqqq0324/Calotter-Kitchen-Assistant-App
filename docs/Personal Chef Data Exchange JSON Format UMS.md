@@ -241,15 +241,12 @@ tags:
 
 
 # C. UMS (User Management Service)
-<<<<<<< HEAD:docs/Personal Chef Data Exchange JSON Format UMS.md
 ## 1. Registration Request (F -> B)
 
 - Request method and path: `POST /api/ums/auth/register`
 - Request header: Context-Type: application/json
 - Request body:
 
-=======
->>>>>>> yhua:docs/Personal Chef Data Exchange JSON Format.md
 ## 1. Registration Request (F -> B)
 
 - Request method and path: `POST /api/ums/auth/register`
@@ -296,7 +293,6 @@ tags:
 }
 ```
 
-<<<<<<< HEAD:docs/Personal Chef Data Exchange JSON Format UMS.md
 ## 5. Logout Request (F -> B)
 
 Request method and path: POST /api/ums/auth/logout
@@ -332,16 +328,6 @@ Context-Type: application/json
 ## 8. User Brief Info Response (B -> F)
 
 ```json
-=======
-## 5. User Brief Info Request(F -> B)
-- Request method and path: `GET /api/ums/user?id=2345678765678`
-- Request header: 
-	- Authorization: Bearer
-	- Context-Type: application/json
-
-## 6. User Brief Info Response (B -> F)
-```JSON
->>>>>>> yhua:docs/Personal Chef Data Exchange JSON Format.md
 {
 	"userId": 2345678765678,
 	"userName": "UserName",
@@ -354,7 +340,6 @@ Context-Type: application/json
 	}
 }
 ```
-<<<<<<< HEAD:docs/Personal Chef Data Exchange JSON Format UMS.md
 
 > **Note**: The `gender` field in `profile` is optional. It may be `null` if not set by the user.
 
@@ -396,9 +381,6 @@ Request body:
 ```
 
 ## 11. Get User Preferences Request (F -> B)
-=======
-## 7. Get User Preferences Request (F -> B)
->>>>>>> yhua:docs/Personal Chef Data Exchange JSON Format.md
 
 Request method and path: GET /api/ums/user/preferences?id=2345678765678
 
@@ -559,8 +541,6 @@ Request body:
 	"message": "User allergies updated successfully"
 }
 ```
-<<<<<<< HEAD:docs/Personal Chef Data Exchange JSON Format UMS.md
-=======
 
 ## 
 
@@ -1168,4 +1148,3 @@ Request body:
   }
 }
 ```
->>>>>>> yhua:docs/Personal Chef Data Exchange JSON Format.md
