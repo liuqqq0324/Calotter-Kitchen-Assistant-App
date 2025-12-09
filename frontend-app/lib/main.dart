@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:personal_sous_chef/theme/fallback_google_fonts.dart';
 import 'package:personal_sous_chef/pages/home/home_page.dart';
 import 'package:personal_sous_chef/pages/inventory/inventory_page.dart';
 import 'package:personal_sous_chef/pages/add_item/add_item_page.dart';
@@ -32,39 +32,10 @@ class SousChefApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepOrange),
         useMaterial3: true,
-        // 手绘风格字体主题
-        textTheme: TextTheme(
-          displayLarge: GoogleFonts.caveat(
-            fontSize: 48,
-            fontWeight: FontWeight.bold,
-          ),
-          displayMedium: GoogleFonts.caveat(
-            fontSize: 36,
-            fontWeight: FontWeight.bold,
-          ),
-          displaySmall: GoogleFonts.caveat(
-            fontSize: 28,
-            fontWeight: FontWeight.w600,
-          ),
-          headlineMedium: GoogleFonts.caveat(
-            fontSize: 24,
-            fontWeight: FontWeight.w600,
-          ),
-          titleLarge: GoogleFonts.kalam(
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-          ),
-          bodyLarge: GoogleFonts.kalam(
-            fontSize: 16,
-          ),
-          bodyMedium: GoogleFonts.kalam(
-            fontSize: 14,
-          ),
-          labelLarge: GoogleFonts.caveat(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        // 使用本地字体族 Caveat 作为全局字体
+        textTheme: ThemeData.light()
+            .textTheme
+            .apply(fontFamily: 'Caveat'),
       ),
       // Modified for local testing: bypass auth landing and go straight to main scaffold
       // home: const LandingPage(),
@@ -140,9 +111,10 @@ class MainScaffoldState extends State<MainScaffold> {
       appBar: AppBar(
         title: Text(
           'Personal Sous Chef',
-          style: GoogleFonts.caveat(
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
+          style: const TextStyle(
+            fontFamily: 'Caveat',
+            fontSize: 24,
+            fontWeight: FontWeight.w700,
           ),
         ),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,

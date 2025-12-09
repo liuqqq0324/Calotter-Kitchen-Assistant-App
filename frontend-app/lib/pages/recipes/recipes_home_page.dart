@@ -1,6 +1,6 @@
 // lib/pages/recipes/recipes_home_page.dart
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:personal_sous_chef/theme/fallback_google_fonts.dart';
 import 'package:personal_sous_chef/data/collected_recipes_store.dart';
 import 'package:personal_sous_chef/models/recipe_models.dart';
 import 'package:personal_sous_chef/pages/recipes/recipe_generate_page.dart';

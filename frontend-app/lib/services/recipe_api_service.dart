@@ -11,12 +11,21 @@ class RecipeApiService {
     final url = Uri.parse('${ApiConfig.recipeBaseUrl}/api/recipes/generate');
 
     final body = _buildRequestBody(filter);
+    final payload = jsonEncode(body);
+
+    // Debug prints to inspect outgoing request
+    print('[RecipeApi] POST $url');
+    print('[RecipeApi] headers: {Content-Type: application/json}');
+    print('[RecipeApi] body: $payload');
 
     final response = await http.post(
       url,
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode(body),
+      body: payload,
     );
+
+    print(
+        '[RecipeApi] resp ${response.statusCode}: ${response.body.substring(0, response.body.length > 500 ? 500 : response.body.length)}');
 
     if (response.statusCode != 200) {
       throw Exception(
