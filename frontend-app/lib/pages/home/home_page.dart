@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:personal_sous_chef/theme/fallback_google_fonts.dart';
 import 'package:personal_sous_chef/widgets/sketchy_card.dart';
+import 'package:personal_sous_chef/pages/home/todays_recipes_dialog.dart';
+import 'package:personal_sous_chef/pages/home/add_food_dialog.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -79,6 +81,63 @@ class HomePage extends StatelessWidget {
     );
   }
 
+  // 构建追踪按钮
+  Widget _buildTrackingButton({
+    required BuildContext context,
+    required IconData icon,
+    required String label,
+    required String subtitle,
+    required MaterialColor color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: SketchyCard(
+        backgroundColor: color.shade50,
+        borderColor: color.shade400,
+        borderWidth: 2.0,
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: color.shade100,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Icon(
+                icon,
+                size: 32,
+                color: color.shade700,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              label,
+              style: GoogleFonts.caveat(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: color.shade800,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: GoogleFonts.kalam(
+                fontSize: 11,
+                color: color.shade600,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // 获取当前时间段，简单的问候语逻辑
@@ -109,40 +168,33 @@ class HomePage extends StatelessWidget {
 
           const SizedBox(height: 30),
 
-          // 2. 厨房状态卡片 - 手绘风格
-          SketchyCard(
-            backgroundColor: Colors.orange.shade400,
-            borderColor: Colors.deepOrange.shade700,
-            borderWidth: 2.5,
-            padding: const EdgeInsets.all(20),
-            child: Row(
-              children: [
-                Icon(Icons.kitchen, size: 50, color: Colors.white),
-                const SizedBox(width: 20),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "Your Kitchen",
-                      style: GoogleFonts.kalam(
-                        color: Colors.white70,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      "3 Items Expiring", // 这里以后接真实数据
-                      style: GoogleFonts.caveat(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
+          // 2. 今日饮食追踪按钮
+          Row(
+            children: [
+              // 今日菜谱按钮
+              Expanded(
+                child: _buildTrackingButton(
+                  context: context,
+                  icon: Icons.restaurant_menu,
+                  label: "Today's Recipes",
+                  subtitle: "Track what you cooked",
+                  color: Colors.deepOrange,
+                  onTap: () => showTodaysRecipesDialog(context),
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 16),
+              // 额外食物按钮
+              Expanded(
+                child: _buildTrackingButton(
+                  context: context,
+                  icon: Icons.add_circle,
+                  label: "Add Food",
+                  subtitle: "What else did you eat?",
+                  color: Colors.teal,
+                  onTap: () => showAddFoodDialog(context),
+                ),
+              ),
+            ],
           ),
 
           const SizedBox(height: 30),
