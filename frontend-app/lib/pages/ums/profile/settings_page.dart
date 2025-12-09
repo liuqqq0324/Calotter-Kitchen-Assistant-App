@@ -1,11 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'profile_view_page.dart';
-// Modified by Chase: Import user static data / 由 Chase 修改：导入用户静态数据
+// Modified by Chase: Import user static data and auth service / 由 Chase 修改：导入用户静态数据和认证服务
 import '../../../data/user_static_data.dart';
+import '../../../services/auth_service.dart';
+import '../auth/login_page.dart';
 
-class SettingsPage extends StatelessWidget {
+class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
 
+  @override
+  State<SettingsPage> createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     // Modified by Chase: Read data from global kCurrentUser instead of hardcoded values / 由 Chase 修改：从全局 kCurrentUser 读取数据，而不是硬编码值
@@ -80,11 +88,51 @@ class SettingsPage extends StatelessWidget {
           ListTile(
             title: const Text('Log out'),
             trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-            onTap: () {
-              // TODO: 实现登出逻辑
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Log out (To be implemented)')),
+            onTap: () async {
+              // Show confirmation dialog
+              final shouldLogout = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Log out'),
+                  content: const Text('Are you sure you want to log out?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('Cancel'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      style: TextButton.styleFrom(foregroundColor: Colors.red),
+                      child: const Text('Log out'),
+                    ),
+                  ],
+                ),
               );
+
+              if (shouldLogout == true) {
+                // Call logout API
+                final result = await AuthService.logout();
+
+                if (mounted) {
+                  // Navigate to login page
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (context) => const LoginPage()),
+                    (route) => false, // Remove all previous routes
+                  );
+
+                  // Show success message
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        result['message'] ?? 'Logged out successfully',
+                        style: GoogleFonts.kalam(),
+                      ),
+                      backgroundColor: Colors.green.shade300,
+                    ),
+                  );
+                }
+              }
             },
           ),
           const Divider(),

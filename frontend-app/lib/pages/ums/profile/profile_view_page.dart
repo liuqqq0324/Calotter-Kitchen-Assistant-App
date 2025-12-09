@@ -51,6 +51,34 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
         });
       }
     }
+
+    // Also load lists data
+    await _loadListsData();
+  }
+
+  Future<void> _loadListsData() async {
+    // Load preferences
+    final prefsResult = await UserService.getUserPreferences();
+    if (prefsResult['success'] == true) {
+      final prefs = prefsResult['data']['preferences'] ?? {};
+      kCurrentUser.preferences = List<String>.from(prefs['cuisineTypes'] ?? []);
+    }
+
+    // Load taboos
+    final taboosResult = await UserService.getUserTaboos();
+    if (taboosResult['success'] == true) {
+      kCurrentUser.taboos = List<String>.from(
+        taboosResult['data']['taboos'] ?? [],
+      );
+    }
+
+    // Load allergies
+    final allergiesResult = await UserService.getUserAllergies();
+    if (allergiesResult['success'] == true) {
+      kCurrentUser.allergies = List<String>.from(
+        allergiesResult['data']['allergies'] ?? [],
+      );
+    }
   }
 
   @override
@@ -233,6 +261,8 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                     builder: (context) => const PreferencesListPage(),
                   ),
                 );
+                // Reload lists data after returning from list page
+                await _loadListsData();
                 setState(() {});
               },
               child: ListTile(
@@ -259,6 +289,8 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                     builder: (context) => const TaboosListPage(),
                   ),
                 );
+                // Reload lists data after returning from list page
+                await _loadListsData();
                 setState(() {});
               },
               child: ListTile(
@@ -285,6 +317,8 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                     builder: (context) => const AllergiesListPage(),
                   ),
                 );
+                // Reload lists data after returning from list page
+                await _loadListsData();
                 setState(() {});
               },
               child: ListTile(

@@ -15,8 +15,8 @@ class ApiConfig {
   // C# 后端的端口 (查看 C# 项目终端显示的 http://0.0.0.0:xxxx)
   // 一般默认是 5108
   // Java后端的端口 (查看 Java 项目终端显示的 http://0.0.0.0：xxxx)
-  // 一般默认是 8080
-  static const String port = "8080";
+  // calotter-user 服务端口是 10000
+  static const String port = "10000";
 
   // 这里的 getter 会自动把 IP 和 端口 拼起来
   static String get baseUrl {

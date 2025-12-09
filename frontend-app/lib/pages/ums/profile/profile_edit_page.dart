@@ -47,6 +47,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
       _isLoading = true;
     });
 
+    // Load user basic info
     final result = await UserService.getUserBriefInfo();
     if (result['success'] == true && mounted) {
       setState(() {
@@ -69,7 +70,6 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
         weightController = TextEditingController(
           text: data['profile']?['weight']?.toString() ?? '',
         );
-        _isLoading = false;
       });
     } else {
       // Fallback to static data if API fails
@@ -81,13 +81,44 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
         ageController = TextEditingController(text: user.age);
         heightController = TextEditingController(text: user.height);
         weightController = TextEditingController(text: user.weight);
-        setState(() {
-          _isLoading = false;
-        });
       }
     }
 
-    // Modified by Chase: Get references to global lists / 由 Chase 修改：获取全局列表的引用
+    // Load preferences, taboos, and allergies from backend
+    await _loadListsData();
+
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _loadListsData() async {
+    // Load preferences
+    final prefsResult = await UserService.getUserPreferences();
+    if (prefsResult['success'] == true) {
+      final prefs = prefsResult['data']['preferences'] ?? {};
+      kCurrentUser.preferences = List<String>.from(prefs['cuisineTypes'] ?? []);
+    }
+
+    // Load taboos
+    final taboosResult = await UserService.getUserTaboos();
+    if (taboosResult['success'] == true) {
+      kCurrentUser.taboos = List<String>.from(
+        taboosResult['data']['taboos'] ?? [],
+      );
+    }
+
+    // Load allergies
+    final allergiesResult = await UserService.getUserAllergies();
+    if (allergiesResult['success'] == true) {
+      kCurrentUser.allergies = List<String>.from(
+        allergiesResult['data']['allergies'] ?? [],
+      );
+    }
+
+    // Get references to global lists
     preferences = kCurrentUser.preferences;
     taboos = kCurrentUser.taboos;
     allergies = kCurrentUser.allergies;
@@ -255,6 +286,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                 weightController.text.replaceAll(' kg', '').trim(),
               );
 
+              // Save user basic info
               final result = await UserService.updateUserInfo(
                 age: age,
                 gender: gender.isNotEmpty ? gender : null,
@@ -269,14 +301,51 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                 kCurrentUser.height = heightController.text;
                 kCurrentUser.weight = weightController.text;
 
-                // Modified by Chase: Return true to notify parent page to refresh / 由 Chase 修改：返回 true 通知父页面刷新
-                Navigator.pop(context, true);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Profile saved', style: GoogleFonts.kalam()),
-                    backgroundColor: Colors.green.shade300,
-                  ),
+                // Save preferences (cuisineTypes only, other fields are managed separately)
+                final prefsResult = await UserService.updateUserPreferences(
+                  cuisineTypes: kCurrentUser.preferences,
                 );
+
+                // Save taboos
+                final taboosResult = await UserService.updateUserTaboos(
+                  taboos: kCurrentUser.taboos,
+                );
+
+                // Save allergies
+                final allergiesResult = await UserService.updateUserAllergies(
+                  allergies: kCurrentUser.allergies,
+                );
+
+                // Check if all saves were successful
+                bool allSuccess =
+                    prefsResult['success'] == true &&
+                    taboosResult['success'] == true &&
+                    allergiesResult['success'] == true;
+
+                if (allSuccess) {
+                  // Modified by Chase: Return true to notify parent page to refresh / 由 Chase 修改：返回 true 通知父页面刷新
+                  Navigator.pop(context, true);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Profile saved',
+                        style: GoogleFonts.kalam(),
+                      ),
+                      backgroundColor: Colors.green.shade300,
+                    ),
+                  );
+                } else {
+                  // Some saves failed, but user info was saved
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Profile saved, but some lists failed to save',
+                        style: GoogleFonts.kalam(),
+                      ),
+                      backgroundColor: Colors.orange.shade300,
+                    ),
+                  );
+                }
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(

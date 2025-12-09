@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-// Modified by Chase: Import user static data / 由 Chase 修改：导入用户静态数据
+import 'package:google_fonts/google_fonts.dart';
+// Modified by Chase: Import user static data and user service / 由 Chase 修改：导入用户静态数据和服务
 import '../../../data/user_static_data.dart';
+import '../../../services/user_service.dart';
 
 class AllergiesListPage extends StatefulWidget {
   const AllergiesListPage({super.key});
@@ -11,24 +13,85 @@ class AllergiesListPage extends StatefulWidget {
 
 class _AllergiesListPageState extends State<AllergiesListPage> {
   final TextEditingController _textController = TextEditingController();
+  bool _isLoading = true;
+  List<String> _allergies = [];
 
-  // Modified by Chase: Use global kCurrentUser.allergies instead of local data / 由 Chase 修改：使用全局 kCurrentUser.allergies 而不是本地数据
+  @override
+  void initState() {
+    super.initState();
+    _loadAllergies();
+  }
+
+  Future<void> _loadAllergies() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    final result = await UserService.getUserAllergies();
+    if (result['success'] == true && mounted) {
+      setState(() {
+        _allergies = List<String>.from(result['data']['allergies'] ?? []);
+        // Also update local static data for compatibility
+        kCurrentUser.allergies = List.from(_allergies);
+        _isLoading = false;
+      });
+    } else {
+      // Fallback to static data if API fails
+      if (mounted) {
+        setState(() {
+          _allergies = List.from(kCurrentUser.allergies);
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _saveAllergies() async {
+    final result = await UserService.updateUserAllergies(allergies: _allergies);
+    if (result['success'] == true) {
+      // Also update local static data for compatibility
+      kCurrentUser.allergies = List.from(_allergies);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Allergies saved', style: GoogleFonts.kalam()),
+            backgroundColor: Colors.green.shade300,
+          ),
+        );
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              result['error'] ?? 'Failed to save allergies',
+              style: GoogleFonts.kalam(),
+            ),
+            backgroundColor: Colors.red.shade300,
+          ),
+        );
+      }
+    }
+  }
+
   void _addAllergy() {
     final text = _textController.text.trim();
     if (text.isNotEmpty) {
       setState(() {
-        // Modified by Chase: Directly modify global kCurrentUser.allergies / 由 Chase 修改：直接修改全局 kCurrentUser.allergies
-        kCurrentUser.allergies.add(text);
+        _allergies.add(text);
+        kCurrentUser.allergies = List.from(_allergies);
         _textController.clear();
       });
+      _saveAllergies();
     }
   }
 
   void _removeAllergy(int index) {
     setState(() {
-      // Modified by Chase: Directly modify global kCurrentUser.allergies / 由 Chase 修改：直接修改全局 kCurrentUser.allergies
-      kCurrentUser.allergies.removeAt(index);
+      _allergies.removeAt(index);
+      kCurrentUser.allergies = List.from(_allergies);
     });
+    _saveAllergies();
   }
 
   @override
@@ -39,8 +102,12 @@ class _AllergiesListPageState extends State<AllergiesListPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Modified by Chase: Sync with global data in build method (following InventoryPage pattern) / 由 Chase 修改：在 build 方法中同步全局数据（遵循 InventoryPage 模式）
-    final allergies = kCurrentUser.allergies;
+    if (_isLoading) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Allergies')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(title: const Text('Allergies')),
@@ -49,10 +116,10 @@ class _AllergiesListPageState extends State<AllergiesListPage> {
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.all(16),
-              itemCount: allergies.length,
+              itemCount: _allergies.length,
               itemBuilder: (context, index) {
                 return Dismissible(
-                  key: Key(allergies[index]),
+                  key: Key('${_allergies[index]}-$index'),
                   direction: DismissDirection.endToStart,
                   background: Container(
                     alignment: Alignment.centerRight,
@@ -65,7 +132,7 @@ class _AllergiesListPageState extends State<AllergiesListPage> {
                   },
                   child: Card(
                     margin: const EdgeInsets.only(bottom: 8),
-                    child: ListTile(title: Text(allergies[index])),
+                    child: ListTile(title: Text(_allergies[index])),
                   ),
                 );
               },

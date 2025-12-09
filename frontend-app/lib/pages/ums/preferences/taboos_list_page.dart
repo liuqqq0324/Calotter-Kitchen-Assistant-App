@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-// Modified by Chase: Import user static data / 由 Chase 修改：导入用户静态数据
+import 'package:google_fonts/google_fonts.dart';
+// Modified by Chase: Import user static data and user service / 由 Chase 修改：导入用户静态数据和服务
 import '../../../data/user_static_data.dart';
+import '../../../services/user_service.dart';
 
 class TaboosListPage extends StatefulWidget {
   const TaboosListPage({super.key});
@@ -11,24 +13,85 @@ class TaboosListPage extends StatefulWidget {
 
 class _TaboosListPageState extends State<TaboosListPage> {
   final TextEditingController _textController = TextEditingController();
+  bool _isLoading = true;
+  List<String> _taboos = [];
 
-  // Modified by Chase: Use global kCurrentUser.taboos instead of local data / 由 Chase 修改：使用全局 kCurrentUser.taboos 而不是本地数据
+  @override
+  void initState() {
+    super.initState();
+    _loadTaboos();
+  }
+
+  Future<void> _loadTaboos() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    final result = await UserService.getUserTaboos();
+    if (result['success'] == true && mounted) {
+      setState(() {
+        _taboos = List<String>.from(result['data']['taboos'] ?? []);
+        // Also update local static data for compatibility
+        kCurrentUser.taboos = List.from(_taboos);
+        _isLoading = false;
+      });
+    } else {
+      // Fallback to static data if API fails
+      if (mounted) {
+        setState(() {
+          _taboos = List.from(kCurrentUser.taboos);
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _saveTaboos() async {
+    final result = await UserService.updateUserTaboos(taboos: _taboos);
+    if (result['success'] == true) {
+      // Also update local static data for compatibility
+      kCurrentUser.taboos = List.from(_taboos);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Taboos saved', style: GoogleFonts.kalam()),
+            backgroundColor: Colors.green.shade300,
+          ),
+        );
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              result['error'] ?? 'Failed to save taboos',
+              style: GoogleFonts.kalam(),
+            ),
+            backgroundColor: Colors.red.shade300,
+          ),
+        );
+      }
+    }
+  }
+
   void _addTaboo() {
     final text = _textController.text.trim();
     if (text.isNotEmpty) {
       setState(() {
-        // Modified by Chase: Directly modify global kCurrentUser.taboos / 由 Chase 修改：直接修改全局 kCurrentUser.taboos
-        kCurrentUser.taboos.add(text);
+        _taboos.add(text);
+        kCurrentUser.taboos = List.from(_taboos);
         _textController.clear();
       });
+      _saveTaboos();
     }
   }
 
   void _removeTaboo(int index) {
     setState(() {
-      // Modified by Chase: Directly modify global kCurrentUser.taboos / 由 Chase 修改：直接修改全局 kCurrentUser.taboos
-      kCurrentUser.taboos.removeAt(index);
+      _taboos.removeAt(index);
+      kCurrentUser.taboos = List.from(_taboos);
     });
+    _saveTaboos();
   }
 
   @override
@@ -39,8 +102,12 @@ class _TaboosListPageState extends State<TaboosListPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Modified by Chase: Sync with global data in build method (following InventoryPage pattern) / 由 Chase 修改：在 build 方法中同步全局数据（遵循 InventoryPage 模式）
-    final taboos = kCurrentUser.taboos;
+    if (_isLoading) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Taboos')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(title: const Text('Taboos')),
@@ -49,10 +116,10 @@ class _TaboosListPageState extends State<TaboosListPage> {
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.all(16),
-              itemCount: taboos.length,
+              itemCount: _taboos.length,
               itemBuilder: (context, index) {
                 return Dismissible(
-                  key: Key(taboos[index]),
+                  key: Key('${_taboos[index]}-$index'),
                   direction: DismissDirection.endToStart,
                   background: Container(
                     alignment: Alignment.centerRight,
@@ -65,7 +132,7 @@ class _TaboosListPageState extends State<TaboosListPage> {
                   },
                   child: Card(
                     margin: const EdgeInsets.only(bottom: 8),
-                    child: ListTile(title: Text(taboos[index])),
+                    child: ListTile(title: Text(_taboos[index])),
                   ),
                 );
               },

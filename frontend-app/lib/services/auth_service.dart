@@ -31,7 +31,10 @@ class AuthService {
       if (response.statusCode == 200) {
         return {'success': true, 'data': data};
       } else {
-        return {'success': false, 'error': data['message'] ?? 'Registration failed'};
+        return {
+          'success': false,
+          'error': data['message'] ?? 'Registration failed',
+        };
       }
     } catch (e) {
       return {'success': false, 'error': 'Network error: $e'};
@@ -48,20 +51,28 @@ class AuthService {
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'identifier': identifier,
-          'password': password,
-        }),
+        body: jsonEncode({'identifier': identifier, 'password': password}),
       );
 
       final data = jsonDecode(response.body);
       if (response.statusCode == 200) {
+        // Check if login was successful (userId should not be 0)
+        if (data['userId'] == null || data['userId'] == 0) {
+          return {'success': false, 'error': 'Invalid username or password'};
+        }
         // Save token and user ID
         await _saveToken(data['token']['accessToken']);
         await _saveUserId(data['userId'].toString());
         return {'success': true, 'data': data};
       } else {
-        return {'success': false, 'error': data['message'] ?? 'Login failed'};
+        // Handle 401 (Unauthorized) or 403 (Forbidden) errors
+        String errorMessage = 'Login failed';
+        if (response.statusCode == 401) {
+          errorMessage = 'Invalid username or password';
+        } else if (response.statusCode == 403) {
+          errorMessage = 'Account is disabled';
+        }
+        return {'success': false, 'error': data['message'] ?? errorMessage};
       }
     } catch (e) {
       return {'success': false, 'error': 'Network error: $e'};
@@ -69,10 +80,39 @@ class AuthService {
   }
 
   // Logout
-  static Future<void> logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_tokenKey);
-    await prefs.remove(_userIdKey);
+  static Future<Map<String, dynamic>> logout() async {
+    try {
+      final url = Uri.parse('${ApiConfig.baseUrl}/api/ums/auth/logout');
+      final token = await getToken();
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+      );
+
+      // Clear local storage regardless of API response
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_tokenKey);
+      await prefs.remove(_userIdKey);
+
+      if (response.statusCode == 200) {
+        return {'success': true, 'message': 'Logged out successfully'};
+      } else {
+        // Even if API fails, we've cleared local storage
+        return {
+          'success': true,
+          'message': 'Logged out (local storage cleared)',
+        };
+      }
+    } catch (e) {
+      // Clear local storage even if network error
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_tokenKey);
+      await prefs.remove(_userIdKey);
+      return {'success': true, 'message': 'Logged out (local storage cleared)'};
+    }
   }
 
   // Get stored token
@@ -105,4 +145,3 @@ class AuthService {
     await prefs.setString(_userIdKey, userId);
   }
 }
-
