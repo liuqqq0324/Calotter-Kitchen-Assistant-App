@@ -18,8 +18,15 @@ class ApiConfig {
   // calotter-user 服务端口是 10000
   static const String port = "10000";
 
+  /// Recipe 服务端口（calotter-recipe 默认 9000）
+  static const String recipePort = "9000";
+
   // 这里的 getter 会自动把 IP 和 端口 拼起来
   static String get baseUrl {
     return "http://$serverIp:$port";
+  }
+
+  static String get recipeBaseUrl {
+    return "http://$serverIp:$recipePort";
   }
 }

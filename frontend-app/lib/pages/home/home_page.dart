@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:personal_sous_chef/theme/fallback_google_fonts.dart';
 import 'package:personal_sous_chef/widgets/sketchy_card.dart';
 
 class HomePage extends StatelessWidget {

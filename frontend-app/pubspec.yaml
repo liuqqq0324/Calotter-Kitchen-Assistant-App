@@ -38,9 +38,6 @@ dependencies:
   # Video player for background videos
   video_player: ^2.8.2
   
-  # Google Fonts for beautiful typography
-  google_fonts: ^6.1.0
-  
   # Animated text kit for handwriting effect
   animated_text_kit: ^4.2.2
 
@@ -74,6 +71,15 @@ flutter:
   assets:
     - assets/videos/
     - assets/sketch.png
+    - assets/fonts/
+    - assets/fonts/caveat/
+  fonts:
+    - family: Caveat
+      fonts:
+        - asset: assets/fonts/caveat/Caveat-Regular.ttf
+        - asset: assets/fonts/caveat/Caveat-Bold.ttf
+        - asset: assets/fonts/caveat/Caveat-SemiBold.ttf
+        - asset: assets/fonts/caveat/Caveat-Medium.ttf
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

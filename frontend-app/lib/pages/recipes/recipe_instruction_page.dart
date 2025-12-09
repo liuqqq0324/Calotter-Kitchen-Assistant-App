@@ -37,13 +37,14 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
 
   bool get _isWholeMealDone => _completedDishes.length == _totalDishes;
 
-  void _toggleCollectMenu() {
-    final wasCollected = CollectedRecipesStore.isCollected(widget.menu);
-    CollectedRecipesStore.toggle(widget.menu);
+  void _toggleCollectRecipe() {
+    final recipe = widget.menu.recipes[_currentIndex];
+    final wasCollected = CollectedRecipesStore.isCollected(recipe);
+    CollectedRecipesStore.toggle(recipe);
 
     final text = wasCollected
-        ? 'Removed from your collection.'
-        : 'Saved to your collection.';
+        ? 'Removed recipe from your collection.'
+        : 'Saved recipe to your collection.';
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
@@ -98,27 +99,24 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
   Widget build(BuildContext context) {
     final recipe = widget.menu.recipes[_currentIndex];
     final theme = Theme.of(context);
-    final steps = recipe.steps; // 从模型里拿步骤
+    final steps = recipe.steps;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(recipe.title),
         actions: [
-          ValueListenableBuilder<List<RecipeMenuModel>>(
+          ValueListenableBuilder<List<RecipeModel>>(
             valueListenable: CollectedRecipesStore.favorites,
             builder: (context, favorites, _) {
-              final isCollected = favorites
-                  .any((menu) => menu.menuId == widget.menu.menuId);
+              final isCollected = favorites.any((r) => r.id == recipe.id);
 
               return IconButton(
-                onPressed: _toggleCollectMenu,
+                onPressed: _toggleCollectRecipe,
                 icon: Icon(
-                  isCollected
-                      ? Icons.bookmark
-                      : Icons.bookmark_add_outlined,
+                  isCollected ? Icons.favorite : Icons.favorite_outline,
                 ),
                 tooltip:
-                    isCollected ? 'Remove from collection' : 'Save this menu',
+                    isCollected ? 'Remove from favorites' : 'Save this recipe',
               );
             },
           ),
@@ -182,7 +180,6 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
                                 size: 14, color: Colors.grey[600]),
                             const SizedBox(width: 4),
                             Text(
-                              // ✅ 用你模型里的 totalCaloriesEstimate
                               '${recipe.totalCaloriesEstimate.toStringAsFixed(0)} kcal',
                               style: theme.textTheme.bodySmall
                                   ?.copyWith(color: Colors.grey[700]),
@@ -198,6 +195,55 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
               const SizedBox(height: 20),
 
               Text(
+                'Ingredients',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              if (recipe.ingredients.isEmpty)
+                Text(
+                  'No ingredients listed.',
+                  style: theme.textTheme.bodySmall
+                      ?.copyWith(color: Colors.grey[600]),
+                )
+              else
+                Column(
+                  children: recipe.ingredients.map((ing) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 6.0),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              ing.name,
+                              style: theme.textTheme.bodyMedium,
+                            ),
+                          ),
+                          Text(
+                            '${ing.amountValue} ${ing.amountUnit}',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: Colors.grey[700],
+                            ),
+                          ),
+                          if (ing.isOptional) ...[
+                            const SizedBox(width: 8),
+                            Text(
+                              'optional',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: Colors.orange,
+                              ),
+                            ),
+                          ]
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
+
+              const SizedBox(height: 16),
+
+              Text(
                 'Steps',
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
@@ -205,39 +251,39 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
               ),
               const SizedBox(height: 8),
 
-              // 如果有真正的 steps，就用 steps；否则用占位
               Expanded(
                 child: steps.isNotEmpty
                     ? ListView.builder(
                         itemCount: steps.length,
                         itemBuilder: (context, index) {
                           final step = steps[index];
-                          return _buildStepItem(
-                            index: step.stepNumber,
-                            text: step.instruction,
-                            timeText: step.stepTimeMin > 0
-                                ? '~ ${step.stepTimeMin} min'
-                                : '',
-                          );
+                          return _buildStepItem(step: step);
                         },
                       )
                     : ListView(
                         children: [
                           _buildStepItem(
-                            index: 1,
-                            text: 'Beat the eggs with a pinch of salt.',
-                            timeText: '~ 3 min',
+                            step: const RecipeStepModel(
+                              stepNumber: 1,
+                              instruction:
+                                  'Beat the eggs with a pinch of salt.',
+                              stepTimeMin: 3,
+                            ),
                           ),
                           _buildStepItem(
-                            index: 2,
-                            text:
-                                'Stir-fry tomatoes until soft, then add eggs.',
-                            timeText: '~ 7 min',
+                            step: const RecipeStepModel(
+                              stepNumber: 2,
+                              instruction:
+                                  'Stir-fry tomatoes until soft, then add eggs.',
+                              stepTimeMin: 7,
+                            ),
                           ),
                           _buildStepItem(
-                            index: 3,
-                            text: 'Season to taste and serve hot.',
-                            timeText: '~ 5 min',
+                            step: const RecipeStepModel(
+                              stepNumber: 3,
+                              instruction: 'Season to taste and serve hot.',
+                              stepTimeMin: 5,
+                            ),
                           ),
                         ],
                       ),
@@ -251,9 +297,7 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
   }
 
   Widget _buildStepItem({
-    required int index,
-    required String text,
-    required String timeText,
+    required RecipeStepModel step,
   }) {
     final theme = Theme.of(context);
 
@@ -272,7 +316,7 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
             ),
             child: Center(
               child: Text(
-                index.toString(),
+                step.stepNumber.toString(),
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 13,
@@ -287,15 +331,30 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  text,
+                  step.instruction,
                   style: theme.textTheme.bodyMedium,
                 ),
-                if (timeText.isNotEmpty) ...[
+                if (step.stepTimeMin > 0) ...[
                   const SizedBox(height: 4),
                   Text(
-                    timeText,
+                    '~ ${step.stepTimeMin} min',
                     style: theme.textTheme.bodySmall
                         ?.copyWith(color: Colors.grey[600]),
+                  ),
+                  const SizedBox(height: 6),
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      ScaffoldMessenger.of(context)
+                        ..hideCurrentSnackBar()
+                        ..showSnackBar(
+                          SnackBar(
+                            content: Text(
+                                'Start a ${step.stepTimeMin} min timer on your phone or watch.'),
+                          ),
+                        );
+                    },
+                    icon: const Icon(Icons.timer_outlined, size: 16),
+                    label: const Text('Start timer'),
                   ),
                 ],
               ],

@@ -1,11 +1,9 @@
 // lib/pages/recipes/recipe_generate_page.dart
-import 'dart:math';
-
 import 'package:flutter/material.dart';
-import 'package:personal_sous_chef/data/mock_recipes.dart';
 import 'package:personal_sous_chef/models/recipe_models.dart';
-import 'package:personal_sous_chef/pages/recipes/recipe_instruction_page.dart';
 import 'package:personal_sous_chef/pages/recipes/recipe_filter_page.dart';
+import 'package:personal_sous_chef/pages/recipes/recipe_instruction_page.dart';
+import 'package:personal_sous_chef/services/recipe_api_service.dart';
 
 class RecipeGeneratePage extends StatefulWidget {
   /// 从 RecipesHomePage 传过来的筛选条件（可为空）
@@ -21,20 +19,38 @@ class RecipeGeneratePage extends StatefulWidget {
 }
 
 class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
-  late List<RecipeMenuModel> _menus;
+  List<RecipeMenuModel> _menus = [];
+  bool _loading = false;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
-    // 用你自己的 mock 菜单
-    _menus = List.from(kMockRecipeMenus);
+    _fetchMenus();
   }
 
-  /// 点击 “Generate Again” 时，目前先简单打乱顺序，模拟重新生成
-  void _regenerateMenus() {
+  Future<void> _fetchMenus() async {
     setState(() {
-      _menus.shuffle(Random());
+      _loading = true;
+      _error = null;
     });
+
+    try {
+      final menus = await RecipeApiService.generateMenus(widget.filter);
+      setState(() {
+        _menus = menus;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
+    }
   }
 
   /// 右上角 Filter 图标，先简单跳到过滤页面
@@ -135,27 +151,33 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
             ),
           ],
 
-          // 中间是列表，复用你原来的 ListView.builder
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
-              itemCount: _menus.length,
-              itemBuilder: (context, index) {
-                final menu = _menus[index];
-                return _buildMenuCard(context, menu, theme);
-              },
-            ),
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : _error != null
+                    ? _buildErrorState(theme)
+                    : _menus.isEmpty
+                        ? _buildEmptyState(theme)
+                        : ListView.builder(
+                            padding:
+                                const EdgeInsets.fromLTRB(16, 12, 16, 80),
+                            itemCount: _menus.length,
+                            itemBuilder: (context, index) {
+                              final menu = _menus[index];
+                              return _buildMenuCard(context, menu, theme);
+                            },
+                          ),
           ),
         ],
       ),
 
-      // 底部 “Generate Again” 按钮不变
+      // 底部 “Generate Again” 按钮
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
         child: SizedBox(
           height: 52,
           child: ElevatedButton.icon(
-            onPressed: _regenerateMenus,
+            onPressed: _fetchMenus,
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.orange,
               shape: RoundedRectangleBorder(
@@ -177,13 +199,15 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
     );
   }
 
-  /// 单个菜单卡片 UI——保持你原来的实现
+  /// 单个菜单卡片 UI，增加 Start cooking 按钮
   Widget _buildMenuCard(
     BuildContext context,
     RecipeMenuModel menu,
     ThemeData theme,
   ) {
     final recipes = menu.recipes;
+    if (recipes.isEmpty) return const SizedBox.shrink();
+
     final primaryRecipe = recipes.first;
     final recipeTitles = recipes.map((r) => r.title).toList();
 
@@ -200,149 +224,212 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
         difficultyColor = Colors.green;
     }
 
-    return GestureDetector(
-      onTap: () {
-        // 点击整套菜单 -> 先打开第一道菜的 Instruction 页面
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => RecipeInstructionPage(
-              menu: menu,
-              initialRecipeIndex: 0,
-              filter: widget.filter,
-            ),
-          ),
-        );
-      },
-      child: Card(
-        margin: const EdgeInsets.symmetric(vertical: 8),
-        elevation: 3,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Padding(
-          padding: const EdgeInsets.all(14.0),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 左侧：emoji 圆卡片
-              Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  color: Colors.orange.shade50,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Center(
-                  child: Text(
-                    primaryRecipe.emoji,
-                    style: const TextStyle(fontSize: 34),
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(14.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 左侧：emoji 圆卡片
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade50,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Center(
+                    child: Text(
+                      primaryRecipe.emoji,
+                      style: const TextStyle(fontSize: 34),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
+                const SizedBox(width: 12),
 
-              // 右侧：菜单信息
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 第一行：菜单名 + 难度标签
-                    Row(
-                      children: [
-                        Text(
-                          'Menu ${menu.menuId}',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: difficultyColor.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            difficultyLabel.toUpperCase(),
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: difficultyColor,
-                              fontWeight: FontWeight.w600,
+                // 右侧：菜单信息
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            'Menu ${menu.menuId}',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-
-                    // 简短描述
-                    Text(
-                      primaryRecipe.shortDescription,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.grey[700],
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-
-                    // 菜名列表
-                    if (recipeTitles.length == 1)
-                      Text(
-                        recipeTitles.first,
-                        style: theme.textTheme.bodyMedium,
-                      )
-                    else
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: recipeTitles.map((title) {
-                          return Row(
-                            children: [
-                              const Icon(Icons.circle, size: 6),
-                              const SizedBox(width: 6),
-                              Expanded(
-                                child: Text(
-                                  title,
-                                  style: theme.textTheme.bodyMedium,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: difficultyColor.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              difficultyLabel.toUpperCase(),
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: difficultyColor,
+                                fontWeight: FontWeight.w600,
                               ),
-                            ],
-                          );
-                        }).toList(),
+                            ),
+                          ),
+                        ],
                       ),
-
-                    const SizedBox(height: 8),
-
-                    // 底部：时间 + 卡路里
-                    Row(
-                      children: [
-                        Icon(Icons.access_time,
-                            size: 14, color: Colors.grey[600]),
-                        const SizedBox(width: 4),
-                        Text(
-                          '~ ${menu.totalCookingTimeMin} min',
-                          style: theme.textTheme.bodySmall
-                              ?.copyWith(color: Colors.grey[700]),
+                      const SizedBox(height: 4),
+                      Text(
+                        primaryRecipe.shortDescription,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: Colors.grey[700],
                         ),
-                        const SizedBox(width: 12),
-                        Icon(Icons.local_fire_department,
-                            size: 14, color: Colors.grey[600]),
-                        const SizedBox(width: 4),
+                      ),
+                      const SizedBox(height: 8),
+                      if (recipeTitles.length == 1)
                         Text(
-                          '${menu.totalCalories.toStringAsFixed(0)} kcal',
-                          style: theme.textTheme.bodySmall
-                              ?.copyWith(color: Colors.grey[700]),
+                          recipeTitles.first,
+                          style: theme.textTheme.bodyMedium,
+                        )
+                      else
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: recipeTitles.map((title) {
+                            return Row(
+                              children: [
+                                const Icon(Icons.circle, size: 6),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    title,
+                                    style: theme.textTheme.bodyMedium,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            );
+                          }).toList(),
                         ),
-                      ],
-                    ),
-                  ],
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Icon(Icons.access_time,
+                              size: 14, color: Colors.grey[600]),
+                          const SizedBox(width: 4),
+                          Text(
+                            '~ ${menu.totalCookingTimeMin} min',
+                            style: theme.textTheme.bodySmall
+                                ?.copyWith(color: Colors.grey[700]),
+                          ),
+                          const SizedBox(width: 12),
+                          Icon(Icons.local_fire_department,
+                              size: 14, color: Colors.grey[600]),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${menu.totalCalories.toStringAsFixed(0)} kcal',
+                            style: theme.textTheme.bodySmall
+                                ?.copyWith(color: Colors.grey[700]),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => RecipeInstructionPage(
+                        menu: menu,
+                        initialRecipeIndex: 0,
+                        filter: widget.filter,
+                      ),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                icon: const Icon(Icons.play_arrow),
+                label: const Text('Start cooking'),
               ),
-            ],
-          ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(ThemeData theme) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.hourglass_empty, size: 48, color: Colors.grey),
+            const SizedBox(height: 8),
+            Text(
+              'No menus yet. Try generating again.',
+              style: theme.textTheme.bodyMedium,
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorState(ThemeData theme) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_outline, size: 48, color: Colors.redAccent),
+            const SizedBox(height: 8),
+            Text(
+              'Failed to load recipes.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              _error ?? '',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: Colors.grey[600],
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton(
+              onPressed: _fetchMenus,
+              child: const Text('Retry'),
+            ),
+          ],
         ),
       ),
     );

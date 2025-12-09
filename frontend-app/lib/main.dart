@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:personal_sous_chef/theme/fallback_google_fonts.dart';
 import 'package:personal_sous_chef/pages/home/home_page.dart';
 import 'package:personal_sous_chef/pages/inventory/inventory_page.dart';
 import 'package:personal_sous_chef/pages/add_item/add_item_page.dart';
@@ -32,43 +32,14 @@ class SousChefApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepOrange),
         useMaterial3: true,
-        // 手绘风格字体主题
-        textTheme: TextTheme(
-          displayLarge: GoogleFonts.caveat(
-            fontSize: 48,
-            fontWeight: FontWeight.bold,
-          ),
-          displayMedium: GoogleFonts.caveat(
-            fontSize: 36,
-            fontWeight: FontWeight.bold,
-          ),
-          displaySmall: GoogleFonts.caveat(
-            fontSize: 28,
-            fontWeight: FontWeight.w600,
-          ),
-          headlineMedium: GoogleFonts.caveat(
-            fontSize: 24,
-            fontWeight: FontWeight.w600,
-          ),
-          titleLarge: GoogleFonts.kalam(
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-          ),
-          bodyLarge: GoogleFonts.kalam(
-            fontSize: 16,
-          ),
-          bodyMedium: GoogleFonts.kalam(
-            fontSize: 14,
-          ),
-          labelLarge: GoogleFonts.caveat(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        // 使用本地字体族 Caveat 作为全局字体
+        textTheme: ThemeData.light()
+            .textTheme
+            .apply(fontFamily: 'Caveat'),
       ),
-      // Modified by Chase: Changed app entry point to LandingPage / 由 Chase 修改：将应用入口改为启动页
-      // Users will see login/registration options first / 用户首先看到登录/注册选项
-      home: const LandingPage(),
+      // Modified for local testing: bypass auth landing and go straight to main scaffold
+      // home: const LandingPage(),
+      home: const MainScaffold(),
     );
   }
 }
@@ -84,7 +55,8 @@ class MainScaffold extends StatefulWidget {
 
 // 🔥 修复点 4: 确保类名是 MainScaffoldState (公有，没下划线)，方便外部引用
 class MainScaffoldState extends State<MainScaffold> {
-  int _selectedIndex = 0;
+  // Start on Recipes tab (index 1) for quick testing; change back to 0 if needed.
+  int _selectedIndex = 1;
 
   // ✅ 改为 Getter (每次调用都生成新的 Widget 列表)
   // 这样能确保当你 setState 时，InventoryPage 会被重新构建
@@ -139,9 +111,10 @@ class MainScaffoldState extends State<MainScaffold> {
       appBar: AppBar(
         title: Text(
           'Personal Sous Chef',
-          style: GoogleFonts.caveat(
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
+          style: const TextStyle(
+            fontFamily: 'Caveat',
+            fontSize: 24,
+            fontWeight: FontWeight.w700,
           ),
         ),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,

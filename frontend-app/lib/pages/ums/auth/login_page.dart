@@ -6,7 +6,7 @@ import '../../../widgets/video_background.dart';
 import '../../../widgets/sketchy_button.dart';
 import '../../../widgets/sketchy_card.dart';
 import '../../../services/auth_service.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:personal_sous_chef/theme/fallback_google_fonts.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});

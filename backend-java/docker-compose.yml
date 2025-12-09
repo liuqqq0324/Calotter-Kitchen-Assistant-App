@@ -11,11 +11,10 @@ services:
       POSTGRES_PASSWORD: mysecretpassword # 🔥 设置密码，记好了！
       POSTGRES_DB: SousChefDb       # 默认创建的数据库名
     ports:
-      - "5432:5432" # 端口映射：把你电脑的 5432 端口连到盒子里的 5432
+      - "55432:5432" # 端口映射：把你电脑的 55432 端口连到盒子里的 5432，避免与本地占用冲突
     volumes:
       - postgres_data:/var/lib/postgresql/data # 数据持久化：哪怕你删了容器，数据还在
 
 volumes:
   postgres_data:
-
 

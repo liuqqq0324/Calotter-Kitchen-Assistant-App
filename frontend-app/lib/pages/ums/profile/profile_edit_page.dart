@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 // Modified by Chase: Import user static data / 由 Chase 修改：导入用户静态数据
 import '../../../data/user_static_data.dart';
 import '../../../services/user_service.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:personal_sous_chef/theme/fallback_google_fonts.dart';
 
 class ProfileEditPage extends StatefulWidget {
   const ProfileEditPage({super.key});

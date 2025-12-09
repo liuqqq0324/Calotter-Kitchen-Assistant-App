@@ -28,6 +28,11 @@ tags:
 
 
 # C. UMS (User Management Service)
+## 1. Registration Request (F -> B)
+
+- Request method and path: `POST /api/ums/auth/register`
+- Request header: Context-Type: application/json
+- Request body:
 
 ## 1. Registration Request (F -> B)
 

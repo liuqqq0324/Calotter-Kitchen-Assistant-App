@@ -12,6 +12,18 @@ class RecipeStepModel {
     required this.instruction,
     required this.stepTimeMin,
   });
+
+  factory RecipeStepModel.fromJson(Map<String, dynamic> json) {
+    return RecipeStepModel(
+      stepNumber: (json['step_number'] ?? json['stepNumber'] ?? 0) is num
+          ? (json['step_number'] ?? json['stepNumber'] ?? 0).toInt()
+          : 0,
+      instruction: json['instruction']?.toString() ?? '',
+      stepTimeMin: (json['step_time_min'] ?? json['stepTimeMin'] ?? 0) is num
+          ? (json['step_time_min'] ?? json['stepTimeMin'] ?? 0).toInt()
+          : 0,
+    );
+  }
 }
 
 @immutable
@@ -27,6 +39,19 @@ class RecipeIngredientModel {
     required this.amountUnit,
     this.isOptional = false,
   });
+
+  factory RecipeIngredientModel.fromJson(Map<String, dynamic> json) {
+    return RecipeIngredientModel(
+      name: json['name']?.toString() ?? '',
+      amountValue: (json['amount_value'] ?? json['amountValue'] ?? 0) is num
+          ? (json['amount_value'] ?? json['amountValue']).toDouble()
+          : 0,
+      amountUnit: json['amount_unit']?.toString() ??
+          json['amountUnit']?.toString() ??
+          'g',
+      isOptional: json['is_optional'] ?? json['isOptional'] ?? false,
+    );
+  }
 }
 
 @immutable
@@ -54,6 +79,44 @@ class RecipeModel {
     required this.steps,
     this.emoji = '🍽️',
   });
+
+  factory RecipeModel.fromJson(Map<String, dynamic> json) {
+    final recipesSteps = (json['steps'] as List?) ?? [];
+    final ingredientsJson = (json['ingredients'] as List?) ?? [];
+
+    final rawId = (json['id'] ?? json['recipe_id'] ?? json['recipeId'] ?? '').toString();
+    final resolvedId = rawId.isNotEmpty
+        ? rawId
+        : (json['title']?.toString().isNotEmpty == true
+            ? 'recipe_${json['title'].toString().hashCode}'
+            : 'recipe_${DateTime.now().microsecondsSinceEpoch}');
+
+    return RecipeModel(
+      id: resolvedId,
+      title: json['title']?.toString() ?? 'Untitled recipe',
+      shortDescription: json['short_description']?.toString() ??
+          json['shortDescription']?.toString() ??
+          '',
+      servings: (json['servings'] ?? 0) is num ? (json['servings'] as num).toInt() : 0,
+      cookingTimeMin: (json['cooking_time_min'] ??
+                  json['cookingTimeMin'] ??
+                  0) is num
+          ? (json['cooking_time_min'] ?? json['cookingTimeMin']).toInt()
+          : 0,
+      difficulty: json['difficulty']?.toString() ?? 'easy',
+      totalCaloriesEstimate:
+          (json['total_calories_estimate'] ?? json['totalCaloriesEstimate'] ?? 0)
+                  is num
+              ? (json['total_calories_estimate'] ??
+                      json['totalCaloriesEstimate'])
+                  .toDouble()
+              : 0,
+      ingredients:
+          ingredientsJson.map((e) => RecipeIngredientModel.fromJson(e)).toList(),
+      steps: recipesSteps.map((e) => RecipeStepModel.fromJson(e)).toList(),
+      emoji: json['emoji']?.toString() ?? '🍽️',
+    );
+  }
 }
 
 @immutable
@@ -83,5 +146,15 @@ class RecipeMenuModel {
     if (recipes.any((r) => r.difficulty == 'hard')) return 'hard';
     if (recipes.any((r) => r.difficulty == 'medium')) return 'medium';
     return 'easy';
+  }
+
+  factory RecipeMenuModel.fromJson(Map<String, dynamic> json) {
+    final recipesJson = (json['recipes'] as List?) ?? [];
+    return RecipeMenuModel(
+      menuId: (json['menu_id'] ?? json['menuId'] ?? 0) is num
+          ? (json['menu_id'] ?? json['menuId']).toInt()
+          : 0,
+      recipes: recipesJson.map((e) => RecipeModel.fromJson(e)).toList(),
+    );
   }
 }

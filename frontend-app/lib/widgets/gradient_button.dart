@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:personal_sous_chef/theme/fallback_google_fonts.dart';
 
 class GradientButton extends StatelessWidget {
   final String text;
@@ -70,4 +70,3 @@ class GradientButton extends StatelessWidget {
     );
   }
 }
-

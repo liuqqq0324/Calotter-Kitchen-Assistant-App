@@ -1,6 +1,6 @@
 // lib/pages/recipes/recipes_home_page.dart
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:personal_sous_chef/theme/fallback_google_fonts.dart';
 import 'package:personal_sous_chef/data/collected_recipes_store.dart';
 import 'package:personal_sous_chef/models/recipe_models.dart';
 import 'package:personal_sous_chef/pages/recipes/recipe_generate_page.dart';
@@ -159,7 +159,7 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
 
             // 收藏食谱区域
             Expanded(
-              child: ValueListenableBuilder<List<RecipeMenuModel>>(
+              child: ValueListenableBuilder<List<RecipeModel>>(
                 valueListenable: CollectedRecipesStore.favorites,
                 builder: (context, favorites, _) {
                   if (favorites.isEmpty) {
@@ -199,20 +199,20 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                     separatorBuilder: (_, __) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       if (index == 0) {
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 4),
-                        child: Text(
-                          'Collected menus',
-                          style: GoogleFonts.caveat(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Text(
+                            'Collected recipes',
+                            style: GoogleFonts.caveat(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        ),
-                      );
+                        );
                       }
 
-                      final menu = favorites[index - 1];
-                      return _buildCollectedCard(context, menu, theme);
+                      final recipe = favorites[index - 1];
+                      return _buildCollectedCard(context, recipe, theme);
                     },
                   );
                 },
@@ -246,16 +246,10 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
 
   Widget _buildCollectedCard(
     BuildContext context,
-    RecipeMenuModel menu,
+    RecipeModel recipe,
     ThemeData theme,
   ) {
-    final recipes = menu.recipes;
-    if (recipes.isEmpty) return const SizedBox.shrink();
-
-    final primaryRecipe = recipes.first;
-    final recipeTitles = recipes.map((r) => r.title).toList();
-
-    String difficultyLabel = menu.difficultySummary;
+    String difficultyLabel = recipe.difficulty;
     Color difficultyColor;
     switch (difficultyLabel) {
       case 'hard':
@@ -269,18 +263,6 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
     }
 
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => RecipeInstructionPage(
-              menu: menu,
-              initialRecipeIndex: 0,
-              filter: _currentFilter,
-            ),
-          ),
-        );
-      },
       child: SketchyCard(
         backgroundColor: Colors.white,
         borderColor: Colors.black87,
@@ -300,7 +282,7 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                 ),
                 child: Center(
                   child: Text(
-                    primaryRecipe.emoji,
+                    recipe.emoji,
                     style: const TextStyle(fontSize: 34),
                   ),
                 ),
@@ -316,7 +298,7 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                     Row(
                       children: [
                         Text(
-                          'Menu ${menu.menuId}',
+                          recipe.title,
                           style: GoogleFonts.caveat(
                             fontSize: 22,
                             fontWeight: FontWeight.bold,
@@ -342,20 +324,13 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                           ),
                         ),
                         const Spacer(),
-                        Row(
-                          children: [
-                            const Icon(Icons.restaurant_menu, size: 16),
-                            const SizedBox(width: 4),
-                            Text('${recipes.length} dish'),
-                          ],
-                        ),
                       ],
                     ),
                     const SizedBox(height: 4),
 
                     // 简短描述
                     Text(
-                      primaryRecipe.shortDescription,
+                      recipe.shortDescription,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.kalam(
@@ -365,34 +340,6 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                     ),
                     const SizedBox(height: 8),
 
-                    // 菜名列表
-                    if (recipeTitles.length == 1)
-                      Text(
-                        recipeTitles.first,
-                        style: GoogleFonts.kalam(fontSize: 16),
-                      )
-                    else
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: recipeTitles.map((title) {
-                          return Row(
-                            children: [
-                              const Icon(Icons.circle, size: 6),
-                              const SizedBox(width: 6),
-                              Expanded(
-                                child: Text(
-                                  title,
-                                  style: GoogleFonts.kalam(fontSize: 16),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          );
-                        }).toList(),
-                      ),
-
-                    const SizedBox(height: 8),
-
                     // 底部：时间 + 卡路里
                     Row(
                       children: [
@@ -400,7 +347,7 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                             size: 14, color: Colors.grey[600]),
                         const SizedBox(width: 4),
                         Text(
-                          '~ ${menu.totalCookingTimeMin} min',
+                          '${recipe.cookingTimeMin} min',
                           style: GoogleFonts.kalam(
                             fontSize: 12,
                             color: Colors.grey[700],
@@ -411,13 +358,38 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                             size: 14, color: Colors.grey[600]),
                         const SizedBox(width: 4),
                         Text(
-                          '${menu.totalCalories.toStringAsFixed(0)} kcal',
+                          '${recipe.totalCaloriesEstimate.toStringAsFixed(0)} kcal',
                           style: GoogleFonts.kalam(
                             fontSize: 12,
                             color: Colors.grey[700],
                           ),
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 12),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          // 构造一个临时的单菜菜单，复用指引页
+                          final tempMenu = RecipeMenuModel(
+                            menuId: 0,
+                            recipes: [recipe],
+                          );
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => RecipeInstructionPage(
+                                menu: tempMenu,
+                                initialRecipeIndex: 0,
+                                filter: _currentFilter,
+                              ),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.play_arrow),
+                        label: const Text('Start cooking'),
+                      ),
                     ),
                   ],
                 ),

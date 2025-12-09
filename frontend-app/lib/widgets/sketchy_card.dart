@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:personal_sous_chef/theme/fallback_google_fonts.dart';
 import 'sketchy_border.dart';
 
 /// 手绘风格的卡片组件
@@ -92,4 +92,3 @@ class SketchyTextStyle {
     );
   }
 }
-
