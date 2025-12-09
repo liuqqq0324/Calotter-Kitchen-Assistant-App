@@ -891,6 +891,7 @@ Request body:
     "week_end": "2025-11-30"
   }
 }
+```
 ## 2. Get Weekly Nutrition Summary (F -> B)
 - Request method and path: `GET /api/nutrition/summary?period=week`
 - Request header:
@@ -914,6 +915,7 @@ Request body:
     "protein": 380
   }
 }
+```
 ## 3. Get Today Intakes (F -> B)
 - Request method and path: `GET /api/intake/today?source=recipe`
                            `GET /api/intake/today?source=manual`
@@ -965,7 +967,7 @@ Request body:
     }
   ]
 }
-
+```
 - Response 2 (B -> F):
 ```JSON
 {
@@ -985,7 +987,7 @@ Request body:
     }
   ]
 }
-
+```
 ## 4. Update Intake Percentage (F -> B)
 - Request method and path: `PATCH /api/intake/{intake_id}`
 
@@ -1030,7 +1032,7 @@ Request body:
     }
   }
 }
-
+```
 ## 4. Add Manual Intake (F -> B)
 - Request method and path: `POST /api/intake/manual`
 
@@ -1071,3 +1073,4 @@ Request body:
     }
   }
 }
+```
