@@ -352,7 +352,7 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
                   ),
                 ),
                 child: const Text(
-                  'Save record & back to home',
+                  'Save record',
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),

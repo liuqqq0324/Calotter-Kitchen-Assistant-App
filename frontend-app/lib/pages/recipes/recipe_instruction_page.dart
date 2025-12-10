@@ -1,4 +1,5 @@
 // lib/pages/recipes/recipe_instruction_page.dart
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:personal_sous_chef/data/collected_recipes_store.dart';
 import 'package:personal_sous_chef/models/recipe_models.dart';
@@ -23,12 +24,24 @@ class RecipeInstructionPage extends StatefulWidget {
 class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
   late int _currentIndex;
   late Set<int> _completedDishes;
+  final Map<int, int> _remainingSeconds = {};
+  final Map<int, Timer> _runningTimers = {};
+  final Map<int, bool> _pausedSteps = {};
+  final Set<int> _completedSteps = {};
 
   @override
   void initState() {
     super.initState();
     _currentIndex = widget.initialRecipeIndex;
     _completedDishes = <int>{};
+  }
+
+  @override
+  void dispose() {
+    for (final t in _runningTimers.values) {
+      t.cancel();
+    }
+    super.dispose();
   }
 
   int get _totalDishes => widget.menu.recipes.length;
@@ -93,6 +106,54 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
         ),
       ),
     );
+  }
+
+  void _startTimerForStep(int stepNumber, int minutes) {
+    final totalSeconds = (minutes <= 0 ? 1 : minutes) * 60;
+    final startFrom = _remainingSeconds[stepNumber] ?? totalSeconds;
+    _pausedSteps[stepNumber] = false;
+    _completedSteps.remove(stepNumber);
+    _runningTimers[stepNumber]?.cancel();
+    _remainingSeconds[stepNumber] = startFrom;
+    _runningTimers[stepNumber] =
+        Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      setState(() {
+        final next = (_remainingSeconds[stepNumber] ?? startFrom) - 1;
+        _remainingSeconds[stepNumber] = next;
+        if (next <= -totalSeconds) {
+          // auto stop after超时同长度
+          timer.cancel();
+          _runningTimers.remove(stepNumber);
+        }
+      });
+    });
+  }
+
+  void _stopTimerForStep(int stepNumber) {
+    _runningTimers[stepNumber]?.cancel();
+    _runningTimers.remove(stepNumber);
+    setState(() {
+      _remainingSeconds.remove(stepNumber);
+      _pausedSteps.remove(stepNumber);
+    });
+  }
+
+  void _pauseTimer(int stepNumber) {
+    _runningTimers[stepNumber]?.cancel();
+    _runningTimers.remove(stepNumber);
+    _pausedSteps[stepNumber] = true;
+    setState(() {});
+  }
+
+  void _stopAndCompleteStep(int stepNumber) {
+    _stopTimerForStep(stepNumber);
+    setState(() {
+      _completedSteps.add(stepNumber);
+    });
   }
 
   @override
@@ -300,6 +361,11 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
     required RecipeStepModel step,
   }) {
     final theme = Theme.of(context);
+    final remaining = _remainingSeconds[step.stepNumber];
+    final isRunning = _runningTimers.containsKey(step.stepNumber);
+    final isOvertime = remaining != null && remaining < 0;
+    final isPaused = _pausedSteps[step.stepNumber] == true;
+    final isCompleted = _completedSteps.contains(step.stepNumber);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -336,26 +402,83 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
                 ),
                 if (step.stepTimeMin > 0) ...[
                   const SizedBox(height: 4),
-                  Text(
-                    '~ ${step.stepTimeMin} min',
-                    style: theme.textTheme.bodySmall
-                        ?.copyWith(color: Colors.grey[600]),
+                  Row(
+                    children: [
+                      Text(
+                        '~ ${step.stepTimeMin} min',
+                        style: theme.textTheme.bodySmall
+                            ?.copyWith(color: Colors.grey[600]),
+                      ),
+                      const SizedBox(width: 8),
+                      if (remaining != null)
+                        Text(
+                          remaining >= 0
+                              ? 'Left ${remaining ~/ 60}:${(remaining % 60).toString().padLeft(2, '0')}'
+                              : 'Over by ${(-remaining) ~/ 60}:${((-remaining) % 60).toString().padLeft(2, '0')}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: isOvertime ? Colors.red : Colors.green,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 6),
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context)
-                        ..hideCurrentSnackBar()
-                        ..showSnackBar(
-                          SnackBar(
-                            content: Text(
-                                'Start a ${step.stepTimeMin} min timer on your phone or watch.'),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: isRunning
+                            ? () => _pauseTimer(step.stepNumber)
+                            : () => _startTimerForStep(
+                                step.stepNumber, step.stepTimeMin),
+                        icon: Icon(
+                          isRunning
+                              ? Icons.pause_circle
+                              : (isPaused
+                                  ? Icons.play_circle
+                                  : Icons.timer_outlined),
+                          size: 16,
+                          color: isRunning
+                              ? Colors.orange
+                              : (isOvertime ? Colors.red : Colors.orange),
+                        ),
+                        label: Text(
+                          isRunning
+                              ? 'Pause'
+                              : (isPaused ? 'Resume' : 'Start timer'),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(
+                            color: isOvertime ? Colors.red : Colors.orange,
                           ),
-                        );
-                    },
-                    icon: const Icon(Icons.timer_outlined, size: 16),
-                    label: const Text('Start timer'),
+                        ),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: () => _stopAndCompleteStep(step.stepNumber),
+                        icon: Icon(
+                          Icons.check_circle,
+                          size: 16,
+                          color: Colors.green,
+                        ),
+                        label: const Text('Mark step done'),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Colors.green),
+                        ),
+                      ),
+                    ],
                   ),
+                  if (isCompleted)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        'Step completed',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: Colors.green,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
                 ],
               ],
             ),

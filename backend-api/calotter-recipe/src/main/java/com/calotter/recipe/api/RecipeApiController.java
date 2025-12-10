@@ -41,7 +41,7 @@ public class RecipeApiController {
         d.generation_settings = new GenerationSettings();
         d.generation_settings.dish_count = 1;
         d.generation_settings.max_cooking_time_min = 40;
-        d.generation_settings.difficulty_target = "easy";
+        d.generation_settings.difficulty_target = Arrays.asList("easy");
         d.diet_preferences = new DietPreferences();
         d.diet_preferences.cuisine_preferences = Arrays.asList("chinese", "japanese");
         d.diet_preferences.taste_preferences = Arrays.asList("light");
@@ -151,7 +151,7 @@ public class RecipeApiController {
     public static class GenerationSettings {
         public int dish_count;
         public int max_cooking_time_min;
-        public String difficulty_target;
+        public List<String> difficulty_target;
     }
 
     public static class GeneratedMenusResponse {

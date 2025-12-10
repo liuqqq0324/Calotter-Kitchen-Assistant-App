@@ -80,7 +80,7 @@ class RecipeApiService {
       'generation_settings': {
         'dish_count': f['dish_count'] ?? 1,
         'max_cooking_time_min': f['max_cooking_time_min'],
-        'difficulty_target': f['difficulty_target'],
+        'difficulty_target': f['difficulty_target'], // now can be list for multi-select
       },
       'calorie_target': calorieTarget,
       'cookers': f['cookers'] ?? [],
