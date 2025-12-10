@@ -21,7 +21,7 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> {
   final Set<String> _selectedCuisines = {};
   final Set<String> _selectedTastes = {};
   final Set<String> _selectedCookers = {};
-  String? _difficulty; // easy / medium / hard / null
+  final Set<String> _selectedDifficulties = {}; // 支持多选
 
   // 可选值列表（和你 prompt 里面保持一致）
   static const List<String> _cuisineOptions = [
@@ -167,7 +167,7 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> {
         "cuisine_preferences": _selectedCuisines.toList(),
         "taste_preferences": _selectedTastes.toList(),
       },
-      "difficulty_target": _difficulty,
+      "difficulty_target": _selectedDifficulties.toList(),
       "cookers": _selectedCookers.toList(),
     };
 
@@ -272,13 +272,17 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> {
                   Wrap(
                     spacing: 8,
                     children: _difficultyOptions.map((d) {
-                      final selected = _difficulty == d;
-                      return ChoiceChip(
+                      final selected = _selectedDifficulties.contains(d);
+                      return FilterChip(
                         label: Text(d),
                         selected: selected,
                         onSelected: (val) {
                           setState(() {
-                            _difficulty = val ? d : null;
+                            if (val) {
+                              _selectedDifficulties.add(d);
+                            } else {
+                              _selectedDifficulties.remove(d);
+                            }
                           });
                         },
                       );

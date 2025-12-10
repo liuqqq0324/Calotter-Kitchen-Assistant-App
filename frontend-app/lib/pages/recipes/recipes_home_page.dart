@@ -1,4 +1,5 @@
 // lib/pages/recipes/recipes_home_page.dart
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:personal_sous_chef/theme/fallback_google_fonts.dart';
 import 'package:personal_sous_chef/data/collected_recipes_store.dart';
@@ -18,6 +19,27 @@ class RecipesHomePage extends StatefulWidget {
 
 class _RecipesHomePageState extends State<RecipesHomePage> {
   Map<String, dynamic>? _currentFilter; // 保存最近一次的 filter 设置
+  final Set<String> _selectedFavoriteIds = {};
+  bool _loadingFavorites = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFavorites();
+  }
+
+  Future<void> _loadFavorites() async {
+    setState(() => _loadingFavorites = true);
+    try {
+      await CollectedRecipesStore.fetchFromServer();
+    } catch (e) {
+      debugPrint('Failed to load favorites: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _loadingFavorites = false);
+      }
+    }
+  }
 
   // 把 Map 变成一行 summary 文案
   String? get _filterSummary {
@@ -43,8 +65,12 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
     if (maxTime != null) {
       parts.add('≤ $maxTime min / dish');
     }
-    if (difficulty != null && difficulty.toString().isNotEmpty) {
-      parts.add('difficulty: $difficulty');
+    if (difficulty != null) {
+      if (difficulty is List && difficulty.isNotEmpty) {
+        parts.add('difficulty: ${difficulty.join("/")}');
+      } else if (difficulty.toString().isNotEmpty) {
+        parts.add('difficulty: $difficulty');
+      }
     }
 
     if (parts.isEmpty) return null;
@@ -157,11 +183,20 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
             ] else
               const SizedBox(height: 16),
 
-            // 收藏食谱区域
+            // 收藏食谱区域 + 选择后统一 Start cooking
             Expanded(
               child: ValueListenableBuilder<List<RecipeModel>>(
                 valueListenable: CollectedRecipesStore.favorites,
                 builder: (context, favorites, _) {
+                  if (_loadingFavorites && favorites.isEmpty) {
+                    return const Center(
+                      child: CircularProgressIndicator(),
+                    );
+                  }
+                  // 清理被移除的选择
+                  _selectedFavoriteIds.removeWhere(
+                      (id) => favorites.every((r) => r.id != id));
+
                   if (favorites.isEmpty) {
                     return Center(
                       child: Column(
@@ -193,27 +228,89 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                     );
                   }
 
-                  return ListView.separated(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    itemCount: favorites.length + 1,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
-                    itemBuilder: (context, index) {
-                      if (index == 0) {
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 4),
-                          child: Text(
-                            'Collected recipes',
-                            style: GoogleFonts.caveat(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
+                  return Column(
+                    children: [
+                      Expanded(
+                        child: ListView.separated(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          itemCount: favorites.length + 1,
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(height: 12),
+                          itemBuilder: (context, index) {
+                            if (index == 0) {
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 4),
+                                child: Text(
+                                  'Collected recipes',
+                                  style: GoogleFonts.caveat(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              );
+                            }
+
+                            final recipe = favorites[index - 1];
+                            final selected =
+                                _selectedFavoriteIds.contains(recipe.id);
+                            return _buildCollectedCard(
+                              context,
+                              recipe,
+                              theme,
+                              selected: selected,
+                              onToggleSelect: () {
+                                setState(() {
+                                  if (selected) {
+                                    _selectedFavoriteIds.remove(recipe.id);
+                                  } else {
+                                    _selectedFavoriteIds.add(recipe.id);
+                                  }
+                                });
+                              },
+                            );
+                          },
+                        ),
+                      ),
+                      if (_selectedFavoriteIds.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              final selectedRecipes = favorites
+                                  .where((r) => _selectedFavoriteIds.contains(r.id))
+                                  .toList();
+                              if (selectedRecipes.isEmpty) return;
+                              final tempMenu = RecipeMenuModel(
+                                menuId: -1,
+                                recipes: selectedRecipes,
+                              );
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => RecipeInstructionPage(
+                                    menu: tempMenu,
+                                    initialRecipeIndex: 0,
+                                    filter: _currentFilter,
+                                  ),
+                                ),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.orange,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            icon: const Icon(Icons.play_arrow),
+                            label: Text(
+                              'Start cooking (${_selectedFavoriteIds.length} selected)',
                             ),
                           ),
-                        );
-                      }
-
-                      final recipe = favorites[index - 1];
-                      return _buildCollectedCard(context, recipe, theme);
-                    },
+                        ),
+                      ],
+                    ],
                   );
                 },
               ),
@@ -248,6 +345,7 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
     BuildContext context,
     RecipeModel recipe,
     ThemeData theme,
+    {required bool selected, required VoidCallback onToggleSelect}
   ) {
     String difficultyLabel = recipe.difficulty;
     Color difficultyColor;
@@ -296,34 +394,77 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                   children: [
                     // 第一行：菜单名 + 难度标签
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          recipe.title,
-                          style: GoogleFonts.caveat(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
+                        Expanded(
+                          child: Wrap(
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            spacing: 8,
+                            runSpacing: 4,
+                            children: [
+                              Text(
+                                recipe.title,
+                                style: GoogleFonts.caveat(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: difficultyColor.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  difficultyLabel.toUpperCase(),
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: difficultyColor,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                         const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: difficultyColor.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            difficultyLabel.toUpperCase(),
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: difficultyColor,
-                              fontWeight: FontWeight.w600,
+                        Flexible(
+                          fit: FlexFit.loose,
+                          child: InkWell(
+                            onTap: onToggleSelect,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  selected
+                                      ? Icons.check_box
+                                      : Icons.check_box_outline_blank,
+                                  size: 18,
+                                  color: selected
+                                      ? Colors.orange
+                                      : Colors.grey.shade600,
+                                ),
+                                const SizedBox(width: 4),
+                                Flexible(
+                                  child: Text(
+                                    selected ? 'Selected' : 'Select',
+                                    style: GoogleFonts.kalam(
+                                      fontSize: 12,
+                                      color: selected
+                                          ? Colors.orange
+                                          : Colors.grey.shade700,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                    softWrap: false,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
-                        const Spacer(),
                       ],
                     ),
                     const SizedBox(height: 4),
@@ -371,7 +512,6 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                       alignment: Alignment.centerRight,
                       child: OutlinedButton.icon(
                         onPressed: () {
-                          // 构造一个临时的单菜菜单，复用指引页
                           final tempMenu = RecipeMenuModel(
                             menuId: 0,
                             recipes: [recipe],
@@ -387,8 +527,8 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                             ),
                           );
                         },
-                        icon: const Icon(Icons.play_arrow),
-                        label: const Text('Start cooking'),
+                        icon: const Icon(Icons.menu_book),
+                        label: const Text('View steps'),
                       ),
                     ),
                   ],
