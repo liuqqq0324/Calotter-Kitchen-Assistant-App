@@ -28,9 +28,6 @@ public class UmsApiController {
     private final RestrictionMapper restrictionMapper;
     private final RoleRestrictionMapper roleRestrictionMapper;
 
-    // simple cache for brief profile defaults (non-persistent profile numbers per docs)
-    private final Map<Long, UserBrief> userStore = new HashMap<>();
-
     // ==== Auth ====
     @PostMapping("/auth/register")
     public ResponseEntity<RegisterResponse> register(@RequestBody RegisterRequest req) {
@@ -69,17 +66,8 @@ public class UmsApiController {
             // ensure default owner role exists for this user for linking prefs/restrictions
             getOrCreateOwnerRoleId(userId);
 
-            // also keep an in-memory brief for sample profile fields not backed by DB columns
-            UserBrief brief = new UserBrief();
-            brief.userId = userId;
-            brief.userName = req.username;
-            brief.email = req.email;
-            brief.profile = new Profile();
-            // No default values - age, height, weight will be null until user sets them
-            brief.profile.age = null;
-            brief.profile.height = null;
-            brief.profile.weight = null;
-            userStore.put(userId, brief);
+            // Profile fields (age, height, weight, gender) are now stored in database
+            // No need to initialize them here - they will be null in DB until user sets them
 
             RegisterResponse resp = new RegisterResponse();
             resp.userId = userId;
@@ -173,12 +161,6 @@ public class UmsApiController {
     // ==== User brief ====
     @GetMapping("/user")
     public UserBrief getUser(@RequestParam("id") long id) {
-        // First check in-memory cache (may contain updated profile data including gender)
-        UserBrief cached = userStore.get(id);
-        if (cached != null) {
-            return cached;
-        }
-        
         User db = userMapper.selectById(id);
         if (db != null) {
             UserBrief u = new UserBrief();
@@ -186,17 +168,15 @@ public class UmsApiController {
             u.userName = db.getUsername();
             u.email = db.getEmail();
             Profile p = new Profile();
-            // No default values - age, height, weight will be null until user sets them
-            p.age = null;
-            p.height = null;
-            p.weight = null;
-            p.gender = null; // No default gender, will be set when user updates it
+            // Read profile data from database
+            p.age = db.getAge();
+            p.height = db.getHeight();
+            p.weight = db.getWeight();
+            p.gender = db.getGender();
             u.profile = p;
-            // refresh in-memory cache for subsequent calls
-            userStore.put(id, u);
             return u;
         }
-        return userStore.getOrDefault(id, sampleUser(id));
+        return sampleUser(id);
     }
 
     @PutMapping("/user")
@@ -218,22 +198,14 @@ public class UmsApiController {
         if (req.email != null && !req.email.trim().isEmpty()) {
             db.setEmail(req.email);
         }
-        userMapper.updateById(db);
-
-        // Update in-memory cache
-        UserBrief brief = userStore.getOrDefault(id, new UserBrief());
-        brief.userId = id;
-        if (req.userName != null) brief.userName = req.userName;
-        if (req.email != null) brief.email = req.email;
+        // Update profile fields if provided - persist to database
         if (req.profile != null) {
-            if (brief.profile == null) brief.profile = new Profile();
-            // Only update if value is provided (not null)
-            if (req.profile.age != null) brief.profile.age = req.profile.age;
-            if (req.profile.height != null) brief.profile.height = req.profile.height;
-            if (req.profile.weight != null) brief.profile.weight = req.profile.weight;
-            if (req.profile.gender != null) brief.profile.gender = req.profile.gender;
+            if (req.profile.age != null) db.setAge(req.profile.age);
+            if (req.profile.height != null) db.setHeight(req.profile.height);
+            if (req.profile.weight != null) db.setWeight(req.profile.weight);
+            if (req.profile.gender != null) db.setGender(req.profile.gender);
         }
-        userStore.put(id, brief);
+        userMapper.updateById(db);
 
         UpdateMessageResponse resp = new UpdateMessageResponse();
         resp.userId = id;
@@ -430,10 +402,11 @@ public class UmsApiController {
         u.userName = "UserName";
         u.email = "user.email@example.com";
         Profile p = new Profile();
-        // No default values - age, height, weight will be null until user sets them
+        // No default values - age, height, weight, gender will be null until user sets them
         p.age = null;
         p.height = null;
         p.weight = null;
+        p.gender = null;
         u.profile = p;
         return u;
     }
