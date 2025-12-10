@@ -368,37 +368,46 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                   children: [
                     // 第一行：菜单名 + 难度标签
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          recipe.title,
-                          style: GoogleFonts.caveat(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
+                        Expanded(
+                          child: Wrap(
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            spacing: 8,
+                            runSpacing: 4,
+                            children: [
+                              Text(
+                                recipe.title,
+                                style: GoogleFonts.caveat(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: difficultyColor.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  difficultyLabel.toUpperCase(),
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: difficultyColor,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: difficultyColor.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            difficultyLabel.toUpperCase(),
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: difficultyColor,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                        const Spacer(),
                         InkWell(
                           onTap: onToggleSelect,
                           child: Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
                                 selected
@@ -418,6 +427,7 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                                       ? Colors.orange
                                       : Colors.grey.shade700,
                                 ),
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ],
                           ),
