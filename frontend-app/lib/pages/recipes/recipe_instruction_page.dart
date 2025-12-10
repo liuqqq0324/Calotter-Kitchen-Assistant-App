@@ -50,22 +50,34 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
 
   bool get _isWholeMealDone => _completedDishes.length == _totalDishes;
 
-  void _toggleCollectRecipe() {
+  Future<void> _toggleCollectRecipe() async {
     final recipe = widget.menu.recipes[_currentIndex];
     final wasCollected = CollectedRecipesStore.isCollected(recipe);
-    CollectedRecipesStore.toggle(recipe);
-
-    final text = wasCollected
-        ? 'Removed recipe from your collection.'
-        : 'Saved recipe to your collection.';
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(text),
-          duration: const Duration(seconds: 1),
-        ),
-      );
+    try {
+      await CollectedRecipesStore.toggle(recipe);
+      final text = wasCollected
+          ? 'Removed recipe from your collection.'
+          : 'Saved recipe to your collection.';
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(text),
+            duration: const Duration(seconds: 1),
+          ),
+        );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text('Failed to update favorites: $e'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+    }
   }
 
   void _toggleDishDone() {

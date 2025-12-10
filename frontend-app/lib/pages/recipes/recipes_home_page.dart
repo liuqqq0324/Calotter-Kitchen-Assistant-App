@@ -1,4 +1,5 @@
 // lib/pages/recipes/recipes_home_page.dart
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:personal_sous_chef/theme/fallback_google_fonts.dart';
 import 'package:personal_sous_chef/data/collected_recipes_store.dart';
@@ -19,6 +20,26 @@ class RecipesHomePage extends StatefulWidget {
 class _RecipesHomePageState extends State<RecipesHomePage> {
   Map<String, dynamic>? _currentFilter; // 保存最近一次的 filter 设置
   final Set<String> _selectedFavoriteIds = {};
+  bool _loadingFavorites = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFavorites();
+  }
+
+  Future<void> _loadFavorites() async {
+    setState(() => _loadingFavorites = true);
+    try {
+      await CollectedRecipesStore.fetchFromServer();
+    } catch (e) {
+      debugPrint('Failed to load favorites: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _loadingFavorites = false);
+      }
+    }
+  }
 
   // 把 Map 变成一行 summary 文案
   String? get _filterSummary {
@@ -167,6 +188,11 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
               child: ValueListenableBuilder<List<RecipeModel>>(
                 valueListenable: CollectedRecipesStore.favorites,
                 builder: (context, favorites, _) {
+                  if (_loadingFavorites && favorites.isEmpty) {
+                    return const Center(
+                      child: CircularProgressIndicator(),
+                    );
+                  }
                   // 清理被移除的选择
                   _selectedFavoriteIds.removeWhere(
                       (id) => favorites.every((r) => r.id != id));
