@@ -86,7 +86,7 @@ class _LandingPageState extends State<LandingPage> with RouteAware {
                 // App 名称 - 手写动画（使用 key 确保每次返回时重新播放）
                 HandwritingAnimation(
                   key: ValueKey(_animationKey),
-                  text: 'A Chef',
+                  text: 'Calotter',
                   fontSize: 64,
                   color: Colors.white,
                   animationDuration: const Duration(seconds: 2),
@@ -102,7 +102,9 @@ class _LandingPageState extends State<LandingPage> with RouteAware {
                     // 等待页面返回
                     await Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const LoginPage()),
+                      MaterialPageRoute(
+                        builder: (context) => const LoginPage(),
+                      ),
                     );
                     // 返回时重置动画
                     if (mounted) {
@@ -124,7 +126,8 @@ class _LandingPageState extends State<LandingPage> with RouteAware {
                     await Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => const RegistrationPage()),
+                        builder: (context) => const RegistrationPage(),
+                      ),
                     );
                     // 返回时重置动画
                     if (mounted) {
