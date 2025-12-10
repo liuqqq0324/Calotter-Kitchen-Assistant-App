@@ -1,8 +1,8 @@
 {
 	"info": {
 		"_postman_id": "homepage-api-collection",
-		"name": "Homepage API - 营养追踪和摄入管理",
-		"description": "Homepage相关的营养目标、营养摘要和摄入记录管理API集合",
+		"name": "Homepage API - 营养追踪和摄入管理 (Backend-Java版本 - 旧版)",
+		"description": "⚠️ 旧版本 - 针对backend-java模块\n\nHomepage相关的营养目标、营养摘要和摄入记录管理API集合\n\n注意：当前项目推荐使用calotter版本，请导入：Calotter-Homepage-API.postman_collection.json",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [

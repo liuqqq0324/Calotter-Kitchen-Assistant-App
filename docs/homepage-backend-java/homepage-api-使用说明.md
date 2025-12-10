@@ -1,5 +1,11 @@
 # Homepage API 使用说明文档
 
+> ⚠️ **注意：本文档针对 backend-java 版本（旧版本）**
+> 
+> 如果你使用的是 calotter 项目，请查看：**`docs/calotter-homepage-使用说明.md`**
+> 
+> 当前项目推荐使用 calotter 版本，端口：10001
+
 ## 📋 目录
 1. [概述](#概述)
 2. [新建文件说明](#新建文件说明)

@@ -1,5 +1,9 @@
 # Homepage Backend Implementation Summary
 
+> ⚠️ **注意：本文档主要基于 backend-java 版本的实现**
+> 
+> 如果你使用的是 calotter 项目，请查看：**`docs/calotter-homepage-实现说明.md`**
+
 ## 概述
 
 本文档总结了根据 `homepage-api.md` 需求实现的数据库结构和后端代码。
