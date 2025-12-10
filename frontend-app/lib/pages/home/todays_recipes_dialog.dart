@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:personal_sous_chef/theme/fallback_google_fonts.dart';
 
 /// 今日菜谱数据模型
 class TodayRecipe {
@@ -25,17 +25,23 @@ class TodaysRecipesDialog extends StatefulWidget {
 class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
   // 模拟今日菜谱数据 (以后接真实数据)
   final List<TodayRecipe> _todaysRecipes = [
-    TodayRecipe(name: "Grilled Salmon", imageIcon: "🐟", consumedPercentage: 0.8),
+    TodayRecipe(
+      name: "Grilled Salmon",
+      imageIcon: "🐟",
+      consumedPercentage: 0.8,
+    ),
     TodayRecipe(name: "Caesar Salad", imageIcon: "🥗", consumedPercentage: 1.0),
-    TodayRecipe(name: "Mushroom Soup", imageIcon: "🍲", consumedPercentage: 0.5),
+    TodayRecipe(
+      name: "Mushroom Soup",
+      imageIcon: "🍲",
+      consumedPercentage: 0.5,
+    ),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Container(
         padding: const EdgeInsets.all(24),
         constraints: const BoxConstraints(maxWidth: 400, maxHeight: 500),
@@ -74,10 +80,7 @@ class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
             const SizedBox(height: 8),
             Text(
               "Adjust how much you ate of each dish",
-              style: GoogleFonts.kalam(
-                fontSize: 14,
-                color: Colors.grey[600],
-              ),
+              style: GoogleFonts.kalam(fontSize: 14, color: Colors.grey[600]),
             ),
             const SizedBox(height: 20),
 
@@ -133,18 +136,11 @@ class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.no_meals,
-            size: 60,
-            color: Colors.grey[400],
-          ),
+          Icon(Icons.no_meals, size: 60, color: Colors.grey[400]),
           const SizedBox(height: 12),
           Text(
             "No recipes cooked today",
-            style: GoogleFonts.kalam(
-              fontSize: 16,
-              color: Colors.grey[500],
-            ),
+            style: GoogleFonts.kalam(fontSize: 16, color: Colors.grey[500]),
           ),
         ],
       ),
@@ -165,10 +161,7 @@ class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
           // 菜名和图标
           Row(
             children: [
-              Text(
-                recipe.imageIcon,
-                style: const TextStyle(fontSize: 32),
-              ),
+              Text(recipe.imageIcon, style: const TextStyle(fontSize: 32)),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
@@ -182,7 +175,10 @@ class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
               ),
               // 百分比显示
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.deepOrange.shade100,
                   borderRadius: BorderRadius.circular(12),
@@ -249,4 +245,3 @@ Future<List<TodayRecipe>?> showTodaysRecipesDialog(BuildContext context) {
     builder: (context) => const TodaysRecipesDialog(),
   );
 }
-

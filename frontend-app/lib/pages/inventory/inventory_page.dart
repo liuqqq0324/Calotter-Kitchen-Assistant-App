@@ -138,6 +138,7 @@ class _InventoryPageState extends State<InventoryPage>
       length: 3,
       child: Scaffold(
         appBar: AppBar(
+          automaticallyImplyLeading: false, // 去掉返回箭头
           title: const Text('My Kitchen'),
           bottom: const TabBar(
             tabs: [

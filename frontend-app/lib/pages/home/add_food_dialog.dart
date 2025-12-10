@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:personal_sous_chef/theme/fallback_google_fonts.dart';
 
 /// 额外食物数据模型
 class ExtraFood {
@@ -51,7 +51,12 @@ class _AddFoodDialogState extends State<AddFoodDialog> {
     'salad': NutritionInfo(calories: 65, protein: 2.5, fat: 3.5, carbs: 6),
     'pasta': NutritionInfo(calories: 220, protein: 8, fat: 1.3, carbs: 43),
     'coffee': NutritionInfo(calories: 2, protein: 0.3, fat: 0, carbs: 0),
-    'orange juice': NutritionInfo(calories: 112, protein: 1.7, fat: 0.5, carbs: 26),
+    'orange juice': NutritionInfo(
+      calories: 112,
+      protein: 1.7,
+      fat: 0.5,
+      carbs: 26,
+    ),
   };
 
   @override
@@ -71,20 +76,14 @@ class _AddFoodDialogState extends State<AddFoodDialog> {
 
     // 查找食物营养信息
     NutritionInfo? nutrition = _foodDatabase[foodName];
-    
+
     // 如果没找到，生成默认营养信息
-    nutrition ??= NutritionInfo(
-      calories: 150,
-      protein: 5,
-      fat: 5,
-      carbs: 20,
-    );
+    nutrition ??= NutritionInfo(calories: 150, protein: 5, fat: 5, carbs: 20);
 
     setState(() {
-      _addedFoods.add(ExtraFood(
-        name: _foodController.text.trim(),
-        nutrition: nutrition!,
-      ));
+      _addedFoods.add(
+        ExtraFood(name: _foodController.text.trim(), nutrition: nutrition!),
+      );
       _foodController.clear();
       _isLoading = false;
     });
@@ -99,9 +98,7 @@ class _AddFoodDialogState extends State<AddFoodDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Container(
         padding: const EdgeInsets.all(24),
         constraints: const BoxConstraints(maxWidth: 400, maxHeight: 550),
@@ -140,10 +137,7 @@ class _AddFoodDialogState extends State<AddFoodDialog> {
             const SizedBox(height: 8),
             Text(
               "Add any extra food you ate today",
-              style: GoogleFonts.kalam(
-                fontSize: 14,
-                color: Colors.grey[600],
-              ),
+              style: GoogleFonts.kalam(fontSize: 14, color: Colors.grey[600]),
             ),
             const SizedBox(height: 20),
 
@@ -168,7 +162,10 @@ class _AddFoodDialogState extends State<AddFoodDialog> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.teal.shade500, width: 2),
+                        borderSide: BorderSide(
+                          color: Colors.teal.shade500,
+                          width: 2,
+                        ),
                       ),
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 16,
@@ -274,18 +271,11 @@ class _AddFoodDialogState extends State<AddFoodDialog> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.restaurant,
-              size: 48,
-              color: Colors.grey[300],
-            ),
+            Icon(Icons.restaurant, size: 48, color: Colors.grey[300]),
             const SizedBox(height: 8),
             Text(
               "No extra foods added yet",
-              style: GoogleFonts.kalam(
-                fontSize: 14,
-                color: Colors.grey[400],
-              ),
+              style: GoogleFonts.kalam(fontSize: 14, color: Colors.grey[400]),
             ),
           ],
         ),
@@ -311,11 +301,7 @@ class _AddFoodDialogState extends State<AddFoodDialog> {
               color: Colors.teal.shade100,
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(
-              Icons.fastfood,
-              color: Colors.teal.shade600,
-              size: 22,
-            ),
+            child: Icon(Icons.fastfood, color: Colors.teal.shade600, size: 22),
           ),
           const SizedBox(width: 12),
 
@@ -347,10 +333,7 @@ class _AddFoodDialogState extends State<AddFoodDialog> {
           // 删除按钮
           IconButton(
             onPressed: () => _removeFood(index),
-            icon: Icon(
-              Icons.remove_circle_outline,
-              color: Colors.red.shade400,
-            ),
+            icon: Icon(Icons.remove_circle_outline, color: Colors.red.shade400),
             iconSize: 22,
           ),
         ],
@@ -402,10 +385,7 @@ class _AddFoodDialogState extends State<AddFoodDialog> {
         ),
         Text(
           "$label ($unit)",
-          style: GoogleFonts.kalam(
-            fontSize: 10,
-            color: Colors.teal.shade700,
-          ),
+          style: GoogleFonts.kalam(fontSize: 10, color: Colors.teal.shade700),
         ),
       ],
     );
@@ -419,4 +399,3 @@ Future<List<ExtraFood>?> showAddFoodDialog(BuildContext context) {
     builder: (context) => const AddFoodDialog(),
   );
 }
-

@@ -75,9 +75,10 @@ public class UmsApiController {
             brief.userName = req.username;
             brief.email = req.email;
             brief.profile = new Profile();
-            brief.profile.age = 28;
-            brief.profile.height = 178;
-            brief.profile.weight = 72;
+            // No default values - age, height, weight will be null until user sets them
+            brief.profile.age = null;
+            brief.profile.height = null;
+            brief.profile.weight = null;
             userStore.put(userId, brief);
 
             RegisterResponse resp = new RegisterResponse();
@@ -185,7 +186,10 @@ public class UmsApiController {
             u.userName = db.getUsername();
             u.email = db.getEmail();
             Profile p = new Profile();
-            p.age = 28; p.height = 178; p.weight = 72; // static defaults as per docs example
+            // No default values - age, height, weight will be null until user sets them
+            p.age = null;
+            p.height = null;
+            p.weight = null;
             p.gender = null; // No default gender, will be set when user updates it
             u.profile = p;
             // refresh in-memory cache for subsequent calls
@@ -223,9 +227,10 @@ public class UmsApiController {
         if (req.email != null) brief.email = req.email;
         if (req.profile != null) {
             if (brief.profile == null) brief.profile = new Profile();
-            if (req.profile.age > 0) brief.profile.age = req.profile.age;
-            if (req.profile.height > 0) brief.profile.height = req.profile.height;
-            if (req.profile.weight > 0) brief.profile.weight = req.profile.weight;
+            // Only update if value is provided (not null)
+            if (req.profile.age != null) brief.profile.age = req.profile.age;
+            if (req.profile.height != null) brief.profile.height = req.profile.height;
+            if (req.profile.weight != null) brief.profile.weight = req.profile.weight;
             if (req.profile.gender != null) brief.profile.gender = req.profile.gender;
         }
         userStore.put(id, brief);
@@ -425,7 +430,10 @@ public class UmsApiController {
         u.userName = "UserName";
         u.email = "user.email@example.com";
         Profile p = new Profile();
-        p.age = 28; p.height = 178; p.weight = 72;
+        // No default values - age, height, weight will be null until user sets them
+        p.age = null;
+        p.height = null;
+        p.weight = null;
         u.profile = p;
         return u;
     }
@@ -476,9 +484,9 @@ public class UmsApiController {
     }
 
     public static class Profile {
-        public int age;
-        public int height;
-        public int weight;
+        public Integer age; // Nullable - no default value
+        public Integer height; // Nullable - no default value
+        public Integer weight; // Nullable - no default value
         public String gender; // Optional
     }
 

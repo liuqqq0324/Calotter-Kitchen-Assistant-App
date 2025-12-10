@@ -37,7 +37,21 @@ class AuthService {
         };
       }
     } catch (e) {
-      return {'success': false, 'error': 'Network error: $e'};
+      // 提供更详细的错误信息
+      String errorMsg = 'Network error';
+      if (e.toString().contains('Failed host lookup') ||
+          e.toString().contains('Connection refused')) {
+        errorMsg =
+            'Cannot connect to server. Please check:\n'
+            '1. Backend service is running on port ${ApiConfig.port}\n'
+            '2. IP address is correct (10.0.2.2 for emulator)\n'
+            '3. Network connection is available';
+      } else if (e.toString().contains('Timeout')) {
+        errorMsg = 'Connection timeout. Server may be slow or unreachable.';
+      } else {
+        errorMsg = 'Network error: $e';
+      }
+      return {'success': false, 'error': errorMsg};
     }
   }
 
@@ -75,7 +89,21 @@ class AuthService {
         return {'success': false, 'error': data['message'] ?? errorMessage};
       }
     } catch (e) {
-      return {'success': false, 'error': 'Network error: $e'};
+      // 提供更详细的错误信息
+      String errorMsg = 'Network error';
+      if (e.toString().contains('Failed host lookup') ||
+          e.toString().contains('Connection refused')) {
+        errorMsg =
+            'Cannot connect to server. Please check:\n'
+            '1. Backend service is running\n'
+            '2. IP address is correct\n'
+            '3. Network connection is available';
+      } else if (e.toString().contains('Timeout')) {
+        errorMsg = 'Connection timeout. Server may be slow or unreachable.';
+      } else {
+        errorMsg = 'Network error: $e';
+      }
+      return {'success': false, 'error': errorMsg};
     }
   }
 
