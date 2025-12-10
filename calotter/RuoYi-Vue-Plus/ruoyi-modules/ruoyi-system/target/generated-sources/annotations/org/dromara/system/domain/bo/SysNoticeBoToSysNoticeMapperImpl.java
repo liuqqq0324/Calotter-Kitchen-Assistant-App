@@ -4,12 +4,14 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import javax.annotation.processing.Generated;
 import org.dromara.system.domain.SysNotice;
+import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-12-10T12:23:14+1300",
+    date = "2025-12-10T15:10:32+1300",
     comments = "version: 1.6.3, compiler: Eclipse JDT (IDE) 3.44.0.v20251118-1623, environment: Java 21.0.9 (Eclipse Adoptium)"
 )
+@Component
 public class SysNoticeBoToSysNoticeMapperImpl implements SysNoticeBoToSysNoticeMapper {
 
     @Override
@@ -20,16 +22,16 @@ public class SysNoticeBoToSysNoticeMapperImpl implements SysNoticeBoToSysNoticeM
 
         SysNotice sysNotice = new SysNotice();
 
-        sysNotice.setCreateBy( arg0.getCreateBy() );
+        sysNotice.setSearchValue( arg0.getSearchValue() );
         sysNotice.setCreateDept( arg0.getCreateDept() );
+        sysNotice.setCreateBy( arg0.getCreateBy() );
         sysNotice.setCreateTime( arg0.getCreateTime() );
+        sysNotice.setUpdateBy( arg0.getUpdateBy() );
+        sysNotice.setUpdateTime( arg0.getUpdateTime() );
         Map<String, Object> map = arg0.getParams();
         if ( map != null ) {
             sysNotice.setParams( new LinkedHashMap<String, Object>( map ) );
         }
-        sysNotice.setSearchValue( arg0.getSearchValue() );
-        sysNotice.setUpdateBy( arg0.getUpdateBy() );
-        sysNotice.setUpdateTime( arg0.getUpdateTime() );
         sysNotice.setNoticeContent( arg0.getNoticeContent() );
         sysNotice.setNoticeId( arg0.getNoticeId() );
         sysNotice.setNoticeTitle( arg0.getNoticeTitle() );

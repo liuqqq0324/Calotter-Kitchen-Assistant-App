@@ -1,0 +1,48 @@
+package com.calotter.cook.domain.vo;
+
+import com.calotter.cook.domain.SessionRecipe;
+import javax.annotation.processing.Generated;
+import org.springframework.stereotype.Component;
+
+@Generated(
+    value = "org.mapstruct.ap.MappingProcessor",
+    date = "2025-12-10T15:10:11+1300",
+    comments = "version: 1.6.3, compiler: Eclipse JDT (IDE) 3.44.0.v20251118-1623, environment: Java 21.0.9 (Eclipse Adoptium)"
+)
+@Component
+public class SessionRecipeVoToSessionRecipeMapperImpl implements SessionRecipeVoToSessionRecipeMapper {
+
+    @Override
+    public SessionRecipe convert(SessionRecipeVo arg0) {
+        if ( arg0 == null ) {
+            return null;
+        }
+
+        SessionRecipe sessionRecipe = new SessionRecipe();
+
+        sessionRecipe.setActualDurationMinutes( arg0.getActualDurationMinutes() );
+        sessionRecipe.setId( arg0.getId() );
+        sessionRecipe.setRecipeId( arg0.getRecipeId() );
+        sessionRecipe.setServings( arg0.getServings() );
+        sessionRecipe.setSessionId( arg0.getSessionId() );
+        sessionRecipe.setSuccessRating( arg0.getSuccessRating() );
+
+        return sessionRecipe;
+    }
+
+    @Override
+    public SessionRecipe convert(SessionRecipeVo arg0, SessionRecipe arg1) {
+        if ( arg0 == null ) {
+            return arg1;
+        }
+
+        arg1.setActualDurationMinutes( arg0.getActualDurationMinutes() );
+        arg1.setId( arg0.getId() );
+        arg1.setRecipeId( arg0.getRecipeId() );
+        arg1.setServings( arg0.getServings() );
+        arg1.setSessionId( arg0.getSessionId() );
+        arg1.setSuccessRating( arg0.getSuccessRating() );
+
+        return arg1;
+    }
+}

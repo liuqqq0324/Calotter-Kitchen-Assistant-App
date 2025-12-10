@@ -4,12 +4,14 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import javax.annotation.processing.Generated;
 import org.dromara.system.domain.SysDictType;
+import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-12-10T12:23:14+1300",
+    date = "2025-12-10T15:10:33+1300",
     comments = "version: 1.6.3, compiler: Eclipse JDT (IDE) 3.44.0.v20251118-1623, environment: Java 21.0.9 (Eclipse Adoptium)"
 )
+@Component
 public class SysDictTypeBoToSysDictTypeMapperImpl implements SysDictTypeBoToSysDictTypeMapper {
 
     @Override

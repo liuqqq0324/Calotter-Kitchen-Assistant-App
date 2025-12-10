@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-12-10T12:23:05+1300",
+    date = "2025-12-10T15:10:27+1300",
     comments = "version: 1.6.3, compiler: Eclipse JDT (IDE) 3.44.0.v20251118-1623, environment: Java 21.0.9 (Eclipse Adoptium)"
 )
 @Component
@@ -22,16 +22,16 @@ public class TestDemoBoToTestDemoMapper__2Impl implements TestDemoBoToTestDemoMa
 
         TestDemo testDemo = new TestDemo();
 
-        testDemo.setSearchValue( arg0.getSearchValue() );
-        testDemo.setCreateDept( arg0.getCreateDept() );
         testDemo.setCreateBy( arg0.getCreateBy() );
+        testDemo.setCreateDept( arg0.getCreateDept() );
         testDemo.setCreateTime( arg0.getCreateTime() );
-        testDemo.setUpdateBy( arg0.getUpdateBy() );
-        testDemo.setUpdateTime( arg0.getUpdateTime() );
         Map<String, Object> map = arg0.getParams();
         if ( map != null ) {
             testDemo.setParams( new LinkedHashMap<String, Object>( map ) );
         }
+        testDemo.setSearchValue( arg0.getSearchValue() );
+        testDemo.setUpdateBy( arg0.getUpdateBy() );
+        testDemo.setUpdateTime( arg0.getUpdateTime() );
         testDemo.setDeptId( arg0.getDeptId() );
         testDemo.setId( arg0.getId() );
         testDemo.setOrderNum( arg0.getOrderNum() );

@@ -33,13 +33,10 @@ class SousChefApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepOrange),
         useMaterial3: true,
         // 使用本地字体族 Caveat 作为全局字体
-        textTheme: ThemeData.light()
-            .textTheme
-            .apply(fontFamily: 'Caveat'),
+        textTheme: ThemeData.light().textTheme.apply(fontFamily: 'Caveat'),
       ),
-      // Modified for local testing: bypass auth landing and go straight to main scaffold
-      // home: const LandingPage(),
-      home: const MainScaffold(),
+      // Start with landing page for authentication
+      home: const LandingPage(),
     );
   }
 }
@@ -56,7 +53,7 @@ class MainScaffold extends StatefulWidget {
 // 🔥 修复点 4: 确保类名是 MainScaffoldState (公有，没下划线)，方便外部引用
 class MainScaffoldState extends State<MainScaffold> {
   // Start on Recipes tab (index 1) for quick testing; change back to 0 if needed.
-  int _selectedIndex = 1;
+  int _selectedIndex = 0;
 
   // ✅ 改为 Getter (每次调用都生成新的 Widget 列表)
   // 这样能确保当你 setState 时，InventoryPage 会被重新构建
@@ -109,13 +106,22 @@ class MainScaffoldState extends State<MainScaffold> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          'Personal Sous Chef',
-          style: const TextStyle(
-            fontFamily: 'Caveat',
-            fontSize: 24,
-            fontWeight: FontWeight.w700,
-          ),
+        automaticallyImplyLeading: false, // 去掉返回箭头
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 海獭emoji作为图标
+            const Text('🦦', style: TextStyle(fontSize: 28)),
+            const SizedBox(width: 8),
+            const Text(
+              'CalOtter',
+              style: TextStyle(
+                fontFamily: 'Caveat',
+                fontSize: 24,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
         ),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         elevation: 0,
