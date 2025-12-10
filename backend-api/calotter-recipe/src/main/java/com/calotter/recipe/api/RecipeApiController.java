@@ -182,11 +182,43 @@ public class RecipeApiController {
         public String category;
     }
 
+    // public static class Step {
+    //     public int step_number;
+    //     public String instruction;
+    //     public int step_time_min;
+    // }
     public static class Step {
-        public int step_number;
-        public String instruction;
-        public int step_time_min;
-    }
+            public int step_number;
+            public String instruction;
+            public int step_time_min;
+
+            // ✅ 1. 必须保留默认构造函数
+            // 当 AI 返回标准的 JSON 对象 {"step_number": 1, ...} 时，Jackson 会用这个
+            public Step() {}
+
+            // ✅ 2. 新增：字符串构造函数 (兼容模式)
+            // 当 AI 偷懒只返回字符串 "Chop the onions" 时，Jackson 会自动调用这个构造函数
+            public Step(String instruction) {
+                this.instruction = instruction;
+                this.step_number = 0; // AI 没给编号，我们默认填 0，前端可以自己按顺序显示 1,2,3
+                
+                // ✅ 3. 简单的智能解析：尝试从文本里猜时间
+                // 如果文本里包含 "10 min" 或 "5 minutes" 这样的字眼，自动提取出来
+                this.step_time_min = 5; // 先给个默认值 5 分钟
+                
+                if (instruction != null) {
+                    try {
+                        // 使用正则查找数字 + min/minute
+                        java.util.regex.Matcher m = java.util.regex.Pattern.compile("(\\d+)\\s*min").matcher(instruction.toLowerCase());
+                        if (m.find()) {
+                            this.step_time_min = Integer.parseInt(m.group(1));
+                        }
+                    } catch (Exception e) {
+                        // 如果解析失败，就保持默认值 5
+                    }
+                }
+            }
+        }
 
     public static class DefaultPreferences {
         public int servings;
