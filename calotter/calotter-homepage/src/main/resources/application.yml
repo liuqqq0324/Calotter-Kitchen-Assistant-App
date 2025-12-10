@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: calotter-homepage
+  datasource:
+    username: postgres
+    password: 123
+    url: jdbc:postgresql://127.0.0.1:5432/sous_chef?currentSchema=sous_chef_hp&useUnicode=true&characterEncoding=utf8
+    driver-class-name: org.postgresql.Driver
+
+mybatis-plus:
+  mapper-locations: classpath:/mapper/**/*.xml
+  global-config:
+    db-config:
+      id-type: AUTO
+
+server:
+  port: 10001  # 注意：避免与其他服务端口冲突，可根据实际情况修改

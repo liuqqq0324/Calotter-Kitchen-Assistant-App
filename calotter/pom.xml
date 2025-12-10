@@ -29,6 +29,7 @@
 
     <modules>
         <module>calotter-cook</module>
+        <module>calotter-homepage</module>
         <module>calotter-inventory</module>
         <module>calotter-recipe</module>
         <module>calotter-user</module>
