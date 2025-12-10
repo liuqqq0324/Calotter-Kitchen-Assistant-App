@@ -1,1 +1,1 @@
-{"doc":"\n gitea Oauth2 默认接口说明\r\n\r\n @author lcry\r\n","fields":[],"enumConstants":[{"name":"GITEA","doc":"\n 自己搭建的 gitea 私服\r\n"}],"methods":[],"constructors":[]}
+{"doc":" gitea Oauth2 默认接口说明\n\n @author lcry\n","fields":[],"enumConstants":[{"name":"GITEA","doc":" 自己搭建的 gitea 私服\n"}],"methods":[],"constructors":[]}

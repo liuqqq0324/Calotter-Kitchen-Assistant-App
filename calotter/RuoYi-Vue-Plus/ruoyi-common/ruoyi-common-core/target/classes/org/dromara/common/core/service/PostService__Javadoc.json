@@ -1,1 +1,1 @@
-{"doc":"\n 通用 岗位服务\r\n\r\n @author AprilWind\r\n","fields":[],"enumConstants":[],"methods":[{"name":"selectPostNamesByIds","paramTypes":["java.util.List"],"doc":"\n 根据岗位 ID 列表查询岗位名称映射关系\r\n\r\n @param postIds 岗位 ID 列表\r\n @return Map，其中 key 为岗位 ID，value 为对应的岗位名称\r\n"}],"constructors":[]}
+{"doc":" 通用 岗位服务\n\n @author AprilWind\n","fields":[],"enumConstants":[],"methods":[{"name":"selectPostNamesByIds","paramTypes":["java.util.List"],"doc":" 根据岗位 ID 列表查询岗位名称映射关系\n\n @param postIds 岗位 ID 列表\n @return Map，其中 key 为岗位 ID，value 为对应的岗位名称\n"}],"constructors":[]}

@@ -4,12 +4,14 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import javax.annotation.processing.Generated;
 import org.dromara.system.domain.SysMenu;
+import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-12-10T12:23:14+1300",
-    comments = "version: 1.6.3, compiler: Eclipse JDT (IDE) 3.44.0.v20251118-1623, environment: Java 21.0.9 (Eclipse Adoptium)"
+    date = "2025-12-10T13:27:22+1300",
+    comments = "version: 1.6.3, compiler: javac, environment: Java 25.0.1 (Homebrew)"
 )
+@Component
 public class SysMenuBoToSysMenuMapperImpl implements SysMenuBoToSysMenuMapper {
 
     @Override
@@ -20,31 +22,31 @@ public class SysMenuBoToSysMenuMapperImpl implements SysMenuBoToSysMenuMapper {
 
         SysMenu sysMenu = new SysMenu();
 
-        sysMenu.setCreateBy( arg0.getCreateBy() );
+        sysMenu.setSearchValue( arg0.getSearchValue() );
         sysMenu.setCreateDept( arg0.getCreateDept() );
+        sysMenu.setCreateBy( arg0.getCreateBy() );
         sysMenu.setCreateTime( arg0.getCreateTime() );
+        sysMenu.setUpdateBy( arg0.getUpdateBy() );
+        sysMenu.setUpdateTime( arg0.getUpdateTime() );
         Map<String, Object> map = arg0.getParams();
         if ( map != null ) {
             sysMenu.setParams( new LinkedHashMap<String, Object>( map ) );
         }
-        sysMenu.setSearchValue( arg0.getSearchValue() );
-        sysMenu.setUpdateBy( arg0.getUpdateBy() );
-        sysMenu.setUpdateTime( arg0.getUpdateTime() );
-        sysMenu.setComponent( arg0.getComponent() );
-        sysMenu.setIcon( arg0.getIcon() );
-        sysMenu.setIsCache( arg0.getIsCache() );
-        sysMenu.setIsFrame( arg0.getIsFrame() );
         sysMenu.setMenuId( arg0.getMenuId() );
-        sysMenu.setMenuName( arg0.getMenuName() );
-        sysMenu.setMenuType( arg0.getMenuType() );
-        sysMenu.setOrderNum( arg0.getOrderNum() );
         sysMenu.setParentId( arg0.getParentId() );
+        sysMenu.setMenuName( arg0.getMenuName() );
+        sysMenu.setOrderNum( arg0.getOrderNum() );
         sysMenu.setPath( arg0.getPath() );
-        sysMenu.setPerms( arg0.getPerms() );
+        sysMenu.setComponent( arg0.getComponent() );
         sysMenu.setQueryParam( arg0.getQueryParam() );
-        sysMenu.setRemark( arg0.getRemark() );
-        sysMenu.setStatus( arg0.getStatus() );
+        sysMenu.setIsFrame( arg0.getIsFrame() );
+        sysMenu.setIsCache( arg0.getIsCache() );
+        sysMenu.setMenuType( arg0.getMenuType() );
         sysMenu.setVisible( arg0.getVisible() );
+        sysMenu.setStatus( arg0.getStatus() );
+        sysMenu.setPerms( arg0.getPerms() );
+        sysMenu.setIcon( arg0.getIcon() );
+        sysMenu.setRemark( arg0.getRemark() );
 
         return sysMenu;
     }
@@ -55,9 +57,12 @@ public class SysMenuBoToSysMenuMapperImpl implements SysMenuBoToSysMenuMapper {
             return arg1;
         }
 
-        arg1.setCreateBy( arg0.getCreateBy() );
+        arg1.setSearchValue( arg0.getSearchValue() );
         arg1.setCreateDept( arg0.getCreateDept() );
+        arg1.setCreateBy( arg0.getCreateBy() );
         arg1.setCreateTime( arg0.getCreateTime() );
+        arg1.setUpdateBy( arg0.getUpdateBy() );
+        arg1.setUpdateTime( arg0.getUpdateTime() );
         if ( arg1.getParams() != null ) {
             Map<String, Object> map = arg0.getParams();
             if ( map != null ) {
@@ -74,24 +79,21 @@ public class SysMenuBoToSysMenuMapperImpl implements SysMenuBoToSysMenuMapper {
                 arg1.setParams( new LinkedHashMap<String, Object>( map ) );
             }
         }
-        arg1.setSearchValue( arg0.getSearchValue() );
-        arg1.setUpdateBy( arg0.getUpdateBy() );
-        arg1.setUpdateTime( arg0.getUpdateTime() );
-        arg1.setComponent( arg0.getComponent() );
-        arg1.setIcon( arg0.getIcon() );
-        arg1.setIsCache( arg0.getIsCache() );
-        arg1.setIsFrame( arg0.getIsFrame() );
         arg1.setMenuId( arg0.getMenuId() );
-        arg1.setMenuName( arg0.getMenuName() );
-        arg1.setMenuType( arg0.getMenuType() );
-        arg1.setOrderNum( arg0.getOrderNum() );
         arg1.setParentId( arg0.getParentId() );
+        arg1.setMenuName( arg0.getMenuName() );
+        arg1.setOrderNum( arg0.getOrderNum() );
         arg1.setPath( arg0.getPath() );
-        arg1.setPerms( arg0.getPerms() );
+        arg1.setComponent( arg0.getComponent() );
         arg1.setQueryParam( arg0.getQueryParam() );
-        arg1.setRemark( arg0.getRemark() );
-        arg1.setStatus( arg0.getStatus() );
+        arg1.setIsFrame( arg0.getIsFrame() );
+        arg1.setIsCache( arg0.getIsCache() );
+        arg1.setMenuType( arg0.getMenuType() );
         arg1.setVisible( arg0.getVisible() );
+        arg1.setStatus( arg0.getStatus() );
+        arg1.setPerms( arg0.getPerms() );
+        arg1.setIcon( arg0.getIcon() );
+        arg1.setRemark( arg0.getRemark() );
 
         return arg1;
     }

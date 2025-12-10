@@ -2,12 +2,14 @@ package org.dromara.demo.domain.vo;
 
 import javax.annotation.processing.Generated;
 import org.dromara.demo.domain.TestDemo;
+import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-12-10T12:23:05+1300",
-    comments = "version: 1.6.3, compiler: Eclipse JDT (IDE) 3.44.0.v20251118-1623, environment: Java 21.0.9 (Eclipse Adoptium)"
+    date = "2025-12-10T13:27:25+1300",
+    comments = "version: 1.6.3, compiler: javac, environment: Java 25.0.1 (Homebrew)"
 )
+@Component
 public class TestDemoVoToTestDemoMapperImpl implements TestDemoVoToTestDemoMapper {
 
     @Override
@@ -22,11 +24,11 @@ public class TestDemoVoToTestDemoMapperImpl implements TestDemoVoToTestDemoMappe
         testDemo.setCreateTime( arg0.getCreateTime() );
         testDemo.setUpdateBy( arg0.getUpdateBy() );
         testDemo.setUpdateTime( arg0.getUpdateTime() );
-        testDemo.setDeptId( arg0.getDeptId() );
         testDemo.setId( arg0.getId() );
+        testDemo.setDeptId( arg0.getDeptId() );
+        testDemo.setUserId( arg0.getUserId() );
         testDemo.setOrderNum( arg0.getOrderNum() );
         testDemo.setTestKey( arg0.getTestKey() );
-        testDemo.setUserId( arg0.getUserId() );
         testDemo.setValue( arg0.getValue() );
         testDemo.setVersion( arg0.getVersion() );
 
@@ -43,11 +45,11 @@ public class TestDemoVoToTestDemoMapperImpl implements TestDemoVoToTestDemoMappe
         arg1.setCreateTime( arg0.getCreateTime() );
         arg1.setUpdateBy( arg0.getUpdateBy() );
         arg1.setUpdateTime( arg0.getUpdateTime() );
-        arg1.setDeptId( arg0.getDeptId() );
         arg1.setId( arg0.getId() );
+        arg1.setDeptId( arg0.getDeptId() );
+        arg1.setUserId( arg0.getUserId() );
         arg1.setOrderNum( arg0.getOrderNum() );
         arg1.setTestKey( arg0.getTestKey() );
-        arg1.setUserId( arg0.getUserId() );
         arg1.setValue( arg0.getValue() );
         arg1.setVersion( arg0.getVersion() );
 

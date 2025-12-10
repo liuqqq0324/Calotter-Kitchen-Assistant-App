@@ -1,1 +1,1 @@
-{"doc":"\n 测试数据脱敏控制器\r\n <p>\r\n 默认管理员不过滤\r\n 需自行根据业务重写实现\r\n\r\n @author Lion Li\r\n @version 3.6.0\r\n @see SensitiveService\r\n","fields":[],"enumConstants":[],"methods":[{"name":"test","paramTypes":[],"doc":"\n 测试数据脱敏\r\n"}],"constructors":[]}
+{"doc":" 测试数据脱敏控制器\n <p>\n 默认管理员不过滤\n 需自行根据业务重写实现\n\n @author Lion Li\n @version 3.6.0\n @see SensitiveService\n","fields":[],"enumConstants":[],"methods":[{"name":"test","paramTypes":[],"doc":" 测试数据脱敏\n"}],"constructors":[]}

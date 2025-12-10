@@ -4,12 +4,14 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import javax.annotation.processing.Generated;
 import org.dromara.system.domain.SysTenantPackage;
+import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-12-10T12:23:14+1300",
-    comments = "version: 1.6.3, compiler: Eclipse JDT (IDE) 3.44.0.v20251118-1623, environment: Java 21.0.9 (Eclipse Adoptium)"
+    date = "2025-12-10T13:27:23+1300",
+    comments = "version: 1.6.3, compiler: javac, environment: Java 25.0.1 (Homebrew)"
 )
+@Component
 public class SysTenantPackageBoToSysTenantPackageMapperImpl implements SysTenantPackageBoToSysTenantPackageMapper {
 
     @Override
@@ -20,20 +22,20 @@ public class SysTenantPackageBoToSysTenantPackageMapperImpl implements SysTenant
 
         SysTenantPackage sysTenantPackage = new SysTenantPackage();
 
-        sysTenantPackage.setCreateBy( source.getCreateBy() );
+        sysTenantPackage.setSearchValue( source.getSearchValue() );
         sysTenantPackage.setCreateDept( source.getCreateDept() );
+        sysTenantPackage.setCreateBy( source.getCreateBy() );
         sysTenantPackage.setCreateTime( source.getCreateTime() );
+        sysTenantPackage.setUpdateBy( source.getUpdateBy() );
+        sysTenantPackage.setUpdateTime( source.getUpdateTime() );
         Map<String, Object> map = source.getParams();
         if ( map != null ) {
             sysTenantPackage.setParams( new LinkedHashMap<String, Object>( map ) );
         }
-        sysTenantPackage.setSearchValue( source.getSearchValue() );
-        sysTenantPackage.setUpdateBy( source.getUpdateBy() );
-        sysTenantPackage.setUpdateTime( source.getUpdateTime() );
-        sysTenantPackage.setMenuCheckStrictly( source.getMenuCheckStrictly() );
         sysTenantPackage.setPackageId( source.getPackageId() );
         sysTenantPackage.setPackageName( source.getPackageName() );
         sysTenantPackage.setRemark( source.getRemark() );
+        sysTenantPackage.setMenuCheckStrictly( source.getMenuCheckStrictly() );
         sysTenantPackage.setStatus( source.getStatus() );
 
         sysTenantPackage.setMenuIds( org.dromara.common.core.utils.StringUtils.joinComma(source.getMenuIds()) );
@@ -47,9 +49,12 @@ public class SysTenantPackageBoToSysTenantPackageMapperImpl implements SysTenant
             return target;
         }
 
-        target.setCreateBy( source.getCreateBy() );
+        target.setSearchValue( source.getSearchValue() );
         target.setCreateDept( source.getCreateDept() );
+        target.setCreateBy( source.getCreateBy() );
         target.setCreateTime( source.getCreateTime() );
+        target.setUpdateBy( source.getUpdateBy() );
+        target.setUpdateTime( source.getUpdateTime() );
         if ( target.getParams() != null ) {
             Map<String, Object> map = source.getParams();
             if ( map != null ) {
@@ -66,13 +71,10 @@ public class SysTenantPackageBoToSysTenantPackageMapperImpl implements SysTenant
                 target.setParams( new LinkedHashMap<String, Object>( map ) );
             }
         }
-        target.setSearchValue( source.getSearchValue() );
-        target.setUpdateBy( source.getUpdateBy() );
-        target.setUpdateTime( source.getUpdateTime() );
-        target.setMenuCheckStrictly( source.getMenuCheckStrictly() );
         target.setPackageId( source.getPackageId() );
         target.setPackageName( source.getPackageName() );
         target.setRemark( source.getRemark() );
+        target.setMenuCheckStrictly( source.getMenuCheckStrictly() );
         target.setStatus( source.getStatus() );
 
         target.setMenuIds( org.dromara.common.core.utils.StringUtils.joinComma(source.getMenuIds()) );

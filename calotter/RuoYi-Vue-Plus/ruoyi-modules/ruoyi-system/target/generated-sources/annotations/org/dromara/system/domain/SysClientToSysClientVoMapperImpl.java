@@ -2,12 +2,14 @@ package org.dromara.system.domain;
 
 import javax.annotation.processing.Generated;
 import org.dromara.system.domain.vo.SysClientVo;
+import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-12-10T12:23:15+1300",
-    comments = "version: 1.6.3, compiler: Eclipse JDT (IDE) 3.44.0.v20251118-1623, environment: Java 21.0.9 (Eclipse Adoptium)"
+    date = "2025-12-10T13:27:22+1300",
+    comments = "version: 1.6.3, compiler: javac, environment: Java 25.0.1 (Homebrew)"
 )
+@Component
 public class SysClientToSysClientVoMapperImpl implements SysClientToSysClientVoMapper {
 
     @Override
@@ -18,15 +20,15 @@ public class SysClientToSysClientVoMapperImpl implements SysClientToSysClientVoM
 
         SysClientVo sysClientVo = new SysClientVo();
 
-        sysClientVo.setActiveTimeout( arg0.getActiveTimeout() );
+        sysClientVo.setId( arg0.getId() );
         sysClientVo.setClientId( arg0.getClientId() );
         sysClientVo.setClientKey( arg0.getClientKey() );
         sysClientVo.setClientSecret( arg0.getClientSecret() );
-        sysClientVo.setDeviceType( arg0.getDeviceType() );
         sysClientVo.setGrantType( arg0.getGrantType() );
-        sysClientVo.setId( arg0.getId() );
-        sysClientVo.setStatus( arg0.getStatus() );
+        sysClientVo.setDeviceType( arg0.getDeviceType() );
+        sysClientVo.setActiveTimeout( arg0.getActiveTimeout() );
         sysClientVo.setTimeout( arg0.getTimeout() );
+        sysClientVo.setStatus( arg0.getStatus() );
 
         return sysClientVo;
     }
@@ -37,15 +39,15 @@ public class SysClientToSysClientVoMapperImpl implements SysClientToSysClientVoM
             return arg1;
         }
 
-        arg1.setActiveTimeout( arg0.getActiveTimeout() );
+        arg1.setId( arg0.getId() );
         arg1.setClientId( arg0.getClientId() );
         arg1.setClientKey( arg0.getClientKey() );
         arg1.setClientSecret( arg0.getClientSecret() );
-        arg1.setDeviceType( arg0.getDeviceType() );
         arg1.setGrantType( arg0.getGrantType() );
-        arg1.setId( arg0.getId() );
-        arg1.setStatus( arg0.getStatus() );
+        arg1.setDeviceType( arg0.getDeviceType() );
+        arg1.setActiveTimeout( arg0.getActiveTimeout() );
         arg1.setTimeout( arg0.getTimeout() );
+        arg1.setStatus( arg0.getStatus() );
 
         return arg1;
     }

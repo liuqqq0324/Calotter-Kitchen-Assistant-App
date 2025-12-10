@@ -3,12 +3,14 @@ package org.dromara.system.domain.bo;
 import java.util.Arrays;
 import javax.annotation.processing.Generated;
 import org.dromara.common.log.event.OperLogEvent;
+import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-12-10T12:23:14+1300",
-    comments = "version: 1.6.3, compiler: Eclipse JDT (IDE) 3.44.0.v20251118-1623, environment: Java 21.0.9 (Eclipse Adoptium)"
+    date = "2025-12-10T13:27:23+1300",
+    comments = "version: 1.6.3, compiler: javac, environment: Java 25.0.1 (Homebrew)"
 )
+@Component
 public class SysOperLogBoToOperLogEventMapperImpl implements SysOperLogBoToOperLogEventMapper {
 
     @Override

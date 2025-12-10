@@ -9,37 +9,37 @@
       "name": "springdoc.components",
       "type": "io.swagger.v3.oas.models.Components",
       "sourceType": "org.dromara.common.doc.config.properties.SpringDocProperties",
-      "sourceMethod": "public io.swagger.v3.oas.models.Components getComponents() "
+      "sourceMethod": "getComponents()"
     },
     {
       "name": "springdoc.external-docs",
       "type": "io.swagger.v3.oas.models.ExternalDocumentation",
       "sourceType": "org.dromara.common.doc.config.properties.SpringDocProperties",
-      "sourceMethod": "public io.swagger.v3.oas.models.ExternalDocumentation getExternalDocs() "
+      "sourceMethod": "getExternalDocs()"
     },
     {
       "name": "springdoc.info",
       "type": "org.dromara.common.doc.config.properties.SpringDocProperties$InfoProperties",
       "sourceType": "org.dromara.common.doc.config.properties.SpringDocProperties",
-      "sourceMethod": "public org.dromara.common.doc.config.properties.SpringDocProperties.InfoProperties getInfo() "
+      "sourceMethod": "getInfo()"
     },
     {
       "name": "springdoc.info.contact",
       "type": "io.swagger.v3.oas.models.info.Contact",
       "sourceType": "org.dromara.common.doc.config.properties.SpringDocProperties$InfoProperties",
-      "sourceMethod": "public io.swagger.v3.oas.models.info.Contact getContact() "
+      "sourceMethod": "getContact()"
     },
     {
       "name": "springdoc.info.license",
       "type": "io.swagger.v3.oas.models.info.License",
       "sourceType": "org.dromara.common.doc.config.properties.SpringDocProperties$InfoProperties",
-      "sourceMethod": "public io.swagger.v3.oas.models.info.License getLicense() "
+      "sourceMethod": "getLicense()"
     },
     {
       "name": "springdoc.paths",
       "type": "io.swagger.v3.oas.models.Paths",
       "sourceType": "org.dromara.common.doc.config.properties.SpringDocProperties",
-      "sourceMethod": "public io.swagger.v3.oas.models.Paths getPaths() "
+      "sourceMethod": "getPaths()"
     }
   ],
   "properties": [

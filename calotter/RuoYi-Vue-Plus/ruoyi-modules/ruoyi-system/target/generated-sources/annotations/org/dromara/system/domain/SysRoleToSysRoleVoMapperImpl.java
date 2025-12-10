@@ -2,12 +2,14 @@ package org.dromara.system.domain;
 
 import javax.annotation.processing.Generated;
 import org.dromara.system.domain.vo.SysRoleVo;
+import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-12-10T12:23:15+1300",
-    comments = "version: 1.6.3, compiler: Eclipse JDT (IDE) 3.44.0.v20251118-1623, environment: Java 21.0.9 (Eclipse Adoptium)"
+    date = "2025-12-10T13:27:22+1300",
+    comments = "version: 1.6.3, compiler: javac, environment: Java 25.0.1 (Homebrew)"
 )
+@Component
 public class SysRoleToSysRoleVoMapperImpl implements SysRoleToSysRoleVoMapper {
 
     @Override
@@ -18,16 +20,16 @@ public class SysRoleToSysRoleVoMapperImpl implements SysRoleToSysRoleVoMapper {
 
         SysRoleVo sysRoleVo = new SysRoleVo();
 
-        sysRoleVo.setCreateTime( arg0.getCreateTime() );
-        sysRoleVo.setDataScope( arg0.getDataScope() );
-        sysRoleVo.setDeptCheckStrictly( arg0.getDeptCheckStrictly() );
-        sysRoleVo.setMenuCheckStrictly( arg0.getMenuCheckStrictly() );
-        sysRoleVo.setRemark( arg0.getRemark() );
         sysRoleVo.setRoleId( arg0.getRoleId() );
-        sysRoleVo.setRoleKey( arg0.getRoleKey() );
         sysRoleVo.setRoleName( arg0.getRoleName() );
+        sysRoleVo.setRoleKey( arg0.getRoleKey() );
         sysRoleVo.setRoleSort( arg0.getRoleSort() );
+        sysRoleVo.setDataScope( arg0.getDataScope() );
+        sysRoleVo.setMenuCheckStrictly( arg0.getMenuCheckStrictly() );
+        sysRoleVo.setDeptCheckStrictly( arg0.getDeptCheckStrictly() );
         sysRoleVo.setStatus( arg0.getStatus() );
+        sysRoleVo.setRemark( arg0.getRemark() );
+        sysRoleVo.setCreateTime( arg0.getCreateTime() );
 
         return sysRoleVo;
     }
@@ -38,16 +40,16 @@ public class SysRoleToSysRoleVoMapperImpl implements SysRoleToSysRoleVoMapper {
             return arg1;
         }
 
-        arg1.setCreateTime( arg0.getCreateTime() );
-        arg1.setDataScope( arg0.getDataScope() );
-        arg1.setDeptCheckStrictly( arg0.getDeptCheckStrictly() );
-        arg1.setMenuCheckStrictly( arg0.getMenuCheckStrictly() );
-        arg1.setRemark( arg0.getRemark() );
         arg1.setRoleId( arg0.getRoleId() );
-        arg1.setRoleKey( arg0.getRoleKey() );
         arg1.setRoleName( arg0.getRoleName() );
+        arg1.setRoleKey( arg0.getRoleKey() );
         arg1.setRoleSort( arg0.getRoleSort() );
+        arg1.setDataScope( arg0.getDataScope() );
+        arg1.setMenuCheckStrictly( arg0.getMenuCheckStrictly() );
+        arg1.setDeptCheckStrictly( arg0.getDeptCheckStrictly() );
         arg1.setStatus( arg0.getStatus() );
+        arg1.setRemark( arg0.getRemark() );
+        arg1.setCreateTime( arg0.getCreateTime() );
 
         return arg1;
     }

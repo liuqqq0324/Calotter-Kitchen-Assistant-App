@@ -1,1 +1,1 @@
-{"doc":"\n 缓存配置\r\n\r\n @author Lion Li\r\n","fields":[],"enumConstants":[],"methods":[{"name":"caffeine","paramTypes":[],"doc":"\n caffeine 本地缓存处理器\r\n"},{"name":"cacheManager","paramTypes":[],"doc":"\n 自定义缓存管理器 整合spring-cache\r\n"}],"constructors":[]}
+{"doc":" 缓存配置\n\n @author Lion Li\n","fields":[],"enumConstants":[],"methods":[{"name":"caffeine","paramTypes":[],"doc":" caffeine 本地缓存处理器\n"},{"name":"cacheManager","paramTypes":[],"doc":" 自定义缓存管理器 整合spring-cache\n"}],"constructors":[]}

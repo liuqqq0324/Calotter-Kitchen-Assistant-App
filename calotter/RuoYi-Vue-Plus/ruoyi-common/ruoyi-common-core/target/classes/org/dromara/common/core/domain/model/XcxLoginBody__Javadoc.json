@@ -1,1 +1,1 @@
-{"doc":"\n 三方登录对象\r\n\r\n @author Lion Li\r\n","fields":[{"name":"appid","doc":"\n 小程序id(多个小程序时使用)\r\n"},{"name":"xcxCode","doc":"\n 小程序code\r\n"}],"enumConstants":[],"methods":[],"constructors":[]}
+{"doc":" 三方登录对象\n\n @author Lion Li\n","fields":[{"name":"appid","doc":" 小程序id(多个小程序时使用)\n"},{"name":"xcxCode","doc":" 小程序code\n"}],"enumConstants":[],"methods":[],"constructors":[]}

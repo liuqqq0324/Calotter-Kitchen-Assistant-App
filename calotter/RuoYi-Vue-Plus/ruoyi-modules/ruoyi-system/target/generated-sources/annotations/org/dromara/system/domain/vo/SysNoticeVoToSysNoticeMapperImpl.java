@@ -2,12 +2,14 @@ package org.dromara.system.domain.vo;
 
 import javax.annotation.processing.Generated;
 import org.dromara.system.domain.SysNotice;
+import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-12-10T12:23:14+1300",
-    comments = "version: 1.6.3, compiler: Eclipse JDT (IDE) 3.44.0.v20251118-1623, environment: Java 21.0.9 (Eclipse Adoptium)"
+    date = "2025-12-10T13:27:22+1300",
+    comments = "version: 1.6.3, compiler: javac, environment: Java 25.0.1 (Homebrew)"
 )
+@Component
 public class SysNoticeVoToSysNoticeMapperImpl implements SysNoticeVoToSysNoticeMapper {
 
     @Override
@@ -20,12 +22,12 @@ public class SysNoticeVoToSysNoticeMapperImpl implements SysNoticeVoToSysNoticeM
 
         sysNotice.setCreateBy( arg0.getCreateBy() );
         sysNotice.setCreateTime( arg0.getCreateTime() );
-        sysNotice.setNoticeContent( arg0.getNoticeContent() );
         sysNotice.setNoticeId( arg0.getNoticeId() );
         sysNotice.setNoticeTitle( arg0.getNoticeTitle() );
         sysNotice.setNoticeType( arg0.getNoticeType() );
-        sysNotice.setRemark( arg0.getRemark() );
+        sysNotice.setNoticeContent( arg0.getNoticeContent() );
         sysNotice.setStatus( arg0.getStatus() );
+        sysNotice.setRemark( arg0.getRemark() );
 
         return sysNotice;
     }
@@ -38,12 +40,12 @@ public class SysNoticeVoToSysNoticeMapperImpl implements SysNoticeVoToSysNoticeM
 
         arg1.setCreateBy( arg0.getCreateBy() );
         arg1.setCreateTime( arg0.getCreateTime() );
-        arg1.setNoticeContent( arg0.getNoticeContent() );
         arg1.setNoticeId( arg0.getNoticeId() );
         arg1.setNoticeTitle( arg0.getNoticeTitle() );
         arg1.setNoticeType( arg0.getNoticeType() );
-        arg1.setRemark( arg0.getRemark() );
+        arg1.setNoticeContent( arg0.getNoticeContent() );
         arg1.setStatus( arg0.getStatus() );
+        arg1.setRemark( arg0.getRemark() );
 
         return arg1;
     }

@@ -1,1 +1,1 @@
-{"doc":"\n Social 配置属性\r\n\r\n @author thiszhc\r\n","fields":[{"name":"type","doc":"\n 授权类型\r\n"}],"enumConstants":[],"methods":[],"constructors":[]}
+{"doc":" Social 配置属性\n\n @author thiszhc\n","fields":[{"name":"type","doc":" 授权类型\n"}],"enumConstants":[],"methods":[],"constructors":[]}

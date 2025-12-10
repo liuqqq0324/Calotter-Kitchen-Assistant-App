@@ -1,1 +1,1 @@
-{"doc":"\n 角色与菜单关联表 数据层\r\n\r\n @author Lion Li\r\n","fields":[],"enumConstants":[],"methods":[{"name":"deleteByMenuIds","paramTypes":["java.util.List"],"doc":"\n 根据菜单ID串删除关联关系\r\n\r\n @param menuIds 菜单ID串\r\n @return 结果\r\n"}],"constructors":[]}
+{"doc":" 角色与菜单关联表 数据层\n\n @author Lion Li\n","fields":[],"enumConstants":[],"methods":[{"name":"deleteByMenuIds","paramTypes":["java.util.List"],"doc":" 根据菜单ID串删除关联关系\n\n @param menuIds 菜单ID串\n @return 结果\n"}],"constructors":[]}
