@@ -4,6 +4,7 @@ class Ingredient {
   int quantity; // 数量 (整数)
   String unit; // 单位 (如 'g', 'pcs')
   String imagePlaceholder; // 用Emoji代替图片占位
+  String? inventoryId; // 后端 inventory_id (用于 API 操作)
 
   // 构造函数：创建食材对象时必须传入这些参数
   Ingredient({
@@ -12,6 +13,7 @@ class Ingredient {
     this.quantity = 1,
     this.unit = 'pcs',
     this.imagePlaceholder = '📦',
+    this.inventoryId,
   });
 
   // Getter: 判断是否已过期 (当前时间在过期时间之后)
