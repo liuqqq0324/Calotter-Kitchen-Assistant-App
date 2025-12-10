@@ -430,32 +430,39 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                             ],
                           ),
                         ),
-                        InkWell(
-                          onTap: onToggleSelect,
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                selected
-                                    ? Icons.check_box
-                                    : Icons.check_box_outline_blank,
-                                size: 18,
-                                color: selected
-                                    ? Colors.orange
-                                    : Colors.grey.shade600,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                selected ? 'Selected' : 'Select',
-                                style: GoogleFonts.kalam(
-                                  fontSize: 12,
+                        const SizedBox(width: 8),
+                        Flexible(
+                          fit: FlexFit.loose,
+                          child: InkWell(
+                            onTap: onToggleSelect,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  selected
+                                      ? Icons.check_box
+                                      : Icons.check_box_outline_blank,
+                                  size: 18,
                                   color: selected
                                       ? Colors.orange
-                                      : Colors.grey.shade700,
+                                      : Colors.grey.shade600,
                                 ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
+                                const SizedBox(width: 4),
+                                Flexible(
+                                  child: Text(
+                                    selected ? 'Selected' : 'Select',
+                                    style: GoogleFonts.kalam(
+                                      fontSize: 12,
+                                      color: selected
+                                          ? Colors.orange
+                                          : Colors.grey.shade700,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                    softWrap: false,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ],

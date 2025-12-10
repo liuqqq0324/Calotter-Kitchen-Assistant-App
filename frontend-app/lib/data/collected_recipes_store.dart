@@ -10,6 +10,7 @@ class CollectedRecipesStore {
       ValueNotifier<List<RecipeModel>>([]);
 
   static Future<void> fetchFromServer() async {
+    print('[CollectedStore] Fetching favorites from server...');
     final list = await FavoriteRecipesApiService.fetchFavorites();
     favorites.value = list;
   }
@@ -18,24 +19,33 @@ class CollectedRecipesStore {
     return favorites.value.any((r) => r.id == recipe.id);
   }
 
-  static Future<void> add(RecipeModel recipe) async {
-    if (isCollected(recipe)) return;
+  static Future<RecipeModel> add(RecipeModel recipe) async {
+    if (isCollected(recipe)) {
+      return favorites.value.firstWhere(
+        (r) => r.id == recipe.id,
+        orElse: () => recipe,
+      );
+    }
+    print('[CollectedStore] Adding favorite ${recipe.title}');
     final saved = await FavoriteRecipesApiService.addFavorite(recipe);
     favorites.value = [...favorites.value, saved];
+    return saved;
   }
 
   static Future<void> remove(RecipeModel recipe) async {
     final targetId = _resolveId(recipe);
+    print('[CollectedStore] Removing favorite id=$targetId (${recipe.title})');
     await FavoriteRecipesApiService.removeFavorite(targetId);
     favorites.value =
         favorites.value.where((r) => r.id != targetId).toList();
   }
 
-  static Future<void> toggle(RecipeModel recipe) async {
+  static Future<RecipeModel?> toggle(RecipeModel recipe) async {
     if (isCollected(recipe)) {
       await remove(recipe);
+      return null;
     } else {
-      await add(recipe);
+      return await add(recipe);
     }
   }
 

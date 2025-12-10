@@ -10,7 +10,10 @@ class FavoriteRecipesApiService {
 
   /// Fetch favorite list and hydrate each item with its detail payload.
   static Future<List<RecipeModel>> fetchFavorites() async {
+    final url = _favoritesUrl();
+    print('[FavoriteApi] GET $url');
     final listResp = await http.get(_favoritesUrl());
+    print('[FavoriteApi] GET resp ${listResp.statusCode}: ${_preview(listResp.body)}');
     if (listResp.statusCode != 200) {
       throw Exception(
           'Failed to load favorites: ${listResp.statusCode} ${listResp.body}');
@@ -36,7 +39,9 @@ class FavoriteRecipesApiService {
   /// Fetch a single favorite with full detail.
   static Future<RecipeModel> fetchFavoriteDetail(String recipeId) async {
     final url = Uri.parse('${_favoritesUrl()}/$recipeId');
+    print('[FavoriteApi] GET $url');
     final resp = await http.get(url);
+    print('[FavoriteApi] GET detail resp ${resp.statusCode}: ${_preview(resp.body)}');
     if (resp.statusCode != 200) {
       throw Exception(
           'Failed to load favorite detail: ${resp.statusCode} ${resp.body}');
@@ -52,11 +57,15 @@ class FavoriteRecipesApiService {
       'source': source,
       'recipe': _recipeToJson(recipe),
     };
+    final url = _favoritesUrl();
+    print('[FavoriteApi] POST $url');
+    print('[FavoriteApi] body: ${jsonEncode(payload)}');
     final resp = await http.post(
       _favoritesUrl(),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(payload),
     );
+    print('[FavoriteApi] POST resp ${resp.statusCode}: ${_preview(resp.body)}');
     if (resp.statusCode != 200 && resp.statusCode != 201) {
       throw Exception(
           'Failed to add favorite: ${resp.statusCode} ${resp.body}');
@@ -69,7 +78,9 @@ class FavoriteRecipesApiService {
   /// Remove a favorite by id.
   static Future<void> removeFavorite(String recipeId) async {
     final url = Uri.parse('${_favoritesUrl()}/$recipeId');
+    print('[FavoriteApi] DELETE $url');
     final resp = await http.delete(url);
+    print('[FavoriteApi] DELETE resp ${resp.statusCode}: ${_preview(resp.body)}');
     if (resp.statusCode != 200 && resp.statusCode != 204) {
       throw Exception(
           'Failed to remove favorite: ${resp.statusCode} ${resp.body}');
@@ -115,5 +126,10 @@ class FavoriteRecipesApiService {
       steps: recipe.steps,
       emoji: recipe.emoji,
     );
+  }
+
+  static String _preview(String body, {int max = 300}) {
+    if (body.length <= max) return body;
+    return '${body.substring(0, max)}...';
   }
 }

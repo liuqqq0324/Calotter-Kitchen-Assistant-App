@@ -54,7 +54,14 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
     final recipe = widget.menu.recipes[_currentIndex];
     final wasCollected = CollectedRecipesStore.isCollected(recipe);
     try {
-      await CollectedRecipesStore.toggle(recipe);
+      final saved = await CollectedRecipesStore.toggle(recipe);
+      if (!wasCollected && saved != null) {
+        setState(() {
+          widget.menu.recipes[_currentIndex] = saved;
+        });
+        print(
+            '[RecipePage] Updated recipe id after saving: ${saved.id} (${saved.title})');
+      }
       final text = wasCollected
           ? 'Removed recipe from your collection.'
           : 'Saved recipe to your collection.';
