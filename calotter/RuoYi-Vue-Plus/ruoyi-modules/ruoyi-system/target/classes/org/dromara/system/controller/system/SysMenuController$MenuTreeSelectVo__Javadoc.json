@@ -1,1 +1,1 @@
-{"doc":" 角色菜单列表树信息\n\n @param checkedKeys 选中菜单列表\n @param menus       菜单下拉树结构列表\n","fields":[],"enumConstants":[],"methods":[],"constructors":[]}
+{"doc":"\n 角色菜单列表树信息\r\n\r\n @param checkedKeys 选中菜单列表\r\n @param menus       菜单下拉树结构列表\r\n","fields":[],"enumConstants":[],"methods":[],"constructors":[]}

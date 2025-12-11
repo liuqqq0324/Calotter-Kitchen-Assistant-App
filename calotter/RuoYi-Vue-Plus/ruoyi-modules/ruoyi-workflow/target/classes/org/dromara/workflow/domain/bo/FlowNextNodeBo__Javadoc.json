@@ -1,1 +1,1 @@
-{"doc":" 下一节点信息\n\n @author may\n","fields":[{"name":"taskId","doc":" 任务id\n"},{"name":"variables","doc":" 流程变量\n"}],"enumConstants":[],"methods":[],"constructors":[]}
+{"doc":"\n 下一节点信息\r\n\r\n @author may\r\n","fields":[{"name":"taskId","doc":"\n 任务id\r\n"},{"name":"variables","doc":"\n 流程变量\r\n"}],"enumConstants":[],"methods":[],"constructors":[]}

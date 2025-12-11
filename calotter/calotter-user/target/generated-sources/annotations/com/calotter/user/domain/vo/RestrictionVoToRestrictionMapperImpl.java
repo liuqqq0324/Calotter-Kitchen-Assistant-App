@@ -6,8 +6,8 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-12-11T14:28:56+1300",
-    comments = "version: 1.6.3, compiler: javac, environment: Java 21.0.8 (JetBrains s.r.o.)"
+    date = "2025-12-11T17:42:11+1300",
+    comments = "version: 1.6.3, compiler: Eclipse JDT (IDE) 3.44.0.v20251118-1623, environment: Java 21.0.9 (Eclipse Adoptium)"
 )
 @Component
 public class RestrictionVoToRestrictionMapperImpl implements RestrictionVoToRestrictionMapper {
@@ -20,10 +20,10 @@ public class RestrictionVoToRestrictionMapperImpl implements RestrictionVoToRest
 
         Restriction restriction = new Restriction();
 
+        restriction.setDefaultShown( arg0.getDefaultShown() );
+        restriction.setDescription( arg0.getDescription() );
         restriction.setId( arg0.getId() );
         restriction.setName( arg0.getName() );
-        restriction.setDescription( arg0.getDescription() );
-        restriction.setDefaultShown( arg0.getDefaultShown() );
         restriction.setSort( arg0.getSort() );
 
         return restriction;
@@ -35,10 +35,10 @@ public class RestrictionVoToRestrictionMapperImpl implements RestrictionVoToRest
             return arg1;
         }
 
+        arg1.setDefaultShown( arg0.getDefaultShown() );
+        arg1.setDescription( arg0.getDescription() );
         arg1.setId( arg0.getId() );
         arg1.setName( arg0.getName() );
-        arg1.setDescription( arg0.getDescription() );
-        arg1.setDefaultShown( arg0.getDefaultShown() );
         arg1.setSort( arg0.getSort() );
 
         return arg1;

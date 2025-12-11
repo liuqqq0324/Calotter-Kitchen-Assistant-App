@@ -9,13 +9,13 @@
       "name": "redisson.cluster-servers-config",
       "type": "org.dromara.common.redis.config.properties.RedissonProperties$ClusterServersConfig",
       "sourceType": "org.dromara.common.redis.config.properties.RedissonProperties",
-      "sourceMethod": "getClusterServersConfig()"
+      "sourceMethod": "public org.dromara.common.redis.config.properties.RedissonProperties.ClusterServersConfig getClusterServersConfig() "
     },
     {
       "name": "redisson.single-server-config",
       "type": "org.dromara.common.redis.config.properties.RedissonProperties$SingleServerConfig",
       "sourceType": "org.dromara.common.redis.config.properties.RedissonProperties",
-      "sourceMethod": "getSingleServerConfig()"
+      "sourceMethod": "public org.dromara.common.redis.config.properties.RedissonProperties.SingleServerConfig getSingleServerConfig() "
     }
   ],
   "properties": [
@@ -29,22 +29,19 @@
       "name": "redisson.cluster-servers-config.idle-connection-timeout",
       "type": "java.lang.Integer",
       "description": "连接空闲超时，单位：毫秒",
-      "sourceType": "org.dromara.common.redis.config.properties.RedissonProperties$ClusterServersConfig",
-      "defaultValue": 0
+      "sourceType": "org.dromara.common.redis.config.properties.RedissonProperties$ClusterServersConfig"
     },
     {
       "name": "redisson.cluster-servers-config.master-connection-minimum-idle-size",
       "type": "java.lang.Integer",
       "description": "master最小空闲连接数",
-      "sourceType": "org.dromara.common.redis.config.properties.RedissonProperties$ClusterServersConfig",
-      "defaultValue": 0
+      "sourceType": "org.dromara.common.redis.config.properties.RedissonProperties$ClusterServersConfig"
     },
     {
       "name": "redisson.cluster-servers-config.master-connection-pool-size",
       "type": "java.lang.Integer",
       "description": "master连接池大小",
-      "sourceType": "org.dromara.common.redis.config.properties.RedissonProperties$ClusterServersConfig",
-      "defaultValue": 0
+      "sourceType": "org.dromara.common.redis.config.properties.RedissonProperties$ClusterServersConfig"
     },
     {
       "name": "redisson.cluster-servers-config.read-mode",
@@ -56,22 +53,19 @@
       "name": "redisson.cluster-servers-config.slave-connection-minimum-idle-size",
       "type": "java.lang.Integer",
       "description": "slave最小空闲连接数",
-      "sourceType": "org.dromara.common.redis.config.properties.RedissonProperties$ClusterServersConfig",
-      "defaultValue": 0
+      "sourceType": "org.dromara.common.redis.config.properties.RedissonProperties$ClusterServersConfig"
     },
     {
       "name": "redisson.cluster-servers-config.slave-connection-pool-size",
       "type": "java.lang.Integer",
       "description": "slave连接池大小",
-      "sourceType": "org.dromara.common.redis.config.properties.RedissonProperties$ClusterServersConfig",
-      "defaultValue": 0
+      "sourceType": "org.dromara.common.redis.config.properties.RedissonProperties$ClusterServersConfig"
     },
     {
       "name": "redisson.cluster-servers-config.subscription-connection-pool-size",
       "type": "java.lang.Integer",
       "description": "发布和订阅连接池大小",
-      "sourceType": "org.dromara.common.redis.config.properties.RedissonProperties$ClusterServersConfig",
-      "defaultValue": 0
+      "sourceType": "org.dromara.common.redis.config.properties.RedissonProperties$ClusterServersConfig"
     },
     {
       "name": "redisson.cluster-servers-config.subscription-mode",
@@ -83,8 +77,7 @@
       "name": "redisson.cluster-servers-config.timeout",
       "type": "java.lang.Integer",
       "description": "命令等待超时，单位：毫秒",
-      "sourceType": "org.dromara.common.redis.config.properties.RedissonProperties$ClusterServersConfig",
-      "defaultValue": 0
+      "sourceType": "org.dromara.common.redis.config.properties.RedissonProperties$ClusterServersConfig"
     },
     {
       "name": "redisson.key-prefix",
@@ -96,8 +89,7 @@
       "name": "redisson.netty-threads",
       "type": "java.lang.Integer",
       "description": "Netty线程池数量,默认值 = 当前处理核数量 * 2",
-      "sourceType": "org.dromara.common.redis.config.properties.RedissonProperties",
-      "defaultValue": 0
+      "sourceType": "org.dromara.common.redis.config.properties.RedissonProperties"
     },
     {
       "name": "redisson.single-server-config.client-name",
@@ -109,43 +101,37 @@
       "name": "redisson.single-server-config.connection-minimum-idle-size",
       "type": "java.lang.Integer",
       "description": "最小空闲连接数",
-      "sourceType": "org.dromara.common.redis.config.properties.RedissonProperties$SingleServerConfig",
-      "defaultValue": 0
+      "sourceType": "org.dromara.common.redis.config.properties.RedissonProperties$SingleServerConfig"
     },
     {
       "name": "redisson.single-server-config.connection-pool-size",
       "type": "java.lang.Integer",
       "description": "连接池大小",
-      "sourceType": "org.dromara.common.redis.config.properties.RedissonProperties$SingleServerConfig",
-      "defaultValue": 0
+      "sourceType": "org.dromara.common.redis.config.properties.RedissonProperties$SingleServerConfig"
     },
     {
       "name": "redisson.single-server-config.idle-connection-timeout",
       "type": "java.lang.Integer",
       "description": "连接空闲超时，单位：毫秒",
-      "sourceType": "org.dromara.common.redis.config.properties.RedissonProperties$SingleServerConfig",
-      "defaultValue": 0
+      "sourceType": "org.dromara.common.redis.config.properties.RedissonProperties$SingleServerConfig"
     },
     {
       "name": "redisson.single-server-config.subscription-connection-pool-size",
       "type": "java.lang.Integer",
       "description": "发布和订阅连接池大小",
-      "sourceType": "org.dromara.common.redis.config.properties.RedissonProperties$SingleServerConfig",
-      "defaultValue": 0
+      "sourceType": "org.dromara.common.redis.config.properties.RedissonProperties$SingleServerConfig"
     },
     {
       "name": "redisson.single-server-config.timeout",
       "type": "java.lang.Integer",
       "description": "命令等待超时，单位：毫秒",
-      "sourceType": "org.dromara.common.redis.config.properties.RedissonProperties$SingleServerConfig",
-      "defaultValue": 0
+      "sourceType": "org.dromara.common.redis.config.properties.RedissonProperties$SingleServerConfig"
     },
     {
       "name": "redisson.threads",
       "type": "java.lang.Integer",
       "description": "线程池数量,默认值 = 当前处理核数量 * 2",
-      "sourceType": "org.dromara.common.redis.config.properties.RedissonProperties",
-      "defaultValue": 0
+      "sourceType": "org.dromara.common.redis.config.properties.RedissonProperties"
     }
   ],
   "hints": [],

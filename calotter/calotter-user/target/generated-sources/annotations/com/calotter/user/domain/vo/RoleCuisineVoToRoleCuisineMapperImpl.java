@@ -6,8 +6,8 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-12-11T14:28:56+1300",
-    comments = "version: 1.6.3, compiler: javac, environment: Java 21.0.8 (JetBrains s.r.o.)"
+    date = "2025-12-11T17:42:11+1300",
+    comments = "version: 1.6.3, compiler: Eclipse JDT (IDE) 3.44.0.v20251118-1623, environment: Java 21.0.9 (Eclipse Adoptium)"
 )
 @Component
 public class RoleCuisineVoToRoleCuisineMapperImpl implements RoleCuisineVoToRoleCuisineMapper {
@@ -20,11 +20,11 @@ public class RoleCuisineVoToRoleCuisineMapperImpl implements RoleCuisineVoToRole
 
         RoleCuisine roleCuisine = new RoleCuisine();
 
+        roleCuisine.setCuisineId( arg0.getCuisineId() );
+        roleCuisine.setDescription( arg0.getDescription() );
         roleCuisine.setId( arg0.getId() );
         roleCuisine.setRoleId( arg0.getRoleId() );
-        roleCuisine.setCuisineId( arg0.getCuisineId() );
         roleCuisine.setType( arg0.getType() );
-        roleCuisine.setDescription( arg0.getDescription() );
 
         return roleCuisine;
     }
@@ -35,11 +35,11 @@ public class RoleCuisineVoToRoleCuisineMapperImpl implements RoleCuisineVoToRole
             return arg1;
         }
 
+        arg1.setCuisineId( arg0.getCuisineId() );
+        arg1.setDescription( arg0.getDescription() );
         arg1.setId( arg0.getId() );
         arg1.setRoleId( arg0.getRoleId() );
-        arg1.setCuisineId( arg0.getCuisineId() );
         arg1.setType( arg0.getType() );
-        arg1.setDescription( arg0.getDescription() );
 
         return arg1;
     }

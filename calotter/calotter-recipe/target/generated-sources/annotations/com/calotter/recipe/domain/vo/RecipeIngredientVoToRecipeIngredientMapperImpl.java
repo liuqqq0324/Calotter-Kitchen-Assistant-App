@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-12-11T14:29:59+1300",
+    date = "2025-12-11T17:42:09+1300",
     comments = "version: 1.6.3, compiler: Eclipse JDT (IDE) 3.44.0.v20251118-1623, environment: Java 21.0.9 (Eclipse Adoptium)"
 )
 @Component
@@ -20,15 +20,15 @@ public class RecipeIngredientVoToRecipeIngredientMapperImpl implements RecipeIng
 
         RecipeIngredient recipeIngredient = new RecipeIngredient();
 
-        recipeIngredient.setId( arg0.getId() );
-        recipeIngredient.setRecipeId( arg0.getRecipeId() );
-        recipeIngredient.setIngredientId( arg0.getIngredientId() );
-        recipeIngredient.setQuantity( arg0.getQuantity() );
-        recipeIngredient.setUnit( arg0.getUnit() );
-        recipeIngredient.setProcessingNote( arg0.getProcessingNote() );
-        recipeIngredient.setOptional( arg0.getOptional() );
         recipeIngredient.setGarnish( arg0.getGarnish() );
+        recipeIngredient.setId( arg0.getId() );
+        recipeIngredient.setIngredientId( arg0.getIngredientId() );
+        recipeIngredient.setOptional( arg0.getOptional() );
+        recipeIngredient.setProcessingNote( arg0.getProcessingNote() );
+        recipeIngredient.setQuantity( arg0.getQuantity() );
+        recipeIngredient.setRecipeId( arg0.getRecipeId() );
         recipeIngredient.setSort( arg0.getSort() );
+        recipeIngredient.setUnit( arg0.getUnit() );
 
         return recipeIngredient;
     }
@@ -39,15 +39,15 @@ public class RecipeIngredientVoToRecipeIngredientMapperImpl implements RecipeIng
             return arg1;
         }
 
-        arg1.setId( arg0.getId() );
-        arg1.setRecipeId( arg0.getRecipeId() );
-        arg1.setIngredientId( arg0.getIngredientId() );
-        arg1.setQuantity( arg0.getQuantity() );
-        arg1.setUnit( arg0.getUnit() );
-        arg1.setProcessingNote( arg0.getProcessingNote() );
-        arg1.setOptional( arg0.getOptional() );
         arg1.setGarnish( arg0.getGarnish() );
+        arg1.setId( arg0.getId() );
+        arg1.setIngredientId( arg0.getIngredientId() );
+        arg1.setOptional( arg0.getOptional() );
+        arg1.setProcessingNote( arg0.getProcessingNote() );
+        arg1.setQuantity( arg0.getQuantity() );
+        arg1.setRecipeId( arg0.getRecipeId() );
         arg1.setSort( arg0.getSort() );
+        arg1.setUnit( arg0.getUnit() );
 
         return arg1;
     }

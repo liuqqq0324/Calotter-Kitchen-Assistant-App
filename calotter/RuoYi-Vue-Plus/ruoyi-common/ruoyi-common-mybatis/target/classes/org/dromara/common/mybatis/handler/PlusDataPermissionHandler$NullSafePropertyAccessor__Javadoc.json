@@ -1,1 +1,1 @@
-{"doc":" 对所有null变量找不到的变量返回默认值 委托模式 将不需要处理的方法委托给原处理器\n","fields":[],"enumConstants":[],"methods":[],"constructors":[]}
+{"doc":"\n 对所有null变量找不到的变量返回默认值 委托模式 将不需要处理的方法委托给原处理器\r\n","fields":[],"enumConstants":[],"methods":[],"constructors":[]}

@@ -8,8 +8,8 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-12-11T14:28:56+1300",
-    comments = "version: 1.6.3, compiler: javac, environment: Java 21.0.8 (JetBrains s.r.o.)"
+    date = "2025-12-11T17:42:11+1300",
+    comments = "version: 1.6.3, compiler: Eclipse JDT (IDE) 3.44.0.v20251118-1623, environment: Java 21.0.9 (Eclipse Adoptium)"
 )
 @Component
 public class UserBoToUserMapperImpl implements UserBoToUserMapper {
@@ -22,24 +22,24 @@ public class UserBoToUserMapperImpl implements UserBoToUserMapper {
 
         User user = new User();
 
-        user.setSearchValue( arg0.getSearchValue() );
-        user.setCreateDept( arg0.getCreateDept() );
         user.setCreateBy( arg0.getCreateBy() );
+        user.setCreateDept( arg0.getCreateDept() );
         user.setCreateTime( arg0.getCreateTime() );
-        user.setUpdateBy( arg0.getUpdateBy() );
-        user.setUpdateTime( arg0.getUpdateTime() );
         Map<String, Object> map = arg0.getParams();
         if ( map != null ) {
             user.setParams( new LinkedHashMap<String, Object>( map ) );
         }
-        user.setId( arg0.getId() );
-        user.setUsername( arg0.getUsername() );
-        user.setEmail( arg0.getEmail() );
-        user.setPasswordHash( arg0.getPasswordHash() );
-        user.setDisplayName( arg0.getDisplayName() );
+        user.setSearchValue( arg0.getSearchValue() );
+        user.setUpdateBy( arg0.getUpdateBy() );
+        user.setUpdateTime( arg0.getUpdateTime() );
         user.setAvatarUrl( arg0.getAvatarUrl() );
+        user.setDisplayName( arg0.getDisplayName() );
+        user.setEmail( arg0.getEmail() );
+        user.setId( arg0.getId() );
         user.setLastLoginAt( arg0.getLastLoginAt() );
+        user.setPasswordHash( arg0.getPasswordHash() );
         user.setStatus( arg0.getStatus() );
+        user.setUsername( arg0.getUsername() );
 
         return user;
     }
@@ -50,12 +50,9 @@ public class UserBoToUserMapperImpl implements UserBoToUserMapper {
             return arg1;
         }
 
-        arg1.setSearchValue( arg0.getSearchValue() );
-        arg1.setCreateDept( arg0.getCreateDept() );
         arg1.setCreateBy( arg0.getCreateBy() );
+        arg1.setCreateDept( arg0.getCreateDept() );
         arg1.setCreateTime( arg0.getCreateTime() );
-        arg1.setUpdateBy( arg0.getUpdateBy() );
-        arg1.setUpdateTime( arg0.getUpdateTime() );
         if ( arg1.getParams() != null ) {
             Map<String, Object> map = arg0.getParams();
             if ( map != null ) {
@@ -72,14 +69,17 @@ public class UserBoToUserMapperImpl implements UserBoToUserMapper {
                 arg1.setParams( new LinkedHashMap<String, Object>( map ) );
             }
         }
-        arg1.setId( arg0.getId() );
-        arg1.setUsername( arg0.getUsername() );
-        arg1.setEmail( arg0.getEmail() );
-        arg1.setPasswordHash( arg0.getPasswordHash() );
-        arg1.setDisplayName( arg0.getDisplayName() );
+        arg1.setSearchValue( arg0.getSearchValue() );
+        arg1.setUpdateBy( arg0.getUpdateBy() );
+        arg1.setUpdateTime( arg0.getUpdateTime() );
         arg1.setAvatarUrl( arg0.getAvatarUrl() );
+        arg1.setDisplayName( arg0.getDisplayName() );
+        arg1.setEmail( arg0.getEmail() );
+        arg1.setId( arg0.getId() );
         arg1.setLastLoginAt( arg0.getLastLoginAt() );
+        arg1.setPasswordHash( arg0.getPasswordHash() );
         arg1.setStatus( arg0.getStatus() );
+        arg1.setUsername( arg0.getUsername() );
 
         return arg1;
     }

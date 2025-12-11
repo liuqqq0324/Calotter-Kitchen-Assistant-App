@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-12-11T14:29:59+1300",
+    date = "2025-12-11T17:42:09+1300",
     comments = "version: 1.6.3, compiler: Eclipse JDT (IDE) 3.44.0.v20251118-1623, environment: Java 21.0.9 (Eclipse Adoptium)"
 )
 @Component
@@ -20,13 +20,13 @@ public class KitchenwareVoToKitchenwareMapperImpl implements KitchenwareVoToKitc
 
         Kitchenware kitchenware = new Kitchenware();
 
-        kitchenware.setId( arg0.getId() );
-        kitchenware.setName( arg0.getName() );
-        kitchenware.setDescription( arg0.getDescription() );
-        kitchenware.setImageUrl( arg0.getImageUrl() );
         kitchenware.setCategory( arg0.getCategory() );
-        kitchenware.setElectronic( arg0.getElectronic() );
         kitchenware.setDefaultShown( arg0.getDefaultShown() );
+        kitchenware.setDescription( arg0.getDescription() );
+        kitchenware.setElectronic( arg0.getElectronic() );
+        kitchenware.setId( arg0.getId() );
+        kitchenware.setImageUrl( arg0.getImageUrl() );
+        kitchenware.setName( arg0.getName() );
 
         return kitchenware;
     }
@@ -37,13 +37,13 @@ public class KitchenwareVoToKitchenwareMapperImpl implements KitchenwareVoToKitc
             return arg1;
         }
 
-        arg1.setId( arg0.getId() );
-        arg1.setName( arg0.getName() );
-        arg1.setDescription( arg0.getDescription() );
-        arg1.setImageUrl( arg0.getImageUrl() );
         arg1.setCategory( arg0.getCategory() );
-        arg1.setElectronic( arg0.getElectronic() );
         arg1.setDefaultShown( arg0.getDefaultShown() );
+        arg1.setDescription( arg0.getDescription() );
+        arg1.setElectronic( arg0.getElectronic() );
+        arg1.setId( arg0.getId() );
+        arg1.setImageUrl( arg0.getImageUrl() );
+        arg1.setName( arg0.getName() );
 
         return arg1;
     }

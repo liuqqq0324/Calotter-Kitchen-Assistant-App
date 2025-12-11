@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-12-11T14:29:59+1300",
+    date = "2025-12-11T17:42:09+1300",
     comments = "version: 1.6.3, compiler: Eclipse JDT (IDE) 3.44.0.v20251118-1623, environment: Java 21.0.9 (Eclipse Adoptium)"
 )
 @Component
@@ -20,9 +20,9 @@ public class CuisineTypeVoToCuisineTypeMapperImpl implements CuisineTypeVoToCuis
 
         CuisineType cuisineType = new CuisineType();
 
+        cuisineType.setIconUrl( arg0.getIconUrl() );
         cuisineType.setId( arg0.getId() );
         cuisineType.setName( arg0.getName() );
-        cuisineType.setIconUrl( arg0.getIconUrl() );
         cuisineType.setSort( arg0.getSort() );
 
         return cuisineType;
@@ -34,9 +34,9 @@ public class CuisineTypeVoToCuisineTypeMapperImpl implements CuisineTypeVoToCuis
             return arg1;
         }
 
+        arg1.setIconUrl( arg0.getIconUrl() );
         arg1.setId( arg0.getId() );
         arg1.setName( arg0.getName() );
-        arg1.setIconUrl( arg0.getIconUrl() );
         arg1.setSort( arg0.getSort() );
 
         return arg1;

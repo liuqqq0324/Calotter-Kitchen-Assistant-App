@@ -1,1 +1,1 @@
-{"doc":" 个人信息业务处理\n\n @author Michelle.Chung\n","fields":[{"name":"nickName","doc":" 用户昵称\n"},{"name":"email","doc":" 用户邮箱\n"},{"name":"phonenumber","doc":" 手机号码\n"},{"name":"sex","doc":" 用户性别（0男 1女 2未知）\n"}],"enumConstants":[],"methods":[],"constructors":[]}
+{"doc":"\n 个人信息业务处理\r\n\r\n @author Michelle.Chung\r\n","fields":[{"name":"nickName","doc":"\n 用户昵称\r\n"},{"name":"email","doc":"\n 用户邮箱\r\n"},{"name":"phonenumber","doc":"\n 手机号码\r\n"},{"name":"sex","doc":"\n 用户性别（0男 1女 2未知）\r\n"}],"enumConstants":[],"methods":[],"constructors":[]}

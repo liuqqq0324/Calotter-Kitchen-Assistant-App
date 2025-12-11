@@ -1,1 +1,1 @@
-{"doc":" 用户登录对象\n\n @author Lion Li\n","fields":[{"name":"clientId","doc":" 客户端id\n"},{"name":"grantType","doc":" 授权类型\n"},{"name":"tenantId","doc":" 租户ID\n"},{"name":"code","doc":" 验证码\n"},{"name":"uuid","doc":" 唯一标识\n"}],"enumConstants":[],"methods":[],"constructors":[]}
+{"doc":"\n 用户登录对象\r\n\r\n @author Lion Li\r\n","fields":[{"name":"clientId","doc":"\n 客户端id\r\n"},{"name":"grantType","doc":"\n 授权类型\r\n"},{"name":"tenantId","doc":"\n 租户ID\r\n"},{"name":"code","doc":"\n 验证码\r\n"},{"name":"uuid","doc":"\n 唯一标识\r\n"}],"enumConstants":[],"methods":[],"constructors":[]}

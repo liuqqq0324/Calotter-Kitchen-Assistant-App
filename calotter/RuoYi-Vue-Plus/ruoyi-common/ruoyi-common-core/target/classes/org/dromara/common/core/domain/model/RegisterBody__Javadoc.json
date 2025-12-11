@@ -1,1 +1,1 @@
-{"doc":" 用户注册对象\n\n @author Lion Li\n","fields":[{"name":"username","doc":" 用户名\n"},{"name":"password","doc":" 用户密码\n"},{"name":"userType","doc":" 用户类型\n"}],"enumConstants":[],"methods":[],"constructors":[]}
+{"doc":"\n 用户注册对象\r\n\r\n @author Lion Li\r\n","fields":[{"name":"username","doc":"\n 用户名\r\n"},{"name":"password","doc":"\n 用户密码\r\n"},{"name":"userType","doc":"\n 用户类型\r\n"}],"enumConstants":[],"methods":[],"constructors":[]}

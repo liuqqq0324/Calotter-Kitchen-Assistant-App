@@ -1,1 +1,1 @@
-{"doc":" 字典类型业务对象 sys_dict_type\n\n @author Michelle.Chung\n","fields":[{"name":"dictId","doc":" 字典主键\n"},{"name":"dictName","doc":" 字典名称\n"},{"name":"dictType","doc":" 字典类型\n"},{"name":"remark","doc":" 备注\n"}],"enumConstants":[],"methods":[],"constructors":[]}
+{"doc":"\n 字典类型业务对象 sys_dict_type\r\n\r\n @author Michelle.Chung\r\n","fields":[{"name":"dictId","doc":"\n 字典主键\r\n"},{"name":"dictName","doc":"\n 字典名称\r\n"},{"name":"dictType","doc":"\n 字典类型\r\n"},{"name":"remark","doc":"\n 备注\r\n"}],"enumConstants":[],"methods":[],"constructors":[]}

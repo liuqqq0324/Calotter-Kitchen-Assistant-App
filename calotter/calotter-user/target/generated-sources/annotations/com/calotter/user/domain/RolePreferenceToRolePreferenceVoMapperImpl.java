@@ -6,8 +6,8 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-12-11T14:28:56+1300",
-    comments = "version: 1.6.3, compiler: javac, environment: Java 21.0.8 (JetBrains s.r.o.)"
+    date = "2025-12-11T17:42:11+1300",
+    comments = "version: 1.6.3, compiler: Eclipse JDT (IDE) 3.44.0.v20251118-1623, environment: Java 21.0.9 (Eclipse Adoptium)"
 )
 @Component
 public class RolePreferenceToRolePreferenceVoMapperImpl implements RolePreferenceToRolePreferenceVoMapper {
@@ -21,9 +21,9 @@ public class RolePreferenceToRolePreferenceVoMapperImpl implements RolePreferenc
         RolePreferenceVo rolePreferenceVo = new RolePreferenceVo();
 
         rolePreferenceVo.setId( arg0.getId() );
-        rolePreferenceVo.setRoleId( arg0.getRoleId() );
-        rolePreferenceVo.setPreferenceId( arg0.getPreferenceId() );
         rolePreferenceVo.setLevel( arg0.getLevel() );
+        rolePreferenceVo.setPreferenceId( arg0.getPreferenceId() );
+        rolePreferenceVo.setRoleId( arg0.getRoleId() );
 
         return rolePreferenceVo;
     }
@@ -35,9 +35,9 @@ public class RolePreferenceToRolePreferenceVoMapperImpl implements RolePreferenc
         }
 
         arg1.setId( arg0.getId() );
-        arg1.setRoleId( arg0.getRoleId() );
-        arg1.setPreferenceId( arg0.getPreferenceId() );
         arg1.setLevel( arg0.getLevel() );
+        arg1.setPreferenceId( arg0.getPreferenceId() );
+        arg1.setRoleId( arg0.getRoleId() );
 
         return arg1;
     }

@@ -1,1 +1,1 @@
-{"doc":" 撤销任务请求对象\n\n @author may\n","fields":[{"name":"businessId","doc":" 任务ID\n"},{"name":"message","doc":" 办理意见\n"}],"enumConstants":[],"methods":[],"constructors":[]}
+{"doc":"\n 撤销任务请求对象\r\n\r\n @author may\r\n","fields":[{"name":"businessId","doc":"\n 任务ID\r\n"},{"name":"message","doc":"\n 办理意见\r\n"}],"enumConstants":[],"methods":[],"constructors":[]}

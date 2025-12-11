@@ -2,12 +2,12 @@ package com.calotter.recipe.domain.vo;
 
 import com.calotter.recipe.domain.Ingredient;
 import com.calotter.recipe.domain.IngredientToIngredientVoMapper;
-import io.github.linpeilie.AutoMapperConfig__150;
+import io.github.linpeilie.AutoMapperConfig__225;
 import io.github.linpeilie.BaseMapper;
 import org.mapstruct.Mapper;
 
 @Mapper(
-    config = AutoMapperConfig__150.class,
+    config = AutoMapperConfig__225.class,
     uses = {IngredientToIngredientVoMapper.class},
     imports = {}
 )

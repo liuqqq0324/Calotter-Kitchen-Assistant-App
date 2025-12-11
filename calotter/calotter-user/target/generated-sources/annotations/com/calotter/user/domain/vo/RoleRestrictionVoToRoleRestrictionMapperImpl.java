@@ -6,8 +6,8 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-12-11T14:28:56+1300",
-    comments = "version: 1.6.3, compiler: javac, environment: Java 21.0.8 (JetBrains s.r.o.)"
+    date = "2025-12-11T17:42:11+1300",
+    comments = "version: 1.6.3, compiler: Eclipse JDT (IDE) 3.44.0.v20251118-1623, environment: Java 21.0.9 (Eclipse Adoptium)"
 )
 @Component
 public class RoleRestrictionVoToRoleRestrictionMapperImpl implements RoleRestrictionVoToRoleRestrictionMapper {
@@ -21,8 +21,8 @@ public class RoleRestrictionVoToRoleRestrictionMapperImpl implements RoleRestric
         RoleRestriction roleRestriction = new RoleRestriction();
 
         roleRestriction.setId( arg0.getId() );
-        roleRestriction.setRoleId( arg0.getRoleId() );
         roleRestriction.setRestrictionId( arg0.getRestrictionId() );
+        roleRestriction.setRoleId( arg0.getRoleId() );
         roleRestriction.setType( arg0.getType() );
 
         return roleRestriction;
@@ -35,8 +35,8 @@ public class RoleRestrictionVoToRoleRestrictionMapperImpl implements RoleRestric
         }
 
         arg1.setId( arg0.getId() );
-        arg1.setRoleId( arg0.getRoleId() );
         arg1.setRestrictionId( arg0.getRestrictionId() );
+        arg1.setRoleId( arg0.getRoleId() );
         arg1.setType( arg0.getType() );
 
         return arg1;

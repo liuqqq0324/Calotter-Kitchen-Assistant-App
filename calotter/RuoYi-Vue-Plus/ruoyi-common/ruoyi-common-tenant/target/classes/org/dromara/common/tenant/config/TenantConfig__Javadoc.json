@@ -1,1 +1,1 @@
-{"doc":" 租户配置类\n\n @author Lion Li\n","fields":[],"enumConstants":[],"methods":[{"name":"tenantCacheManager","paramTypes":[],"doc":" 多租户缓存管理器\n"},{"name":"tenantSaTokenDao","paramTypes":[],"doc":" 多租户鉴权dao实现\n"}],"constructors":[]}
+{"doc":"\n 租户配置类\r\n\r\n @author Lion Li\r\n","fields":[],"enumConstants":[],"methods":[{"name":"tenantCacheManager","paramTypes":[],"doc":"\n 多租户缓存管理器\r\n"},{"name":"tenantSaTokenDao","paramTypes":[],"doc":"\n 多租户鉴权dao实现\r\n"}],"constructors":[]}

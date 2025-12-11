@@ -8,8 +8,8 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-12-11T14:28:56+1300",
-    comments = "version: 1.6.3, compiler: javac, environment: Java 21.0.8 (JetBrains s.r.o.)"
+    date = "2025-12-11T17:42:11+1300",
+    comments = "version: 1.6.3, compiler: Eclipse JDT (IDE) 3.44.0.v20251118-1623, environment: Java 21.0.9 (Eclipse Adoptium)"
 )
 @Component
 public class RolePreferenceBoToRolePreferenceMapperImpl implements RolePreferenceBoToRolePreferenceMapper {
@@ -22,20 +22,20 @@ public class RolePreferenceBoToRolePreferenceMapperImpl implements RolePreferenc
 
         RolePreference rolePreference = new RolePreference();
 
-        rolePreference.setSearchValue( arg0.getSearchValue() );
-        rolePreference.setCreateDept( arg0.getCreateDept() );
         rolePreference.setCreateBy( arg0.getCreateBy() );
+        rolePreference.setCreateDept( arg0.getCreateDept() );
         rolePreference.setCreateTime( arg0.getCreateTime() );
-        rolePreference.setUpdateBy( arg0.getUpdateBy() );
-        rolePreference.setUpdateTime( arg0.getUpdateTime() );
         Map<String, Object> map = arg0.getParams();
         if ( map != null ) {
             rolePreference.setParams( new LinkedHashMap<String, Object>( map ) );
         }
+        rolePreference.setSearchValue( arg0.getSearchValue() );
+        rolePreference.setUpdateBy( arg0.getUpdateBy() );
+        rolePreference.setUpdateTime( arg0.getUpdateTime() );
         rolePreference.setId( arg0.getId() );
-        rolePreference.setRoleId( arg0.getRoleId() );
-        rolePreference.setPreferenceId( arg0.getPreferenceId() );
         rolePreference.setLevel( arg0.getLevel() );
+        rolePreference.setPreferenceId( arg0.getPreferenceId() );
+        rolePreference.setRoleId( arg0.getRoleId() );
 
         return rolePreference;
     }
@@ -46,12 +46,9 @@ public class RolePreferenceBoToRolePreferenceMapperImpl implements RolePreferenc
             return arg1;
         }
 
-        arg1.setSearchValue( arg0.getSearchValue() );
-        arg1.setCreateDept( arg0.getCreateDept() );
         arg1.setCreateBy( arg0.getCreateBy() );
+        arg1.setCreateDept( arg0.getCreateDept() );
         arg1.setCreateTime( arg0.getCreateTime() );
-        arg1.setUpdateBy( arg0.getUpdateBy() );
-        arg1.setUpdateTime( arg0.getUpdateTime() );
         if ( arg1.getParams() != null ) {
             Map<String, Object> map = arg0.getParams();
             if ( map != null ) {
@@ -68,10 +65,13 @@ public class RolePreferenceBoToRolePreferenceMapperImpl implements RolePreferenc
                 arg1.setParams( new LinkedHashMap<String, Object>( map ) );
             }
         }
+        arg1.setSearchValue( arg0.getSearchValue() );
+        arg1.setUpdateBy( arg0.getUpdateBy() );
+        arg1.setUpdateTime( arg0.getUpdateTime() );
         arg1.setId( arg0.getId() );
-        arg1.setRoleId( arg0.getRoleId() );
-        arg1.setPreferenceId( arg0.getPreferenceId() );
         arg1.setLevel( arg0.getLevel() );
+        arg1.setPreferenceId( arg0.getPreferenceId() );
+        arg1.setRoleId( arg0.getRoleId() );
 
         return arg1;
     }
