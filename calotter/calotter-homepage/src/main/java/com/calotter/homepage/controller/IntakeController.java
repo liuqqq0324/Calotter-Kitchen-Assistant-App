@@ -1,6 +1,7 @@
 package com.calotter.homepage.controller;
 
 import com.calotter.common.core.domain.R;
+import com.calotter.common.core.utils.TokenUtils;
 import com.calotter.common.web.core.BaseController;
 import com.calotter.homepage.service.IIntakeService;
 import lombok.RequiredArgsConstructor;
@@ -31,7 +32,7 @@ public class IntakeController extends BaseController {
             @RequestParam(required = false, defaultValue = "all") String source,
             @RequestHeader(value = "Authorization", required = false) String authHeader) {
         try {
-            Long userId = extractUserIdFromToken(authHeader);
+            Long userId = TokenUtils.extractUserIdFromToken(authHeader);
             if (userId == null) {
                 return R.fail("Unauthorized: Invalid or missing token");
             }
@@ -57,7 +58,7 @@ public class IntakeController extends BaseController {
             @RequestBody UpdateIntakeRequest request,
             @RequestHeader(value = "Authorization", required = false) String authHeader) {
         try {
-            Long userId = extractUserIdFromToken(authHeader);
+            Long userId = TokenUtils.extractUserIdFromToken(authHeader);
             if (userId == null) {
                 return R.fail("Unauthorized: Invalid or missing token");
             }
@@ -95,7 +96,7 @@ public class IntakeController extends BaseController {
             @RequestBody AddManualIntakeRequest request,
             @RequestHeader(value = "Authorization", required = false) String authHeader) {
         try {
-            Long userId = extractUserIdFromToken(authHeader);
+            Long userId = TokenUtils.extractUserIdFromToken(authHeader);
             if (userId == null) {
                 return R.fail("Unauthorized: Invalid or missing token");
             }
@@ -110,16 +111,6 @@ public class IntakeController extends BaseController {
         } catch (Exception e) {
             return R.fail("Failed to add manual intake: " + e.getMessage());
         }
-    }
-
-    /**
-     * Extract user ID from JWT token
-     * TODO: 实现JWT token解析逻辑
-     */
-    private Long extractUserIdFromToken(String authHeader) {
-        // TODO: 实现JWT解析
-        // 临时返回1用于测试
-        return 1L;
     }
 
     /**

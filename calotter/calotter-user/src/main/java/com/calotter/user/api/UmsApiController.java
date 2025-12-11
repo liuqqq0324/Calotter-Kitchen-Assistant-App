@@ -144,11 +144,22 @@ public class UmsApiController {
         tk.accessToken = UUID.randomUUID().toString().replace("-", "");
         tk.expiresIn = 3000;
         resp.token = tk;
+        
+        // 临时方案：缓存token到userId的映射（仅用于开发测试）
+        // 生产环境应该使用Redis或数据库存储
+        com.calotter.common.core.utils.TokenUtils.cacheToken(tk.accessToken, found.getId());
+        
         return ResponseEntity.ok(resp);
     }
 
     @PostMapping("/auth/logout")
     public ResponseEntity<LogoutResponse> logout(@RequestHeader(value = "Authorization", required = false) String authHeader) {
+        // 临时方案：从缓存中移除token（仅用于开发测试）
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String token = authHeader.substring(7).trim();
+            com.calotter.common.core.utils.TokenUtils.removeToken(token);
+        }
+        
         // In a production system, you would invalidate the token here
         // For now, we just return success since tokens are stateless
         // The frontend will clear the token from local storage

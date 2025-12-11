@@ -2,9 +2,11 @@ package com.calotter.homepage.service.impl;
 
 import com.calotter.common.core.utils.MapstructUtils;
 import com.calotter.homepage.domain.NutritionTarget;
+import com.calotter.homepage.domain.User;
 import com.calotter.homepage.domain.vo.NutritionTargetVo;
 import com.calotter.homepage.mapper.IntakeRecordMapper;
 import com.calotter.homepage.mapper.NutritionTargetMapper;
+import com.calotter.homepage.mapper.UserMapper;
 import com.calotter.homepage.service.INutritionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,9 +31,7 @@ public class NutritionServiceImpl implements INutritionService {
 
     private final NutritionTargetMapper nutritionTargetMapper;
     private final IntakeRecordMapper intakeRecordMapper;
-
-    // TODO: 如果需要获取用户信息，需要通过Feign调用calotter-user服务
-    // private final UserServiceClient userServiceClient;
+    private final UserMapper userMapper;
 
     @Override
     public WeeklyNutritionTargetsResponse getWeeklyNutritionTargets(Long userId) {
@@ -46,9 +46,8 @@ public class NutritionServiceImpl implements INutritionService {
             target = MapstructUtils.convert(targetVo, NutritionTarget.class);
         } else {
             // Calculate and create new target
-            // TODO: 需要获取用户信息来计算营养目标
-            // UserVo user = userServiceClient.getUserById(userId);
-            target = calculateAndCreateNutritionTarget(userId, weekStart, weekEnd, null, null, null, null);
+            // 直接从数据库获取用户信息来计算营养目标
+            target = calculateAndCreateNutritionTarget(userId, weekStart, weekEnd);
         }
 
         WeeklyNutritionTargetsResponse response = new WeeklyNutritionTargetsResponse();
@@ -83,7 +82,7 @@ public class NutritionServiceImpl implements INutritionService {
         NutritionTargetVo targetVo = nutritionTargetMapper.selectByUserIdAndWeekStart(userId, weekStart);
         if (targetVo == null) {
             // Create target if not exists
-            calculateAndCreateNutritionTarget(userId, weekStart, weekEnd, null, null, null, null);
+            calculateAndCreateNutritionTarget(userId, weekStart, weekEnd);
             targetVo = nutritionTargetMapper.selectByUserIdAndWeekStart(userId, weekStart);
         }
 
@@ -127,11 +126,33 @@ public class NutritionServiceImpl implements INutritionService {
 
     /**
      * Calculate and create nutrition target for a user
+     * 直接从数据库查询用户信息
      */
-    private NutritionTarget calculateAndCreateNutritionTarget(Long userId, LocalDate weekStart, LocalDate weekEnd,
-                                                               Integer age, String gender, Integer height, Integer weight) {
-        // TODO: 如果参数为null，需要通过Feign调用获取用户信息
-        // 目前使用默认值
+    private NutritionTarget calculateAndCreateNutritionTarget(Long userId, LocalDate weekStart, LocalDate weekEnd) {
+        Integer age = null;
+        String gender = null;
+        Integer height = null;
+        Integer weight = null;
+
+        // 直接从数据库查询用户信息（sous_chef_ums.ums_user表）
+        try {
+            User user = userMapper.selectById(userId);
+            if (user != null) {
+                age = user.getAge();
+                gender = user.getGender();
+                height = user.getHeight();
+                weight = user.getWeight();
+                log.info("Retrieved user info from database: userId={}, age={}, gender={}, height={}, weight={}",
+                        userId, age, gender, height, weight);
+            } else {
+                log.warn("User not found in database for userId={}, using default values", userId);
+            }
+        } catch (Exception e) {
+            log.error("Failed to fetch user info from database for userId={}: {}", userId, e.getMessage(), e);
+            log.warn("Using default values for nutrition calculation");
+        }
+
+        // 如果用户信息为空，使用默认值
         if (age == null) age = 30;
         if (height == null) height = 170;
         if (weight == null) weight = 70;

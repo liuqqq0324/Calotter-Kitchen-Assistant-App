@@ -3,9 +3,133 @@ import 'package:personal_sous_chef/theme/fallback_google_fonts.dart';
 import 'package:personal_sous_chef/widgets/sketchy_card.dart';
 import 'package:personal_sous_chef/pages/home/todays_recipes_dialog.dart';
 import 'package:personal_sous_chef/pages/home/add_food_dialog.dart';
+import 'package:personal_sous_chef/services/homepage_api_service.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  bool _isLoading = true;
+  Map<String, double> _nutritionData = {
+    'energy_current': 0.0,
+    'energy_target': 2000.0,
+    'protein_current': 0.0,
+    'protein_target': 100.0,
+    'fat_current': 0.0,
+    'fat_target': 65.0,
+    'carbs_current': 0.0,
+    'carbs_target': 250.0,
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    _loadNutritionData();
+  }
+
+  Future<void> _loadNutritionData() async {
+    setState(() => _isLoading = true);
+
+    try {
+      // 获取周营养摘要（包含已消费和剩余）
+      final summaryResult =
+          await HomepageApiService.getWeeklyNutritionSummary();
+
+      if (summaryResult['success'] == true && summaryResult['data'] != null) {
+        final data = summaryResult['data'] as Map<String, dynamic>;
+        final consumed = data['consumed'] as Map<String, dynamic>? ?? {};
+
+        // 获取周营养目标（用于target值）
+        final targetResult =
+            await HomepageApiService.getWeeklyNutritionTargets();
+        Map<String, dynamic> weeklyTarget = {};
+        if (targetResult['success'] == true && targetResult['data'] != null) {
+          final targetData = targetResult['data'] as Map<String, dynamic>;
+          weeklyTarget =
+              targetData['weeklyTarget'] as Map<String, dynamic>? ?? {};
+        }
+
+        setState(() {
+          // 周目标需要除以7得到每日目标（近似）
+          final weeklyEnergy =
+              (weeklyTarget['energy'] as num?)?.toDouble() ?? 14000.0;
+          final weeklyProtein =
+              (weeklyTarget['protein'] as num?)?.toDouble() ?? 700.0;
+          final weeklyFat = (weeklyTarget['fat'] as num?)?.toDouble() ?? 455.0;
+          final weeklyCarbs =
+              (weeklyTarget['carbohydrates'] as num?)?.toDouble() ?? 1750.0;
+
+          _nutritionData = {
+            'energy_current': (consumed['energy'] as num?)?.toDouble() ?? 0.0,
+            'energy_target': weeklyEnergy / 7,
+            'protein_current': (consumed['protein'] as num?)?.toDouble() ?? 0.0,
+            'protein_target': weeklyProtein / 7,
+            'fat_current': (consumed['fat'] as num?)?.toDouble() ?? 0.0,
+            'fat_target': weeklyFat / 7,
+            'carbs_current':
+                (consumed['carbohydrates'] as num?)?.toDouble() ?? 0.0,
+            'carbs_target': weeklyCarbs / 7,
+          };
+          _isLoading = false;
+        });
+      } else {
+        setState(() => _isLoading = false);
+        if (mounted) {
+          final errorCode = summaryResult['code'] as int?;
+          final errorMsg = summaryResult['error'] as String? ?? 'Unknown error';
+
+          // 如果是401/403，提示重新登录
+          if (errorCode == 401 || errorCode == 403) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Please login again: $errorMsg'),
+                backgroundColor: Colors.orange,
+                duration: const Duration(seconds: 5),
+                action: SnackBarAction(
+                  label: 'OK',
+                  textColor: Colors.white,
+                  onPressed: () {},
+                ),
+              ),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Failed to load nutrition data: $errorMsg'),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 4),
+                action: SnackBarAction(
+                  label: 'Retry',
+                  textColor: Colors.white,
+                  onPressed: _loadNutritionData,
+                ),
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Unexpected error: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+            action: SnackBarAction(
+              label: 'Retry',
+              textColor: Colors.white,
+              onPressed: _loadNutritionData,
+            ),
+          ),
+        );
+      }
+    }
+  }
 
   // 构建营养项显示
   Widget _buildNutritionItem({
@@ -107,11 +231,7 @@ class HomePage extends StatelessWidget {
                 color: color.shade100,
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: Icon(
-                icon,
-                size: 32,
-                color: color.shade700,
-              ),
+              child: Icon(icon, size: 32, color: color.shade700),
             ),
             const SizedBox(height: 12),
             Text(
@@ -126,10 +246,7 @@ class HomePage extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               subtitle,
-              style: GoogleFonts.kalam(
-                fontSize: 11,
-                color: color.shade600,
-              ),
+              style: GoogleFonts.kalam(fontSize: 11, color: color.shade600),
               textAlign: TextAlign.center,
             ),
           ],
@@ -179,7 +296,11 @@ class HomePage extends StatelessWidget {
                   label: "Today's Recipes",
                   subtitle: "Track what you cooked",
                   color: Colors.deepOrange,
-                  onTap: () => showTodaysRecipesDialog(context),
+                  onTap: () async {
+                    await showTodaysRecipesDialog(context);
+                    // 刷新营养数据
+                    _loadNutritionData();
+                  },
                 ),
               ),
               const SizedBox(width: 16),
@@ -191,7 +312,11 @@ class HomePage extends StatelessWidget {
                   label: "Add Food",
                   subtitle: "What else did you eat?",
                   color: Colors.teal,
-                  onTap: () => showAddFoodDialog(context),
+                  onTap: () async {
+                    await showAddFoodDialog(context);
+                    // 刷新营养数据
+                    _loadNutritionData();
+                  },
                 ),
               ),
             ],
@@ -212,68 +337,81 @@ class HomePage extends StatelessWidget {
             borderColor: Colors.teal.shade700,
             borderWidth: 2.5,
             padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 标题行
-                Row(
-                  children: [
-                    Icon(
-                      Icons.analytics,
-                      size: 28,
-                      color: Colors.teal.shade700,
+            child: _isLoading
+                ? const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(20.0),
+                      child: CircularProgressIndicator(),
                     ),
-                    const SizedBox(width: 10),
-                    Text(
-                      "This Week's Intake",
-                      style: GoogleFonts.caveat(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.teal.shade900,
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 标题行
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.analytics,
+                            size: 28,
+                            color: Colors.teal.shade700,
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            "This Week's Intake",
+                            style: GoogleFonts.caveat(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.teal.shade900,
+                            ),
+                          ),
+                          const Spacer(),
+                          IconButton(
+                            icon: const Icon(Icons.refresh),
+                            onPressed: _loadNutritionData,
+                            tooltip: 'Refresh',
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
+                      const SizedBox(height: 20),
 
-                // 营养成分列表
-                _buildNutritionItem(
-                  label: "Energy",
-                  unit: "kcal",
-                  current: 1250,
-                  target: 2000,
-                  color: Colors.orange,
-                  icon: Icons.local_fire_department,
-                ),
-                const SizedBox(height: 15),
-                _buildNutritionItem(
-                  label: "Protein",
-                  unit: "g",
-                  current: 65,
-                  target: 100,
-                  color: Colors.blue,
-                  icon: Icons.fitness_center,
-                ),
-                const SizedBox(height: 15),
-                _buildNutritionItem(
-                  label: "Fat",
-                  unit: "g",
-                  current: 45,
-                  target: 65,
-                  color: Colors.amber,
-                  icon: Icons.water_drop,
-                ),
-                const SizedBox(height: 15),
-                _buildNutritionItem(
-                  label: "Carbohydrates",
-                  unit: "g",
-                  current: 180,
-                  target: 250,
-                  color: Colors.green,
-                  icon: Icons.eco,
-                ),
-              ],
-            ),
+                      // 营养成分列表
+                      _buildNutritionItem(
+                        label: "Energy",
+                        unit: "kcal",
+                        current: _nutritionData['energy_current']!,
+                        target: _nutritionData['energy_target']!,
+                        color: Colors.orange,
+                        icon: Icons.local_fire_department,
+                      ),
+                      const SizedBox(height: 15),
+                      _buildNutritionItem(
+                        label: "Protein",
+                        unit: "g",
+                        current: _nutritionData['protein_current']!,
+                        target: _nutritionData['protein_target']!,
+                        color: Colors.blue,
+                        icon: Icons.fitness_center,
+                      ),
+                      const SizedBox(height: 15),
+                      _buildNutritionItem(
+                        label: "Fat",
+                        unit: "g",
+                        current: _nutritionData['fat_current']!,
+                        target: _nutritionData['fat_target']!,
+                        color: Colors.amber,
+                        icon: Icons.water_drop,
+                      ),
+                      const SizedBox(height: 15),
+                      _buildNutritionItem(
+                        label: "Carbohydrates",
+                        unit: "g",
+                        current: _nutritionData['carbs_current']!,
+                        target: _nutritionData['carbs_target']!,
+                        color: Colors.green,
+                        icon: Icons.eco,
+                      ),
+                    ],
+                  ),
           ),
         ],
       ),

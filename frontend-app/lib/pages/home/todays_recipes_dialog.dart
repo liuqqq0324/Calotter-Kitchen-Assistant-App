@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:personal_sous_chef/theme/fallback_google_fonts.dart';
+import 'package:personal_sous_chef/services/homepage_api_service.dart';
 
 /// 今日菜谱数据模型
 class TodayRecipe {
+  final int? intakeId;
   final String name;
   final String imageIcon;
   double consumedPercentage; // 0.0 - 1.0
 
   TodayRecipe({
+    this.intakeId,
     required this.name,
     required this.imageIcon,
     this.consumedPercentage = 0.5,
@@ -23,20 +26,170 @@ class TodaysRecipesDialog extends StatefulWidget {
 }
 
 class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
-  // 模拟今日菜谱数据 (以后接真实数据)
-  final List<TodayRecipe> _todaysRecipes = [
-    TodayRecipe(
-      name: "Grilled Salmon",
-      imageIcon: "🐟",
-      consumedPercentage: 0.8,
-    ),
-    TodayRecipe(name: "Caesar Salad", imageIcon: "🥗", consumedPercentage: 1.0),
-    TodayRecipe(
-      name: "Mushroom Soup",
-      imageIcon: "🍲",
-      consumedPercentage: 0.5,
-    ),
-  ];
+  bool _isLoading = true;
+  bool _isSaving = false;
+  List<TodayRecipe> _todaysRecipes = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTodayRecipes();
+  }
+
+  Future<void> _loadTodayRecipes() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final result = await HomepageApiService.getTodayIntakes(source: 'recipe');
+
+      if (result['success'] == true && result['data'] != null) {
+        final data = result['data'] as Map<String, dynamic>;
+        final items = data['items'] as List<dynamic>? ?? [];
+
+        setState(() {
+          _todaysRecipes = items.map((item) {
+            final consumedPercentage =
+                (item['consumedPercentage'] as num?)?.toDouble() ?? 0.0;
+            return TodayRecipe(
+              intakeId: item['intakeId'] as int?,
+              name: item['recipeTitle'] as String? ?? 'Unknown Recipe',
+              imageIcon: "🍽️", // 默认图标，可以根据recipe_id获取真实图标
+              consumedPercentage: consumedPercentage / 100.0, // 转换为0-1范围
+            );
+          }).toList();
+          _isLoading = false;
+        });
+      } else {
+        setState(() => _isLoading = false);
+        if (mounted) {
+          final errorCode = result['code'] as int?;
+          final errorMsg = result['error'] as String? ?? 'Unknown error';
+
+          if (errorCode == 401 || errorCode == 403) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Please login again: $errorMsg'),
+                backgroundColor: Colors.orange,
+                duration: const Duration(seconds: 5),
+              ),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Failed to load recipes: $errorMsg'),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 4),
+                action: SnackBarAction(
+                  label: 'Retry',
+                  textColor: Colors.white,
+                  onPressed: _loadTodayRecipes,
+                ),
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Unexpected error: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+            action: SnackBarAction(
+              label: 'Retry',
+              textColor: Colors.white,
+              onPressed: _loadTodayRecipes,
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _saveChanges() async {
+    setState(() => _isSaving = true);
+
+    try {
+      bool allSuccess = true;
+      String? errorMessage;
+      int? errorCode;
+
+      for (final recipe in _todaysRecipes) {
+        if (recipe.intakeId != null) {
+          final percentage = (recipe.consumedPercentage * 100).toDouble();
+          final result = await HomepageApiService.updateIntakePercentage(
+            intakeId: recipe.intakeId!,
+            consumedPercentage: percentage,
+          );
+
+          if (result['success'] != true) {
+            allSuccess = false;
+            errorMessage = result['error'] ?? 'Failed to update recipe';
+            errorCode = result['code'] as int?;
+            break;
+          }
+        }
+      }
+
+      setState(() => _isSaving = false);
+
+      if (allSuccess) {
+        if (mounted) {
+          Navigator.of(context).pop(_todaysRecipes);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Changes saved successfully!'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          if (errorCode == 401 || errorCode == 403) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Please login again: $errorMessage'),
+                backgroundColor: Colors.orange,
+                duration: const Duration(seconds: 5),
+              ),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Failed to save: $errorMessage'),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 4),
+                action: SnackBarAction(
+                  label: 'Retry',
+                  textColor: Colors.white,
+                  onPressed: _saveChanges,
+                ),
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      setState(() => _isSaving = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Unexpected error: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+            action: SnackBarAction(
+              label: 'Retry',
+              textColor: Colors.white,
+              onPressed: _saveChanges,
+            ),
+          ),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -86,7 +239,14 @@ class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
 
             // 菜谱列表
             Flexible(
-              child: _todaysRecipes.isEmpty
+              child: _isLoading
+                  ? const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(20.0),
+                        child: CircularProgressIndicator(),
+                      ),
+                    )
+                  : _todaysRecipes.isEmpty
                   ? _buildEmptyState()
                   : ListView.separated(
                       shrinkWrap: true,
@@ -104,10 +264,7 @@ class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {
-                  // 保存数据并关闭
-                  Navigator.of(context).pop(_todaysRecipes);
-                },
+                onPressed: _isLoading || _isSaving ? null : _saveChanges,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.deepOrange.shade500,
                   foregroundColor: Colors.white,
@@ -116,13 +273,22 @@ class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: Text(
-                  "Save Changes",
-                  style: GoogleFonts.kalam(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                child: _isSaving
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Text(
+                        "Save Changes",
+                        style: GoogleFonts.kalam(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
               ),
             ),
           ],
