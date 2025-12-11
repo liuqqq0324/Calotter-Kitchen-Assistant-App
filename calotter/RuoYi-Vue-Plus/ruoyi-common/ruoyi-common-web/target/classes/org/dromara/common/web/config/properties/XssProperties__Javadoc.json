@@ -1,0 +1,1 @@
+{"doc":"\n xss过滤 配置属性\r\n\r\n @author Lion Li\r\n","fields":[{"name":"enabled","doc":"\n Xss开关\r\n"},{"name":"excludeUrls","doc":"\n 排除路径\r\n"}],"enumConstants":[],"methods":[],"constructors":[]}

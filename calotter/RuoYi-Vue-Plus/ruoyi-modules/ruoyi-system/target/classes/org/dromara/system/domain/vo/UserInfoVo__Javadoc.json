@@ -1,0 +1,1 @@
+{"doc":"\n 登录用户信息\r\n\r\n @author Michelle.Chung\r\n","fields":[{"name":"user","doc":"\n 用户基本信息\r\n"},{"name":"permissions","doc":"\n 菜单权限\r\n"},{"name":"roles","doc":"\n 角色权限\r\n"}],"enumConstants":[],"methods":[],"constructors":[]}

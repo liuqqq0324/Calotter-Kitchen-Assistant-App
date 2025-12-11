@@ -1,0 +1,21 @@
+{
+  "groups": [
+    {
+      "name": "security",
+      "type": "org.dromara.common.security.config.properties.SecurityProperties",
+      "sourceType": "org.dromara.common.security.config.properties.SecurityProperties"
+    }
+  ],
+  "properties": [
+    {
+      "name": "security.excludes",
+      "type": "java.lang.String[]",
+      "description": "排除路径",
+      "sourceType": "org.dromara.common.security.config.properties.SecurityProperties"
+    }
+  ],
+  "hints": [],
+  "ignored": {
+    "properties": []
+  }
+}

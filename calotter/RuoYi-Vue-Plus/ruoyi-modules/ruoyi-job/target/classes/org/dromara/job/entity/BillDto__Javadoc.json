@@ -1,0 +1,1 @@
+{"doc":"","fields":[{"name":"billId","doc":"\n 账单ID\r\n"},{"name":"billChannel","doc":"\n 账单渠道\r\n"},{"name":"billDate","doc":"\n 账单日期\r\n"},{"name":"billAmount","doc":"\n 账单金额\r\n"}],"enumConstants":[],"methods":[],"constructors":[]}

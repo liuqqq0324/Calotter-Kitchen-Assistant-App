@@ -1,0 +1,1 @@
+{"doc":"\n 邮件认证策略\r\n\r\n @author Michelle.Chung\r\n","fields":[],"enumConstants":[],"methods":[{"name":"validateEmailCode","paramTypes":["java.lang.String","java.lang.String","java.lang.String"],"doc":"\n 校验邮箱验证码\r\n"}],"constructors":[]}

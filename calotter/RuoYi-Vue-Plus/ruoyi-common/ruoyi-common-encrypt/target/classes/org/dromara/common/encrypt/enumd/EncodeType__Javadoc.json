@@ -1,0 +1,1 @@
+{"doc":"\n 编码类型\r\n\r\n @author 老马\r\n @version 4.6.0\r\n","fields":[],"enumConstants":[{"name":"DEFAULT","doc":"\n 默认使用yml配置\r\n"},{"name":"BASE64","doc":"\n base64编码\r\n"},{"name":"HEX","doc":"\n 16进制编码\r\n"}],"methods":[],"constructors":[]}

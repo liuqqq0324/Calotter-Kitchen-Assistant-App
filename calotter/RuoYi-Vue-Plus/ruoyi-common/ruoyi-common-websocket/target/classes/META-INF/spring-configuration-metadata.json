@@ -1,0 +1,32 @@
+{
+  "groups": [
+    {
+      "name": "websocket",
+      "type": "org.dromara.common.websocket.config.properties.WebSocketProperties",
+      "sourceType": "org.dromara.common.websocket.config.properties.WebSocketProperties"
+    }
+  ],
+  "properties": [
+    {
+      "name": "websocket.allowed-origins",
+      "type": "java.lang.String",
+      "description": "设置访问源地址",
+      "sourceType": "org.dromara.common.websocket.config.properties.WebSocketProperties"
+    },
+    {
+      "name": "websocket.enabled",
+      "type": "java.lang.Boolean",
+      "sourceType": "org.dromara.common.websocket.config.properties.WebSocketProperties"
+    },
+    {
+      "name": "websocket.path",
+      "type": "java.lang.String",
+      "description": "路径",
+      "sourceType": "org.dromara.common.websocket.config.properties.WebSocketProperties"
+    }
+  ],
+  "hints": [],
+  "ignored": {
+    "properties": []
+  }
+}

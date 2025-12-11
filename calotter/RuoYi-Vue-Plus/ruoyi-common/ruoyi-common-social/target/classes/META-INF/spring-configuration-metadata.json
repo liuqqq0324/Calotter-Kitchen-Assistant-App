@@ -1,0 +1,21 @@
+{
+  "groups": [
+    {
+      "name": "justauth",
+      "type": "org.dromara.common.social.config.properties.SocialProperties",
+      "sourceType": "org.dromara.common.social.config.properties.SocialProperties"
+    }
+  ],
+  "properties": [
+    {
+      "name": "justauth.type",
+      "type": "java.util.Map<java.lang.String,org.dromara.common.social.config.properties.SocialLoginConfigProperties>",
+      "description": "授权类型",
+      "sourceType": "org.dromara.common.social.config.properties.SocialProperties"
+    }
+  ],
+  "hints": [],
+  "ignored": {
+    "properties": []
+  }
+}

@@ -1,0 +1,1 @@
+{"doc":"\n 流程分类业务对象 wf_category\r\n\r\n @author may\r\n @date 2023-06-27\r\n","fields":[{"name":"categoryId","doc":"\n 流程分类ID\r\n"},{"name":"parentId","doc":"\n 父流程分类id\r\n"},{"name":"categoryName","doc":"\n 流程分类名称\r\n"},{"name":"orderNum","doc":"\n 显示顺序\r\n"}],"enumConstants":[],"methods":[],"constructors":[]}

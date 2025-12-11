@@ -3,12 +3,12 @@ package com.calotter.recipe.domain;
 import com.calotter.recipe.domain.bo.CuisineTypeBoToCuisineTypeMapper;
 import com.calotter.recipe.domain.vo.CuisineTypeVo;
 import com.calotter.recipe.domain.vo.CuisineTypeVoToCuisineTypeMapper;
-import io.github.linpeilie.AutoMapperConfig__51;
+import io.github.linpeilie.AutoMapperConfig__131;
 import io.github.linpeilie.BaseMapper;
 import org.mapstruct.Mapper;
 
 @Mapper(
-    config = AutoMapperConfig__51.class,
+    config = AutoMapperConfig__131.class,
     uses = {CuisineTypeBoToCuisineTypeMapper.class,CuisineTypeVoToCuisineTypeMapper.class},
     imports = {}
 )

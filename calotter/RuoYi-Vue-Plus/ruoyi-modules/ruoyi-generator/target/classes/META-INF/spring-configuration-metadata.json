@@ -1,0 +1,14 @@
+{
+  "groups": [
+    {
+      "name": "gen",
+      "type": "org.dromara.generator.config.GenConfig",
+      "sourceType": "org.dromara.generator.config.GenConfig"
+    }
+  ],
+  "properties": [],
+  "hints": [],
+  "ignored": {
+    "properties": []
+  }
+}

@@ -1,0 +1,1 @@
+{"doc":"\n 验证码类型\r\n\r\n @author Lion Li\r\n","fields":[],"enumConstants":[{"name":"MATH","doc":"\n 数字\r\n"},{"name":"CHAR","doc":"\n 字符\r\n"}],"methods":[],"constructors":[]}

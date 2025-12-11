@@ -1,0 +1,1 @@
+{"doc":"\n SSE 主题订阅监听器\r\n\r\n @author Lion Li\r\n","fields":[],"enumConstants":[],"methods":[{"name":"run","paramTypes":["org.springframework.boot.ApplicationArguments"],"doc":"\n 在Spring Boot应用程序启动时初始化SSE主题订阅监听器\r\n\r\n @param args 应用程序参数\r\n @throws Exception 初始化过程中可能抛出的异常\r\n"}],"constructors":[]}

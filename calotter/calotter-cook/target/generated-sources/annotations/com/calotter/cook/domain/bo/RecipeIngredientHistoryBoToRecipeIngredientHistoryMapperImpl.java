@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-12-11T11:32:06+1300",
+    date = "2025-12-11T13:57:45+1300",
     comments = "version: 1.6.3, compiler: Eclipse JDT (IDE) 3.44.0.v20251118-1623, environment: Java 21.0.9 (Eclipse Adoptium)"
 )
 @Component
@@ -33,11 +33,11 @@ public class RecipeIngredientHistoryBoToRecipeIngredientHistoryMapperImpl implem
         recipeIngredientHistory.setUpdateBy( arg0.getUpdateBy() );
         recipeIngredientHistory.setUpdateTime( arg0.getUpdateTime() );
         recipeIngredientHistory.setId( arg0.getId() );
-        recipeIngredientHistory.setRecipeId( arg0.getRecipeId() );
         recipeIngredientHistory.setIngredientId( arg0.getIngredientId() );
         recipeIngredientHistory.setQuantityUsed( arg0.getQuantityUsed() );
-        recipeIngredientHistory.setUnit( arg0.getUnit() );
+        recipeIngredientHistory.setRecipeId( arg0.getRecipeId() );
         recipeIngredientHistory.setSubstitution( arg0.getSubstitution() );
+        recipeIngredientHistory.setUnit( arg0.getUnit() );
 
         return recipeIngredientHistory;
     }
@@ -71,11 +71,11 @@ public class RecipeIngredientHistoryBoToRecipeIngredientHistoryMapperImpl implem
         arg1.setUpdateBy( arg0.getUpdateBy() );
         arg1.setUpdateTime( arg0.getUpdateTime() );
         arg1.setId( arg0.getId() );
-        arg1.setRecipeId( arg0.getRecipeId() );
         arg1.setIngredientId( arg0.getIngredientId() );
         arg1.setQuantityUsed( arg0.getQuantityUsed() );
-        arg1.setUnit( arg0.getUnit() );
+        arg1.setRecipeId( arg0.getRecipeId() );
         arg1.setSubstitution( arg0.getSubstitution() );
+        arg1.setUnit( arg0.getUnit() );
 
         return arg1;
     }
