@@ -8,6 +8,7 @@ import 'package:personal_sous_chef/widgets/generate_recipe_button.dart'; // 引�
 import 'package:personal_sous_chef/main.dart'; // 🔥 引入 main.dart 以访问 MainScaffoldState
 import 'package:personal_sous_chef/models/cookware.dart';
 import 'package:personal_sous_chef/widgets/item_toggle_grid.dart';
+import 'package:personal_sous_chef/services/inventory_api_service.dart';
 
 class InventoryPage extends StatefulWidget {
   const InventoryPage({super.key});
@@ -18,20 +19,19 @@ class InventoryPage extends StatefulWidget {
 
 class _InventoryPageState extends State<InventoryPage>
     with SingleTickerProviderStateMixin {
-  // 不要在定义时初始化，在 build 里同步
-  late List<Ingredient> _ingredients;
+  List<Ingredient> _ingredients = [];
   late List<Cookware> _seasonings;
   late List<Cookware> _cookwares;
 
   late AnimationController _animationController;
   late Animation<double> _expandAnimation;
   bool _isExpanded = false;
+  bool _isLoading = true;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
-    // 🔥 1. 移除这里的数据初始化，只保留动画逻辑
-
     _seasonings = kBasicSeasonings;
     _cookwares = kBasicCookware;
 
@@ -45,6 +45,50 @@ class _InventoryPageState extends State<InventoryPage>
       curve: Curves.fastOutSlowIn,
       parent: _animationController,
     );
+
+    _loadInventory();
+  }
+
+  Future<void> _loadInventory() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final data = await InventoryApiService.getInventory();
+      setState(() {
+        _ingredients = data.map((item) {
+          // Convert API response to Ingredient model
+          DateTime expiryDate = DateTime.now().add(const Duration(days: 7));
+          if (item['expiry_date'] != null) {
+            try {
+              expiryDate = DateTime.parse(item['expiry_date']);
+            } catch (e) {
+              // Keep default if parsing fails
+            }
+          }
+          return Ingredient(
+            name: item['name'] ?? 'Unknown',
+            expiryDate: expiryDate,
+            quantity: (item['quantity'] ?? 0).toInt(),
+            unit: item['unit'] ?? 'pcs',
+            imagePlaceholder: item['image_url'] != null ? '🖼️' : '📦',
+            inventoryId: item['inventory_id']?.toString(),
+          );
+        }).toList();
+        _sortItems();
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+        // Fallback to static data on error
+        _ingredients = kInitialIngredients;
+        _sortItems();
+      });
+    }
   }
 
   @override
@@ -87,23 +131,34 @@ class _InventoryPageState extends State<InventoryPage>
     if (!mounted) return;
 
     if (result == 'delete') {
-      setState(() {
-        _ingredients.remove(item);
-      });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("${item.name} removed.")));
+      // Delete from API
+      if (item.inventoryId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Cannot delete: missing inventory ID")),
+        );
+        return;
+      }
+      try {
+        await InventoryApiService.deleteInventory(
+          inventoryId: item.inventoryId!,
+        );
+        await _loadInventory();
+        if (!mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("${item.name} removed.")));
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Failed to delete: $e")));
+      }
     } else if (result == true) {
-      setState(() {
-        if (isNew) {
-          // 因为 _ingredients 引用的是 kInitialIngredients，直接 add 即可
-          _ingredients.add(item);
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text("${item.name} added!")));
-        }
-        // 不需要手动调 _sortItems，因为 setState 会触发 build，build 里会自动排序
-      });
+      // Reload from API after add/edit
+      await _loadInventory();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("${item.name} ${isNew ? 'added' : 'updated'}!")),
+      );
     }
   }
 
@@ -129,10 +184,7 @@ class _InventoryPageState extends State<InventoryPage>
 
   @override
   Widget build(BuildContext context) {
-    // 🔥 3. 核心修复：每次构建时同步全局数据并排序
-    // 这样当 Add 流程结束后回到这里，数据会自动刷新
-    _ingredients = kInitialIngredients;
-    _sortItems();
+    // Data is loaded from API in initState and _loadInventory
 
     return DefaultTabController(
       length: 3,
@@ -173,6 +225,32 @@ class _InventoryPageState extends State<InventoryPage>
   // =========================================================
 
   Widget _buildIngredientPage() {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_error != null && _ingredients.isEmpty) {
+      return Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('Error: $_error'),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _loadInventory,
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       floatingActionButton: _buildExpandableFab(),
@@ -202,31 +280,41 @@ class _InventoryPageState extends State<InventoryPage>
                   padding: const EdgeInsets.only(right: 20),
                   child: const Icon(Icons.delete, color: Colors.red, size: 30),
                 ),
-                onDismissed: (direction) {
+                onDismissed: (direction) async {
                   final deletedItem = item;
-                  // final deletedIndex = index;
+                  if (deletedItem.inventoryId == null) {
+                    // If no inventory_id, just remove from local list
+                    setState(() {
+                      _ingredients.removeAt(index);
+                    });
+                    return;
+                  }
 
-                  setState(() {
-                    _ingredients.removeAt(index);
-                  });
-
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text("${deletedItem.name} deleted"),
-                      action: SnackBarAction(
-                        label: "UNDO",
-                        onPressed: () {
-                          if (!mounted) return;
-                          setState(() {
-                            // 🔥 修复：改为 add，避免 Index 越界
-                            _ingredients.add(deletedItem);
-                            // 重新排序，恢复正确的顺序
-                            _sortItems();
-                          });
-                        },
+                  // Delete from API
+                  try {
+                    await InventoryApiService.deleteInventory(
+                      inventoryId: deletedItem.inventoryId!,
+                    );
+                    await _loadInventory();
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("${deletedItem.name} deleted")),
+                    );
+                  } catch (e) {
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text("Failed to delete: $e"),
+                        action: SnackBarAction(
+                          label: "UNDO",
+                          onPressed: () {
+                            // Reload to restore
+                            _loadInventory();
+                          },
+                        ),
                       ),
-                    ),
-                  );
+                    );
+                  }
                 },
                 child: _buildIngredientCard(item),
               );

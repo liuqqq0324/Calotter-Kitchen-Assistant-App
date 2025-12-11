@@ -22,6 +22,12 @@ class ApiConfig {
   /// Recipe 服务端口（calotter-recipe 默认 9000）
   static const String recipePort = "9000";
 
+  /// Inventory 服务端口（calotter-inventory 默认 8000）
+  static const String inventoryPort = "8000";
+
+  /// Homepage 服务端口（calotter-homepage 默认 10001）
+  static const String homepagePort = "10001";
+
   // 这里的 getter 会自动把 IP 和 端口 拼起来
   static String get baseUrl {
     return "http://$serverIp:$port";
@@ -29,5 +35,13 @@ class ApiConfig {
 
   static String get recipeBaseUrl {
     return "http://$serverIp:$recipePort";
+  }
+
+  static String get inventoryBaseUrl {
+    return "http://$serverIp:$inventoryPort";
+  }
+
+  static String get homepageBaseUrl {
+    return "http://$serverIp:$homepagePort";
   }
 }

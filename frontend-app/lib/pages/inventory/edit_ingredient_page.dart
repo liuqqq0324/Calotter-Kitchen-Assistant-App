@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:personal_sous_chef/models/ingredient.dart';
 import 'package:personal_sous_chef/widgets/quantity_selector.dart';
 import 'package:personal_sous_chef/data/static_data.dart';
+import 'package:personal_sous_chef/services/inventory_api_service.dart';
 
 class EditIngredientPage extends StatefulWidget {
   final Ingredient ingredient;
@@ -283,7 +284,7 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
               width: double.infinity,
               height: 50,
               child: ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
                   if (_quantity < 1) _quantity = 1;
 
                   widget.ingredient.quantity = _quantity;
@@ -294,7 +295,41 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
                   // 所以这里直接读 _nameController.text 就是用户最终输入的内容
                   widget.ingredient.name = _nameController.text;
 
-                  Navigator.pop(context, true);
+                  // Save to API
+                  try {
+                    if (widget.isNew) {
+                      // Add new item
+                      final result = await InventoryApiService.addInventory(
+                        name: widget.ingredient.name,
+                        quantity: widget.ingredient.quantity.toDouble(),
+                        unit: widget.ingredient.unit,
+                        expiryDate: widget.ingredient.expiryDate
+                            .toIso8601String()
+                            .split('T')[0],
+                      );
+                      widget.ingredient.inventoryId = result['inventory_id']
+                          ?.toString();
+                    } else if (widget.ingredient.inventoryId != null) {
+                      // Update existing item
+                      await InventoryApiService.updateInventory(
+                        inventoryId: widget.ingredient.inventoryId!,
+                        quantity: widget.ingredient.quantity.toDouble(),
+                        unit: widget.ingredient.unit,
+                        expiryDate: widget.ingredient.expiryDate
+                            .toIso8601String()
+                            .split('T')[0],
+                      );
+                    }
+                    if (mounted) {
+                      Navigator.pop(context, true);
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Failed to save: $e')),
+                      );
+                    }
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.orange,

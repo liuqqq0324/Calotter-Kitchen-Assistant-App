@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:personal_sous_chef/theme/fallback_google_fonts.dart';
+import 'package:personal_sous_chef/services/homepage_api_service.dart';
 
 /// 额外食物数据模型
 class ExtraFood {
@@ -66,27 +67,92 @@ class _AddFoodDialogState extends State<AddFoodDialog> {
   }
 
   void _addFood() async {
-    final foodName = _foodController.text.trim().toLowerCase();
+    final foodName = _foodController.text.trim();
     if (foodName.isEmpty) return;
 
     setState(() => _isLoading = true);
 
-    // 模拟API延迟
-    await Future.delayed(const Duration(milliseconds: 500));
+    try {
+      // 查找本地食物营养信息（用于显示）
+      final foodNameLower = foodName.toLowerCase();
+      NutritionInfo? nutrition = _foodDatabase[foodNameLower];
 
-    // 查找食物营养信息
-    NutritionInfo? nutrition = _foodDatabase[foodName];
+      // 如果没找到，生成默认营养信息（仅用于显示）
+      nutrition ??= NutritionInfo(calories: 150, protein: 5, fat: 5, carbs: 20);
 
-    // 如果没找到，生成默认营养信息
-    nutrition ??= NutritionInfo(calories: 150, protein: 5, fat: 5, carbs: 20);
-
-    setState(() {
-      _addedFoods.add(
-        ExtraFood(name: _foodController.text.trim(), nutrition: nutrition!),
+      // 调用API添加手动摄入
+      final result = await HomepageApiService.addManualIntake(
+        foodName: foodName,
+        portionDescription: null,
       );
-      _foodController.clear();
-      _isLoading = false;
-    });
+
+      setState(() => _isLoading = false);
+
+      if (result['success'] == true) {
+        // 如果API返回了营养信息，使用API的数据
+        final data = result['data'] as Map<String, dynamic>?;
+        if (data != null && data['intake'] != null) {
+          final intake = data['intake'] as Map<String, dynamic>;
+          final effectiveNutrition =
+              intake['effectiveNutrition'] as Map<String, dynamic>?;
+          if (effectiveNutrition != null) {
+            nutrition = NutritionInfo(
+              calories:
+                  (effectiveNutrition['energy'] as num?)?.toDouble() ??
+                  nutrition.calories,
+              protein:
+                  (effectiveNutrition['protein'] as num?)?.toDouble() ??
+                  nutrition.protein,
+              fat:
+                  (effectiveNutrition['fat'] as num?)?.toDouble() ??
+                  nutrition.fat,
+              carbs:
+                  (effectiveNutrition['carbohydrates'] as num?)?.toDouble() ??
+                  nutrition.carbs,
+            );
+          }
+        }
+
+        setState(() {
+          _addedFoods.add(ExtraFood(name: foodName, nutrition: nutrition!));
+          _foodController.clear();
+        });
+      } else {
+        final errorCode = result['code'] as int?;
+        final errorMsg = result['error'] as String? ?? 'Unknown error';
+
+        if (mounted) {
+          if (errorCode == 401 || errorCode == 403) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Please login again: $errorMsg'),
+                backgroundColor: Colors.orange,
+                duration: const Duration(seconds: 5),
+              ),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Failed to add food: $errorMsg'),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 4),
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Unexpected error: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    }
   }
 
   void _removeFood(int index) {
@@ -238,9 +304,11 @@ class _AddFoodDialogState extends State<AddFoodDialog> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {
-                  Navigator.of(context).pop(_addedFoods);
-                },
+                onPressed: _isLoading
+                    ? null
+                    : () {
+                        Navigator.of(context).pop(_addedFoods);
+                      },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.teal.shade500,
                   foregroundColor: Colors.white,
