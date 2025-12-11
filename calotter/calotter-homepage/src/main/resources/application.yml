@@ -3,7 +3,7 @@ spring:
     name: calotter-homepage
   datasource:
     username: postgres
-    password: 123
+    password: mysecretpassword
     url: jdbc:postgresql://127.0.0.1:5432/sous_chef?currentSchema=sous_chef_hp&useUnicode=true&characterEncoding=utf8
     driver-class-name: org.postgresql.Driver
 

@@ -101,3 +101,5 @@ app.*.map.json
 
 **/postgres/data/
 **/target/
+
+calotter/postgres/data/

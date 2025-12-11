@@ -39,6 +39,8 @@ class _HomePageState extends State<HomePage> {
       final summaryResult =
           await HomepageApiService.getWeeklyNutritionSummary();
 
+      if (!mounted) return;
+
       if (summaryResult['success'] == true && summaryResult['data'] != null) {
         final data = summaryResult['data'] as Map<String, dynamic>;
         final consumed = data['consumed'] as Map<String, dynamic>? ?? {};
@@ -46,6 +48,9 @@ class _HomePageState extends State<HomePage> {
         // 获取周营养目标（用于target值）
         final targetResult =
             await HomepageApiService.getWeeklyNutritionTargets();
+
+        if (!mounted) return;
+
         Map<String, dynamic> weeklyTarget = {};
         if (targetResult['success'] == true && targetResult['data'] != null) {
           final targetData = targetResult['data'] as Map<String, dynamic>;
@@ -77,6 +82,7 @@ class _HomePageState extends State<HomePage> {
           _isLoading = false;
         });
       } else {
+        if (!mounted) return;
         setState(() => _isLoading = false);
         if (mounted) {
           final errorCode = summaryResult['code'] as int?;
@@ -113,6 +119,8 @@ class _HomePageState extends State<HomePage> {
         }
       }
     } catch (e) {
+      if (!mounted) return;
+
       setState(() => _isLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
