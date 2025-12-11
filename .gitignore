@@ -98,3 +98,5 @@ app.*.map.json
 [Oo]bj/
 .vs/
 *.user
+
+**/postgres/data/
