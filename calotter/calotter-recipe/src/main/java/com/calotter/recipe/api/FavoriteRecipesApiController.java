@@ -1,6 +1,8 @@
 package com.calotter.recipe.api;
 
 import org.springframework.web.bind.annotation.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
@@ -12,10 +14,12 @@ import java.util.*;
 @RequestMapping("/api/users/me/favorite-recipes")
 public class FavoriteRecipesApiController {
 
+    private static final Logger log = LoggerFactory.getLogger(FavoriteRecipesApiController.class);
     private final Map<String, SimpleRecipe> favorites = new LinkedHashMap<>();
 
     @GetMapping
     public FavoriteListResponse list() {
+        log.info("[Favorites] GET list");
         if (favorites.isEmpty()) {
             // seed two examples
             favorites.put("rec_123456", sampleTomatoEgg());
@@ -40,6 +44,7 @@ public class FavoriteRecipesApiController {
 
     @GetMapping("/{recipeId}")
     public DetailedRecipe get(@PathVariable String recipeId) {
+        log.info("[Favorites] GET detail id={}", recipeId);
         if (!favorites.containsKey(recipeId)) {
             // if not existing, return sample tomato egg with requested id
             DetailedRecipe d = sampleTomatoEggDetailed();
@@ -53,6 +58,7 @@ public class FavoriteRecipesApiController {
     @PostMapping
     public AddFavoriteResponse add(@RequestBody AddFavoriteRequest req) {
         String id = UUID.randomUUID().toString().replace("-", "");
+        log.info("[Favorites] POST add title={} generatedId={}", req.recipe.title, id);
         SimpleRecipe sr = new SimpleRecipe();
         sr.title = req.recipe.title;
         sr.short_description = req.recipe.short_description;
@@ -71,6 +77,7 @@ public class FavoriteRecipesApiController {
 
     @DeleteMapping("/{recipeId}")
     public Message remove(@PathVariable String recipeId) {
+        log.info("[Favorites] DELETE id={}", recipeId);
         favorites.remove(recipeId);
         Message r = new Message();
         r.message = "Recipe removed from favorites";

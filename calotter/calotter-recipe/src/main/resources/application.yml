@@ -1,7 +1,7 @@
 spring:
   datasource:
     username: postgres
-    password: 123
+    password: 密码
     url: jdbc:postgresql://127.0.0.1:5432/sous_chef?currentSchema=sous_chef_rms&useUnicode=true&characterEncoding=utf8
     driver-class-name: org.postgresql.Driver
 

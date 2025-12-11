@@ -1,5 +1,8 @@
 package com.calotter.recipe.api;
 
+import com.calotter.recipe.service.AiRecipeService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -10,14 +13,25 @@ import java.util.*;
 @RestController
 public class RecipeApiController {
 
+    private static final Logger log = LoggerFactory.getLogger(RecipeApiController.class);
+    private final AiRecipeService aiRecipeService;
+
+    public RecipeApiController(AiRecipeService aiRecipeService) {
+        this.aiRecipeService = aiRecipeService;
+    }
+
     @PostMapping("/api/recipes/generate")
     public GeneratedMenusResponse generateMenus(@RequestBody GenerateMenusRequest req) {
-        // Return a fixed example as documentation shows
-        GeneratedMenusResponse r = new GeneratedMenusResponse();
-        r.menus = new ArrayList<>();
-        r.menus.add(sampleMenu(1));
-        r.menus.add(sampleMenu(2));
-        return r;
+        try {
+            return aiRecipeService.generateMenus(req);
+        } catch (Exception e) {
+            log.warn("AI generation failed, falling back to sample menus: {}", e.getMessage());
+            GeneratedMenusResponse r = new GeneratedMenusResponse();
+            r.menus = new ArrayList<>();
+            r.menus.add(sampleMenu(1));
+            r.menus.add(sampleMenu(2));
+            return r;
+        }
     }
 
     @GetMapping("/api/recipes/preferences/default")
@@ -27,7 +41,7 @@ public class RecipeApiController {
         d.generation_settings = new GenerationSettings();
         d.generation_settings.dish_count = 1;
         d.generation_settings.max_cooking_time_min = 40;
-        d.generation_settings.difficulty_target = "easy";
+        d.generation_settings.difficulty_target = Arrays.asList("easy");
         d.diet_preferences = new DietPreferences();
         d.diet_preferences.cuisine_preferences = Arrays.asList("chinese", "japanese");
         d.diet_preferences.taste_preferences = Arrays.asList("light");
@@ -137,7 +151,7 @@ public class RecipeApiController {
     public static class GenerationSettings {
         public int dish_count;
         public int max_cooking_time_min;
-        public String difficulty_target;
+        public List<String> difficulty_target;
     }
 
     public static class GeneratedMenusResponse {
@@ -168,11 +182,43 @@ public class RecipeApiController {
         public String category;
     }
 
+    // public static class Step {
+    //     public int step_number;
+    //     public String instruction;
+    //     public int step_time_min;
+    // }
     public static class Step {
-        public int step_number;
-        public String instruction;
-        public int step_time_min;
-    }
+            public int step_number;
+            public String instruction;
+            public int step_time_min;
+
+            // ✅ 1. 必须保留默认构造函数
+            // 当 AI 返回标准的 JSON 对象 {"step_number": 1, ...} 时，Jackson 会用这个
+            public Step() {}
+
+            // ✅ 2. 新增：字符串构造函数 (兼容模式)
+            // 当 AI 偷懒只返回字符串 "Chop the onions" 时，Jackson 会自动调用这个构造函数
+            public Step(String instruction) {
+                this.instruction = instruction;
+                this.step_number = 0; // AI 没给编号，我们默认填 0，前端可以自己按顺序显示 1,2,3
+                
+                // ✅ 3. 简单的智能解析：尝试从文本里猜时间
+                // 如果文本里包含 "10 min" 或 "5 minutes" 这样的字眼，自动提取出来
+                this.step_time_min = 5; // 先给个默认值 5 分钟
+                
+                if (instruction != null) {
+                    try {
+                        // 使用正则查找数字 + min/minute
+                        java.util.regex.Matcher m = java.util.regex.Pattern.compile("(\\d+)\\s*min").matcher(instruction.toLowerCase());
+                        if (m.find()) {
+                            this.step_time_min = Integer.parseInt(m.group(1));
+                        }
+                    } catch (Exception e) {
+                        // 如果解析失败，就保持默认值 5
+                    }
+                }
+            }
+        }
 
     public static class DefaultPreferences {
         public int servings;
