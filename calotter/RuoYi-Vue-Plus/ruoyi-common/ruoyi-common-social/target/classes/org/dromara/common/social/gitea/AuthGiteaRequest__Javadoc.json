@@ -1,1 +1,0 @@
-{"doc":"\n @author lcry\r\n","fields":[],"enumConstants":[],"methods":[],"constructors":[{"name":"<init>","paramTypes":["me.zhyd.oauth.config.AuthConfig"],"doc":"\n 设定归属域\r\n"}]}

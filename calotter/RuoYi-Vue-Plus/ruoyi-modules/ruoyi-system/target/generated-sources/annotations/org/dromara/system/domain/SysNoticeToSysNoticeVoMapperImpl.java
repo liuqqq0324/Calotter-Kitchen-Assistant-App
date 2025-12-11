@@ -6,8 +6,13 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
+<<<<<<< HEAD
     date = "2025-12-10T15:10:35+1300",
     comments = "version: 1.6.3, compiler: Eclipse JDT (IDE) 3.44.0.v20251118-1623, environment: Java 21.0.9 (Eclipse Adoptium)"
+=======
+    date = "2025-12-10T13:27:23+1300",
+    comments = "version: 1.6.3, compiler: javac, environment: Java 25.0.1 (Homebrew)"
+>>>>>>> chase/flutter-v1-android-java
 )
 @Component
 public class SysNoticeToSysNoticeVoMapperImpl implements SysNoticeToSysNoticeVoMapper {
@@ -20,14 +25,14 @@ public class SysNoticeToSysNoticeVoMapperImpl implements SysNoticeToSysNoticeVoM
 
         SysNoticeVo sysNoticeVo = new SysNoticeVo();
 
-        sysNoticeVo.setCreateBy( arg0.getCreateBy() );
-        sysNoticeVo.setCreateTime( arg0.getCreateTime() );
-        sysNoticeVo.setNoticeContent( arg0.getNoticeContent() );
         sysNoticeVo.setNoticeId( arg0.getNoticeId() );
         sysNoticeVo.setNoticeTitle( arg0.getNoticeTitle() );
         sysNoticeVo.setNoticeType( arg0.getNoticeType() );
-        sysNoticeVo.setRemark( arg0.getRemark() );
+        sysNoticeVo.setNoticeContent( arg0.getNoticeContent() );
         sysNoticeVo.setStatus( arg0.getStatus() );
+        sysNoticeVo.setRemark( arg0.getRemark() );
+        sysNoticeVo.setCreateBy( arg0.getCreateBy() );
+        sysNoticeVo.setCreateTime( arg0.getCreateTime() );
 
         return sysNoticeVo;
     }
@@ -38,14 +43,14 @@ public class SysNoticeToSysNoticeVoMapperImpl implements SysNoticeToSysNoticeVoM
             return arg1;
         }
 
-        arg1.setCreateBy( arg0.getCreateBy() );
-        arg1.setCreateTime( arg0.getCreateTime() );
-        arg1.setNoticeContent( arg0.getNoticeContent() );
         arg1.setNoticeId( arg0.getNoticeId() );
         arg1.setNoticeTitle( arg0.getNoticeTitle() );
         arg1.setNoticeType( arg0.getNoticeType() );
-        arg1.setRemark( arg0.getRemark() );
+        arg1.setNoticeContent( arg0.getNoticeContent() );
         arg1.setStatus( arg0.getStatus() );
+        arg1.setRemark( arg0.getRemark() );
+        arg1.setCreateBy( arg0.getCreateBy() );
+        arg1.setCreateTime( arg0.getCreateTime() );
 
         return arg1;
     }

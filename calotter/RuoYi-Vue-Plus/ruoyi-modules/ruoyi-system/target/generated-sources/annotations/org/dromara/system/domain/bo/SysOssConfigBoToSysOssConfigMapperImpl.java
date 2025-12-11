@@ -8,8 +8,13 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
+<<<<<<< HEAD
     date = "2025-12-10T15:10:35+1300",
     comments = "version: 1.6.3, compiler: Eclipse JDT (IDE) 3.44.0.v20251118-1623, environment: Java 21.0.9 (Eclipse Adoptium)"
+=======
+    date = "2025-12-10T13:27:23+1300",
+    comments = "version: 1.6.3, compiler: javac, environment: Java 25.0.1 (Homebrew)"
+>>>>>>> chase/flutter-v1-android-java
 )
 @Component
 public class SysOssConfigBoToSysOssConfigMapperImpl implements SysOssConfigBoToSysOssConfigMapper {
@@ -22,30 +27,30 @@ public class SysOssConfigBoToSysOssConfigMapperImpl implements SysOssConfigBoToS
 
         SysOssConfig sysOssConfig = new SysOssConfig();
 
-        sysOssConfig.setCreateBy( arg0.getCreateBy() );
+        sysOssConfig.setSearchValue( arg0.getSearchValue() );
         sysOssConfig.setCreateDept( arg0.getCreateDept() );
+        sysOssConfig.setCreateBy( arg0.getCreateBy() );
         sysOssConfig.setCreateTime( arg0.getCreateTime() );
+        sysOssConfig.setUpdateBy( arg0.getUpdateBy() );
+        sysOssConfig.setUpdateTime( arg0.getUpdateTime() );
         Map<String, Object> map = arg0.getParams();
         if ( map != null ) {
             sysOssConfig.setParams( new LinkedHashMap<String, Object>( map ) );
         }
-        sysOssConfig.setSearchValue( arg0.getSearchValue() );
-        sysOssConfig.setUpdateBy( arg0.getUpdateBy() );
-        sysOssConfig.setUpdateTime( arg0.getUpdateTime() );
-        sysOssConfig.setAccessKey( arg0.getAccessKey() );
-        sysOssConfig.setAccessPolicy( arg0.getAccessPolicy() );
-        sysOssConfig.setBucketName( arg0.getBucketName() );
-        sysOssConfig.setConfigKey( arg0.getConfigKey() );
-        sysOssConfig.setDomain( arg0.getDomain() );
-        sysOssConfig.setEndpoint( arg0.getEndpoint() );
-        sysOssConfig.setExt1( arg0.getExt1() );
-        sysOssConfig.setIsHttps( arg0.getIsHttps() );
         sysOssConfig.setOssConfigId( arg0.getOssConfigId() );
-        sysOssConfig.setPrefix( arg0.getPrefix() );
-        sysOssConfig.setRegion( arg0.getRegion() );
-        sysOssConfig.setRemark( arg0.getRemark() );
+        sysOssConfig.setConfigKey( arg0.getConfigKey() );
+        sysOssConfig.setAccessKey( arg0.getAccessKey() );
         sysOssConfig.setSecretKey( arg0.getSecretKey() );
+        sysOssConfig.setBucketName( arg0.getBucketName() );
+        sysOssConfig.setPrefix( arg0.getPrefix() );
+        sysOssConfig.setEndpoint( arg0.getEndpoint() );
+        sysOssConfig.setDomain( arg0.getDomain() );
+        sysOssConfig.setIsHttps( arg0.getIsHttps() );
+        sysOssConfig.setRegion( arg0.getRegion() );
         sysOssConfig.setStatus( arg0.getStatus() );
+        sysOssConfig.setExt1( arg0.getExt1() );
+        sysOssConfig.setRemark( arg0.getRemark() );
+        sysOssConfig.setAccessPolicy( arg0.getAccessPolicy() );
 
         return sysOssConfig;
     }
@@ -56,9 +61,12 @@ public class SysOssConfigBoToSysOssConfigMapperImpl implements SysOssConfigBoToS
             return arg1;
         }
 
-        arg1.setCreateBy( arg0.getCreateBy() );
+        arg1.setSearchValue( arg0.getSearchValue() );
         arg1.setCreateDept( arg0.getCreateDept() );
+        arg1.setCreateBy( arg0.getCreateBy() );
         arg1.setCreateTime( arg0.getCreateTime() );
+        arg1.setUpdateBy( arg0.getUpdateBy() );
+        arg1.setUpdateTime( arg0.getUpdateTime() );
         if ( arg1.getParams() != null ) {
             Map<String, Object> map = arg0.getParams();
             if ( map != null ) {
@@ -75,23 +83,20 @@ public class SysOssConfigBoToSysOssConfigMapperImpl implements SysOssConfigBoToS
                 arg1.setParams( new LinkedHashMap<String, Object>( map ) );
             }
         }
-        arg1.setSearchValue( arg0.getSearchValue() );
-        arg1.setUpdateBy( arg0.getUpdateBy() );
-        arg1.setUpdateTime( arg0.getUpdateTime() );
-        arg1.setAccessKey( arg0.getAccessKey() );
-        arg1.setAccessPolicy( arg0.getAccessPolicy() );
-        arg1.setBucketName( arg0.getBucketName() );
-        arg1.setConfigKey( arg0.getConfigKey() );
-        arg1.setDomain( arg0.getDomain() );
-        arg1.setEndpoint( arg0.getEndpoint() );
-        arg1.setExt1( arg0.getExt1() );
-        arg1.setIsHttps( arg0.getIsHttps() );
         arg1.setOssConfigId( arg0.getOssConfigId() );
-        arg1.setPrefix( arg0.getPrefix() );
-        arg1.setRegion( arg0.getRegion() );
-        arg1.setRemark( arg0.getRemark() );
+        arg1.setConfigKey( arg0.getConfigKey() );
+        arg1.setAccessKey( arg0.getAccessKey() );
         arg1.setSecretKey( arg0.getSecretKey() );
+        arg1.setBucketName( arg0.getBucketName() );
+        arg1.setPrefix( arg0.getPrefix() );
+        arg1.setEndpoint( arg0.getEndpoint() );
+        arg1.setDomain( arg0.getDomain() );
+        arg1.setIsHttps( arg0.getIsHttps() );
+        arg1.setRegion( arg0.getRegion() );
         arg1.setStatus( arg0.getStatus() );
+        arg1.setExt1( arg0.getExt1() );
+        arg1.setRemark( arg0.getRemark() );
+        arg1.setAccessPolicy( arg0.getAccessPolicy() );
 
         return arg1;
     }

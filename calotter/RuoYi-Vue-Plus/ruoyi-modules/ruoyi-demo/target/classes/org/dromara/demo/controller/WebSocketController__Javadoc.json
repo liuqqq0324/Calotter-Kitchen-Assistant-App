@@ -1,1 +1,0 @@
-{"doc":"\n WebSocket 演示案例\r\n\r\n @author zendwang\r\n","fields":[],"enumConstants":[],"methods":[{"name":"send","paramTypes":["org.dromara.common.websocket.dto.WebSocketMessageDto"],"doc":"\n 发布消息\r\n\r\n @param dto 发送内容\r\n"}],"constructors":[]}

@@ -1,1 +1,0 @@
-{"doc":"\n 多租户redis缓存key前缀处理\r\n\r\n @author Lion Li\r\n","fields":[],"enumConstants":[],"methods":[{"name":"map","paramTypes":["java.lang.String"],"doc":"\n 增加前缀\r\n"},{"name":"unmap","paramTypes":["java.lang.String"],"doc":"\n 去除前缀\r\n"}],"constructors":[]}

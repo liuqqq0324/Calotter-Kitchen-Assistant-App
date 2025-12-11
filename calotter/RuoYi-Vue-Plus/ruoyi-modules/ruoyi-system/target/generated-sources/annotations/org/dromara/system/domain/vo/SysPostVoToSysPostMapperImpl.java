@@ -6,8 +6,13 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
+<<<<<<< HEAD
     date = "2025-12-10T15:10:32+1300",
     comments = "version: 1.6.3, compiler: Eclipse JDT (IDE) 3.44.0.v20251118-1623, environment: Java 21.0.9 (Eclipse Adoptium)"
+=======
+    date = "2025-12-10T13:27:22+1300",
+    comments = "version: 1.6.3, compiler: javac, environment: Java 25.0.1 (Homebrew)"
+>>>>>>> chase/flutter-v1-android-java
 )
 @Component
 public class SysPostVoToSysPostMapperImpl implements SysPostVoToSysPostMapper {
@@ -21,14 +26,14 @@ public class SysPostVoToSysPostMapperImpl implements SysPostVoToSysPostMapper {
         SysPost sysPost = new SysPost();
 
         sysPost.setCreateTime( arg0.getCreateTime() );
-        sysPost.setDeptId( arg0.getDeptId() );
-        sysPost.setPostCategory( arg0.getPostCategory() );
-        sysPost.setPostCode( arg0.getPostCode() );
         sysPost.setPostId( arg0.getPostId() );
+        sysPost.setDeptId( arg0.getDeptId() );
+        sysPost.setPostCode( arg0.getPostCode() );
         sysPost.setPostName( arg0.getPostName() );
+        sysPost.setPostCategory( arg0.getPostCategory() );
         sysPost.setPostSort( arg0.getPostSort() );
-        sysPost.setRemark( arg0.getRemark() );
         sysPost.setStatus( arg0.getStatus() );
+        sysPost.setRemark( arg0.getRemark() );
 
         return sysPost;
     }
@@ -40,14 +45,14 @@ public class SysPostVoToSysPostMapperImpl implements SysPostVoToSysPostMapper {
         }
 
         arg1.setCreateTime( arg0.getCreateTime() );
-        arg1.setDeptId( arg0.getDeptId() );
-        arg1.setPostCategory( arg0.getPostCategory() );
-        arg1.setPostCode( arg0.getPostCode() );
         arg1.setPostId( arg0.getPostId() );
+        arg1.setDeptId( arg0.getDeptId() );
+        arg1.setPostCode( arg0.getPostCode() );
         arg1.setPostName( arg0.getPostName() );
+        arg1.setPostCategory( arg0.getPostCategory() );
         arg1.setPostSort( arg0.getPostSort() );
-        arg1.setRemark( arg0.getRemark() );
         arg1.setStatus( arg0.getStatus() );
+        arg1.setRemark( arg0.getRemark() );
 
         return arg1;
     }

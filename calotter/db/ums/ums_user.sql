@@ -6,6 +6,10 @@ CREATE TABLE sous_chef_ums.ums_user(
     password_hash VARCHAR(255) NOT NULL,
     display_name VARCHAR(50),
     avatar_url VARCHAR(255),
+    age INTEGER,
+    height INTEGER,
+    weight INTEGER,
+    gender VARCHAR(20),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     last_login_at TIMESTAMP,
@@ -18,6 +22,10 @@ COMMENT ON COLUMN sous_chef_ums.ums_user.email IS 'User email;Registration email
 COMMENT ON COLUMN sous_chef_ums.ums_user.password_hash IS 'Encrypted password;The hash value of user password, avoid saving plain text';
 COMMENT ON COLUMN sous_chef_ums.ums_user.display_name IS 'Name for display;Display name (e.g., Cooker Allen)';
 COMMENT ON COLUMN sous_chef_ums.ums_user.avatar_url IS 'URL of avatar;Avatar (optional)';
+COMMENT ON COLUMN sous_chef_ums.ums_user.age IS 'User age;User age in years';
+COMMENT ON COLUMN sous_chef_ums.ums_user.height IS 'User height;User height in cm';
+COMMENT ON COLUMN sous_chef_ums.ums_user.weight IS 'User weight;User weight in kg';
+COMMENT ON COLUMN sous_chef_ums.ums_user.gender IS 'User gender;User gender (e.g., male, female, other)';
 COMMENT ON COLUMN sous_chef_ums.ums_user.created_at IS 'Created time;Registration time';
 COMMENT ON COLUMN sous_chef_ums.ums_user.updated_at IS 'Updated time;Update time';
 COMMENT ON COLUMN sous_chef_ums.ums_user.last_login_at IS 'User last login time;Last login time';

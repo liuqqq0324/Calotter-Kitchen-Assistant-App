@@ -22,6 +22,7 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
   List<RecipeMenuModel> _menus = [];
   bool _loading = false;
   String? _error;
+  int? _selectedMenuId;
 
   @override
   void initState() {
@@ -33,6 +34,7 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
     setState(() {
       _loading = true;
       _error = null;
+      _selectedMenuId = null;
     });
 
     try {
@@ -88,8 +90,12 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
     if (maxTime != null) {
       parts.add('≤ $maxTime min / dish');
     }
-    if (difficulty != null && difficulty.toString().isNotEmpty) {
-      parts.add('difficulty: $difficulty');
+    if (difficulty != null) {
+      if (difficulty is List && difficulty.isNotEmpty) {
+        parts.add('difficulty: ${difficulty.join("/")}');
+      } else if (difficulty.toString().isNotEmpty) {
+        parts.add('difficulty: $difficulty');
+      }
     }
 
     if (parts.isEmpty) return null;
@@ -171,28 +177,68 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
         ],
       ),
 
-      // 底部 “Generate Again” 按钮
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-        child: SizedBox(
-          height: 52,
-          child: ElevatedButton.icon(
-            onPressed: _fetchMenus,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
+      // 底部操作：Start cooking（选中的 menu）+ Generate again
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                height: 52,
+                child: ElevatedButton.icon(
+                  onPressed: _selectedMenuId == null
+                      ? null
+                      : () {
+                          final menu = _menus
+                              .firstWhere((m) => m.menuId == _selectedMenuId);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => RecipeInstructionPage(
+                                menu: menu,
+                                initialRecipeIndex: 0,
+                                filter: widget.filter,
+                              ),
+                            ),
+                          );
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    foregroundColor: Colors.white,
+                  ),
+                  icon: const Icon(Icons.play_arrow),
+                  label: Text(
+                    _selectedMenuId == null
+                        ? 'Select a menu to start cooking'
+                        : 'Start cooking (Menu $_selectedMenuId)',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
               ),
-            ),
-            icon: const Icon(Icons.refresh, color: Colors.white),
-            label: const Text(
-              'Generate Again',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
+              const SizedBox(height: 10),
+              SizedBox(
+                height: 44,
+                child: OutlinedButton.icon(
+                  onPressed: _fetchMenus,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Generate Again'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.orange,
+                    side: BorderSide(color: Colors.orange.shade300),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
         ),
       ),
@@ -224,10 +270,18 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
         difficultyColor = Colors.green;
     }
 
+    final isSelected = _selectedMenuId == menu.menuId;
+
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8),
       elevation: 3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: isSelected ? Colors.orange : Colors.transparent,
+          width: 1.4,
+        ),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(14.0),
         child: Column(
@@ -264,6 +318,37 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
                             'Menu ${menu.menuId}',
                             style: theme.textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          InkWell(
+                            onTap: () {
+                              setState(() {
+                                _selectedMenuId = menu.menuId;
+                              });
+                            },
+                            child: Row(
+                              children: [
+                                Icon(
+                                  isSelected
+                                      ? Icons.radio_button_checked
+                                      : Icons.radio_button_off,
+                                  size: 18,
+                                  color: isSelected
+                                      ? Colors.orange
+                                      : Colors.grey[500],
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  isSelected ? 'Selected' : 'Select',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: isSelected
+                                        ? Colors.orange
+                                        : Colors.grey[600],
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -349,31 +434,54 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
               ],
             ),
             const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => RecipeInstructionPage(
-                        menu: menu,
-                        initialRecipeIndex: 0,
-                        filter: widget.filter,
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () {
+                      setState(() {
+                        _selectedMenuId = menu.menuId;
+                      });
+                    },
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(
+                        color: isSelected
+                            ? Colors.orange
+                            : Colors.orange.shade200,
                       ),
+                      foregroundColor:
+                          isSelected ? Colors.orange : Colors.orange.shade800,
                     ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    child: Text(isSelected ? 'Selected' : 'Choose this menu'),
                   ),
                 ),
-                icon: const Icon(Icons.play_arrow),
-                label: const Text('Start cooking'),
-              ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => RecipeInstructionPage(
+                            menu: menu,
+                            initialRecipeIndex: 0,
+                            filter: widget.filter,
+                          ),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    icon: const Icon(Icons.menu_book),
+                    label: const Text('View steps'),
+                  ),
+                ),
+              ],
             ),
           ],
         ),

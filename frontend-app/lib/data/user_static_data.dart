@@ -28,9 +28,9 @@ class UserProfile {
     List<String>? preferences,
     List<String>? taboos,
     List<String>? allergies,
-  })  : preferences = preferences ?? [],
-        taboos = taboos ?? [],
-        allergies = allergies ?? [];
+  }) : preferences = preferences ?? [],
+       taboos = taboos ?? [],
+       allergies = allergies ?? [];
 
   // Copy method for creating a new instance / 复制方法，用于创建新实例
   UserProfile copyWith({
@@ -61,15 +61,16 @@ class UserProfile {
 // Global User Profile Instance / 全局用户资料实例
 // Modified by Chase: This is the single source of truth for user data / 由 Chase 修改：这是用户数据的唯一数据源
 // All pages should read from and modify this instance / 所有页面都应该读取和修改此实例
+// Note: age, height, weight are empty by default - user should set them on first edit
+// 注意：age、height、weight 默认为空 - 用户应在首次编辑时设置它们
 final UserProfile kCurrentUser = UserProfile(
   username: 'Chase_70_70',
   email: 'chase666@gmail.com',
-  age: '25',
-  gender: 'Male',
-  height: '175 cm',
-  weight: '70 kg',
-  preferences: ['Vegetarian', 'Low Carb'],
-  taboos: ['Pork', 'Beef'],
-  allergies: ['Peanuts', 'Shellfish'],
+  age: '', // No default value - empty until user sets it
+  gender: '', // No default value - empty until user sets it
+  height: '', // No default value - empty until user sets it
+  weight: '', // No default value - empty until user sets it
+  preferences: [], // Empty by default
+  taboos: [], // Empty by default
+  allergies: [], // Empty by default
 );
-

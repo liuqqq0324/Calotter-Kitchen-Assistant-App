@@ -1,1 +1,0 @@
-{"doc":"\n SSE 控制器\r\n\r\n @author Lion Li\r\n","fields":[],"enumConstants":[],"methods":[{"name":"connect","paramTypes":[],"doc":"\n 建立 SSE 连接\r\n"},{"name":"close","paramTypes":[],"doc":"\n 关闭 SSE 连接\r\n"},{"name":"destroy","paramTypes":[],"doc":"\n 清理资源。此方法目前不执行任何操作，但避免因未实现而导致错误\r\n"}],"constructors":[]}

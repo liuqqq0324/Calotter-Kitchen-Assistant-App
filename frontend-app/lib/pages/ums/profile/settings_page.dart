@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:personal_sous_chef/theme/fallback_google_fonts.dart';
 import 'profile_view_page.dart';
 // Modified by Chase: Import user static data and auth service / 由 Chase 修改：导入用户静态数据和认证服务
 import '../../../data/user_static_data.dart';
 import '../../../services/auth_service.dart';
 import '../auth/login_page.dart';
+import '../auth/landing_page.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -114,11 +115,19 @@ class _SettingsPageState extends State<SettingsPage> {
                 final result = await AuthService.logout();
 
                 if (mounted) {
-                  // Navigate to login page
+                  // Navigate to landing page first, then push login page
+                  // This ensures LoginPage can navigate back to LandingPage
                   Navigator.pushAndRemoveUntil(
                     context,
-                    MaterialPageRoute(builder: (context) => const LoginPage()),
+                    MaterialPageRoute(
+                      builder: (context) => const LandingPage(),
+                    ),
                     (route) => false, // Remove all previous routes
+                  );
+                  // Then push LoginPage on top so Back button can return to LandingPage
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const LoginPage()),
                   );
 
                   // Show success message

@@ -98,6 +98,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
     if (_isLoading) {
       return Scaffold(
         appBar: AppBar(
+          automaticallyImplyLeading: false, // 去掉返回箭头
           title: Text(
             'Profile',
             style: GoogleFonts.caveat(
@@ -112,6 +113,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
 
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false, // 去掉返回箭头
         title: Text(
           'Profile',
           style: GoogleFonts.caveat(fontSize: 28, fontWeight: FontWeight.bold),

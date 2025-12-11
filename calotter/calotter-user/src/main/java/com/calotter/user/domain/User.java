@@ -53,6 +53,26 @@ public class User extends BaseEntity {
     private String avatarUrl;
 
     /**
+     * User age;User age in years
+     */
+    private Integer age;
+
+    /**
+     * User height;User height in cm
+     */
+    private Integer height;
+
+    /**
+     * User weight;User weight in kg
+     */
+    private Integer weight;
+
+    /**
+     * User gender;User gender (e.g., male, female, other)
+     */
+    private String gender;
+
+    /**
      * User last login time;Last login time
      */
     private DateTime lastLoginAt;

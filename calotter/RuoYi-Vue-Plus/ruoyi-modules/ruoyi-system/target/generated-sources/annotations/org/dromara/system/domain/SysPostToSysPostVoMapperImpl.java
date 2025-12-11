@@ -6,8 +6,13 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
+<<<<<<< HEAD
     date = "2025-12-10T15:10:36+1300",
     comments = "version: 1.6.3, compiler: Eclipse JDT (IDE) 3.44.0.v20251118-1623, environment: Java 21.0.9 (Eclipse Adoptium)"
+=======
+    date = "2025-12-10T13:27:22+1300",
+    comments = "version: 1.6.3, compiler: javac, environment: Java 25.0.1 (Homebrew)"
+>>>>>>> chase/flutter-v1-android-java
 )
 @Component
 public class SysPostToSysPostVoMapperImpl implements SysPostToSysPostVoMapper {
@@ -20,15 +25,15 @@ public class SysPostToSysPostVoMapperImpl implements SysPostToSysPostVoMapper {
 
         SysPostVo sysPostVo = new SysPostVo();
 
-        sysPostVo.setCreateTime( arg0.getCreateTime() );
-        sysPostVo.setDeptId( arg0.getDeptId() );
-        sysPostVo.setPostCategory( arg0.getPostCategory() );
-        sysPostVo.setPostCode( arg0.getPostCode() );
         sysPostVo.setPostId( arg0.getPostId() );
+        sysPostVo.setDeptId( arg0.getDeptId() );
+        sysPostVo.setPostCode( arg0.getPostCode() );
         sysPostVo.setPostName( arg0.getPostName() );
+        sysPostVo.setPostCategory( arg0.getPostCategory() );
         sysPostVo.setPostSort( arg0.getPostSort() );
-        sysPostVo.setRemark( arg0.getRemark() );
         sysPostVo.setStatus( arg0.getStatus() );
+        sysPostVo.setRemark( arg0.getRemark() );
+        sysPostVo.setCreateTime( arg0.getCreateTime() );
 
         return sysPostVo;
     }
@@ -39,15 +44,15 @@ public class SysPostToSysPostVoMapperImpl implements SysPostToSysPostVoMapper {
             return arg1;
         }
 
-        arg1.setCreateTime( arg0.getCreateTime() );
-        arg1.setDeptId( arg0.getDeptId() );
-        arg1.setPostCategory( arg0.getPostCategory() );
-        arg1.setPostCode( arg0.getPostCode() );
         arg1.setPostId( arg0.getPostId() );
+        arg1.setDeptId( arg0.getDeptId() );
+        arg1.setPostCode( arg0.getPostCode() );
         arg1.setPostName( arg0.getPostName() );
+        arg1.setPostCategory( arg0.getPostCategory() );
         arg1.setPostSort( arg0.getPostSort() );
-        arg1.setRemark( arg0.getRemark() );
         arg1.setStatus( arg0.getStatus() );
+        arg1.setRemark( arg0.getRemark() );
+        arg1.setCreateTime( arg0.getCreateTime() );
 
         return arg1;
     }

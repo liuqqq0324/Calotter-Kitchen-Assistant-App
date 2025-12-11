@@ -1,1 +1,0 @@
-{"doc":"\n 脱敏服务\r\n 默认管理员不过滤\r\n 需自行根据业务重写实现\r\n\r\n @author Lion Li\r\n @version 3.6.0\r\n","fields":[],"enumConstants":[],"methods":[{"name":"isSensitive","paramTypes":["java.lang.String[]","java.lang.String[]"],"doc":"\n 是否脱敏\r\n"}],"constructors":[]}

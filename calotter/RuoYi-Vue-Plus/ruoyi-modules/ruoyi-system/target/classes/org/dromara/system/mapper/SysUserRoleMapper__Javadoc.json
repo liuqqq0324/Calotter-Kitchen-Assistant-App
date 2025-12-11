@@ -1,1 +1,0 @@
-{"doc":"\n 用户与角色关联表 数据层\r\n\r\n @author Lion Li\r\n","fields":[],"enumConstants":[],"methods":[{"name":"selectUserIdsByRoleId","paramTypes":["java.lang.Long"],"doc":"\n 根据角色ID查询关联的用户ID列表\r\n\r\n @param roleId 角色ID\r\n @return 关联到指定角色的用户ID列表\r\n"}],"constructors":[]}

@@ -8,8 +8,13 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
+<<<<<<< HEAD
     date = "2025-12-10T15:10:33+1300",
     comments = "version: 1.6.3, compiler: Eclipse JDT (IDE) 3.44.0.v20251118-1623, environment: Java 21.0.9 (Eclipse Adoptium)"
+=======
+    date = "2025-12-10T13:27:23+1300",
+    comments = "version: 1.6.3, compiler: javac, environment: Java 25.0.1 (Homebrew)"
+>>>>>>> chase/flutter-v1-android-java
 )
 @Component
 public class SysDeptVoToSysDeptMapperImpl implements SysDeptVoToSysDeptMapper {
@@ -23,20 +28,20 @@ public class SysDeptVoToSysDeptMapperImpl implements SysDeptVoToSysDeptMapper {
         SysDept sysDept = new SysDept();
 
         sysDept.setCreateTime( arg0.getCreateTime() );
+        sysDept.setDeptId( arg0.getDeptId() );
+        sysDept.setParentId( arg0.getParentId() );
+        sysDept.setDeptName( arg0.getDeptName() );
+        sysDept.setDeptCategory( arg0.getDeptCategory() );
+        sysDept.setOrderNum( arg0.getOrderNum() );
+        sysDept.setLeader( arg0.getLeader() );
+        sysDept.setPhone( arg0.getPhone() );
+        sysDept.setEmail( arg0.getEmail() );
+        sysDept.setStatus( arg0.getStatus() );
         sysDept.setAncestors( arg0.getAncestors() );
         List<SysDept> list = arg0.getChildren();
         if ( list != null ) {
             sysDept.setChildren( new ArrayList<SysDept>( list ) );
         }
-        sysDept.setDeptCategory( arg0.getDeptCategory() );
-        sysDept.setDeptId( arg0.getDeptId() );
-        sysDept.setDeptName( arg0.getDeptName() );
-        sysDept.setEmail( arg0.getEmail() );
-        sysDept.setLeader( arg0.getLeader() );
-        sysDept.setOrderNum( arg0.getOrderNum() );
-        sysDept.setParentId( arg0.getParentId() );
-        sysDept.setPhone( arg0.getPhone() );
-        sysDept.setStatus( arg0.getStatus() );
 
         return sysDept;
     }
@@ -48,6 +53,15 @@ public class SysDeptVoToSysDeptMapperImpl implements SysDeptVoToSysDeptMapper {
         }
 
         arg1.setCreateTime( arg0.getCreateTime() );
+        arg1.setDeptId( arg0.getDeptId() );
+        arg1.setParentId( arg0.getParentId() );
+        arg1.setDeptName( arg0.getDeptName() );
+        arg1.setDeptCategory( arg0.getDeptCategory() );
+        arg1.setOrderNum( arg0.getOrderNum() );
+        arg1.setLeader( arg0.getLeader() );
+        arg1.setPhone( arg0.getPhone() );
+        arg1.setEmail( arg0.getEmail() );
+        arg1.setStatus( arg0.getStatus() );
         arg1.setAncestors( arg0.getAncestors() );
         if ( arg1.getChildren() != null ) {
             List<SysDept> list = arg0.getChildren();
@@ -65,15 +79,6 @@ public class SysDeptVoToSysDeptMapperImpl implements SysDeptVoToSysDeptMapper {
                 arg1.setChildren( new ArrayList<SysDept>( list ) );
             }
         }
-        arg1.setDeptCategory( arg0.getDeptCategory() );
-        arg1.setDeptId( arg0.getDeptId() );
-        arg1.setDeptName( arg0.getDeptName() );
-        arg1.setEmail( arg0.getEmail() );
-        arg1.setLeader( arg0.getLeader() );
-        arg1.setOrderNum( arg0.getOrderNum() );
-        arg1.setParentId( arg0.getParentId() );
-        arg1.setPhone( arg0.getPhone() );
-        arg1.setStatus( arg0.getStatus() );
 
         return arg1;
     }

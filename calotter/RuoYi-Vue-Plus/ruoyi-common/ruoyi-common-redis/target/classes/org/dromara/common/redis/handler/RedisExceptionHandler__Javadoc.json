@@ -1,1 +1,1 @@
-{"doc":"\n Redis异常处理器\r\n\r\n @author AprilWind\r\n","fields":[],"enumConstants":[],"methods":[{"name":"handleLockFailureException","paramTypes":["com.baomidou.lock.exception.LockFailureException","jakarta.servlet.http.HttpServletRequest"],"doc":"\n 分布式锁Lock4j异常\r\n"}],"constructors":[]}
+{"doc":"\n Redis异常处理器\r\n\r\n @author AprilWind\r\n","fields":[],"enumConstants":[],"methods":[{"name":"handleLockFailureException","paramTypes":["com.baomidou.lock.exception.LockFailureException","HttpServletRequest"],"doc":"\n 分布式锁Lock4j异常\r\n"}],"constructors":[]}
