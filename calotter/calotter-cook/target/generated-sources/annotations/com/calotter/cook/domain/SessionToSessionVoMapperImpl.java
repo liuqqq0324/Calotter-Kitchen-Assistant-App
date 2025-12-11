@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-12-10T15:10:12+1300",
+    date = "2025-12-11T11:32:06+1300",
     comments = "version: 1.6.3, compiler: Eclipse JDT (IDE) 3.44.0.v20251118-1623, environment: Java 21.0.9 (Eclipse Adoptium)"
 )
 @Component
@@ -20,12 +20,12 @@ public class SessionToSessionVoMapperImpl implements SessionToSessionVoMapper {
 
         SessionVo sessionVo = new SessionVo();
 
-        sessionVo.setEndTime( arg0.getEndTime() );
         sessionVo.setId( arg0.getId() );
+        sessionVo.setUserId( arg0.getUserId() );
+        sessionVo.setStartTime( arg0.getStartTime() );
+        sessionVo.setEndTime( arg0.getEndTime() );
         sessionVo.setMealType( arg0.getMealType() );
         sessionVo.setNote( arg0.getNote() );
-        sessionVo.setStartTime( arg0.getStartTime() );
-        sessionVo.setUserId( arg0.getUserId() );
 
         return sessionVo;
     }
@@ -36,12 +36,12 @@ public class SessionToSessionVoMapperImpl implements SessionToSessionVoMapper {
             return arg1;
         }
 
-        arg1.setEndTime( arg0.getEndTime() );
         arg1.setId( arg0.getId() );
+        arg1.setUserId( arg0.getUserId() );
+        arg1.setStartTime( arg0.getStartTime() );
+        arg1.setEndTime( arg0.getEndTime() );
         arg1.setMealType( arg0.getMealType() );
         arg1.setNote( arg0.getNote() );
-        arg1.setStartTime( arg0.getStartTime() );
-        arg1.setUserId( arg0.getUserId() );
 
         return arg1;
     }

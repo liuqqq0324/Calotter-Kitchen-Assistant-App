@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-12-10T15:10:27+1300",
+    date = "2025-12-11T11:31:50+1300",
     comments = "version: 1.6.3, compiler: Eclipse JDT (IDE) 3.44.0.v20251118-1623, environment: Java 21.0.9 (Eclipse Adoptium)"
 )
 @Component
@@ -20,12 +20,12 @@ public class TestTreeToTestTreeVoMapper__2Impl implements TestTreeToTestTreeVoMa
 
         TestTreeVo testTreeVo = new TestTreeVo();
 
-        testTreeVo.setCreateTime( arg0.getCreateTime() );
-        testTreeVo.setDeptId( arg0.getDeptId() );
         testTreeVo.setId( arg0.getId() );
         testTreeVo.setParentId( arg0.getParentId() );
-        testTreeVo.setTreeName( arg0.getTreeName() );
+        testTreeVo.setDeptId( arg0.getDeptId() );
         testTreeVo.setUserId( arg0.getUserId() );
+        testTreeVo.setTreeName( arg0.getTreeName() );
+        testTreeVo.setCreateTime( arg0.getCreateTime() );
 
         return testTreeVo;
     }
@@ -36,12 +36,12 @@ public class TestTreeToTestTreeVoMapper__2Impl implements TestTreeToTestTreeVoMa
             return arg1;
         }
 
-        arg1.setCreateTime( arg0.getCreateTime() );
-        arg1.setDeptId( arg0.getDeptId() );
         arg1.setId( arg0.getId() );
         arg1.setParentId( arg0.getParentId() );
-        arg1.setTreeName( arg0.getTreeName() );
+        arg1.setDeptId( arg0.getDeptId() );
         arg1.setUserId( arg0.getUserId() );
+        arg1.setTreeName( arg0.getTreeName() );
+        arg1.setCreateTime( arg0.getCreateTime() );
 
         return arg1;
     }

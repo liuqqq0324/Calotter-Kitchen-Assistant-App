@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-12-10T15:10:11+1300",
+    date = "2025-12-11T11:32:05+1300",
     comments = "version: 1.6.3, compiler: Eclipse JDT (IDE) 3.44.0.v20251118-1623, environment: Java 21.0.9 (Eclipse Adoptium)"
 )
 @Component
@@ -32,11 +32,11 @@ public class SessionRecipeBoToSessionRecipeMapperImpl implements SessionRecipeBo
         sessionRecipe.setSearchValue( arg0.getSearchValue() );
         sessionRecipe.setUpdateBy( arg0.getUpdateBy() );
         sessionRecipe.setUpdateTime( arg0.getUpdateTime() );
-        sessionRecipe.setActualDurationMinutes( arg0.getActualDurationMinutes() );
         sessionRecipe.setId( arg0.getId() );
+        sessionRecipe.setSessionId( arg0.getSessionId() );
         sessionRecipe.setRecipeId( arg0.getRecipeId() );
         sessionRecipe.setServings( arg0.getServings() );
-        sessionRecipe.setSessionId( arg0.getSessionId() );
+        sessionRecipe.setActualDurationMinutes( arg0.getActualDurationMinutes() );
         sessionRecipe.setSuccessRating( arg0.getSuccessRating() );
 
         return sessionRecipe;
@@ -70,11 +70,11 @@ public class SessionRecipeBoToSessionRecipeMapperImpl implements SessionRecipeBo
         arg1.setSearchValue( arg0.getSearchValue() );
         arg1.setUpdateBy( arg0.getUpdateBy() );
         arg1.setUpdateTime( arg0.getUpdateTime() );
-        arg1.setActualDurationMinutes( arg0.getActualDurationMinutes() );
         arg1.setId( arg0.getId() );
+        arg1.setSessionId( arg0.getSessionId() );
         arg1.setRecipeId( arg0.getRecipeId() );
         arg1.setServings( arg0.getServings() );
-        arg1.setSessionId( arg0.getSessionId() );
+        arg1.setActualDurationMinutes( arg0.getActualDurationMinutes() );
         arg1.setSuccessRating( arg0.getSuccessRating() );
 
         return arg1;
