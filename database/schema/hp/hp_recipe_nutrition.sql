@@ -12,8 +12,11 @@ CREATE TABLE sous_chef_hp.hp_recipe_nutrition(
     fat DECIMAL(10, 2) NOT NULL, -- Fat in grams per serving
     carbohydrates DECIMAL(10, 2) NOT NULL, -- Carbohydrates in grams per serving
     protein DECIMAL(10, 2) NOT NULL, -- Protein in grams per serving
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    create_dept INT8,
+    create_by INT8,
+    create_time TIMESTAMP,
+    update_by INT8,
+    update_time TIMESTAMP,
     PRIMARY KEY (id),
     UNIQUE (recipe_id)
 );
@@ -24,6 +27,11 @@ COMMENT ON COLUMN sous_chef_hp.hp_recipe_nutrition.energy IS 'Energy;Energy in k
 COMMENT ON COLUMN sous_chef_hp.hp_recipe_nutrition.fat IS 'Fat;Fat in grams per serving';
 COMMENT ON COLUMN sous_chef_hp.hp_recipe_nutrition.carbohydrates IS 'Carbohydrates;Carbohydrates in grams per serving';
 COMMENT ON COLUMN sous_chef_hp.hp_recipe_nutrition.protein IS 'Protein;Protein in grams per serving';
+COMMENT ON COLUMN sous_chef_hp.hp_recipe_nutrition.create_dept IS 'Creation department id';
+COMMENT ON COLUMN sous_chef_hp.hp_recipe_nutrition.create_by IS 'Creator id';
+COMMENT ON COLUMN sous_chef_hp.hp_recipe_nutrition.create_time IS 'Creation time';
+COMMENT ON COLUMN sous_chef_hp.hp_recipe_nutrition.update_by IS 'Updater id';
+COMMENT ON COLUMN sous_chef_hp.hp_recipe_nutrition.update_time IS 'Update time';
 COMMENT ON TABLE sous_chef_hp.hp_recipe_nutrition IS 'hp_recipe_nutrition;This table stores detailed nutrition information for recipes.';
 
 CREATE INDEX idx_recipe_nutrition_recipe_id ON sous_chef_hp.hp_recipe_nutrition (

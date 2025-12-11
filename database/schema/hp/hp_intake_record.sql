@@ -23,8 +23,11 @@ CREATE TABLE sous_chef_hp.hp_intake_record(
     effective_fat DECIMAL(10, 2), -- Effective fat
     effective_carbohydrates DECIMAL(10, 2), -- Effective carbohydrates
     effective_protein DECIMAL(10, 2), -- Effective protein
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    create_dept INT8,
+    create_by INT8,
+    create_time TIMESTAMP,
+    update_by INT8,
+    update_time TIMESTAMP,
     PRIMARY KEY (id)
 );
 
@@ -45,6 +48,11 @@ COMMENT ON COLUMN sous_chef_hp.hp_intake_record.effective_energy IS 'Effective e
 COMMENT ON COLUMN sous_chef_hp.hp_intake_record.effective_fat IS 'Effective fat;Effective fat after percentage adjustment';
 COMMENT ON COLUMN sous_chef_hp.hp_intake_record.effective_carbohydrates IS 'Effective carbohydrates;Effective carbohydrates after percentage adjustment';
 COMMENT ON COLUMN sous_chef_hp.hp_intake_record.effective_protein IS 'Effective protein;Effective protein after percentage adjustment';
+COMMENT ON COLUMN sous_chef_hp.hp_intake_record.create_dept IS 'Creation department id';
+COMMENT ON COLUMN sous_chef_hp.hp_intake_record.create_by IS 'Creator id';
+COMMENT ON COLUMN sous_chef_hp.hp_intake_record.create_time IS 'Creation time';
+COMMENT ON COLUMN sous_chef_hp.hp_intake_record.update_by IS 'Updater id';
+COMMENT ON COLUMN sous_chef_hp.hp_intake_record.update_time IS 'Update time';
 COMMENT ON TABLE sous_chef_hp.hp_intake_record IS 'hp_intake_record;This table stores user food intake records from recipes or manual input.';
 
 CREATE INDEX idx_intake_record_user_date ON sous_chef_hp.hp_intake_record (

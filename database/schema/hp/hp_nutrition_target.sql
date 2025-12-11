@@ -14,11 +14,14 @@ CREATE TABLE sous_chef_hp.hp_nutrition_target(
     weekly_target_fat DECIMAL(10, 2) NOT NULL,
     weekly_target_carbohydrates DECIMAL(10, 2) NOT NULL,
     weekly_target_protein DECIMAL(10, 2) NOT NULL,
-    bmi DECIMAL(5, 2),
+    bmi DECIMAL(10, 2),
     goal_type VARCHAR(50), -- 'fat_loss', 'muscle_gain', 'maintain', etc.
     calculation_model VARCHAR(50), -- 'mifflin_st_jeor', 'harris_benedict', etc.
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    create_dept INT8,
+    create_by INT8,
+    create_time TIMESTAMP,
+    update_by INT8,
+    update_time TIMESTAMP,
     PRIMARY KEY (id)
 );
 
@@ -33,6 +36,11 @@ COMMENT ON COLUMN sous_chef_hp.hp_nutrition_target.weekly_target_protein IS 'Wee
 COMMENT ON COLUMN sous_chef_hp.hp_nutrition_target.bmi IS 'BMI value;Body Mass Index used for calculation';
 COMMENT ON COLUMN sous_chef_hp.hp_nutrition_target.goal_type IS 'Goal type;User goal type (fat_loss, muscle_gain, maintain, etc.)';
 COMMENT ON COLUMN sous_chef_hp.hp_nutrition_target.calculation_model IS 'Calculation model;Nutrition calculation model (mifflin_st_jeor, harris_benedict, etc.)';
+COMMENT ON COLUMN sous_chef_hp.hp_nutrition_target.create_dept IS 'Creation department id';
+COMMENT ON COLUMN sous_chef_hp.hp_nutrition_target.create_by IS 'Creator id';
+COMMENT ON COLUMN sous_chef_hp.hp_nutrition_target.create_time IS 'Creation time';
+COMMENT ON COLUMN sous_chef_hp.hp_nutrition_target.update_by IS 'Updater id';
+COMMENT ON COLUMN sous_chef_hp.hp_nutrition_target.update_time IS 'Update time';
 COMMENT ON TABLE sous_chef_hp.hp_nutrition_target IS 'hp_nutrition_target;This table stores weekly nutrition targets for users.';
 
 CREATE INDEX idx_nutrition_target_user_week ON sous_chef_hp.hp_nutrition_target (

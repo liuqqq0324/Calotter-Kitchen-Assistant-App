@@ -7,13 +7,10 @@ import 'package:personal_sous_chef/services/auth_service.dart';
 /// Homepage API Service
 /// 处理营养和摄入相关的API调用
 class HomepageApiService {
-  /// 获取认证headers
-  static Future<Map<String, String>> _getAuthHeaders() async {
-    final token = await AuthService.getToken();
-    return {
-      'Content-Type': 'application/json',
-      if (token != null) 'Authorization': 'Bearer $token',
-    };
+  /// 获取基础headers（仅Content-Type，不包含Authorization）
+  /// 注意：此模块使用 userId 作为 URL 参数，与其他模块（inventory）保持一致
+  static Map<String, String> _getHeaders() {
+    return {'Content-Type': 'application/json'};
   }
 
   /// 处理R<T>响应格式
@@ -76,13 +73,20 @@ class HomepageApiService {
   }
 
   /// 1. 获取周营养目标
-  /// GET /api/nutrition/targets/weekly
-  static Future<Map<String, dynamic>> getWeeklyNutritionTargets() async {
+  /// GET /api/nutrition/targets/weekly?userId={userId}
+  static Future<Map<String, dynamic>> getWeeklyNutritionTargets({
+    String? userId,
+  }) async {
     try {
+      final userIdParam = userId ?? await AuthService.getUserId();
+      if (userIdParam == null) {
+        return {'success': false, 'error': 'User not logged in', 'code': 401};
+      }
+
       final url = Uri.parse(
-        '${ApiConfig.homepageBaseUrl}/api/nutrition/targets/weekly',
+        '${ApiConfig.homepageBaseUrl}/api/nutrition/targets/weekly?userId=$userIdParam',
       );
-      final headers = await _getAuthHeaders();
+      final headers = _getHeaders();
 
       print('[HomepageApi] GET $url');
 
@@ -136,13 +140,20 @@ class HomepageApiService {
   }
 
   /// 2. 获取周营养摘要
-  /// GET /api/nutrition/summary?period=week
-  static Future<Map<String, dynamic>> getWeeklyNutritionSummary() async {
+  /// GET /api/nutrition/summary?period=week&userId={userId}
+  static Future<Map<String, dynamic>> getWeeklyNutritionSummary({
+    String? userId,
+  }) async {
     try {
+      final userIdParam = userId ?? await AuthService.getUserId();
+      if (userIdParam == null) {
+        return {'success': false, 'error': 'User not logged in', 'code': 401};
+      }
+
       final url = Uri.parse(
-        '${ApiConfig.homepageBaseUrl}/api/nutrition/summary?period=week',
+        '${ApiConfig.homepageBaseUrl}/api/nutrition/summary?period=week&userId=$userIdParam',
       );
-      final headers = await _getAuthHeaders();
+      final headers = _getHeaders();
 
       print('[HomepageApi] GET $url');
 
@@ -194,15 +205,21 @@ class HomepageApiService {
   }
 
   /// 3. 获取今日摄入记录
-  /// GET /api/intake/today?source=recipe|manual|all
+  /// GET /api/intake/today?source=recipe|manual|all&userId={userId}
   static Future<Map<String, dynamic>> getTodayIntakes({
     String source = 'all',
+    String? userId,
   }) async {
     try {
+      final userIdParam = userId ?? await AuthService.getUserId();
+      if (userIdParam == null) {
+        return {'success': false, 'error': 'User not logged in', 'code': 401};
+      }
+
       final url = Uri.parse(
-        '${ApiConfig.homepageBaseUrl}/api/intake/today?source=$source',
+        '${ApiConfig.homepageBaseUrl}/api/intake/today?source=$source&userId=$userIdParam',
       );
-      final headers = await _getAuthHeaders();
+      final headers = _getHeaders();
 
       print('[HomepageApi] GET $url');
 
@@ -254,16 +271,22 @@ class HomepageApiService {
   }
 
   /// 4. 更新摄入百分比
-  /// PATCH /api/intake/{intake_id}
+  /// PATCH /api/intake/{intake_id}?userId={userId}
   static Future<Map<String, dynamic>> updateIntakePercentage({
     required int intakeId,
     required double consumedPercentage,
+    String? userId,
   }) async {
     try {
+      final userIdParam = userId ?? await AuthService.getUserId();
+      if (userIdParam == null) {
+        return {'success': false, 'error': 'User not logged in', 'code': 401};
+      }
+
       final url = Uri.parse(
-        '${ApiConfig.homepageBaseUrl}/api/intake/$intakeId',
+        '${ApiConfig.homepageBaseUrl}/api/intake/$intakeId?userId=$userIdParam',
       );
-      final headers = await _getAuthHeaders();
+      final headers = _getHeaders();
 
       final body = jsonEncode({'consumedPercentage': consumedPercentage});
 
@@ -318,15 +341,23 @@ class HomepageApiService {
   }
 
   /// 5. 添加手动摄入
-  /// POST /api/intake/manual
+  /// POST /api/intake/manual?userId={userId}
   static Future<Map<String, dynamic>> addManualIntake({
     required String foodName,
     String? portionDescription,
     DateTime? date,
+    String? userId,
   }) async {
     try {
-      final url = Uri.parse('${ApiConfig.homepageBaseUrl}/api/intake/manual');
-      final headers = await _getAuthHeaders();
+      final userIdParam = userId ?? await AuthService.getUserId();
+      if (userIdParam == null) {
+        return {'success': false, 'error': 'User not logged in', 'code': 401};
+      }
+
+      final url = Uri.parse(
+        '${ApiConfig.homepageBaseUrl}/api/intake/manual?userId=$userIdParam',
+      );
+      final headers = _getHeaders();
 
       final targetDate = date ?? DateTime.now();
       final dateStr =
