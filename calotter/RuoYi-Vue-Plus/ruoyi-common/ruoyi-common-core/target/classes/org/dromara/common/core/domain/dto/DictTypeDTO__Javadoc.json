@@ -1,1 +1,0 @@
-{"doc":"\n 字典类型DTO\r\n\r\n @author AprilWind\r\n","fields":[{"name":"dictId","doc":"\n 字典主键\r\n"},{"name":"dictName","doc":"\n 字典名称\r\n"},{"name":"dictType","doc":"\n 字典类型\r\n"},{"name":"remark","doc":"\n 备注\r\n"}],"enumConstants":[],"methods":[],"constructors":[]}

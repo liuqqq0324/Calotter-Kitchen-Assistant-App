@@ -1,1 +1,0 @@
-{"doc":"\n 登录事件\r\n\r\n @author Lion Li\r\n","fields":[{"name":"tenantId","doc":"\n 租户ID\r\n"},{"name":"username","doc":"\n 用户账号\r\n"},{"name":"status","doc":"\n 登录状态 0成功 1失败\r\n"},{"name":"message","doc":"\n 提示消息\r\n"},{"name":"request","doc":"\n 请求体\r\n"},{"name":"args","doc":"\n 其他参数\r\n"}],"enumConstants":[],"methods":[],"constructors":[]}

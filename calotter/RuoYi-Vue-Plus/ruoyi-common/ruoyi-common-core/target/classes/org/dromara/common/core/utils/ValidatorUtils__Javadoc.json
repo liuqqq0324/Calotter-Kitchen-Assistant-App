@@ -1,1 +1,0 @@
-{"doc":"\n Validator 校验框架工具\r\n\r\n @author Lion Li\r\n","fields":[],"enumConstants":[],"methods":[{"name":"validate","paramTypes":["java.lang.Object","java.lang.Class[]"],"doc":"\n 对给定对象进行参数校验，并根据指定的校验组进行校验\r\n\r\n @param object 要进行校验的对象\r\n @param groups 校验组\r\n @throws ConstraintViolationException 如果校验不通过，则抛出参数校验异常\r\n"}],"constructors":[]}

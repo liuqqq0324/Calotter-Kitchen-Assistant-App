@@ -1,1 +1,0 @@
-{"doc":"\n web的调用时间统计拦截器\r\n\r\n @author Lion Li\r\n @since 3.3.0\r\n","fields":[],"enumConstants":[],"methods":[{"name":"isJsonRequest","paramTypes":["jakarta.servlet.http.HttpServletRequest"],"doc":"\n 判断本次请求的数据类型是否为json\r\n\r\n @param request request\r\n @return boolean\r\n"}],"constructors":[]}

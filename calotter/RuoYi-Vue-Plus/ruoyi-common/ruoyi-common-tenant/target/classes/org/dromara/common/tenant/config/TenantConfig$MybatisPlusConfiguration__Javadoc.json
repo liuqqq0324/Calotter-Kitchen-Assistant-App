@@ -1,1 +1,0 @@
-{"doc":"","fields":[],"enumConstants":[],"methods":[{"name":"tenantLineInnerInterceptor","paramTypes":["org.dromara.common.tenant.properties.TenantProperties"],"doc":"\n 多租户插件\r\n"}],"constructors":[]}

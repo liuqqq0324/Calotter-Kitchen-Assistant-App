@@ -100,3 +100,4 @@ app.*.map.json
 *.user
 
 **/postgres/data/
+**/target/

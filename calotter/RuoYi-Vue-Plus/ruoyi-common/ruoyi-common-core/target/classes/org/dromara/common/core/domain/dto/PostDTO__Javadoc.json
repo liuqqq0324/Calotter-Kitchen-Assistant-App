@@ -1,1 +1,0 @@
-{"doc":"\n 岗位\r\n\r\n @author AprilWind\r\n","fields":[{"name":"postId","doc":"\n 岗位ID\r\n"},{"name":"deptId","doc":"\n 部门id\r\n"},{"name":"postCode","doc":"\n 岗位编码\r\n"},{"name":"postName","doc":"\n 岗位名称\r\n"},{"name":"postCategory","doc":"\n 岗位类别编码\r\n"}],"enumConstants":[],"methods":[],"constructors":[]}

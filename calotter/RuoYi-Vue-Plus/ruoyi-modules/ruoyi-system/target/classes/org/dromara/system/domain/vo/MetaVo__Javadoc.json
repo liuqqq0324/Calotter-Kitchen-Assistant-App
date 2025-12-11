@@ -1,1 +1,0 @@
-{"doc":"\n 路由显示信息\r\n\r\n @author ruoyi\r\n","fields":[{"name":"title","doc":"\n 设置该路由在侧边栏和面包屑中展示的名字\r\n"},{"name":"icon","doc":"\n 设置该路由的图标，对应路径src/assets/icons/svg\r\n"},{"name":"noCache","doc":"\n 设置为true，则不会被 <keep-alive>缓存\r\n"},{"name":"link","doc":"\n 内链地址（http(s)://开头）\r\n"},{"name":"activeMenu","doc":"\n 激活菜单\r\n"}],"enumConstants":[],"methods":[],"constructors":[]}

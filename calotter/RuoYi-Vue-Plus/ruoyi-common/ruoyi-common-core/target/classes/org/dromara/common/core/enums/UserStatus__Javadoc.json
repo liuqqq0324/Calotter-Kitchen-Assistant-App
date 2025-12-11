@@ -1,1 +1,0 @@
-{"doc":"\n 用户状态\r\n\r\n @author ruoyi\r\n","fields":[],"enumConstants":[{"name":"OK","doc":"\n 正常\r\n"},{"name":"DISABLE","doc":"\n 停用\r\n"},{"name":"DELETED","doc":"\n 删除\r\n"}],"methods":[],"constructors":[]}

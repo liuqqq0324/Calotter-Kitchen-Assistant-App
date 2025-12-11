@@ -1,1 +1,0 @@
-{"doc":"\n 节点扩展属性枚举\r\n\r\n @author AprilWind\r\n","fields":[],"enumConstants":[],"methods":[{"name":"getLabel","paramTypes":[],"doc":"\n 选项label\r\n\r\n @return 选项label\r\n"},{"name":"getValue","paramTypes":[],"doc":"\n 选项值\r\n\r\n @return 选项值\r\n"},{"name":"isSelected","paramTypes":[],"doc":"\n 是否默认选中\r\n\r\n @return 是否默认选中\r\n"}],"constructors":[]}

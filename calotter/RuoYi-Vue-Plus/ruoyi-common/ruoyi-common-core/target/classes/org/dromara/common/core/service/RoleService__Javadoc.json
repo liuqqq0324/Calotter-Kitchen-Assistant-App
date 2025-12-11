@@ -1,1 +1,0 @@
-{"doc":"\n 通用 角色服务\r\n\r\n @author AprilWind\r\n","fields":[],"enumConstants":[],"methods":[{"name":"selectRoleNamesByIds","paramTypes":["java.util.List"],"doc":"\n 根据角色 ID 列表查询角色名称映射关系\r\n\r\n @param roleIds 角色 ID 列表\r\n @return Map，其中 key 为角色 ID，value 为对应的角色名称\r\n"}],"constructors":[]}

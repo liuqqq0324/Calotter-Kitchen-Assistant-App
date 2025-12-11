@@ -1,6 +1,0 @@
-org.dromara.demo.domain.bo.TestDemoBoToTestDemoMapper
-org.dromara.demo.domain.TestDemoToTestDemoVoMapper
-org.dromara.demo.domain.vo.TestTreeVoToTestTreeMapper
-org.dromara.demo.domain.bo.TestTreeBoToTestTreeMapper
-org.dromara.demo.domain.TestTreeToTestTreeVoMapper
-org.dromara.demo.domain.vo.TestDemoVoToTestDemoMapper

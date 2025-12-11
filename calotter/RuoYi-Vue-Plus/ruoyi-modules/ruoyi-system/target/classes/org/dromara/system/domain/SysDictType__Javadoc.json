@@ -1,1 +1,0 @@
-{"doc":"\n 字典类型表 sys_dict_type\r\n\r\n @author Lion Li\r\n","fields":[{"name":"dictId","doc":"\n 字典主键\r\n"},{"name":"dictName","doc":"\n 字典名称\r\n"},{"name":"dictType","doc":"\n 字典类型\r\n"},{"name":"remark","doc":"\n 备注\r\n"}],"enumConstants":[],"methods":[],"constructors":[]}
