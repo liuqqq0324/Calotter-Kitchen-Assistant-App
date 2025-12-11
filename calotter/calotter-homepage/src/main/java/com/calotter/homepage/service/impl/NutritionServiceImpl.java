@@ -91,10 +91,24 @@ public class NutritionServiceImpl implements INutritionService {
         // Get consumed values
         Map<String, Object> consumedMap = intakeRecordMapper.sumEffectiveNutritionByDateRange(userId, weekStart, weekEnd);
 
-        BigDecimal consumedEnergy = ((BigDecimal) consumedMap.get("consumedEnergy")).setScale(2, RoundingMode.HALF_UP);
-        BigDecimal consumedFat = ((BigDecimal) consumedMap.get("consumedFat")).setScale(2, RoundingMode.HALF_UP);
-        BigDecimal consumedCarbs = ((BigDecimal) consumedMap.get("consumedCarbohydrates")).setScale(2, RoundingMode.HALF_UP);
-        BigDecimal consumedProtein = ((BigDecimal) consumedMap.get("consumedProtein")).setScale(2, RoundingMode.HALF_UP);
+        // Handle null values safely - if map is null or values are null, use zero
+        Object energyObj = consumedMap != null ? consumedMap.get("consumedEnergy") : null;
+        Object fatObj = consumedMap != null ? consumedMap.get("consumedFat") : null;
+        Object carbsObj = consumedMap != null ? consumedMap.get("consumedCarbohydrates") : null;
+        Object proteinObj = consumedMap != null ? consumedMap.get("consumedProtein") : null;
+
+        BigDecimal consumedEnergy = (energyObj instanceof BigDecimal) 
+            ? ((BigDecimal) energyObj).setScale(2, RoundingMode.HALF_UP)
+            : BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        BigDecimal consumedFat = (fatObj instanceof BigDecimal)
+            ? ((BigDecimal) fatObj).setScale(2, RoundingMode.HALF_UP)
+            : BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        BigDecimal consumedCarbs = (carbsObj instanceof BigDecimal)
+            ? ((BigDecimal) carbsObj).setScale(2, RoundingMode.HALF_UP)
+            : BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        BigDecimal consumedProtein = (proteinObj instanceof BigDecimal)
+            ? ((BigDecimal) proteinObj).setScale(2, RoundingMode.HALF_UP)
+            : BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
 
         // Calculate remaining
         BigDecimal remainingEnergy = target.getWeeklyTargetEnergy().subtract(consumedEnergy).max(BigDecimal.ZERO);

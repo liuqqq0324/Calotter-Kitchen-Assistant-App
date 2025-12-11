@@ -1,8 +1,8 @@
 
 ## 1.Get Weekly Nutrition Targets (F -> B)
-- Request method and path: `GET /api/nutrition/targets/weekly`
-- Request header:
-  - Authorization: Bearer `<accessToken>`
+- Request method and path: `GET /api/nutrition/targets/weekly?userId={userId}`
+- Request parameter:
+  - userId: `<user_id>`
 - Response (B -> F):
 ```JSON
 {
@@ -22,9 +22,10 @@
 }
 ```
 ## 2. Get Weekly Nutrition Summary (F -> B)
-- Request method and path: `GET /api/nutrition/summary?period=week`
-- Request header:
-  - Authorization: Bearer <accessToken>
+- Request method and path: `GET /api/nutrition/summary?period=week&userId={userId}`
+- Request parameter:
+  - period: `week` (时间周期，目前只支持week)
+  - userId: `<user_id>`
 - Response (B -> F):
 ```JSON
 {
@@ -46,10 +47,11 @@
 }
 ```
 ## 3. Get Today Intakes (F -> B)
-- Request method and path: `GET /api/intake/today?source=recipe`
-                           `GET /api/intake/today?source=manual`
-- Request header:
-  - Authorization: Bearer <accessToken>
+- Request method and path: `GET /api/intake/today?source=recipe&userId={userId}`
+                           `GET /api/intake/today?source=manual&userId={userId}`
+- Request parameter:
+  - source: `recipe` | `manual` | `all` (来源类型)
+  - userId: `<user_id>`
 - Response 1 (B -> F):
 ```JSON
 {
@@ -118,10 +120,10 @@
 }
 ```
 ## 4. Update Intake Percentage (F -> B)
-- Request method and path: `PATCH /api/intake/{intake_id}`
-
+- Request method and path: `PATCH /api/intake/{intake_id}?userId={userId}`
+- Request parameter:
+  - userId: `<user_id>`
 - Request header:
-  - Authorization: Bearer <accessToken>
   - Content-Type: application/json
 - Request body:
 {
@@ -162,11 +164,11 @@
   }
 }
 ```
-## 4. Add Manual Intake (F -> B)
-- Request method and path: `POST /api/intake/manual`
-
+## 5. Add Manual Intake (F -> B)
+- Request method and path: `POST /api/intake/manual?userId={userId}`
+- Request parameter:
+  - userId: `<user_id>`
 - Request header:
-  - Authorization: Bearer <accessToken>
   - Content-Type: application/json
 - Request body:
 {
