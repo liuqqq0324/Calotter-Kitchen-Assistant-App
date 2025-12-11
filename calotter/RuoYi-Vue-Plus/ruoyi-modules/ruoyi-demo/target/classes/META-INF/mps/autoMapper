@@ -1,0 +1,4 @@
+org.dromara.demo.domain.vo.TestTreeVo
+org.dromara.demo.domain.bo.TestTreeBo
+org.dromara.demo.domain.vo.TestDemoVo
+org.dromara.demo.domain.bo.TestDemoBo

@@ -1,1 +1,1 @@
-{"doc":"\n 缓存监控列表信息\r\n\r\n @param info         信息\r\n @param dbSize       数据库\r\n @param commandStats 命令统计\r\n","fields":[],"enumConstants":[],"methods":[],"constructors":[]}
+{"doc":" 缓存监控列表信息\n\n @param info         信息\n @param dbSize       数据库\n @param commandStats 命令统计\n","fields":[],"enumConstants":[],"methods":[],"constructors":[]}

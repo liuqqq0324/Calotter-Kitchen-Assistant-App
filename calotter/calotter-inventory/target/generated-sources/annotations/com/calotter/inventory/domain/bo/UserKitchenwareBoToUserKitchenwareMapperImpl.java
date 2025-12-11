@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-12-11T13:57:46+1300",
+    date = "2025-12-11T14:29:57+1300",
     comments = "version: 1.6.3, compiler: Eclipse JDT (IDE) 3.44.0.v20251118-1623, environment: Java 21.0.9 (Eclipse Adoptium)"
 )
 @Component
@@ -32,12 +32,12 @@ public class UserKitchenwareBoToUserKitchenwareMapperImpl implements UserKitchen
         if ( map != null ) {
             userKitchenware.setParams( new LinkedHashMap<String, Object>( map ) );
         }
-        userKitchenware.setConditionStatus( arg0.getConditionStatus() );
         userKitchenware.setId( arg0.getId() );
+        userKitchenware.setUserId( arg0.getUserId() );
         userKitchenware.setKitchenwareId( arg0.getKitchenwareId() );
         userKitchenware.setNickname( arg0.getNickname() );
         userKitchenware.setPurchaseDate( arg0.getPurchaseDate() );
-        userKitchenware.setUserId( arg0.getUserId() );
+        userKitchenware.setConditionStatus( arg0.getConditionStatus() );
 
         return userKitchenware;
     }
@@ -70,12 +70,12 @@ public class UserKitchenwareBoToUserKitchenwareMapperImpl implements UserKitchen
         arg1.setSearchValue( arg0.getSearchValue() );
         arg1.setUpdateBy( arg0.getUpdateBy() );
         arg1.setUpdateTime( arg0.getUpdateTime() );
-        arg1.setConditionStatus( arg0.getConditionStatus() );
         arg1.setId( arg0.getId() );
+        arg1.setUserId( arg0.getUserId() );
         arg1.setKitchenwareId( arg0.getKitchenwareId() );
         arg1.setNickname( arg0.getNickname() );
         arg1.setPurchaseDate( arg0.getPurchaseDate() );
-        arg1.setUserId( arg0.getUserId() );
+        arg1.setConditionStatus( arg0.getConditionStatus() );
 
         return arg1;
     }

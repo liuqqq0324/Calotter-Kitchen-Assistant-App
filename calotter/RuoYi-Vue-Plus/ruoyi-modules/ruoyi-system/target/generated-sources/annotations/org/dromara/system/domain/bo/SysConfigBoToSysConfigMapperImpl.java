@@ -8,13 +8,8 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-<<<<<<< HEAD
-    date = "2025-12-10T15:10:34+1300",
+    date = "2025-12-11T14:30:13+1300",
     comments = "version: 1.6.3, compiler: Eclipse JDT (IDE) 3.44.0.v20251118-1623, environment: Java 21.0.9 (Eclipse Adoptium)"
-=======
-    date = "2025-12-10T13:27:23+1300",
-    comments = "version: 1.6.3, compiler: javac, environment: Java 25.0.1 (Homebrew)"
->>>>>>> chase/flutter-v1-android-java
 )
 @Component
 public class SysConfigBoToSysConfigMapperImpl implements SysConfigBoToSysConfigMapper {
@@ -27,16 +22,16 @@ public class SysConfigBoToSysConfigMapperImpl implements SysConfigBoToSysConfigM
 
         SysConfig sysConfig = new SysConfig();
 
-        sysConfig.setSearchValue( arg0.getSearchValue() );
-        sysConfig.setCreateDept( arg0.getCreateDept() );
         sysConfig.setCreateBy( arg0.getCreateBy() );
+        sysConfig.setCreateDept( arg0.getCreateDept() );
         sysConfig.setCreateTime( arg0.getCreateTime() );
-        sysConfig.setUpdateBy( arg0.getUpdateBy() );
-        sysConfig.setUpdateTime( arg0.getUpdateTime() );
         Map<String, Object> map = arg0.getParams();
         if ( map != null ) {
             sysConfig.setParams( new LinkedHashMap<String, Object>( map ) );
         }
+        sysConfig.setSearchValue( arg0.getSearchValue() );
+        sysConfig.setUpdateBy( arg0.getUpdateBy() );
+        sysConfig.setUpdateTime( arg0.getUpdateTime() );
         sysConfig.setConfigId( arg0.getConfigId() );
         sysConfig.setConfigName( arg0.getConfigName() );
         sysConfig.setConfigKey( arg0.getConfigKey() );
@@ -53,12 +48,9 @@ public class SysConfigBoToSysConfigMapperImpl implements SysConfigBoToSysConfigM
             return arg1;
         }
 
-        arg1.setSearchValue( arg0.getSearchValue() );
-        arg1.setCreateDept( arg0.getCreateDept() );
         arg1.setCreateBy( arg0.getCreateBy() );
+        arg1.setCreateDept( arg0.getCreateDept() );
         arg1.setCreateTime( arg0.getCreateTime() );
-        arg1.setUpdateBy( arg0.getUpdateBy() );
-        arg1.setUpdateTime( arg0.getUpdateTime() );
         if ( arg1.getParams() != null ) {
             Map<String, Object> map = arg0.getParams();
             if ( map != null ) {
@@ -75,6 +67,9 @@ public class SysConfigBoToSysConfigMapperImpl implements SysConfigBoToSysConfigM
                 arg1.setParams( new LinkedHashMap<String, Object>( map ) );
             }
         }
+        arg1.setSearchValue( arg0.getSearchValue() );
+        arg1.setUpdateBy( arg0.getUpdateBy() );
+        arg1.setUpdateTime( arg0.getUpdateTime() );
         arg1.setConfigId( arg0.getConfigId() );
         arg1.setConfigName( arg0.getConfigName() );
         arg1.setConfigKey( arg0.getConfigKey() );

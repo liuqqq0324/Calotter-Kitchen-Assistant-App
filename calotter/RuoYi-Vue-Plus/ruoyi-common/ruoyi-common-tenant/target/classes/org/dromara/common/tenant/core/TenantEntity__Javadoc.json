@@ -1,1 +1,1 @@
-{"doc":"\n 租户基类\r\n\r\n @author Michelle.Chung\r\n","fields":[{"name":"tenantId","doc":"\n 租户编号\r\n"}],"enumConstants":[],"methods":[],"constructors":[]}
+{"doc":" 租户基类\n\n @author Michelle.Chung\n","fields":[{"name":"tenantId","doc":" 租户编号\n"}],"enumConstants":[],"methods":[],"constructors":[]}

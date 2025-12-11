@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-12-11T13:57:45+1300",
+    date = "2025-12-11T14:29:53+1300",
     comments = "version: 1.6.3, compiler: Eclipse JDT (IDE) 3.44.0.v20251118-1623, environment: Java 21.0.9 (Eclipse Adoptium)"
 )
 @Component
@@ -32,11 +32,11 @@ public class SessionRoleBoToSessionRoleMapperImpl implements SessionRoleBoToSess
         sessionRole.setSearchValue( arg0.getSearchValue() );
         sessionRole.setUpdateBy( arg0.getUpdateBy() );
         sessionRole.setUpdateTime( arg0.getUpdateTime() );
-        sessionRole.setFeedbackDesc( arg0.getFeedbackDesc() );
-        sessionRole.setFeedbackScore( arg0.getFeedbackScore() );
         sessionRole.setId( arg0.getId() );
-        sessionRole.setRoleId( arg0.getRoleId() );
         sessionRole.setSessionId( arg0.getSessionId() );
+        sessionRole.setRoleId( arg0.getRoleId() );
+        sessionRole.setFeedbackScore( arg0.getFeedbackScore() );
+        sessionRole.setFeedbackDesc( arg0.getFeedbackDesc() );
 
         return sessionRole;
     }
@@ -69,11 +69,11 @@ public class SessionRoleBoToSessionRoleMapperImpl implements SessionRoleBoToSess
         arg1.setSearchValue( arg0.getSearchValue() );
         arg1.setUpdateBy( arg0.getUpdateBy() );
         arg1.setUpdateTime( arg0.getUpdateTime() );
-        arg1.setFeedbackDesc( arg0.getFeedbackDesc() );
-        arg1.setFeedbackScore( arg0.getFeedbackScore() );
         arg1.setId( arg0.getId() );
-        arg1.setRoleId( arg0.getRoleId() );
         arg1.setSessionId( arg0.getSessionId() );
+        arg1.setRoleId( arg0.getRoleId() );
+        arg1.setFeedbackScore( arg0.getFeedbackScore() );
+        arg1.setFeedbackDesc( arg0.getFeedbackDesc() );
 
         return arg1;
     }

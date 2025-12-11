@@ -1,1 +1,1 @@
-{"doc":"\n XSS过滤处理\r\n\r\n @author ruoyi\r\n","fields":[],"enumConstants":[],"methods":[{"name":"isJsonRequest","paramTypes":[],"doc":"\n 是否是Json请求\r\n"}],"constructors":[{"name":"<init>","paramTypes":["jakarta.servlet.http.HttpServletRequest"],"doc":"\n @param request\r\n"}]}
+{"doc":" XSS过滤处理\n\n @author ruoyi\n","fields":[],"enumConstants":[],"methods":[{"name":"isJsonRequest","paramTypes":[],"doc":" 是否是Json请求\n"}],"constructors":[{"name":"<init>","paramTypes":["jakarta.servlet.http.HttpServletRequest"],"doc":" @param request\n"}]}

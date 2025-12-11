@@ -1,1 +1,1 @@
-{"doc":"","fields":[{"name":"storageId","doc":"\n 主键\r\n"},{"name":"handlerCode","doc":"\n 权限编码\r\n"},{"name":"handlerName","doc":"\n 权限名称\r\n"},{"name":"groupName","doc":"\n 权限分组\r\n"},{"name":"createTime","doc":"\n 创建时间\r\n"}],"enumConstants":[],"methods":[],"constructors":[]}
+{"doc":"","fields":[{"name":"storageId","doc":" 主键\n"},{"name":"handlerCode","doc":" 权限编码\n"},{"name":"handlerName","doc":" 权限名称\n"},{"name":"groupName","doc":" 权限分组\n"},{"name":"createTime","doc":" 创建时间\n"}],"enumConstants":[],"methods":[],"constructors":[]}

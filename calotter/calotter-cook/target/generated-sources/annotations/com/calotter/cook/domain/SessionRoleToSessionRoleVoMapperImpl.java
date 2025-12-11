@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-12-11T13:57:45+1300",
+    date = "2025-12-11T14:29:53+1300",
     comments = "version: 1.6.3, compiler: Eclipse JDT (IDE) 3.44.0.v20251118-1623, environment: Java 21.0.9 (Eclipse Adoptium)"
 )
 @Component
@@ -20,11 +20,11 @@ public class SessionRoleToSessionRoleVoMapperImpl implements SessionRoleToSessio
 
         SessionRoleVo sessionRoleVo = new SessionRoleVo();
 
-        sessionRoleVo.setFeedbackDesc( arg0.getFeedbackDesc() );
-        sessionRoleVo.setFeedbackScore( arg0.getFeedbackScore() );
         sessionRoleVo.setId( arg0.getId() );
-        sessionRoleVo.setRoleId( arg0.getRoleId() );
         sessionRoleVo.setSessionId( arg0.getSessionId() );
+        sessionRoleVo.setRoleId( arg0.getRoleId() );
+        sessionRoleVo.setFeedbackScore( arg0.getFeedbackScore() );
+        sessionRoleVo.setFeedbackDesc( arg0.getFeedbackDesc() );
 
         return sessionRoleVo;
     }
@@ -35,11 +35,11 @@ public class SessionRoleToSessionRoleVoMapperImpl implements SessionRoleToSessio
             return arg1;
         }
 
-        arg1.setFeedbackDesc( arg0.getFeedbackDesc() );
-        arg1.setFeedbackScore( arg0.getFeedbackScore() );
         arg1.setId( arg0.getId() );
-        arg1.setRoleId( arg0.getRoleId() );
         arg1.setSessionId( arg0.getSessionId() );
+        arg1.setRoleId( arg0.getRoleId() );
+        arg1.setFeedbackScore( arg0.getFeedbackScore() );
+        arg1.setFeedbackDesc( arg0.getFeedbackDesc() );
 
         return arg1;
     }

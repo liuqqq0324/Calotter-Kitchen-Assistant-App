@@ -1,0 +1,7 @@
+org\dromara\common\mail\config\properties\MailProperties__Javadoc.json
+org\dromara\common\mail\config\properties\MailProperties.class
+org\dromara\common\mail\config\MailConfig.class
+org\dromara\common\mail\utils\MailUtils.class
+org\dromara\common\mail\config\MailConfig__Javadoc.json
+org\dromara\common\mail\utils\MailUtils__Javadoc.json
+META-INF\spring-configuration-metadata.json

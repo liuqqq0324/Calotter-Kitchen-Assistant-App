@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-12-11T13:57:45+1300",
+    date = "2025-12-11T14:29:53+1300",
     comments = "version: 1.6.3, compiler: Eclipse JDT (IDE) 3.44.0.v20251118-1623, environment: Java 21.0.9 (Eclipse Adoptium)"
 )
 @Component
@@ -21,11 +21,11 @@ public class RecipeIngredientHistoryVoToRecipeIngredientHistoryMapperImpl implem
         RecipeIngredientHistory recipeIngredientHistory = new RecipeIngredientHistory();
 
         recipeIngredientHistory.setId( arg0.getId() );
+        recipeIngredientHistory.setRecipeId( arg0.getRecipeId() );
         recipeIngredientHistory.setIngredientId( arg0.getIngredientId() );
         recipeIngredientHistory.setQuantityUsed( arg0.getQuantityUsed() );
-        recipeIngredientHistory.setRecipeId( arg0.getRecipeId() );
-        recipeIngredientHistory.setSubstitution( arg0.getSubstitution() );
         recipeIngredientHistory.setUnit( arg0.getUnit() );
+        recipeIngredientHistory.setSubstitution( arg0.getSubstitution() );
 
         return recipeIngredientHistory;
     }
@@ -37,11 +37,11 @@ public class RecipeIngredientHistoryVoToRecipeIngredientHistoryMapperImpl implem
         }
 
         arg1.setId( arg0.getId() );
+        arg1.setRecipeId( arg0.getRecipeId() );
         arg1.setIngredientId( arg0.getIngredientId() );
         arg1.setQuantityUsed( arg0.getQuantityUsed() );
-        arg1.setRecipeId( arg0.getRecipeId() );
-        arg1.setSubstitution( arg0.getSubstitution() );
         arg1.setUnit( arg0.getUnit() );
+        arg1.setSubstitution( arg0.getSubstitution() );
 
         return arg1;
     }

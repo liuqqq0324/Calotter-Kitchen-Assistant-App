@@ -1,1 +1,1 @@
-{"doc":"\n api解密属性配置类\r\n @author wdhcr\r\n","fields":[{"name":"enabled","doc":"\n 加密开关\r\n"},{"name":"headerFlag","doc":"\n 头部标识\r\n"},{"name":"publicKey","doc":"\n 响应加密公钥\r\n"},{"name":"privateKey","doc":"\n 请求解密私钥\r\n"}],"enumConstants":[],"methods":[],"constructors":[]}
+{"doc":" api解密属性配置类\n @author wdhcr\n","fields":[{"name":"enabled","doc":" 加密开关\n"},{"name":"headerFlag","doc":" 头部标识\n"},{"name":"publicKey","doc":" 响应加密公钥\n"},{"name":"privateKey","doc":" 请求解密私钥\n"}],"enumConstants":[],"methods":[],"constructors":[]}

@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-12-11T13:57:47+1300",
+    date = "2025-12-11T14:29:59+1300",
     comments = "version: 1.6.3, compiler: Eclipse JDT (IDE) 3.44.0.v20251118-1623, environment: Java 21.0.9 (Eclipse Adoptium)"
 )
 @Component
@@ -33,9 +33,9 @@ public class RecipeKitchenwareBoToRecipeKitchenwareMapperImpl implements RecipeK
         recipeKitchenware.setUpdateBy( arg0.getUpdateBy() );
         recipeKitchenware.setUpdateTime( arg0.getUpdateTime() );
         recipeKitchenware.setId( arg0.getId() );
+        recipeKitchenware.setRecipeId( arg0.getRecipeId() );
         recipeKitchenware.setKitchenwareId( arg0.getKitchenwareId() );
         recipeKitchenware.setNote( arg0.getNote() );
-        recipeKitchenware.setRecipeId( arg0.getRecipeId() );
 
         return recipeKitchenware;
     }
@@ -69,9 +69,9 @@ public class RecipeKitchenwareBoToRecipeKitchenwareMapperImpl implements RecipeK
         arg1.setUpdateBy( arg0.getUpdateBy() );
         arg1.setUpdateTime( arg0.getUpdateTime() );
         arg1.setId( arg0.getId() );
+        arg1.setRecipeId( arg0.getRecipeId() );
         arg1.setKitchenwareId( arg0.getKitchenwareId() );
         arg1.setNote( arg0.getNote() );
-        arg1.setRecipeId( arg0.getRecipeId() );
 
         return arg1;
     }

@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-12-11T13:57:46+1300",
+    date = "2025-12-11T14:29:57+1300",
     comments = "version: 1.6.3, compiler: Eclipse JDT (IDE) 3.44.0.v20251118-1623, environment: Java 21.0.9 (Eclipse Adoptium)"
 )
 @Component
@@ -20,12 +20,12 @@ public class UserKitchenwareToUserKitchenwareVoMapperImpl implements UserKitchen
 
         UserKitchenwareVo userKitchenwareVo = new UserKitchenwareVo();
 
-        userKitchenwareVo.setConditionStatus( arg0.getConditionStatus() );
         userKitchenwareVo.setId( arg0.getId() );
+        userKitchenwareVo.setUserId( arg0.getUserId() );
         userKitchenwareVo.setKitchenwareId( arg0.getKitchenwareId() );
         userKitchenwareVo.setNickname( arg0.getNickname() );
         userKitchenwareVo.setPurchaseDate( arg0.getPurchaseDate() );
-        userKitchenwareVo.setUserId( arg0.getUserId() );
+        userKitchenwareVo.setConditionStatus( arg0.getConditionStatus() );
 
         return userKitchenwareVo;
     }
@@ -36,12 +36,12 @@ public class UserKitchenwareToUserKitchenwareVoMapperImpl implements UserKitchen
             return arg1;
         }
 
-        arg1.setConditionStatus( arg0.getConditionStatus() );
         arg1.setId( arg0.getId() );
+        arg1.setUserId( arg0.getUserId() );
         arg1.setKitchenwareId( arg0.getKitchenwareId() );
         arg1.setNickname( arg0.getNickname() );
         arg1.setPurchaseDate( arg0.getPurchaseDate() );
-        arg1.setUserId( arg0.getUserId() );
+        arg1.setConditionStatus( arg0.getConditionStatus() );
 
         return arg1;
     }

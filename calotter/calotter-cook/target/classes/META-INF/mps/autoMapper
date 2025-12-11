@@ -1,0 +1,8 @@
+com.calotter.cook.domain.vo.RecipeIngredientHistoryVo
+com.calotter.cook.domain.bo.SessionRecipeBo
+com.calotter.cook.domain.vo.SessionRecipeVo
+com.calotter.cook.domain.bo.RecipeIngredientHistoryBo
+com.calotter.cook.domain.vo.SessionVo
+com.calotter.cook.domain.bo.SessionRoleBo
+com.calotter.cook.domain.bo.SessionBo
+com.calotter.cook.domain.vo.SessionRoleVo

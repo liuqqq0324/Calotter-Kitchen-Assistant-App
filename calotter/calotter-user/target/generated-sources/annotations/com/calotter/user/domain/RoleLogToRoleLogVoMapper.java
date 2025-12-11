@@ -3,12 +3,12 @@ package com.calotter.user.domain;
 import com.calotter.user.domain.bo.RoleLogBoToRoleLogMapper;
 import com.calotter.user.domain.vo.RoleLogVo;
 import com.calotter.user.domain.vo.RoleLogVoToRoleLogMapper;
-import io.github.linpeilie.AutoMapperConfig__132;
+import io.github.linpeilie.AutoMapperConfig__151;
 import io.github.linpeilie.BaseMapper;
 import org.mapstruct.Mapper;
 
 @Mapper(
-    config = AutoMapperConfig__132.class,
+    config = AutoMapperConfig__151.class,
     uses = {RoleLogVoToRoleLogMapper.class,RoleLogBoToRoleLogMapper.class},
     imports = {}
 )

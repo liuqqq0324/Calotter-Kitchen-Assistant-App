@@ -8,13 +8,8 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-<<<<<<< HEAD
-    date = "2025-12-10T15:10:36+1300",
+    date = "2025-12-11T14:30:12+1300",
     comments = "version: 1.6.3, compiler: Eclipse JDT (IDE) 3.44.0.v20251118-1623, environment: Java 21.0.9 (Eclipse Adoptium)"
-=======
-    date = "2025-12-10T13:27:23+1300",
-    comments = "version: 1.6.3, compiler: javac, environment: Java 25.0.1 (Homebrew)"
->>>>>>> chase/flutter-v1-android-java
 )
 @Component
 public class SysRoleBoToSysRoleMapperImpl implements SysRoleBoToSysRoleMapper {
@@ -27,16 +22,16 @@ public class SysRoleBoToSysRoleMapperImpl implements SysRoleBoToSysRoleMapper {
 
         SysRole sysRole = new SysRole();
 
-        sysRole.setSearchValue( arg0.getSearchValue() );
-        sysRole.setCreateDept( arg0.getCreateDept() );
         sysRole.setCreateBy( arg0.getCreateBy() );
+        sysRole.setCreateDept( arg0.getCreateDept() );
         sysRole.setCreateTime( arg0.getCreateTime() );
-        sysRole.setUpdateBy( arg0.getUpdateBy() );
-        sysRole.setUpdateTime( arg0.getUpdateTime() );
         Map<String, Object> map = arg0.getParams();
         if ( map != null ) {
             sysRole.setParams( new LinkedHashMap<String, Object>( map ) );
         }
+        sysRole.setSearchValue( arg0.getSearchValue() );
+        sysRole.setUpdateBy( arg0.getUpdateBy() );
+        sysRole.setUpdateTime( arg0.getUpdateTime() );
         sysRole.setRoleId( arg0.getRoleId() );
         sysRole.setRoleName( arg0.getRoleName() );
         sysRole.setRoleKey( arg0.getRoleKey() );
@@ -56,12 +51,9 @@ public class SysRoleBoToSysRoleMapperImpl implements SysRoleBoToSysRoleMapper {
             return arg1;
         }
 
-        arg1.setSearchValue( arg0.getSearchValue() );
-        arg1.setCreateDept( arg0.getCreateDept() );
         arg1.setCreateBy( arg0.getCreateBy() );
+        arg1.setCreateDept( arg0.getCreateDept() );
         arg1.setCreateTime( arg0.getCreateTime() );
-        arg1.setUpdateBy( arg0.getUpdateBy() );
-        arg1.setUpdateTime( arg0.getUpdateTime() );
         if ( arg1.getParams() != null ) {
             Map<String, Object> map = arg0.getParams();
             if ( map != null ) {
@@ -78,6 +70,9 @@ public class SysRoleBoToSysRoleMapperImpl implements SysRoleBoToSysRoleMapper {
                 arg1.setParams( new LinkedHashMap<String, Object>( map ) );
             }
         }
+        arg1.setSearchValue( arg0.getSearchValue() );
+        arg1.setUpdateBy( arg0.getUpdateBy() );
+        arg1.setUpdateTime( arg0.getUpdateTime() );
         arg1.setRoleId( arg0.getRoleId() );
         arg1.setRoleName( arg0.getRoleName() );
         arg1.setRoleKey( arg0.getRoleKey() );

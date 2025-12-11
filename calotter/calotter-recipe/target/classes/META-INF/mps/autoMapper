@@ -1,0 +1,12 @@
+com.calotter.recipe.domain.bo.CuisineTypeBo
+com.calotter.recipe.domain.bo.RecipeIngredientBo
+com.calotter.recipe.domain.vo.IngredientVo
+com.calotter.recipe.domain.vo.CuisineTypeVo
+com.calotter.recipe.domain.bo.KitchenwareBo
+com.calotter.recipe.domain.vo.RecipeIngredientVo
+com.calotter.recipe.domain.bo.RecipeKitchenwareBo
+com.calotter.recipe.domain.vo.RecipeKitchenwareVo
+com.calotter.recipe.domain.bo.RecipeBo
+com.calotter.recipe.domain.bo.IngredientBo
+com.calotter.recipe.domain.vo.KitchenwareVo
+com.calotter.recipe.domain.vo.RecipeVo

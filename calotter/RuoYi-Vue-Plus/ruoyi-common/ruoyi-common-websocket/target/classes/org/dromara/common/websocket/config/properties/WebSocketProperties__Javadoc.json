@@ -1,1 +1,1 @@
-{"doc":"\n WebSocket 配置项\r\n\r\n @author zendwang\r\n","fields":[{"name":"path","doc":"\n 路径\r\n"},{"name":"allowedOrigins","doc":"\n  设置访问源地址\r\n"}],"enumConstants":[],"methods":[],"constructors":[]}
+{"doc":" WebSocket 配置项\n\n @author zendwang\n","fields":[{"name":"path","doc":" 路径\n"},{"name":"allowedOrigins","doc":"  设置访问源地址\n"}],"enumConstants":[],"methods":[],"constructors":[]}

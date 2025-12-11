@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-12-11T13:57:47+1300",
+    date = "2025-12-11T14:29:59+1300",
     comments = "version: 1.6.3, compiler: Eclipse JDT (IDE) 3.44.0.v20251118-1623, environment: Java 21.0.9 (Eclipse Adoptium)"
 )
 @Component
@@ -32,13 +32,13 @@ public class KitchenwareBoToKitchenwareMapperImpl implements KitchenwareBoToKitc
         kitchenware.setSearchValue( arg0.getSearchValue() );
         kitchenware.setUpdateBy( arg0.getUpdateBy() );
         kitchenware.setUpdateTime( arg0.getUpdateTime() );
-        kitchenware.setCategory( arg0.getCategory() );
-        kitchenware.setDefaultShown( arg0.getDefaultShown() );
-        kitchenware.setDescription( arg0.getDescription() );
-        kitchenware.setElectronic( arg0.getElectronic() );
         kitchenware.setId( arg0.getId() );
-        kitchenware.setImageUrl( arg0.getImageUrl() );
         kitchenware.setName( arg0.getName() );
+        kitchenware.setDescription( arg0.getDescription() );
+        kitchenware.setImageUrl( arg0.getImageUrl() );
+        kitchenware.setCategory( arg0.getCategory() );
+        kitchenware.setElectronic( arg0.getElectronic() );
+        kitchenware.setDefaultShown( arg0.getDefaultShown() );
 
         return kitchenware;
     }
@@ -71,13 +71,13 @@ public class KitchenwareBoToKitchenwareMapperImpl implements KitchenwareBoToKitc
         arg1.setSearchValue( arg0.getSearchValue() );
         arg1.setUpdateBy( arg0.getUpdateBy() );
         arg1.setUpdateTime( arg0.getUpdateTime() );
-        arg1.setCategory( arg0.getCategory() );
-        arg1.setDefaultShown( arg0.getDefaultShown() );
-        arg1.setDescription( arg0.getDescription() );
-        arg1.setElectronic( arg0.getElectronic() );
         arg1.setId( arg0.getId() );
-        arg1.setImageUrl( arg0.getImageUrl() );
         arg1.setName( arg0.getName() );
+        arg1.setDescription( arg0.getDescription() );
+        arg1.setImageUrl( arg0.getImageUrl() );
+        arg1.setCategory( arg0.getCategory() );
+        arg1.setElectronic( arg0.getElectronic() );
+        arg1.setDefaultShown( arg0.getDefaultShown() );
 
         return arg1;
     }

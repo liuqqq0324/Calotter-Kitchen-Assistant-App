@@ -6,8 +6,8 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-12-11T13:57:48+1300",
-    comments = "version: 1.6.3, compiler: Eclipse JDT (IDE) 3.44.0.v20251118-1623, environment: Java 21.0.9 (Eclipse Adoptium)"
+    date = "2025-12-11T14:28:56+1300",
+    comments = "version: 1.6.3, compiler: javac, environment: Java 21.0.8 (JetBrains s.r.o.)"
 )
 @Component
 public class RoleLogVoToRoleLogMapperImpl implements RoleLogVoToRoleLogMapper {
@@ -20,12 +20,12 @@ public class RoleLogVoToRoleLogMapperImpl implements RoleLogVoToRoleLogMapper {
 
         RoleLog roleLog = new RoleLog();
 
-        roleLog.setHeightCm( arg0.getHeightCm() );
         roleLog.setId( arg0.getId() );
-        roleLog.setNotes( arg0.getNotes() );
-        roleLog.setRecordAt( arg0.getRecordAt() );
         roleLog.setRoleId( arg0.getRoleId() );
+        roleLog.setRecordAt( arg0.getRecordAt() );
         roleLog.setWeightKg( arg0.getWeightKg() );
+        roleLog.setHeightCm( arg0.getHeightCm() );
+        roleLog.setNotes( arg0.getNotes() );
 
         return roleLog;
     }
@@ -36,12 +36,12 @@ public class RoleLogVoToRoleLogMapperImpl implements RoleLogVoToRoleLogMapper {
             return arg1;
         }
 
-        arg1.setHeightCm( arg0.getHeightCm() );
         arg1.setId( arg0.getId() );
-        arg1.setNotes( arg0.getNotes() );
-        arg1.setRecordAt( arg0.getRecordAt() );
         arg1.setRoleId( arg0.getRoleId() );
+        arg1.setRecordAt( arg0.getRecordAt() );
         arg1.setWeightKg( arg0.getWeightKg() );
+        arg1.setHeightCm( arg0.getHeightCm() );
+        arg1.setNotes( arg0.getNotes() );
 
         return arg1;
     }

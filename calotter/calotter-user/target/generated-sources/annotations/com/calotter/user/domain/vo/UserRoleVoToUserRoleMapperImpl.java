@@ -6,8 +6,8 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-12-11T13:57:48+1300",
-    comments = "version: 1.6.3, compiler: Eclipse JDT (IDE) 3.44.0.v20251118-1623, environment: Java 21.0.9 (Eclipse Adoptium)"
+    date = "2025-12-11T14:28:56+1300",
+    comments = "version: 1.6.3, compiler: javac, environment: Java 21.0.8 (JetBrains s.r.o.)"
 )
 @Component
 public class UserRoleVoToUserRoleMapperImpl implements UserRoleVoToUserRoleMapper {
@@ -20,12 +20,12 @@ public class UserRoleVoToUserRoleMapperImpl implements UserRoleVoToUserRoleMappe
 
         UserRole userRole = new UserRole();
 
-        userRole.setAccountOwner( arg0.getAccountOwner() );
-        userRole.setBirthdate( arg0.getBirthdate() );
-        userRole.setGender( arg0.getGender() );
         userRole.setId( arg0.getId() );
-        userRole.setName( arg0.getName() );
         userRole.setUserId( arg0.getUserId() );
+        userRole.setName( arg0.getName() );
+        userRole.setAccountOwner( arg0.getAccountOwner() );
+        userRole.setGender( arg0.getGender() );
+        userRole.setBirthdate( arg0.getBirthdate() );
 
         return userRole;
     }
@@ -36,12 +36,12 @@ public class UserRoleVoToUserRoleMapperImpl implements UserRoleVoToUserRoleMappe
             return arg1;
         }
 
-        arg1.setAccountOwner( arg0.getAccountOwner() );
-        arg1.setBirthdate( arg0.getBirthdate() );
-        arg1.setGender( arg0.getGender() );
         arg1.setId( arg0.getId() );
-        arg1.setName( arg0.getName() );
         arg1.setUserId( arg0.getUserId() );
+        arg1.setName( arg0.getName() );
+        arg1.setAccountOwner( arg0.getAccountOwner() );
+        arg1.setGender( arg0.getGender() );
+        arg1.setBirthdate( arg0.getBirthdate() );
 
         return arg1;
     }

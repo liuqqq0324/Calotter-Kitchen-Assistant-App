@@ -6,13 +6,8 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-<<<<<<< HEAD
-    date = "2025-12-10T15:10:38+1300",
+    date = "2025-12-11T14:30:13+1300",
     comments = "version: 1.6.3, compiler: Eclipse JDT (IDE) 3.44.0.v20251118-1623, environment: Java 21.0.9 (Eclipse Adoptium)"
-=======
-    date = "2025-12-10T13:27:22+1300",
-    comments = "version: 1.6.3, compiler: javac, environment: Java 25.0.1 (Homebrew)"
->>>>>>> chase/flutter-v1-android-java
 )
 @Component
 public class SysRoleToSysRoleVoMapperImpl implements SysRoleToSysRoleVoMapper {
