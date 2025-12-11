@@ -29,14 +29,7 @@
 
     <modules>
         <module>calotter-cook</module>
-<<<<<<< HEAD
-<<<<<<< HEAD
         <module>calotter-homepage</module>
-=======
->>>>>>> 914781e456dc7c6dcbe03c1b7d130dc778a7dbb2
-=======
-        <module>calotter-homepage</module>
->>>>>>> origin/chase/flutter-v1-android-java
         <module>calotter-inventory</module>
         <module>calotter-recipe</module>
         <module>calotter-user</module>

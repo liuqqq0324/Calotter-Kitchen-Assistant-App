@@ -1,6 +1,7 @@
 package com.calotter.homepage.controller;
 
 import com.calotter.common.core.domain.R;
+import com.calotter.common.core.utils.TokenUtils;
 import com.calotter.common.web.core.BaseController;
 import com.calotter.homepage.service.INutritionService;
 import lombok.RequiredArgsConstructor;
@@ -21,12 +22,17 @@ public class NutritionController extends BaseController {
 
     /**
      * Get Weekly Nutrition Targets
-     * GET /api/nutrition/targets/weekly?userId={userId}
+     * GET /api/nutrition/targets/weekly
      */
     @GetMapping("/targets/weekly")
     public R<INutritionService.WeeklyNutritionTargetsResponse> getWeeklyNutritionTargets(
-            @RequestParam("userId") Long userId) {
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
         try {
+            Long userId = TokenUtils.extractUserIdFromToken(authHeader);
+            if (userId == null) {
+                return R.fail("Unauthorized: Invalid or missing token");
+            }
+
             INutritionService.WeeklyNutritionTargetsResponse response = nutritionService.getWeeklyNutritionTargets(userId);
             return R.ok(response);
         } catch (Exception e) {
@@ -36,13 +42,18 @@ public class NutritionController extends BaseController {
 
     /**
      * Get Weekly Nutrition Summary
-     * GET /api/nutrition/summary?period=week&userId={userId}
+     * GET /api/nutrition/summary?period=week
      */
     @GetMapping("/summary")
     public R<INutritionService.WeeklyNutritionSummaryResponse> getWeeklyNutritionSummary(
             @RequestParam(defaultValue = "week") String period,
-            @RequestParam("userId") Long userId) {
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
         try {
+            Long userId = TokenUtils.extractUserIdFromToken(authHeader);
+            if (userId == null) {
+                return R.fail("Unauthorized: Invalid or missing token");
+            }
+
             if (!"week".equals(period)) {
                 return R.fail("Only 'week' period is currently supported");
             }

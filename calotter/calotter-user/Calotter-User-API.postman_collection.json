@@ -1,0 +1,1030 @@
+{
+	"info": {
+		"_postman_id": "calotter-user-api",
+		"name": "Calotter User API",
+		"description": "Calotter User Service API Collection",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "认证相关 API",
+			"item": [
+				{
+					"name": "用户注册",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"testuser\",\n  \"password\": \"password123\",\n  \"confirmPassword\": \"password123\",\n  \"email\": \"test@example.com\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:10000/api/ums/auth/register",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "10000",
+							"path": ["api", "ums", "auth", "register"]
+						}
+					}
+				},
+				{
+					"name": "用户登录",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"identifier\": \"testuser\",\n  \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:10000/api/ums/auth/login",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "10000",
+							"path": ["api", "ums", "auth", "login"]
+						}
+					}
+				},
+				{
+					"name": "获取用户信息",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "http://localhost:10000/api/ums/user?id=1",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "10000",
+							"path": ["api", "ums", "user"],
+							"query": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "获取用户偏好",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "http://localhost:10000/api/ums/user/preferences?id=1",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "10000",
+							"path": ["api", "ums", "user", "preferences"],
+							"query": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "更新用户偏好",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"dietaryType\": \"vegetarian\",\n  \"spiceLevel\": \"medium\",\n  \"cookingTimePreference\": \"quick\",\n  \"cuisineTypes\": [\"Chinese\", \"Italian\"]\n}"
+						},
+						"url": {
+							"raw": "http://localhost:10000/api/ums/user/preferences?id=1",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "10000",
+							"path": ["api", "ums", "user", "preferences"],
+							"query": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "获取用户禁忌",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "http://localhost:10000/api/ums/user/taboos?id=1",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "10000",
+							"path": ["api", "ums", "user", "taboos"],
+							"query": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "更新用户禁忌",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"taboos\": [\"pork\", \"beef\"]\n}"
+						},
+						"url": {
+							"raw": "http://localhost:10000/api/ums/user/taboos?id=1",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "10000",
+							"path": ["api", "ums", "user", "taboos"],
+							"query": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "获取用户过敏",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "http://localhost:10000/api/ums/user/allergies?id=1",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "10000",
+							"path": ["api", "ums", "user", "allergies"],
+							"query": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "更新用户过敏",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"allergies\": [\"peanuts\", \"shellfish\"]\n}"
+						},
+						"url": {
+							"raw": "http://localhost:10000/api/ums/user/allergies?id=1",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "10000",
+							"path": ["api", "ums", "user", "allergies"],
+							"query": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "用户管理 API",
+			"item": [
+				{
+					"name": "查询用户列表",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "http://localhost:10000/user/user/list?pageNum=1&pageSize=10",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "10000",
+							"path": ["user", "user", "list"],
+							"query": [
+								{
+									"key": "pageNum",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "10"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "获取用户详情",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "http://localhost:10000/user/user/1",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "10000",
+							"path": ["user", "user", "1"]
+						}
+					}
+				},
+				{
+					"name": "添加用户",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"newuser\",\n  \"email\": \"newuser@example.com\",\n  \"passwordHash\": \"hashedpassword\",\n  \"displayName\": \"New User\",\n  \"status\": 1\n}"
+						},
+						"url": {
+							"raw": "http://localhost:10000/user/user",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "10000",
+							"path": ["user", "user"]
+						}
+					}
+				},
+				{
+					"name": "修改用户",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": 1,\n  \"username\": \"updateduser\",\n  \"email\": \"updated@example.com\",\n  \"displayName\": \"Updated User\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:10000/user/user",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "10000",
+							"path": ["user", "user"]
+						}
+					}
+				},
+				{
+					"name": "删除用户",
+					"request": {
+						"method": "DELETE",
+						"url": {
+							"raw": "http://localhost:10000/user/user/1",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "10000",
+							"path": ["user", "user", "1"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "偏好管理 API",
+			"item": [
+				{
+					"name": "查询偏好列表",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "http://localhost:10000/user/preference/list?pageNum=1&pageSize=10",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "10000",
+							"path": ["user", "preference", "list"],
+							"query": [
+								{
+									"key": "pageNum",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "10"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "获取偏好详情",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "http://localhost:10000/user/preference/1",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "10000",
+							"path": ["user", "preference", "1"]
+						}
+					}
+				},
+				{
+					"name": "添加偏好",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"dietaryType:vegetarian\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:10000/user/preference",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "10000",
+							"path": ["user", "preference"]
+						}
+					}
+				},
+				{
+					"name": "修改偏好",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": 1,\n  \"name\": \"dietaryType:vegan\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:10000/user/preference",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "10000",
+							"path": ["user", "preference"]
+						}
+					}
+				},
+				{
+					"name": "删除偏好",
+					"request": {
+						"method": "DELETE",
+						"url": {
+							"raw": "http://localhost:10000/user/preference/1",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "10000",
+							"path": ["user", "preference", "1"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "限制管理 API",
+			"item": [
+				{
+					"name": "查询限制列表",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "http://localhost:10000/user/restriction/list?pageNum=1&pageSize=10",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "10000",
+							"path": ["user", "restriction", "list"],
+							"query": [
+								{
+									"key": "pageNum",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "10"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "获取限制详情",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "http://localhost:10000/user/restriction/1",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "10000",
+							"path": ["user", "restriction", "1"]
+						}
+					}
+				},
+				{
+					"name": "添加限制",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"peanuts\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:10000/user/restriction",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "10000",
+							"path": ["user", "restriction"]
+						}
+					}
+				},
+				{
+					"name": "修改限制",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": 1,\n  \"name\": \"tree nuts\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:10000/user/restriction",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "10000",
+							"path": ["user", "restriction"]
+						}
+					}
+				},
+				{
+					"name": "删除限制",
+					"request": {
+						"method": "DELETE",
+						"url": {
+							"raw": "http://localhost:10000/user/restriction/1",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "10000",
+							"path": ["user", "restriction", "1"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "用户角色管理 API",
+			"item": [
+				{
+					"name": "查询用户角色列表",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "http://localhost:10000/user/userRole/list?pageNum=1&pageSize=10",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "10000",
+							"path": ["user", "userRole", "list"],
+							"query": [
+								{
+									"key": "pageNum",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "10"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "获取用户角色详情",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "http://localhost:10000/user/userRole/1",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "10000",
+							"path": ["user", "userRole", "1"]
+						}
+					}
+				},
+				{
+					"name": "添加用户角色",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"userId\": 1,\n  \"name\": \"Owner\",\n  \"accountOwner\": true\n}"
+						},
+						"url": {
+							"raw": "http://localhost:10000/user/userRole",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "10000",
+							"path": ["user", "userRole"]
+						}
+					}
+				},
+				{
+					"name": "修改用户角色",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": 1,\n  \"name\": \"Updated Role\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:10000/user/userRole",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "10000",
+							"path": ["user", "userRole"]
+						}
+					}
+				},
+				{
+					"name": "删除用户角色",
+					"request": {
+						"method": "DELETE",
+						"url": {
+							"raw": "http://localhost:10000/user/userRole/1",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "10000",
+							"path": ["user", "userRole", "1"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "角色偏好管理 API",
+			"item": [
+				{
+					"name": "查询角色偏好列表",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "http://localhost:10000/user/rolePreference/list?pageNum=1&pageSize=10",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "10000",
+							"path": ["user", "rolePreference", "list"],
+							"query": [
+								{
+									"key": "pageNum",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "10"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "获取角色偏好详情",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "http://localhost:10000/user/rolePreference/1",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "10000",
+							"path": ["user", "rolePreference", "1"]
+						}
+					}
+				},
+				{
+					"name": "添加角色偏好",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"roleId\": 1,\n  \"preferenceId\": 1,\n  \"level\": 1\n}"
+						},
+						"url": {
+							"raw": "http://localhost:10000/user/rolePreference",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "10000",
+							"path": ["user", "rolePreference"]
+						}
+					}
+				},
+				{
+					"name": "修改角色偏好",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": 1,\n  \"level\": 2\n}"
+						},
+						"url": {
+							"raw": "http://localhost:10000/user/rolePreference",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "10000",
+							"path": ["user", "rolePreference"]
+						}
+					}
+				},
+				{
+					"name": "删除角色偏好",
+					"request": {
+						"method": "DELETE",
+						"url": {
+							"raw": "http://localhost:10000/user/rolePreference/1",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "10000",
+							"path": ["user", "rolePreference", "1"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "角色限制管理 API",
+			"item": [
+				{
+					"name": "查询角色限制列表",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "http://localhost:10000/user/roleRestriction/list?pageNum=1&pageSize=10",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "10000",
+							"path": ["user", "roleRestriction", "list"],
+							"query": [
+								{
+									"key": "pageNum",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "10"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "获取角色限制详情",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "http://localhost:10000/user/roleRestriction/1",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "10000",
+							"path": ["user", "roleRestriction", "1"]
+						}
+					}
+				},
+				{
+					"name": "添加角色限制",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"roleId\": 1,\n  \"restrictionId\": 1,\n  \"type\": 1\n}"
+						},
+						"url": {
+							"raw": "http://localhost:10000/user/roleRestriction",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "10000",
+							"path": ["user", "roleRestriction"]
+						}
+					}
+				},
+				{
+					"name": "修改角色限制",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": 1,\n  \"type\": 2\n}"
+						},
+						"url": {
+							"raw": "http://localhost:10000/user/roleRestriction",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "10000",
+							"path": ["user", "roleRestriction"]
+						}
+					}
+				},
+				{
+					"name": "删除角色限制",
+					"request": {
+						"method": "DELETE",
+						"url": {
+							"raw": "http://localhost:10000/user/roleRestriction/1",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "10000",
+							"path": ["user", "roleRestriction", "1"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "角色菜系管理 API",
+			"item": [
+				{
+					"name": "查询角色菜系列表",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "http://localhost:10000/user/roleCuisine/list?pageNum=1&pageSize=10",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "10000",
+							"path": ["user", "roleCuisine", "list"],
+							"query": [
+								{
+									"key": "pageNum",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "10"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "获取角色菜系详情",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "http://localhost:10000/user/roleCuisine/1",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "10000",
+							"path": ["user", "roleCuisine", "1"]
+						}
+					}
+				},
+				{
+					"name": "添加角色菜系",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"roleId\": 1,\n  \"cuisineId\": 1\n}"
+						},
+						"url": {
+							"raw": "http://localhost:10000/user/roleCuisine",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "10000",
+							"path": ["user", "roleCuisine"]
+						}
+					}
+				},
+				{
+					"name": "修改角色菜系",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": 1,\n  \"cuisineId\": 2\n}"
+						},
+						"url": {
+							"raw": "http://localhost:10000/user/roleCuisine",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "10000",
+							"path": ["user", "roleCuisine"]
+						}
+					}
+				},
+				{
+					"name": "删除角色菜系",
+					"request": {
+						"method": "DELETE",
+						"url": {
+							"raw": "http://localhost:10000/user/roleCuisine/1",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "10000",
+							"path": ["user", "roleCuisine", "1"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "角色日志管理 API",
+			"item": [
+				{
+					"name": "查询角色日志列表",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "http://localhost:10000/user/roleLog/list?pageNum=1&pageSize=10",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "10000",
+							"path": ["user", "roleLog", "list"],
+							"query": [
+								{
+									"key": "pageNum",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "10"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "获取角色日志详情",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "http://localhost:10000/user/roleLog/1",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "10000",
+							"path": ["user", "roleLog", "1"]
+						}
+					}
+				},
+				{
+					"name": "添加角色日志",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"roleId\": 1,\n  \"weight\": 70.5,\n  \"height\": 175\n}"
+						},
+						"url": {
+							"raw": "http://localhost:10000/user/roleLog",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "10000",
+							"path": ["user", "roleLog"]
+						}
+					}
+				},
+				{
+					"name": "修改角色日志",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": 1,\n  \"weight\": 72.0\n}"
+						},
+						"url": {
+							"raw": "http://localhost:10000/user/roleLog",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "10000",
+							"path": ["user", "roleLog"]
+						}
+					}
+				},
+				{
+					"name": "删除角色日志",
+					"request": {
+						"method": "DELETE",
+						"url": {
+							"raw": "http://localhost:10000/user/roleLog/1",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "10000",
+							"path": ["user", "roleLog", "1"]
+						}
+					}
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:10000"
+		}
+	]
+}

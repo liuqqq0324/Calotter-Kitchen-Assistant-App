@@ -1,19 +1,3 @@
-<<<<<<< HEAD
-spring:
-  datasource:
-    username: postgres
-    password: mysecretpassword
-    url: jdbc:postgresql://127.0.0.1:5432/sous_chef?currentSchema=sous_chef_rms&useUnicode=true&characterEncoding=utf8
-    driver-class-name: org.postgresql.Driver
-
-mybatis-plus:
-  mapper-locations: classpath:/mapper/**/*.xml
-  global-config:
-    db-config:
-      id-type: AUTO
-
-server:
-=======
 spring:
   datasource:
     username: postgres
@@ -28,5 +12,4 @@ mybatis-plus:
       id-type: AUTO
 
 server:
->>>>>>> origin/chase/flutter-v1-android-java
   port: 9000

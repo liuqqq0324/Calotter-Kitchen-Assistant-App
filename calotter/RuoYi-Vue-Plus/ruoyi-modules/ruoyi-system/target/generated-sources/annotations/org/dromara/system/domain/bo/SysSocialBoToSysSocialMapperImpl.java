@@ -4,12 +4,14 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import javax.annotation.processing.Generated;
 import org.dromara.system.domain.SysSocial;
+import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-12-11T17:59:11+1300",
-    comments = "version: 1.6.3, compiler: Eclipse JDT (IDE) 3.44.0.v20251118-1623, environment: Java 21.0.9 (Eclipse Adoptium)"
+    date = "2025-12-10T13:27:22+1300",
+    comments = "version: 1.6.3, compiler: javac, environment: Java 25.0.1 (Homebrew)"
 )
+@Component
 public class SysSocialBoToSysSocialMapperImpl implements SysSocialBoToSysSocialMapper {
 
     @Override
@@ -20,16 +22,16 @@ public class SysSocialBoToSysSocialMapperImpl implements SysSocialBoToSysSocialM
 
         SysSocial sysSocial = new SysSocial();
 
-        sysSocial.setCreateBy( arg0.getCreateBy() );
+        sysSocial.setSearchValue( arg0.getSearchValue() );
         sysSocial.setCreateDept( arg0.getCreateDept() );
+        sysSocial.setCreateBy( arg0.getCreateBy() );
         sysSocial.setCreateTime( arg0.getCreateTime() );
+        sysSocial.setUpdateBy( arg0.getUpdateBy() );
+        sysSocial.setUpdateTime( arg0.getUpdateTime() );
         Map<String, Object> map = arg0.getParams();
         if ( map != null ) {
             sysSocial.setParams( new LinkedHashMap<String, Object>( map ) );
         }
-        sysSocial.setSearchValue( arg0.getSearchValue() );
-        sysSocial.setUpdateBy( arg0.getUpdateBy() );
-        sysSocial.setUpdateTime( arg0.getUpdateTime() );
         sysSocial.setTenantId( arg0.getTenantId() );
         sysSocial.setId( arg0.getId() );
         sysSocial.setUserId( arg0.getUserId() );
@@ -63,9 +65,12 @@ public class SysSocialBoToSysSocialMapperImpl implements SysSocialBoToSysSocialM
             return arg1;
         }
 
-        arg1.setCreateBy( arg0.getCreateBy() );
+        arg1.setSearchValue( arg0.getSearchValue() );
         arg1.setCreateDept( arg0.getCreateDept() );
+        arg1.setCreateBy( arg0.getCreateBy() );
         arg1.setCreateTime( arg0.getCreateTime() );
+        arg1.setUpdateBy( arg0.getUpdateBy() );
+        arg1.setUpdateTime( arg0.getUpdateTime() );
         if ( arg1.getParams() != null ) {
             Map<String, Object> map = arg0.getParams();
             if ( map != null ) {
@@ -82,9 +87,6 @@ public class SysSocialBoToSysSocialMapperImpl implements SysSocialBoToSysSocialM
                 arg1.setParams( new LinkedHashMap<String, Object>( map ) );
             }
         }
-        arg1.setSearchValue( arg0.getSearchValue() );
-        arg1.setUpdateBy( arg0.getUpdateBy() );
-        arg1.setUpdateTime( arg0.getUpdateTime() );
         arg1.setTenantId( arg0.getTenantId() );
         arg1.setId( arg0.getId() );
         arg1.setUserId( arg0.getUserId() );

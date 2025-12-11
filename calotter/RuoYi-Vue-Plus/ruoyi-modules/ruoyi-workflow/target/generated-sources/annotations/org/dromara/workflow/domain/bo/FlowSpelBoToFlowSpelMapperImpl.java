@@ -4,12 +4,14 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import javax.annotation.processing.Generated;
 import org.dromara.workflow.domain.FlowSpel;
+import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-12-11T17:59:12+1300",
-    comments = "version: 1.6.3, compiler: Eclipse JDT (IDE) 3.44.0.v20251118-1623, environment: Java 21.0.9 (Eclipse Adoptium)"
+    date = "2025-12-10T13:27:25+1300",
+    comments = "version: 1.6.3, compiler: javac, environment: Java 25.0.1 (Homebrew)"
 )
+@Component
 public class FlowSpelBoToFlowSpelMapperImpl implements FlowSpelBoToFlowSpelMapper {
 
     @Override
@@ -20,16 +22,16 @@ public class FlowSpelBoToFlowSpelMapperImpl implements FlowSpelBoToFlowSpelMappe
 
         FlowSpel flowSpel = new FlowSpel();
 
-        flowSpel.setCreateBy( arg0.getCreateBy() );
+        flowSpel.setSearchValue( arg0.getSearchValue() );
         flowSpel.setCreateDept( arg0.getCreateDept() );
+        flowSpel.setCreateBy( arg0.getCreateBy() );
         flowSpel.setCreateTime( arg0.getCreateTime() );
+        flowSpel.setUpdateBy( arg0.getUpdateBy() );
+        flowSpel.setUpdateTime( arg0.getUpdateTime() );
         Map<String, Object> map = arg0.getParams();
         if ( map != null ) {
             flowSpel.setParams( new LinkedHashMap<String, Object>( map ) );
         }
-        flowSpel.setSearchValue( arg0.getSearchValue() );
-        flowSpel.setUpdateBy( arg0.getUpdateBy() );
-        flowSpel.setUpdateTime( arg0.getUpdateTime() );
         flowSpel.setId( arg0.getId() );
         flowSpel.setComponentName( arg0.getComponentName() );
         flowSpel.setMethodName( arg0.getMethodName() );
@@ -47,9 +49,12 @@ public class FlowSpelBoToFlowSpelMapperImpl implements FlowSpelBoToFlowSpelMappe
             return arg1;
         }
 
-        arg1.setCreateBy( arg0.getCreateBy() );
+        arg1.setSearchValue( arg0.getSearchValue() );
         arg1.setCreateDept( arg0.getCreateDept() );
+        arg1.setCreateBy( arg0.getCreateBy() );
         arg1.setCreateTime( arg0.getCreateTime() );
+        arg1.setUpdateBy( arg0.getUpdateBy() );
+        arg1.setUpdateTime( arg0.getUpdateTime() );
         if ( arg1.getParams() != null ) {
             Map<String, Object> map = arg0.getParams();
             if ( map != null ) {
@@ -66,9 +71,6 @@ public class FlowSpelBoToFlowSpelMapperImpl implements FlowSpelBoToFlowSpelMappe
                 arg1.setParams( new LinkedHashMap<String, Object>( map ) );
             }
         }
-        arg1.setSearchValue( arg0.getSearchValue() );
-        arg1.setUpdateBy( arg0.getUpdateBy() );
-        arg1.setUpdateTime( arg0.getUpdateTime() );
         arg1.setId( arg0.getId() );
         arg1.setComponentName( arg0.getComponentName() );
         arg1.setMethodName( arg0.getMethodName() );

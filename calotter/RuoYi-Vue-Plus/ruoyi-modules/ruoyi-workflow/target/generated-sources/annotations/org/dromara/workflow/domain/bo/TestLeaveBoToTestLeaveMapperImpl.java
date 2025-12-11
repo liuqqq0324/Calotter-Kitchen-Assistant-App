@@ -4,12 +4,14 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import javax.annotation.processing.Generated;
 import org.dromara.workflow.domain.TestLeave;
+import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-12-11T17:59:12+1300",
-    comments = "version: 1.6.3, compiler: Eclipse JDT (IDE) 3.44.0.v20251118-1623, environment: Java 21.0.9 (Eclipse Adoptium)"
+    date = "2025-12-10T13:27:25+1300",
+    comments = "version: 1.6.3, compiler: javac, environment: Java 25.0.1 (Homebrew)"
 )
+@Component
 public class TestLeaveBoToTestLeaveMapperImpl implements TestLeaveBoToTestLeaveMapper {
 
     @Override
@@ -20,16 +22,16 @@ public class TestLeaveBoToTestLeaveMapperImpl implements TestLeaveBoToTestLeaveM
 
         TestLeave testLeave = new TestLeave();
 
-        testLeave.setCreateBy( arg0.getCreateBy() );
+        testLeave.setSearchValue( arg0.getSearchValue() );
         testLeave.setCreateDept( arg0.getCreateDept() );
+        testLeave.setCreateBy( arg0.getCreateBy() );
         testLeave.setCreateTime( arg0.getCreateTime() );
+        testLeave.setUpdateBy( arg0.getUpdateBy() );
+        testLeave.setUpdateTime( arg0.getUpdateTime() );
         Map<String, Object> map = arg0.getParams();
         if ( map != null ) {
             testLeave.setParams( new LinkedHashMap<String, Object>( map ) );
         }
-        testLeave.setSearchValue( arg0.getSearchValue() );
-        testLeave.setUpdateBy( arg0.getUpdateBy() );
-        testLeave.setUpdateTime( arg0.getUpdateTime() );
         testLeave.setId( arg0.getId() );
         testLeave.setApplyCode( arg0.getApplyCode() );
         testLeave.setLeaveType( arg0.getLeaveType() );
@@ -48,9 +50,12 @@ public class TestLeaveBoToTestLeaveMapperImpl implements TestLeaveBoToTestLeaveM
             return arg1;
         }
 
-        arg1.setCreateBy( arg0.getCreateBy() );
+        arg1.setSearchValue( arg0.getSearchValue() );
         arg1.setCreateDept( arg0.getCreateDept() );
+        arg1.setCreateBy( arg0.getCreateBy() );
         arg1.setCreateTime( arg0.getCreateTime() );
+        arg1.setUpdateBy( arg0.getUpdateBy() );
+        arg1.setUpdateTime( arg0.getUpdateTime() );
         if ( arg1.getParams() != null ) {
             Map<String, Object> map = arg0.getParams();
             if ( map != null ) {
@@ -67,9 +72,6 @@ public class TestLeaveBoToTestLeaveMapperImpl implements TestLeaveBoToTestLeaveM
                 arg1.setParams( new LinkedHashMap<String, Object>( map ) );
             }
         }
-        arg1.setSearchValue( arg0.getSearchValue() );
-        arg1.setUpdateBy( arg0.getUpdateBy() );
-        arg1.setUpdateTime( arg0.getUpdateTime() );
         arg1.setId( arg0.getId() );
         arg1.setApplyCode( arg0.getApplyCode() );
         arg1.setLeaveType( arg0.getLeaveType() );

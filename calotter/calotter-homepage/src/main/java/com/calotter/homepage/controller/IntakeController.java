@@ -1,6 +1,7 @@
 package com.calotter.homepage.controller;
 
 import com.calotter.common.core.domain.R;
+import com.calotter.common.core.utils.TokenUtils;
 import com.calotter.common.web.core.BaseController;
 import com.calotter.homepage.service.IIntakeService;
 import lombok.RequiredArgsConstructor;
@@ -24,13 +25,18 @@ public class IntakeController extends BaseController {
 
     /**
      * Get Today Intakes
-     * GET /api/intake/today?source=recipe|manual&userId={userId}
+     * GET /api/intake/today?source=recipe|manual
      */
     @GetMapping("/today")
     public R<IIntakeService.TodayIntakesResponse> getTodayIntakes(
             @RequestParam(required = false, defaultValue = "all") String source,
-            @RequestParam("userId") Long userId) {
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
         try {
+            Long userId = TokenUtils.extractUserIdFromToken(authHeader);
+            if (userId == null) {
+                return R.fail("Unauthorized: Invalid or missing token");
+            }
+
             if (!"all".equals(source) && !"recipe".equals(source) && !"manual".equals(source)) {
                 return R.fail("Invalid source parameter. Must be 'recipe', 'manual', or 'all'");
             }
@@ -44,14 +50,19 @@ public class IntakeController extends BaseController {
 
     /**
      * Update Intake Percentage
-     * PATCH /api/intake/{intake_id}?userId={userId}
+     * PATCH /api/intake/{intake_id}
      */
     @PatchMapping("/{intake_id}")
     public R<IIntakeService.UpdateIntakeResponse> updateIntakePercentage(
             @PathVariable("intake_id") Long intakeId,
-            @RequestParam("userId") Long userId,
-            @RequestBody UpdateIntakeRequest request) {
+            @RequestBody UpdateIntakeRequest request,
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
         try {
+            Long userId = TokenUtils.extractUserIdFromToken(authHeader);
+            if (userId == null) {
+                return R.fail("Unauthorized: Invalid or missing token");
+            }
+
             if (request.consumedPercentage == null) {
                 return R.fail("consumed_percentage is required");
             }
@@ -78,13 +89,18 @@ public class IntakeController extends BaseController {
 
     /**
      * Add Manual Intake
-     * POST /api/intake/manual?userId={userId}
+     * POST /api/intake/manual
      */
     @PostMapping("/manual")
     public R<IIntakeService.AddManualIntakeResponse> addManualIntake(
-            @RequestParam("userId") Long userId,
-            @RequestBody AddManualIntakeRequest request) {
+            @RequestBody AddManualIntakeRequest request,
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
         try {
+            Long userId = TokenUtils.extractUserIdFromToken(authHeader);
+            if (userId == null) {
+                return R.fail("Unauthorized: Invalid or missing token");
+            }
+
             if (request.foodName == null || request.foodName.trim().isEmpty()) {
                 return R.fail("food_name is required");
             }
