@@ -5,6 +5,8 @@ CREATE TABLE sous_chef_ums.ums_restriction(
     description TEXT,
     default_shown BOOLEAN,
     sort INT2 DEFAULT 0,
+    create_time TIMESTAMP,
+    update_time TIMESTAMP,
     PRIMARY KEY (id)
 );
 COMMENT ON COLUMN sous_chef_ums.ums_restriction.id IS 'Restriction id;Restriction ID (PK)';
@@ -12,4 +14,6 @@ COMMENT ON COLUMN sous_chef_ums.ums_restriction.name IS 'Restriction name;Restri
 COMMENT ON COLUMN sous_chef_ums.ums_restriction.description IS 'Restriction description;The description of the restriction';
 COMMENT ON COLUMN sous_chef_ums.ums_restriction.default_shown IS 'Whether is default shown;Whether the dietary restriction is shown by default';
 COMMENT ON COLUMN sous_chef_ums.ums_restriction.sort IS 'Sort priority;Sort the priority of the display sequence';
+COMMENT ON COLUMN sous_chef_ums.ums_restriction.create_time IS 'Creation time';
+COMMENT ON COLUMN sous_chef_ums.ums_restriction.update_time IS 'Update time';
 COMMENT ON TABLE sous_chef_ums.ums_restriction IS 'ums_restriction;The global dietary restrictions of dining roles';

@@ -10,8 +10,8 @@ CREATE TABLE sous_chef_ums.ums_user(
     height INTEGER,
     weight INTEGER,
     gender VARCHAR(20),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    create_time TIMESTAMP,
+    update_time TIMESTAMP,
     last_login_at TIMESTAMP,
     status INT2 DEFAULT 1,
     PRIMARY KEY (id)
@@ -26,8 +26,8 @@ COMMENT ON COLUMN sous_chef_ums.ums_user.age IS 'User age;User age in years';
 COMMENT ON COLUMN sous_chef_ums.ums_user.height IS 'User height;User height in cm';
 COMMENT ON COLUMN sous_chef_ums.ums_user.weight IS 'User weight;User weight in kg';
 COMMENT ON COLUMN sous_chef_ums.ums_user.gender IS 'User gender;User gender (e.g., male, female, other)';
-COMMENT ON COLUMN sous_chef_ums.ums_user.created_at IS 'Created time;Registration time';
-COMMENT ON COLUMN sous_chef_ums.ums_user.updated_at IS 'Updated time;Update time';
+COMMENT ON COLUMN sous_chef_ums.ums_user.create_time IS 'Creation time';
+COMMENT ON COLUMN sous_chef_ums.ums_user.update_time IS 'Update time';
 COMMENT ON COLUMN sous_chef_ums.ums_user.last_login_at IS 'User last login time;Last login time';
 COMMENT ON COLUMN sous_chef_ums.ums_user.status IS 'The status of user account;Account status: [0 - Disable, 1 - Enable]';
 COMMENT ON TABLE sous_chef_ums.ums_user IS 'ums_user;This table is the master user table, storing the basic information of all users.';

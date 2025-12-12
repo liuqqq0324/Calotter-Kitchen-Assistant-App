@@ -5,6 +5,8 @@ CREATE TABLE sous_chef_ums.ums_role_cuisine(
     cuisine_id INT8 NOT NULL,
     type INT2 NOT NULL DEFAULT 1,
     description TEXT,
+    create_time TIMESTAMP,
+    update_time TIMESTAMP,
     PRIMARY KEY (id)
 );
 COMMENT ON COLUMN sous_chef_ums.ums_role_cuisine.id IS 'Role cuisine id;Role cuisine ID (PK)';
@@ -12,6 +14,8 @@ COMMENT ON COLUMN sous_chef_ums.ums_role_cuisine.role_id IS 'Role id;Role ID (FK
 COMMENT ON COLUMN sous_chef_ums.ums_role_cuisine.cuisine_id IS 'Cuisine id;Cuisine ID (FK, cuisine_id -> cuisine_type.id)';
 COMMENT ON COLUMN sous_chef_ums.ums_role_cuisine.type IS 'Type of association;Association type: [1-like, 2-dislike]';
 COMMENT ON COLUMN sous_chef_ums.ums_role_cuisine.description IS 'Description;Association description (e.g., like to eat Sichuan Dishes for lunch)';
+COMMENT ON COLUMN sous_chef_ums.ums_role_cuisine.create_time IS 'Creation time';
+COMMENT ON COLUMN sous_chef_ums.ums_role_cuisine.update_time IS 'Update time';
 COMMENT ON TABLE sous_chef_ums.ums_role_cuisine IS 'ums_role_cuisine;The association table of dining role and cuisine';
 
 CREATE INDEX gk_role_cuisine_role_id ON sous_chef_ums.ums_role_cuisine (

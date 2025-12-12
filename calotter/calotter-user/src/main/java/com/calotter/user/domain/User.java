@@ -82,5 +82,18 @@ public class User extends BaseEntity {
      */
     private Short status;
 
+    /**
+     * Override BaseEntity fields to exclude audit fields that don't exist in database table.
+     * Only create_time and update_time are needed for this personal application.
+     * These fields are hidden from MyBatis-Plus by using @TableField(exist = false).
+     */
+    @TableField(exist = false)
+    private Long createDept;
+
+    @TableField(exist = false)
+    private Long createBy;
+
+    @TableField(exist = false)
+    private Long updateBy;
 
 }

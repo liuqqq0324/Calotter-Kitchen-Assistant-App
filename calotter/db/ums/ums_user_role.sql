@@ -6,6 +6,8 @@ CREATE TABLE sous_chef_ums.ums_user_role(
     account_owner BOOLEAN DEFAULT FALSE,
     gender INT2 DEFAULT 0,
     birthdate DATE,
+    create_time TIMESTAMP,
+    update_time TIMESTAMP,
     PRIMARY KEY (id)
 );
 COMMENT ON COLUMN sous_chef_ums.ums_user_role.id IS 'Role id;Role ID (PK)';
@@ -14,6 +16,8 @@ COMMENT ON COLUMN sous_chef_ums.ums_user_role.name IS 'Role name;Role name (e.g.
 COMMENT ON COLUMN sous_chef_ums.ums_user_role.account_owner IS 'Account owner;Whether this role is the account owner';
 COMMENT ON COLUMN sous_chef_ums.ums_user_role.gender IS 'Gender;Role gender: [0 - Unknown, 1 - Male, 2 - Female]';
 COMMENT ON COLUMN sous_chef_ums.ums_user_role.birthdate IS 'Birthdate;The birthdate of user role';
+COMMENT ON COLUMN sous_chef_ums.ums_user_role.create_time IS 'Creation time';
+COMMENT ON COLUMN sous_chef_ums.ums_user_role.update_time IS 'Update time';
 COMMENT ON TABLE sous_chef_ums.ums_user_role IS 'ums_user_role;This table represents the user role. A user can cook for one to multiple diners (user role). Each record in this table stores all information about a role, along with the account to which that role belongs.';
 
 CREATE INDEX gk_user_role_user_id ON sous_chef_ums.ums_user_role (

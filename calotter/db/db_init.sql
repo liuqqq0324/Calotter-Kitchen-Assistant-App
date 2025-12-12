@@ -493,10 +493,7 @@ CREATE TABLE sous_chef_ums.ums_preference(
                                              description TEXT,
                                              default_shown BOOLEAN,
                                              sort INT2 DEFAULT 0,
-                                             create_dept INT8,
-                                             create_by INT8,
                                              create_time TIMESTAMP,
-                                             update_by INT8,
                                              update_time TIMESTAMP,
                                              PRIMARY KEY (id)
 );
@@ -505,10 +502,7 @@ COMMENT ON COLUMN sous_chef_ums.ums_preference.name IS 'Preference name;Preferen
 COMMENT ON COLUMN sous_chef_ums.ums_preference.description IS 'Preference description;Preference description';
 COMMENT ON COLUMN sous_chef_ums.ums_preference.default_shown IS 'Whether is shown by default;Whether the Preference is shown by default';
 COMMENT ON COLUMN sous_chef_ums.ums_preference.sort IS 'Sort priority;Sort the priority of the display sequence';
-COMMENT ON COLUMN sous_chef_ums.ums_preference.create_dept IS 'Creation department id';
-COMMENT ON COLUMN sous_chef_ums.ums_preference.create_by IS 'Creator id';
 COMMENT ON COLUMN sous_chef_ums.ums_preference.create_time IS 'Creation time';
-COMMENT ON COLUMN sous_chef_ums.ums_preference.update_by IS 'Updater id';
 COMMENT ON COLUMN sous_chef_ums.ums_preference.update_time IS 'Update time';
 COMMENT ON TABLE sous_chef_ums.ums_preference IS 'ums_preference;The global dietary preference of dining roles';
 
@@ -525,10 +519,7 @@ CREATE TABLE sous_chef_ums.ums_restriction(
                                               description TEXT,
                                               default_shown BOOLEAN,
                                               sort INT2 DEFAULT 0,
-                                              create_dept INT8,
-                                              create_by INT8,
                                               create_time TIMESTAMP,
-                                              update_by INT8,
                                               update_time TIMESTAMP,
                                               PRIMARY KEY (id)
 );
@@ -537,10 +528,7 @@ COMMENT ON COLUMN sous_chef_ums.ums_restriction.name IS 'Restriction name;Restri
 COMMENT ON COLUMN sous_chef_ums.ums_restriction.description IS 'Restriction description;The description of the restriction';
 COMMENT ON COLUMN sous_chef_ums.ums_restriction.default_shown IS 'Whether is default shown;Whether the dietary restriction is shown by default';
 COMMENT ON COLUMN sous_chef_ums.ums_restriction.sort IS 'Sort priority;Sort the priority of the display sequence';
-COMMENT ON COLUMN sous_chef_ums.ums_restriction.create_dept IS 'Creation department id';
-COMMENT ON COLUMN sous_chef_ums.ums_restriction.create_by IS 'Creator id';
 COMMENT ON COLUMN sous_chef_ums.ums_restriction.create_time IS 'Creation time';
-COMMENT ON COLUMN sous_chef_ums.ums_restriction.update_by IS 'Updater id';
 COMMENT ON COLUMN sous_chef_ums.ums_restriction.update_time IS 'Update time';
 COMMENT ON TABLE sous_chef_ums.ums_restriction IS 'ums_restriction;The global dietary restrictions of dining roles';
 
@@ -552,10 +540,7 @@ CREATE TABLE sous_chef_ums.ums_role_cuisine(
                                                cuisine_id INT8 NOT NULL,
                                                type INT2 NOT NULL DEFAULT 1,
                                                description TEXT,
-                                               create_dept INT8,
-                                               create_by INT8,
                                                create_time TIMESTAMP,
-                                               update_by INT8,
                                                update_time TIMESTAMP,
                                                PRIMARY KEY (id)
 );
@@ -564,10 +549,7 @@ COMMENT ON COLUMN sous_chef_ums.ums_role_cuisine.role_id IS 'Role id;Role ID (FK
 COMMENT ON COLUMN sous_chef_ums.ums_role_cuisine.cuisine_id IS 'Cuisine id;Cuisine ID (FK, cuisine_id -> cuisine_type.id)';
 COMMENT ON COLUMN sous_chef_ums.ums_role_cuisine.type IS 'Type of association;Association type: [1-like, 2-dislike]';
 COMMENT ON COLUMN sous_chef_ums.ums_role_cuisine.description IS 'Description;Association description (e.g., like to eat Sichuan Dishes for lunch)';
-COMMENT ON COLUMN sous_chef_ums.ums_role_cuisine.create_dept IS 'Creation department id';
-COMMENT ON COLUMN sous_chef_ums.ums_role_cuisine.create_by IS 'Creator id';
 COMMENT ON COLUMN sous_chef_ums.ums_role_cuisine.create_time IS 'Creation time';
-COMMENT ON COLUMN sous_chef_ums.ums_role_cuisine.update_by IS 'Updater id';
 COMMENT ON COLUMN sous_chef_ums.ums_role_cuisine.update_time IS 'Update time';
 COMMENT ON TABLE sous_chef_ums.ums_role_cuisine IS 'ums_role_cuisine;The association table of dining role and cuisine';
 
@@ -589,10 +571,7 @@ CREATE TABLE sous_chef_ums.ums_role_log(
                                            weight_kg DECIMAL(5,2),
                                            height_cm INT2,
                                            notes TEXT,
-                                           create_dept INT8,
-                                           create_by INT8,
                                            create_time TIMESTAMP,
-                                           update_by INT8,
                                            update_time TIMESTAMP,
                                            PRIMARY KEY (id)
 );
@@ -602,10 +581,7 @@ COMMENT ON COLUMN sous_chef_ums.ums_role_log.record_at IS 'Creation date;The cre
 COMMENT ON COLUMN sous_chef_ums.ums_role_log.weight_kg IS 'Role weight;The weight of the role (unit: kg)';
 COMMENT ON COLUMN sous_chef_ums.ums_role_log.height_cm IS 'Role height;The height of the role (unit: cm)';
 COMMENT ON COLUMN sous_chef_ums.ums_role_log.notes IS 'Note;Note of the record (e.g., on an empty stomach or after dinner)';
-COMMENT ON COLUMN sous_chef_ums.ums_role_log.create_dept IS 'Creation department id';
-COMMENT ON COLUMN sous_chef_ums.ums_role_log.create_by IS 'Creator id';
 COMMENT ON COLUMN sous_chef_ums.ums_role_log.create_time IS 'Creation time';
-COMMENT ON COLUMN sous_chef_ums.ums_role_log.update_by IS 'Updater id';
 COMMENT ON COLUMN sous_chef_ums.ums_role_log.update_time IS 'Update time';
 COMMENT ON TABLE sous_chef_ums.ums_role_log IS 'ums_role_log;Stores body metrics of user roles.';
 
@@ -621,10 +597,7 @@ CREATE TABLE sous_chef_ums.ums_role_preference(
                                                   role_id INT8 NOT NULL,
                                                   preference_id INT8 NOT NULL,
                                                   level INT2 DEFAULT 1,
-                                                  create_dept INT8,
-                                                  create_by INT8,
                                                   create_time TIMESTAMP,
-                                                  update_by INT8,
                                                   update_time TIMESTAMP,
                                                   PRIMARY KEY (id)
 );
@@ -632,10 +605,7 @@ COMMENT ON COLUMN sous_chef_ums.ums_role_preference.id IS 'Role preference id;Ro
 COMMENT ON COLUMN sous_chef_ums.ums_role_preference.role_id IS 'Role id;Role id (FK, role_id -> user_role.id)';
 COMMENT ON COLUMN sous_chef_ums.ums_role_preference.preference_id IS 'Preference id;Preference id (FK, preference_id -> preference.id)';
 COMMENT ON COLUMN sous_chef_ums.ums_role_preference.level IS 'Preference level;Preference level: [1-like, 2-favorite]';
-COMMENT ON COLUMN sous_chef_ums.ums_role_preference.create_dept IS 'Creation department id';
-COMMENT ON COLUMN sous_chef_ums.ums_role_preference.create_by IS 'Creator id';
 COMMENT ON COLUMN sous_chef_ums.ums_role_preference.create_time IS 'Creation time';
-COMMENT ON COLUMN sous_chef_ums.ums_role_preference.update_by IS 'Updater id';
 COMMENT ON COLUMN sous_chef_ums.ums_role_preference.update_time IS 'Update time';
 COMMENT ON TABLE sous_chef_ums.ums_role_preference IS 'ums_role_preference;The dietary preference of specific dining role';
 
@@ -655,10 +625,7 @@ CREATE TABLE sous_chef_ums.ums_role_restriction(
                                                    role_id INT8 NOT NULL,
                                                    restriction_id INT8 NOT NULL,
                                                    type INT2 DEFAULT 1,
-                                                   create_dept INT8,
-                                                   create_by INT8,
                                                    create_time TIMESTAMP,
-                                                   update_by INT8,
                                                    update_time TIMESTAMP,
                                                    PRIMARY KEY (id)
 );
@@ -666,10 +633,7 @@ COMMENT ON COLUMN sous_chef_ums.ums_role_restriction.id IS 'Role restriction id;
 COMMENT ON COLUMN sous_chef_ums.ums_role_restriction.role_id IS 'Role id;Role id (FK, role_id -> user_role.id)';
 COMMENT ON COLUMN sous_chef_ums.ums_role_restriction.restriction_id IS 'Restriction id;Restriction id (FK, restriction_id -> restriction.id)';
 COMMENT ON COLUMN sous_chef_ums.ums_role_restriction.type IS 'Restriction type;Restriction type: [1-allergic, 2-taboo]';
-COMMENT ON COLUMN sous_chef_ums.ums_role_restriction.create_dept IS 'Creation department id';
-COMMENT ON COLUMN sous_chef_ums.ums_role_restriction.create_by IS 'Creator id';
 COMMENT ON COLUMN sous_chef_ums.ums_role_restriction.create_time IS 'Creation time';
-COMMENT ON COLUMN sous_chef_ums.ums_role_restriction.update_by IS 'Updater id';
 COMMENT ON COLUMN sous_chef_ums.ums_role_restriction.update_time IS 'Update time';
 COMMENT ON TABLE sous_chef_ums.ums_role_restriction IS 'ums_role_restriction;The dietary restrictions of specific dining role';
 
@@ -691,10 +655,7 @@ CREATE TABLE sous_chef_ums.ums_user_role(
                                             account_owner BOOLEAN DEFAULT FALSE,
                                             gender INT2 DEFAULT 0,
                                             birthdate DATE,
-                                            create_dept INT8,
-                                            create_by INT8,
                                             create_time TIMESTAMP,
-                                            update_by INT8,
                                             update_time TIMESTAMP,
                                             PRIMARY KEY (id)
 );
@@ -704,10 +665,7 @@ COMMENT ON COLUMN sous_chef_ums.ums_user_role.name IS 'Role name;Role name (e.g.
 COMMENT ON COLUMN sous_chef_ums.ums_user_role.account_owner IS 'Account owner;Whether this role is the account owner';
 COMMENT ON COLUMN sous_chef_ums.ums_user_role.gender IS 'Gender;Role gender: [0 - Unknown, 1 - Male, 2 - Female]';
 COMMENT ON COLUMN sous_chef_ums.ums_user_role.birthdate IS 'Birthdate;The birthdate of user role';
-COMMENT ON COLUMN sous_chef_ums.ums_user_role.create_dept IS 'Creation department id';
-COMMENT ON COLUMN sous_chef_ums.ums_user_role.create_by IS 'Creator id';
 COMMENT ON COLUMN sous_chef_ums.ums_user_role.create_time IS 'Creation time';
-COMMENT ON COLUMN sous_chef_ums.ums_user_role.update_by IS 'Updater id';
 COMMENT ON COLUMN sous_chef_ums.ums_user_role.update_time IS 'Update time';
 COMMENT ON TABLE sous_chef_ums.ums_user_role IS 'ums_user_role;This table represents the user role. A user can cook for one to multiple diners (user role). Each record in this table stores all information about a role, along with the account to which that role belongs.';
 
@@ -731,10 +689,7 @@ CREATE TABLE sous_chef_ums.ums_user(
                                        gender VARCHAR(20),
                                        last_login_at TIMESTAMP,
                                        status INT2 DEFAULT 1,
-                                       create_dept INT8,
-                                       create_by INT8,
                                        create_time TIMESTAMP,
-                                       update_by INT8,
                                        update_time TIMESTAMP,
                                        PRIMARY KEY (id)
 );
@@ -750,10 +705,7 @@ COMMENT ON COLUMN sous_chef_ums.ums_user.weight IS 'User weight;User weight in k
 COMMENT ON COLUMN sous_chef_ums.ums_user.gender IS 'User gender;User gender (e.g., male, female, other)';
 COMMENT ON COLUMN sous_chef_ums.ums_user.last_login_at IS 'User last login time;Last login time';
 COMMENT ON COLUMN sous_chef_ums.ums_user.status IS 'The status of user account;Account status: [0 - Disable, 1 - Enable]';
-COMMENT ON COLUMN sous_chef_ums.ums_user.create_dept IS 'Creation department id';
-COMMENT ON COLUMN sous_chef_ums.ums_user.create_by IS 'Creator id';
 COMMENT ON COLUMN sous_chef_ums.ums_user.create_time IS 'Creation time';
-COMMENT ON COLUMN sous_chef_ums.ums_user.update_by IS 'Updater id';
 COMMENT ON COLUMN sous_chef_ums.ums_user.update_time IS 'Update time';
 COMMENT ON TABLE sous_chef_ums.ums_user IS 'ums_user;This table is the master user table, storing the basic information of all users.';
 
