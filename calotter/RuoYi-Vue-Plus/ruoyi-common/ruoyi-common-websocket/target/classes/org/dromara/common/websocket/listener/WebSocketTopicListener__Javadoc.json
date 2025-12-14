@@ -1,1 +1,0 @@
-{"doc":" WebSocket 主题订阅监听器\n\n @author zendwang\n","fields":[],"enumConstants":[],"methods":[{"name":"run","paramTypes":["org.springframework.boot.ApplicationArguments"],"doc":" 在Spring Boot应用程序启动时初始化WebSocket主题订阅监听器\n\n @param args 应用程序参数\n @throws Exception 初始化过程中可能抛出的异常\n"}],"constructors":[]}

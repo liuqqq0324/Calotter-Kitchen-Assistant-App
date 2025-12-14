@@ -1,1 +1,0 @@
-{"doc":" 流程实例业务扩展对象\n\n @author may\n @date 2025-08-05\n","fields":[{"name":"id","doc":" 主键\n"},{"name":"instanceId","doc":" 流程实例ID\n"},{"name":"businessId","doc":" 业务ID\n"},{"name":"businessCode","doc":" 业务编码\n"},{"name":"businessTitle","doc":" 业务标题\n"}],"enumConstants":[],"methods":[],"constructors":[]}

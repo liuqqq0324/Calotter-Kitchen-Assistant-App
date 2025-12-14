@@ -1,1 +1,0 @@
-{"doc":" 租户套餐视图对象 sys_tenant_package\n\n @author Michelle.Chung\n","fields":[{"name":"packageId","doc":" 租户套餐id\n"},{"name":"packageName","doc":" 套餐名称\n"},{"name":"menuIds","doc":" 关联菜单id\n"},{"name":"remark","doc":" 备注\n"},{"name":"menuCheckStrictly","doc":" 菜单树选择项是否关联显示\n"},{"name":"status","doc":" 状态（0正常 1停用）\n"}],"enumConstants":[],"methods":[],"constructors":[]}

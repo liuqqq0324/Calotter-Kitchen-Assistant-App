@@ -1,1 +1,0 @@
-{"doc":" 文件上传Factory\n\n @author Lion Li\n","fields":[],"enumConstants":[],"methods":[{"name":"instance","paramTypes":[],"doc":" 获取默认实例\n"},{"name":"instance","paramTypes":["java.lang.String"],"doc":" 根据类型获取实例\n"}],"constructors":[]}

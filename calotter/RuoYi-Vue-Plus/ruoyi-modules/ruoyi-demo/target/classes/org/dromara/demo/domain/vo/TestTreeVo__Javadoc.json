@@ -1,1 +1,0 @@
-{"doc":" 测试树表视图对象 test_tree\n\n @author Lion Li\n @date 2021-07-26\n","fields":[{"name":"id","doc":" 主键\n"},{"name":"parentId","doc":" 父id\n"},{"name":"deptId","doc":" 部门id\n"},{"name":"userId","doc":" 用户id\n"},{"name":"treeName","doc":" 树节点名\n"},{"name":"createTime","doc":" 创建时间\n"}],"enumConstants":[],"methods":[],"constructors":[]}

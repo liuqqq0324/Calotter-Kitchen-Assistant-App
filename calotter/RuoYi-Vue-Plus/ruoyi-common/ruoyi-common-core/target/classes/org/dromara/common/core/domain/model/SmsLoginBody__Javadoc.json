@@ -1,1 +1,0 @@
-{"doc":" 短信登录对象\n\n @author Lion Li\n","fields":[{"name":"phonenumber","doc":" 手机号\n"},{"name":"smsCode","doc":" 短信code\n"}],"enumConstants":[],"methods":[],"constructors":[]}

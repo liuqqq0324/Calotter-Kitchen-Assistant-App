@@ -1,1 +1,0 @@
-{"doc":" 流程变量参数\n\n @author may\n","fields":[{"name":"taskIdList","doc":" 任务id\n"},{"name":"messageType","doc":" 消息类型\n"},{"name":"message","doc":" 催办内容\n"}],"enumConstants":[],"methods":[],"constructors":[]}

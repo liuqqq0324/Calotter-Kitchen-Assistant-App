@@ -1,1 +1,0 @@
-{"doc":" 超出 JS 最大最小值 处理\n\n @author Lion Li\n","fields":[{"name":"MAX_SAFE_INTEGER","doc":" 根据 JS Number.MAX_SAFE_INTEGER 与 Number.MIN_SAFE_INTEGER 得来\n"},{"name":"INSTANCE","doc":" 提供实例\n"}],"enumConstants":[],"methods":[],"constructors":[]}

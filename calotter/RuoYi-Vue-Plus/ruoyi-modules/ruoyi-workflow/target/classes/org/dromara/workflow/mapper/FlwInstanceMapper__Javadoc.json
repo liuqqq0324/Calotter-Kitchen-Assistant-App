@@ -1,1 +1,0 @@
-{"doc":" 实例信息Mapper接口\n\n @author may\n @date 2024-03-02\n","fields":[],"enumConstants":[],"methods":[{"name":"selectInstanceList","paramTypes":["com.baomidou.mybatisplus.extension.plugins.pagination.Page","com.baomidou.mybatisplus.core.conditions.Wrapper"],"doc":" 流程实例信息\n\n @param page         分页\n @param queryWrapper 条件\n @return 结果\n"}],"constructors":[]}

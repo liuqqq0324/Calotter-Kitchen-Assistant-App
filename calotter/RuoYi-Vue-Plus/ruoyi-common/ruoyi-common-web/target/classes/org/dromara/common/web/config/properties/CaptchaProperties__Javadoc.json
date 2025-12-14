@@ -1,1 +1,0 @@
-{"doc":" 验证码 配置属性\n\n @author Lion Li\n","fields":[{"name":"type","doc":" 验证码类型\n"},{"name":"category","doc":" 验证码类别\n"},{"name":"numberLength","doc":" 数字验证码位数\n"},{"name":"charLength","doc":" 字符验证码长度\n"}],"enumConstants":[],"methods":[],"constructors":[]}

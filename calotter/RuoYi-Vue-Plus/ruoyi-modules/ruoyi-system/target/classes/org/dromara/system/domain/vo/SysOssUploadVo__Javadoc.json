@@ -1,1 +1,0 @@
-{"doc":" 上传对象信息\n\n @author Michelle.Chung\n","fields":[{"name":"url","doc":" URL地址\n"},{"name":"fileName","doc":" 文件名\n"},{"name":"ossId","doc":" 对象存储主键\n"}],"enumConstants":[],"methods":[],"constructors":[]}

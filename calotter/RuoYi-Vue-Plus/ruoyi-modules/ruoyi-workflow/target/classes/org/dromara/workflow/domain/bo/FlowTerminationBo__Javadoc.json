@@ -1,1 +1,0 @@
-{"doc":" 终止任务请求对象\n\n @author may\n","fields":[{"name":"taskId","doc":" 任务id\n"},{"name":"comment","doc":" 审批意见\n"}],"enumConstants":[],"methods":[],"constructors":[]}

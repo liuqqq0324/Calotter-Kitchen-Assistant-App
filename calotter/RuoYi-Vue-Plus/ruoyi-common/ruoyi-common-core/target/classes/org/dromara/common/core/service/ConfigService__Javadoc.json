@@ -1,1 +1,0 @@
-{"doc":" 通用 参数配置服务\n\n @author Lion Li\n","fields":[],"enumConstants":[],"methods":[{"name":"getConfigValue","paramTypes":["java.lang.String"],"doc":" 根据参数 key 获取参数值\n\n @param configKey 参数 key\n @return 参数值\n"}],"constructors":[]}

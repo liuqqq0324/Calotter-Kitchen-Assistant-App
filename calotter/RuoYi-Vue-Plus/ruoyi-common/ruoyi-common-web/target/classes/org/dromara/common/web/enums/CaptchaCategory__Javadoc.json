@@ -1,1 +1,0 @@
-{"doc":" 验证码类别\n\n @author Lion Li\n","fields":[],"enumConstants":[{"name":"LINE","doc":" 线段干扰\n"},{"name":"CIRCLE","doc":" 圆圈干扰\n"},{"name":"SHEAR","doc":" 扭曲干扰\n"}],"methods":[],"constructors":[]}

@@ -1,1 +1,0 @@
-{"doc":"  @author 长春叭哥 2023年03月26日\n","fields":[],"enumConstants":[],"methods":[],"constructors":[{"name":"<init>","paramTypes":["me.zhyd.oauth.config.AuthConfig"],"doc":" 设定归属域\n"}]}

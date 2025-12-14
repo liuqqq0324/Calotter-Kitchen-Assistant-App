@@ -1,1 +1,0 @@
-{"doc":" 默认excel返回对象\n\n @author Yjoioooo\n @author Lion Li\n","fields":[{"name":"list","doc":" 数据对象list\n"},{"name":"errorList","doc":" 错误信息列表\n"}],"enumConstants":[],"methods":[{"name":"getAnalysis","paramTypes":[],"doc":" 获取导入回执\n\n @return 导入回执\n"}],"constructors":[]}

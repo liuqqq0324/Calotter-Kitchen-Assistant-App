@@ -1,1 +1,0 @@
-{"doc":" 租户常量信息\n\n @author Lion Li\n","fields":[{"name":"SUPER_ADMIN_ID","doc":" 超级管理员ID\n"},{"name":"SUPER_ADMIN_ROLE_KEY","doc":" 超级管理员角色 roleKey\n"},{"name":"TENANT_ADMIN_ROLE_KEY","doc":" 租户管理员角色 roleKey\n"},{"name":"TENANT_ADMIN_ROLE_NAME","doc":" 租户管理员角色名称\n"},{"name":"DEFAULT_TENANT_ID","doc":" 默认租户ID\n"}],"enumConstants":[],"methods":[],"constructors":[]}

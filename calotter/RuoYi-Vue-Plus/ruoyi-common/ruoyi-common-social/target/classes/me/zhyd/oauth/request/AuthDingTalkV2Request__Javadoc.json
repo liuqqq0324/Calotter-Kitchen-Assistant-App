@@ -1,1 +1,0 @@
-{"doc":" 新版钉钉二维码登录\n\n @author yadong.zhang (yadong.zhang0415(a)gmail.com)\n @since 1.16.7\n","fields":[],"enumConstants":[],"methods":[{"name":"accessTokenUrl","paramTypes":["java.lang.String"],"doc":" 返回获取accessToken的url\n\n @param code 授权码\n @return 返回获取accessToken的url\n"}],"constructors":[]}

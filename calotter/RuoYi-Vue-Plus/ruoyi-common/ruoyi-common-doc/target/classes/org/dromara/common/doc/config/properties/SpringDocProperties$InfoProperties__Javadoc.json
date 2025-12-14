@@ -1,1 +1,0 @@
-{"doc":" <p>\n 文档的基础属性信息\n </p>\n\n @see io.swagger.v3.oas.models.info.Info\n\n 为了 springboot 自动生产配置提示信息，所以这里复制一个类出来\n","fields":[{"name":"title","doc":" 标题\n"},{"name":"description","doc":" 描述\n"},{"name":"contact","doc":" 联系人信息\n"},{"name":"license","doc":" 许可证\n"},{"name":"version","doc":" 版本\n"}],"enumConstants":[],"methods":[],"constructors":[]}

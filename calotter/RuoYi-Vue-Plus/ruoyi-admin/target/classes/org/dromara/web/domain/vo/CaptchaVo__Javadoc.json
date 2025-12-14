@@ -1,1 +1,0 @@
-{"doc":" 验证码信息\n\n @author Michelle.Chung\n","fields":[{"name":"captchaEnabled","doc":" 是否开启验证码\n"},{"name":"img","doc":" 验证码图片\n"}],"enumConstants":[],"methods":[],"constructors":[]}

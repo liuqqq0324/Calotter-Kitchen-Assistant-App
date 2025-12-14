@@ -1,1 +1,0 @@
-{"doc":" 用户信息\n\n @author Michelle.Chung\n","fields":[{"name":"user","doc":" 用户信息\n"},{"name":"roleIds","doc":" 角色ID列表\n"},{"name":"roles","doc":" 角色列表\n"},{"name":"postIds","doc":" 岗位ID列表\n"},{"name":"posts","doc":" 岗位列表\n"}],"enumConstants":[],"methods":[],"constructors":[]}

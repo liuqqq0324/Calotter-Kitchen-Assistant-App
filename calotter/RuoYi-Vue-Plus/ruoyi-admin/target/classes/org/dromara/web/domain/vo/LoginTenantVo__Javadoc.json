@@ -1,1 +1,0 @@
-{"doc":" 登录租户对象\n\n @author Michelle.Chung\n","fields":[{"name":"tenantEnabled","doc":" 租户开关\n"},{"name":"voList","doc":" 租户对象列表\n"}],"enumConstants":[],"methods":[],"constructors":[]}

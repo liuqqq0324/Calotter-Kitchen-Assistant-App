@@ -1,1 +1,0 @@
-{"doc":" 读取代码生成相关配置\n\n @author ruoyi\n","fields":[{"name":"author","doc":" 作者\n"},{"name":"packageName","doc":" 生成包路径\n"},{"name":"autoRemovePre","doc":" 自动去除表前缀，默认是false\n"},{"name":"tablePrefix","doc":" 表前缀(类名不会包含表前缀)\n"}],"enumConstants":[],"methods":[],"constructors":[]}

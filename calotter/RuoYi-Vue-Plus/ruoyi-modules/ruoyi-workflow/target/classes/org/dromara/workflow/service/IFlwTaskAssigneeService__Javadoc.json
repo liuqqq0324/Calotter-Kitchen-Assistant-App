@@ -1,1 +1,0 @@
-{"doc":" 流程设计器-获取办理人\n\n @author AprilWind\n","fields":[],"enumConstants":[],"methods":[{"name":"fetchUsersByStorageIds","paramTypes":["java.lang.String"],"doc":" 批量解析多个存储标识符（storageIds），按类型分类并合并查询用户列表\n 输入格式支持多个以逗号分隔的标识（如 \"user:123,role:456,789\"）\n 会自动去重返回结果，非法格式的标识将被忽略\n\n @param storageIds 多个存储标识符字符串（逗号分隔）\n @return 合并后的用户列表，去重后返回，非法格式的标识将被跳过\n"}],"constructors":[]}

@@ -1,1 +1,0 @@
-{"doc":" 用户和岗位关联 sys_user_post\n\n @author Lion Li\n","fields":[{"name":"userId","doc":" 用户ID\n"},{"name":"postId","doc":" 岗位ID\n"}],"enumConstants":[],"methods":[],"constructors":[]}

@@ -1,1 +1,0 @@
-{"doc":" 消息类型枚举\n\n @author may\n","fields":[],"enumConstants":[{"name":"SYSTEM_MESSAGE","doc":" 站内信\n"},{"name":"EMAIL_MESSAGE","doc":" 邮箱\n"},{"name":"SMS_MESSAGE","doc":" 短信\n"}],"methods":[{"name":"getByCode","paramTypes":["java.lang.String"],"doc":" 根据消息类型 code 获取 MessageTypeEnum\n\n @param code 消息类型code\n @return MessageTypeEnum\n"}],"constructors":[]}

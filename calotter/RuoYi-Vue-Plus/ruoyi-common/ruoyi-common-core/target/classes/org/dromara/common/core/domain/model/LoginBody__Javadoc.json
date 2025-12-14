@@ -1,1 +1,0 @@
-{"doc":" 用户登录对象\n\n @author Lion Li\n","fields":[{"name":"clientId","doc":" 客户端id\n"},{"name":"grantType","doc":" 授权类型\n"},{"name":"tenantId","doc":" 租户ID\n"},{"name":"code","doc":" 验证码\n"},{"name":"uuid","doc":" 唯一标识\n"}],"enumConstants":[],"methods":[],"constructors":[]}

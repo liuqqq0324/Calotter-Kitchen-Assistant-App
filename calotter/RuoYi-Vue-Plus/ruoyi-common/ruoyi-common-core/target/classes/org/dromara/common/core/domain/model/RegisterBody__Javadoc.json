@@ -1,1 +1,0 @@
-{"doc":" 用户注册对象\n\n @author Lion Li\n","fields":[{"name":"username","doc":" 用户名\n"},{"name":"password","doc":" 用户密码\n"},{"name":"userType","doc":" 用户类型\n"}],"enumConstants":[],"methods":[],"constructors":[]}

@@ -1,1 +1,0 @@
-{"doc":" 驳回参数请求\n\n @author may\n","fields":[{"name":"taskId","doc":" 任务ID\n"},{"name":"fileId","doc":" 附件id\n"},{"name":"messageType","doc":" 消息类型\n"},{"name":"nodeCode","doc":" 驳回的节点id(目前未使用，直接驳回到申请人)\n"},{"name":"message","doc":" 办理意见\n"},{"name":"notice","doc":" 通知\n"},{"name":"variables","doc":" 流程变量\n"}],"enumConstants":[],"methods":[],"constructors":[]}

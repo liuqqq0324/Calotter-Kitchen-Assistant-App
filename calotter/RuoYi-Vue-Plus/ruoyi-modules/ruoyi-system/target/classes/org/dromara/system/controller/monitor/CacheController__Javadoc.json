@@ -1,1 +1,0 @@
-{"doc":" 缓存监控\n\n @author Lion Li\n","fields":[],"enumConstants":[],"methods":[{"name":"getInfo","paramTypes":[],"doc":" 获取缓存监控列表\n"}],"constructors":[]}

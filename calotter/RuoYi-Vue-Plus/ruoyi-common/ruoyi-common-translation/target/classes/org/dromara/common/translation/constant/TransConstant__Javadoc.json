@@ -1,1 +1,0 @@
-{"doc":" 翻译常量\n\n @author Lion Li\n","fields":[{"name":"USER_ID_TO_NAME","doc":" 用户id转账号\n"},{"name":"USER_ID_TO_NICKNAME","doc":" 用户id转用户名称\n"},{"name":"DEPT_ID_TO_NAME","doc":" 部门id转名称\n"},{"name":"DICT_TYPE_TO_LABEL","doc":" 字典type转label\n"},{"name":"OSS_ID_TO_URL","doc":" ossId转url\n"}],"enumConstants":[],"methods":[],"constructors":[]}

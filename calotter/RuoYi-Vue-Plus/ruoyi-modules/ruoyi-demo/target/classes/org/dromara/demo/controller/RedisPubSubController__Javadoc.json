@@ -1,1 +1,0 @@
-{"doc":" Redis 发布订阅 演示案例\n\n @author Lion Li\n","fields":[],"enumConstants":[],"methods":[{"name":"pub","paramTypes":["java.lang.String","java.lang.String"],"doc":" 发布消息\n\n @param key   通道Key\n @param value 发送内容\n"},{"name":"sub","paramTypes":["java.lang.String"],"doc":" 订阅消息\n\n @param key 通道Key\n"}],"constructors":[]}

@@ -1,1 +1,0 @@
-{"doc":" 按钮权限\n\n @author may\n @date 2025-02-28\n","fields":[{"name":"code","doc":" 唯一编码\n"},{"name":"value","doc":" 选项值\n"},{"name":"show","doc":" 是否显示\n"}],"enumConstants":[],"methods":[],"constructors":[]}

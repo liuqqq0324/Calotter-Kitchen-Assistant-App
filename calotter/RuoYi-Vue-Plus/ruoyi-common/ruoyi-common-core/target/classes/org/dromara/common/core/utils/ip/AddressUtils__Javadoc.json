@@ -1,1 +1,0 @@
-{"doc":" 获取地址类\n\n @author Lion Li\n","fields":[],"enumConstants":[],"methods":[{"name":"resolverIPv4Region","paramTypes":["java.lang.String"],"doc":" 根据IPv4地址查询IP归属行政区域\n @param ip ipv4地址\n @return 归属行政区域\n"},{"name":"resolverIPv6Region","paramTypes":["java.lang.String"],"doc":" 根据IPv6地址查询IP归属行政区域\n @param ip ipv6地址\n @return 归属行政区域\n"}],"constructors":[]}

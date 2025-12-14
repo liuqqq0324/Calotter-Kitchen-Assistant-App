@@ -1,1 +1,0 @@
-{"doc":" 字典表 数据层\n\n @author Lion Li\n","fields":[],"enumConstants":[],"methods":[{"name":"selectDictDataByType","paramTypes":["java.lang.String"],"doc":" 根据字典类型查询字典数据列表\n\n @param dictType 字典类型\n @return 符合条件的字典数据列表\n"}],"constructors":[]}

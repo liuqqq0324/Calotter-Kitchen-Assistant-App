@@ -1,1 +1,0 @@
-{"doc":" 流程实例请求对象\n\n @author may\n","fields":[{"name":"flowName","doc":" 流程定义名称\n"},{"name":"flowCode","doc":" 流程定义编码\n"},{"name":"startUserId","doc":" 任务发起人\n"},{"name":"businessId","doc":" 业务id\n"},{"name":"category","doc":" 流程分类id\n"},{"name":"nodeName","doc":" 任务名称\n"},{"name":"createByIds","doc":" 申请人Ids\n"}],"enumConstants":[],"methods":[],"constructors":[]}

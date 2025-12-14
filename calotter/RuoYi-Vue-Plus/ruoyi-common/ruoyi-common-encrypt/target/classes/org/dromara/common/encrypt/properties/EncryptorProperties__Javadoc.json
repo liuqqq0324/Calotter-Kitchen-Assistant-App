@@ -1,1 +1,0 @@
-{"doc":" 加解密属性配置类\n\n @author 老马\n @version 4.6.0\n","fields":[{"name":"enable","doc":" 过滤开关\n"},{"name":"algorithm","doc":" 默认算法\n"},{"name":"password","doc":" 安全秘钥\n"},{"name":"publicKey","doc":" 公钥\n"},{"name":"privateKey","doc":" 私钥\n"},{"name":"encode","doc":" 编码方式，base64/hex\n"}],"enumConstants":[],"methods":[],"constructors":[]}

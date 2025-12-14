@@ -1,1 +1,0 @@
-{"doc":" swagger3 用法示例\n\n @author Lion Li\n","fields":[],"enumConstants":[],"methods":[{"name":"upload","paramTypes":["org.springframework.web.multipart.MultipartFile"],"doc":" 上传请求\n 必须使用 @RequestPart 注解标注为文件\n\n @param file 文件\n"}],"constructors":[]}

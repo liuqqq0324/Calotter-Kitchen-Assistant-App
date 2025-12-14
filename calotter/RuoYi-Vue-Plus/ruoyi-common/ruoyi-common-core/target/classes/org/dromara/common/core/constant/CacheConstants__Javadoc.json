@@ -1,1 +1,0 @@
-{"doc":" 缓存的key 常量\n\n @author Lion Li\n","fields":[{"name":"ONLINE_TOKEN_KEY","doc":" 在线用户 redis key\n"},{"name":"SYS_CONFIG_KEY","doc":" 参数管理 cache key\n"},{"name":"SYS_DICT_KEY","doc":" 字典管理 cache key\n"},{"name":"PWD_ERR_CNT_KEY","doc":" 登录账户密码错误次数 redis key\n"}],"enumConstants":[],"methods":[],"constructors":[]}

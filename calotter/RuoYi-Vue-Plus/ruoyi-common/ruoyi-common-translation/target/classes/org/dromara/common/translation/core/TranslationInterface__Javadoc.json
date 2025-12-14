@@ -1,1 +1,0 @@
-{"doc":" 翻译接口 (实现类需标注 {@link TranslationType} 注解标明翻译类型)\n\n @author Lion Li\n","fields":[],"enumConstants":[],"methods":[{"name":"translation","paramTypes":["java.lang.Object","java.lang.String"],"doc":" 翻译\n\n @param key   需要被翻译的键(不为空)\n @param other 其他参数\n @return 返回键对应的值\n"}],"constructors":[]}

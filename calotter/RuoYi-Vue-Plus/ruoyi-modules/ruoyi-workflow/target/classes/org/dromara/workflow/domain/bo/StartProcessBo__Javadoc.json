@@ -1,1 +1,0 @@
-{"doc":" 启动流程对象\n\n @author may\n","fields":[{"name":"businessId","doc":" 业务唯一值id\n"},{"name":"flowCode","doc":" 流程定义编码\n"},{"name":"handler","doc":" 办理人(可不填 用于覆盖当前节点办理人)\n"},{"name":"variables","doc":" 流程变量，前端会提交一个元素{'entity': {业务详情数据对象}}\n"},{"name":"bizExt","doc":" 流程业务扩展信息\n"}],"enumConstants":[],"methods":[],"constructors":[]}

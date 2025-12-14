@@ -1,1 +1,0 @@
-{"doc":" 测试树表Service业务层处理\n\n @author Lion Li\n @date 2021-07-26\n","fields":[],"enumConstants":[],"methods":[{"name":"validEntityBeforeSave","paramTypes":["org.dromara.demo.domain.TestTree"],"doc":" 保存前的数据校验\n\n @param entity 实体类数据\n"}],"constructors":[]}

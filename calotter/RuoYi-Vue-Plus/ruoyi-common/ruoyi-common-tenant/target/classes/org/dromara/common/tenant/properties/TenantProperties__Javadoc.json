@@ -1,1 +1,0 @@
-{"doc":" 租户 配置属性\n\n @author Lion Li\n","fields":[{"name":"enable","doc":" 是否启用\n"},{"name":"excludes","doc":" 排除表\n"}],"enumConstants":[],"methods":[],"constructors":[]}

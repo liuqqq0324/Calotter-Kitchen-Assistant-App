@@ -1,1 +1,0 @@
-{"doc":" swagger 配置属性\n\n @author Lion Li\n","fields":[{"name":"info","doc":" 文档基本信息\n"},{"name":"externalDocs","doc":" 扩展文档地址\n"},{"name":"tags","doc":" 标签\n"},{"name":"paths","doc":" 路径\n"},{"name":"components","doc":" 组件\n"}],"enumConstants":[],"methods":[],"constructors":[]}

@@ -1,1 +1,0 @@
-{"doc":" excel返回对象\n\n @author Lion Li\n","fields":[],"enumConstants":[],"methods":[{"name":"getList","paramTypes":[],"doc":" 对象列表\n"},{"name":"getErrorList","paramTypes":[],"doc":" 错误列表\n"},{"name":"getAnalysis","paramTypes":[],"doc":" 导入回执\n"}],"constructors":[]}

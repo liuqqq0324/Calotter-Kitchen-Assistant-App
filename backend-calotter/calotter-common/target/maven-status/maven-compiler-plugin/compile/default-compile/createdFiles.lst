@@ -1,0 +1,10 @@
+com/calotter/common/exception/GlobalExceptionHandler.class
+com/calotter/common/core/domain/entity/StandardIngredient.class
+com/calotter/common/core/domain/BaseEntity.class
+com/calotter/common/core/domain/entity/StandardIngredient$StorageLocation.class
+com/calotter/common/core/domain/entity/RefAllergen.class
+com/calotter/common/core/PageResult.class
+com/calotter/common/core/domain/entity/StandardSpice.class
+com/calotter/common/core/Result.class
+com/calotter/common/config/JpaAuditingConfig.class
+com/calotter/common/core/domain/entity/StandardUtensil.class

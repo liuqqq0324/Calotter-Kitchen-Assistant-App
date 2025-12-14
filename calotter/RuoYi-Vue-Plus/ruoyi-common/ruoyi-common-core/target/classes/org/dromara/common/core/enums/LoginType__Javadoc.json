@@ -1,1 +1,0 @@
-{"doc":" 登录类型\n\n @author Lion Li\n","fields":[{"name":"retryLimitExceed","doc":" 登录重试超出限制提示\n"},{"name":"retryLimitCount","doc":" 登录重试限制计数提示\n"}],"enumConstants":[{"name":"PASSWORD","doc":" 密码登录\n"},{"name":"SMS","doc":" 短信登录\n"},{"name":"EMAIL","doc":" 邮箱登录\n"},{"name":"XCX","doc":" 小程序登录\n"}],"methods":[],"constructors":[]}

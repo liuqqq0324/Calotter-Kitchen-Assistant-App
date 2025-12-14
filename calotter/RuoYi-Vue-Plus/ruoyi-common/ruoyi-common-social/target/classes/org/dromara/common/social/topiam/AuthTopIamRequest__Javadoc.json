@@ -1,1 +1,0 @@
-{"doc":" TopIAM 认证请求\n\n @author xlsea\n @since 2024-01-06\n","fields":[],"enumConstants":[],"methods":[],"constructors":[{"name":"<init>","paramTypes":["me.zhyd.oauth.config.AuthConfig"],"doc":" 设定归属域\n"}]}

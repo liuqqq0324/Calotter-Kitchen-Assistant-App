@@ -1,1 +1,0 @@
-{"doc":" 设备类型\n\n @author Lion Li\n","fields":[{"name":"device","doc":" 设备标识\n"}],"enumConstants":[{"name":"PC","doc":" pc端\n"},{"name":"APP","doc":" app端\n"},{"name":"XCX","doc":" 小程序端\n"},{"name":"SOCIAL","doc":" 第三方社交登录平台\n"}],"methods":[],"constructors":[]}

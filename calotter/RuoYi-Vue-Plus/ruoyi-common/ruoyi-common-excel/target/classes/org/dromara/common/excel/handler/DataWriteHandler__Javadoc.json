@@ -1,1 +1,0 @@
-{"doc":" 批注、必填\n\n @author guzhouyanyu\n","fields":[{"name":"notationMap","doc":" 批注\n"},{"name":"headColumnMap","doc":" 头列字体颜色\n"}],"enumConstants":[],"methods":[{"name":"getRequiredMap","paramTypes":["java.lang.Class"],"doc":" 获取必填列\n"},{"name":"getNotationMap","paramTypes":["java.lang.Class"],"doc":" 获取批注\n"}],"constructors":[]}

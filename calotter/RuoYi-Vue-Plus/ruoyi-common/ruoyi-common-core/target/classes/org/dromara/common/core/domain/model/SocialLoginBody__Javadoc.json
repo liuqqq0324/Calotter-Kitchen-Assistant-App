@@ -1,1 +1,0 @@
-{"doc":" 三方登录对象\n\n @author Lion Li\n","fields":[{"name":"source","doc":" 第三方登录平台\n"},{"name":"socialCode","doc":" 第三方登录code\n"},{"name":"socialState","doc":" 第三方登录socialState\n"}],"enumConstants":[],"methods":[],"constructors":[]}

@@ -1,1 +1,0 @@
-{"doc":" spel表达式规则组件\n <p>\n     通过该组件统一管理流程定义中的spel表达式\n </p>\n\n @author Michelle.Chung\n","fields":[],"enumConstants":[],"methods":[{"name":"selectDeptLeaderById","paramTypes":["java.lang.Long"],"doc":" 通过发起人部门id获取部门负责人\n"}],"constructors":[]}

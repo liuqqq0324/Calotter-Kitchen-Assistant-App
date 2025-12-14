@@ -1,1 +1,0 @@
-{"doc":" 短信认证策略\n\n @author Michelle.Chung\n","fields":[],"enumConstants":[],"methods":[{"name":"validateSmsCode","paramTypes":["java.lang.String","java.lang.String","java.lang.String"],"doc":" 校验短信验证码\n"}],"constructors":[]}

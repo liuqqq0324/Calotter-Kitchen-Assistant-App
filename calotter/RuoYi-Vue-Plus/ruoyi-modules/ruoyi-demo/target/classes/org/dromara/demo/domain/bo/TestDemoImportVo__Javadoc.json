@@ -1,1 +1,0 @@
-{"doc":" 测试单表业务对象 test_demo\n\n @author Lion Li\n @date 2021-07-26\n","fields":[{"name":"deptId","doc":" 部门id\n"},{"name":"userId","doc":" 用户id\n"},{"name":"orderNum","doc":" 排序号\n"},{"name":"testKey","doc":" key键\n"},{"name":"value","doc":" 值\n"}],"enumConstants":[],"methods":[],"constructors":[]}

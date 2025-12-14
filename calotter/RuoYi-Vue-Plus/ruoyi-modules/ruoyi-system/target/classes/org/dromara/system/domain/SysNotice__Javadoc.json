@@ -1,1 +1,0 @@
-{"doc":" 通知公告表 sys_notice\n\n @author Lion Li\n","fields":[{"name":"noticeId","doc":" 公告ID\n"},{"name":"noticeTitle","doc":" 公告标题\n"},{"name":"noticeType","doc":" 公告类型（1通知 2公告）\n"},{"name":"noticeContent","doc":" 公告内容\n"},{"name":"status","doc":" 公告状态（0正常 1关闭）\n"},{"name":"remark","doc":" 备注\n"}],"enumConstants":[],"methods":[],"constructors":[]}

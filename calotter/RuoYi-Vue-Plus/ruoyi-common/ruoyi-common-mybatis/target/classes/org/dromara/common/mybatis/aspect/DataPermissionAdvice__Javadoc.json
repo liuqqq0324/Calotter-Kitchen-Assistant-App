@@ -1,1 +1,0 @@
-{"doc":" 数据权限注解Advice\n\n @author 秋辞未寒\n","fields":[],"enumConstants":[],"methods":[{"name":"getDataPermissionAnnotation","paramTypes":["java.lang.Object","java.lang.reflect.Method","java.lang.Object[]"],"doc":" 获取数据权限注解\n"}],"constructors":[]}
