@@ -22,7 +22,14 @@ public class HouseholdSpice extends BaseEntity {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "household_id", nullable = false)
+    @JoinColumn(
+        name = "household_id",
+        nullable = false,
+        foreignKey = @ForeignKey(
+            name = "fk_spice_household",
+            foreignKeyDefinition = "FOREIGN KEY (household_id) REFERENCES households(id) ON DELETE CASCADE"
+        )
+    )
     private Household household;
 
     @ManyToOne(fetch = FetchType.EAGER)

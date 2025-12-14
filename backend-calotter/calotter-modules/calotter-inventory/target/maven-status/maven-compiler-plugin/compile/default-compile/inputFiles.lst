@@ -1,0 +1,8 @@
+/Users/chase/Documents/Internship/Projects/chef_git/A-team-PersonalSousChef/backend-calotter/calotter-modules/calotter-inventory/src/main/java/com/calotter/inventory/domain/entity/HouseholdSpice.java
+/Users/chase/Documents/Internship/Projects/chef_git/A-team-PersonalSousChef/backend-calotter/calotter-modules/calotter-inventory/src/main/java/com/calotter/inventory/domain/entity/HouseholdUtensil.java
+/Users/chase/Documents/Internship/Projects/chef_git/A-team-PersonalSousChef/backend-calotter/calotter-modules/calotter-inventory/src/main/java/com/calotter/inventory/domain/entity/Ingredient.java
+/Users/chase/Documents/Internship/Projects/chef_git/A-team-PersonalSousChef/backend-calotter/calotter-modules/calotter-inventory/src/main/java/com/calotter/inventory/domain/entity/LeftoverDish.java
+/Users/chase/Documents/Internship/Projects/chef_git/A-team-PersonalSousChef/backend-calotter/calotter-modules/calotter-inventory/src/main/java/com/calotter/inventory/repository/HouseholdSpiceRepository.java
+/Users/chase/Documents/Internship/Projects/chef_git/A-team-PersonalSousChef/backend-calotter/calotter-modules/calotter-inventory/src/main/java/com/calotter/inventory/repository/HouseholdUtensilRepository.java
+/Users/chase/Documents/Internship/Projects/chef_git/A-team-PersonalSousChef/backend-calotter/calotter-modules/calotter-inventory/src/main/java/com/calotter/inventory/repository/IngredientRepository.java
+/Users/chase/Documents/Internship/Projects/chef_git/A-team-PersonalSousChef/backend-calotter/calotter-modules/calotter-inventory/src/main/java/com/calotter/inventory/repository/LeftoverDishRepository.java

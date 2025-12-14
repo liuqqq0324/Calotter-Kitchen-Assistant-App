@@ -22,7 +22,14 @@ public class LeftoverDish extends BaseEntity {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "household_id", nullable = false)
+    @JoinColumn(
+        name = "household_id",
+        nullable = false,
+        foreignKey = @ForeignKey(
+            name = "fk_leftover_household",
+            foreignKeyDefinition = "FOREIGN KEY (household_id) REFERENCES households(id) ON DELETE CASCADE"
+        )
+    )
     private Household household;
 
     @Column(nullable = false)

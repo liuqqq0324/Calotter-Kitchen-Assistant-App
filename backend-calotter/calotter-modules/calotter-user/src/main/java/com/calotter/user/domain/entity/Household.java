@@ -1,10 +1,6 @@
 package com.calotter.user.domain.entity;
 
 import com.calotter.common.core.domain.BaseEntity;
-import com.calotter.inventory.domain.entity.HouseholdSpice;
-import com.calotter.inventory.domain.entity.HouseholdUtensil;
-import com.calotter.inventory.domain.entity.Ingredient;
-import com.calotter.inventory.domain.entity.LeftoverDish;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -14,6 +10,11 @@ import java.util.List;
 
 /**
  * 家庭组实体
+ * 
+ * 注意：为了避免模块间的循环依赖，这里不直接引用 inventory 模块的实体。
+ * Inventory 实体（Ingredient, LeftoverDish, HouseholdUtensil, HouseholdSpice）
+ * 通过 @ManyToOne 关系引用 Household，JPA 会自动维护双向关系。
+ * 级联删除通过数据库外键约束实现。
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
@@ -38,17 +39,4 @@ public class Household extends BaseEntity {
     
     @OneToMany(mappedBy = "household", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     private List<FamilyMember> members = new ArrayList<>();
-
-    // 移除家庭时，一并清理库存
-    @OneToMany(mappedBy = "household", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Ingredient> ingredients = new ArrayList<>();
-
-    @OneToMany(mappedBy = "household", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<LeftoverDish> leftoverDishes = new ArrayList<>();
-
-    @OneToMany(mappedBy = "household", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<HouseholdUtensil> utensils = new ArrayList<>();
-
-    @OneToMany(mappedBy = "household", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<HouseholdSpice> spices = new ArrayList<>();
 }

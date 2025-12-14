@@ -9,6 +9,7 @@
         <groupId>com.calotter</groupId>
         <artifactId>calotter-modules</artifactId>
         <version>1.0.0-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath> 
     </parent>
 
     <artifactId>calotter-cooking</artifactId>
@@ -31,6 +32,13 @@
             <groupId>com.calotter</groupId>
             <artifactId>calotter-inventory</artifactId>
             <version>${project.version}</version>
+        </dependency>
+        
+        <!-- Lombok -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
         </dependency>
     </dependencies>
 </project>
