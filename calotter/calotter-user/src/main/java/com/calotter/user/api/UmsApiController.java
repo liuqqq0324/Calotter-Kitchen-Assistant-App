@@ -282,20 +282,28 @@ public class UmsApiController {
             return p.getId();
         };
 
-        // dietaryType
-        Long id1 = upsertPref.apply("dietaryType:" + nullToEmpty(req.dietaryType));
-        if (id1 != null) insertRolePref(roleId, id1);
-        // spiceLevel
-        Long id2 = upsertPref.apply("spiceLevel:" + nullToEmpty(req.spiceLevel));
-        if (id2 != null) insertRolePref(roleId, id2);
-        // cookingTimePreference
-        Long id3 = upsertPref.apply("cookingTimePreference:" + nullToEmpty(req.cookingTimePreference));
-        if (id3 != null) insertRolePref(roleId, id3);
-        // cuisines
+        // dietaryType - only create if not null and not empty
+        if (req.dietaryType != null && !req.dietaryType.trim().isEmpty()) {
+            Long id1 = upsertPref.apply("dietaryType:" + req.dietaryType);
+            if (id1 != null) insertRolePref(roleId, id1);
+        }
+        // spiceLevel - only create if not null and not empty
+        if (req.spiceLevel != null && !req.spiceLevel.trim().isEmpty()) {
+            Long id2 = upsertPref.apply("spiceLevel:" + req.spiceLevel);
+            if (id2 != null) insertRolePref(roleId, id2);
+        }
+        // cookingTimePreference - only create if not null and not empty
+        if (req.cookingTimePreference != null && !req.cookingTimePreference.trim().isEmpty()) {
+            Long id3 = upsertPref.apply("cookingTimePreference:" + req.cookingTimePreference);
+            if (id3 != null) insertRolePref(roleId, id3);
+        }
+        // cuisines - only create if not null and not empty
         if (req.cuisineTypes != null) {
             for (String c : req.cuisineTypes) {
-                Long cid = upsertPref.apply("cuisine:" + nullToEmpty(c));
-                if (cid != null) insertRolePref(roleId, cid);
+                if (c != null && !c.trim().isEmpty()) {
+                    Long cid = upsertPref.apply("cuisine:" + c);
+                    if (cid != null) insertRolePref(roleId, cid);
+                }
             }
         }
         UpdateMessageResponse r = new UpdateMessageResponse();
@@ -335,6 +343,9 @@ public class UmsApiController {
                 .eq(RoleRestriction::getRoleId, roleId).eq(RoleRestriction::getType, (short)2));
         if (req.taboos != null) {
             for (String name : req.taboos) {
+                // Skip empty or null names
+                if (name == null || name.trim().isEmpty()) continue;
+                
                 Restriction r = restrictionMapper.selectOne(Wrappers.lambdaQuery(Restriction.class)
                         .eq(Restriction::getName, name).last("limit 1"));
                 if (r == null) {
@@ -386,6 +397,9 @@ public class UmsApiController {
                 .eq(RoleRestriction::getRoleId, roleId).eq(RoleRestriction::getType, (short)1));
         if (req.allergies != null) {
             for (String name : req.allergies) {
+                // Skip empty or null names
+                if (name == null || name.trim().isEmpty()) continue;
+                
                 Restriction r = restrictionMapper.selectOne(Wrappers.lambdaQuery(Restriction.class)
                         .eq(Restriction::getName, name).last("limit 1"));
                 if (r == null) {

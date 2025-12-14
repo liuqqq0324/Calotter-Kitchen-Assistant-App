@@ -9,7 +9,7 @@
         FROM sous_chef_hp.hp_intake_record
         WHERE user_id = #{userId}
           AND date = #{date}
-        ORDER BY created_time DESC
+        ORDER BY create_time DESC
     </select>
 
     <select id="selectByUserIdAndDateAndSourceType" resultType="com.calotter.homepage.domain.vo.IntakeRecordVo">
@@ -18,7 +18,7 @@
         WHERE user_id = #{userId}
           AND date = #{date}
           AND source_type = #{sourceType}
-        ORDER BY created_time DESC
+        ORDER BY create_time DESC
     </select>
 
     <select id="selectByUserIdAndDateRange" resultType="com.calotter.homepage.domain.vo.IntakeRecordVo">
@@ -27,7 +27,7 @@
         WHERE user_id = #{userId}
           AND date &gt;= #{startDate}
           AND date &lt;= #{endDate}
-        ORDER BY date DESC, created_time DESC
+        ORDER BY date DESC, create_time DESC
     </select>
 
     <select id="sumEffectiveNutritionByDateRange" resultType="java.util.Map">
