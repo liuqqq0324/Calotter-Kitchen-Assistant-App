@@ -1,3 +1,8 @@
+/Users/chase/Documents/Internship/Projects/chef_git/A-team-PersonalSousChef/backend-calotter/calotter-modules/calotter-user/src/main/java/com/calotter/user/config/SecurityConfig.java
+/Users/chase/Documents/Internship/Projects/chef_git/A-team-PersonalSousChef/backend-calotter/calotter-modules/calotter-user/src/main/java/com/calotter/user/controller/UserController.java
+/Users/chase/Documents/Internship/Projects/chef_git/A-team-PersonalSousChef/backend-calotter/calotter-modules/calotter-user/src/main/java/com/calotter/user/controller/dto/AuthResponse.java
+/Users/chase/Documents/Internship/Projects/chef_git/A-team-PersonalSousChef/backend-calotter/calotter-modules/calotter-user/src/main/java/com/calotter/user/controller/dto/LoginRequest.java
+/Users/chase/Documents/Internship/Projects/chef_git/A-team-PersonalSousChef/backend-calotter/calotter-modules/calotter-user/src/main/java/com/calotter/user/controller/dto/RegisterRequest.java
 /Users/chase/Documents/Internship/Projects/chef_git/A-team-PersonalSousChef/backend-calotter/calotter-modules/calotter-user/src/main/java/com/calotter/user/domain/entity/FamilyMember.java
 /Users/chase/Documents/Internship/Projects/chef_git/A-team-PersonalSousChef/backend-calotter/calotter-modules/calotter-user/src/main/java/com/calotter/user/domain/entity/HealthGoal.java
 /Users/chase/Documents/Internship/Projects/chef_git/A-team-PersonalSousChef/backend-calotter/calotter-modules/calotter-user/src/main/java/com/calotter/user/domain/entity/Household.java
@@ -6,3 +11,5 @@
 /Users/chase/Documents/Internship/Projects/chef_git/A-team-PersonalSousChef/backend-calotter/calotter-modules/calotter-user/src/main/java/com/calotter/user/repository/HealthGoalRepository.java
 /Users/chase/Documents/Internship/Projects/chef_git/A-team-PersonalSousChef/backend-calotter/calotter-modules/calotter-user/src/main/java/com/calotter/user/repository/HouseholdRepository.java
 /Users/chase/Documents/Internship/Projects/chef_git/A-team-PersonalSousChef/backend-calotter/calotter-modules/calotter-user/src/main/java/com/calotter/user/repository/UserRepository.java
+/Users/chase/Documents/Internship/Projects/chef_git/A-team-PersonalSousChef/backend-calotter/calotter-modules/calotter-user/src/main/java/com/calotter/user/service/JwtService.java
+/Users/chase/Documents/Internship/Projects/chef_git/A-team-PersonalSousChef/backend-calotter/calotter-modules/calotter-user/src/main/java/com/calotter/user/service/UserService.java
