@@ -42,12 +42,19 @@ public class CookingSession extends BaseEntity {
     @Column(columnDefinition = "jsonb")
     private AiRecipeResponse aiResponse;
 
+    // --- 核心：结构化Dish引用 ---
+    // 当AI生成配方后，创建Dish快照，这里引用结构化数据（便于查询和关联）
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "final_dish_id")
+    private Dish finalDish;
+
     // --- 状态管理 ---
     // PENDING (生成中), COMPLETED (生成完毕), ACCEPTED (用户决定做这就吃), REJECTED (用户重新生成了)
     @Enumerated(EnumType.STRING)
     private SessionStatus status;
 
     // 记录用户最终选了哪道菜 (如果做完了)
+    // 注意：可以保留用于快速查询，或从 finalDish.name 获取
     private String selectedDishName;
 
     public enum SessionStatus {

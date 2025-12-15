@@ -99,6 +99,19 @@ app.*.map.json
 .vs/
 *.user
 
+**/postgres/data/
+**/target/
+
+calotter/postgres/data/
+
+# .gitignore content
+**/target/
+*.jar
+*.class
+.idea/
+*.iml**/target/
+
+
 # .gitignore content
 **/target/
 *.jar

@@ -20,5 +20,6 @@
         <module>calotter-user</module>
         <module>calotter-cooking</module>
         <module>calotter-inventory</module>
+        <module>calotter-health</module>
     </modules>
 </project>
