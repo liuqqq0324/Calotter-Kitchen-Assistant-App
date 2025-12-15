@@ -23,10 +23,14 @@ public interface DishRepository extends JpaRepository<Dish, Long> {
      * 根据家庭ID查询所有Dish
      */
     List<Dish> findByHouseholdId(Long householdId);
+
+    /**
+     * 收藏列表
+     */
+    List<Dish> findByHouseholdIdAndFavoriteTrueOrderByUpdateTimeDesc(Long householdId);
     
     /**
      * 根据ID和家庭查询Dish（用于权限验证）
      */
     Optional<Dish> findByIdAndHousehold(Long id, Household household);
 }
-

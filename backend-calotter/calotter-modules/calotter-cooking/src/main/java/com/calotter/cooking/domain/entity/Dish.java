@@ -89,6 +89,12 @@ public class Dish extends BaseEntity {
     @Column(columnDefinition = "jsonb")
     private List<IngredientSnapshot> ingredientSnapshots;
 
+    /**
+     * 是否收藏
+     */
+    @Column(nullable = false)
+    private boolean favorite = false;
+
     // --- 辅助计算方法 (Domain Logic) ---
     
     /**
@@ -122,4 +128,3 @@ public class Dish extends BaseEntity {
         private String quantityStr; // "500g", "2勺"
     }
 }
-

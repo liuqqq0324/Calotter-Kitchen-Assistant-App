@@ -38,6 +38,26 @@ public class FavoriteRecipeService {
         return dishRepository.save(dish);
     }
 
+    /**
+     * 确保菜谱存在（不切换收藏），用于开始烹饪
+     */
+    @Transactional
+    public Dish ensureDish(Long householdId, MenuDTO.RecipeDTO recipeDto, boolean favoriteFlag) {
+        Household household = householdRepository.findById(householdId)
+                .orElseThrow(() -> new IllegalArgumentException("家庭不存在"));
+        Dish dish = dishRepository.findByHouseholdId(householdId).stream()
+                .filter(d -> d.getName().equalsIgnoreCase(recipeDto.getTitle()))
+                .findFirst()
+                .orElse(null);
+        if (dish == null) {
+            dish = mapToDish(recipeDto, household);
+        }
+        if (favoriteFlag) {
+            dish.setFavorite(true);
+        }
+        return dishRepository.save(dish);
+    }
+
     @Transactional(readOnly = true)
     public List<Dish> listFavorites(Long householdId) {
         return dishRepository.findByHouseholdIdAndFavoriteTrueOrderByUpdateTimeDesc(householdId);

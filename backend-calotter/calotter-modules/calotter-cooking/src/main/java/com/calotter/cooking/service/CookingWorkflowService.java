@@ -41,9 +41,7 @@ public class CookingWorkflowService {
             dish = dishRepository.findById(req.getDishId())
                     .orElseThrow(() -> new IllegalArgumentException("菜品不存在: " + req.getDishId()));
         } else if (req.getRecipe() != null) {
-            // 利用收藏逻辑创建 Dish（不改变收藏状态）
-            dish = favoriteRecipeService.toggleFavorite(req.getHouseholdId(), req.getRecipe());
-            dish.setFavorite(dish.isFavorite()); // no-op
+            dish = favoriteRecipeService.ensureDish(req.getHouseholdId(), req.getRecipe(), false);
         } else {
             throw new IllegalArgumentException("必须提供 dishId 或 recipe");
         }

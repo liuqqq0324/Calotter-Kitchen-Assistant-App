@@ -42,6 +42,25 @@ public class CookingSession extends BaseEntity {
     @Column(columnDefinition = "jsonb")
     private AiRecipeResponse aiResponse;
 
+    /**
+     * 最终用料快照（JSON），用于扣库存/健康记录
+     */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
+    private Object ingredientsSnapshot;
+
+    /**
+     * 最终总营养快照
+     */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
+    private Object totalNutritionSnapshot;
+
+    /**
+     * 剩余比例（0~1），初始化 1.0
+     */
+    private Double remainingRatio;
+
     // --- 核心：结构化Dish引用 ---
     // 当AI生成配方后，创建Dish快照，这里引用结构化数据（便于查询和关联）
     @ManyToOne(fetch = FetchType.LAZY)

@@ -306,6 +306,9 @@ public class InventoryService {
         leftover.setHousehold(household);
         leftover.setOriginalDishId(request.getOriginalDishId());
         leftover.setCurrentQuantityGram(request.getCurrentQuantityGram());
+        leftover.setInitialQuantityGram(request.getInitialQuantityGram() != null
+                ? request.getInitialQuantityGram()
+                : request.getCurrentQuantityGram());
         leftover.setProducedTime(request.getProducedTime());
 
         leftover = leftoverRepository.save(leftover);
@@ -325,6 +328,12 @@ public class InventoryService {
         }
         if (request.getCurrentQuantityGram() != null) {
             leftover.setCurrentQuantityGram(request.getCurrentQuantityGram());
+        }
+        if (request.getInitialQuantityGram() != null) {
+            leftover.setInitialQuantityGram(request.getInitialQuantityGram());
+        } else if (leftover.getInitialQuantityGram() == null && request.getCurrentQuantityGram() != null) {
+            // 如果之前为空，且这次传了 current，则同步为初始值
+            leftover.setInitialQuantityGram(request.getCurrentQuantityGram());
         }
         if (request.getProducedTime() != null) {
             leftover.setProducedTime(request.getProducedTime());
@@ -408,6 +417,7 @@ public class InventoryService {
                 .householdId(leftover.getHousehold().getId())
                 .originalDishId(leftover.getOriginalDishId())
                 .currentQuantityGram(leftover.getCurrentQuantityGram())
+                .initialQuantityGram(leftover.getInitialQuantityGram())
                 .producedTime(leftover.getProducedTime())
                 .build();
     }
