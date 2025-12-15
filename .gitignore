@@ -98,3 +98,10 @@ app.*.map.json
 [Oo]bj/
 .vs/
 *.user
+
+# .gitignore content
+**/target/
+*.jar
+*.class
+.idea/
+*.iml
