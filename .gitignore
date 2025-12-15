@@ -103,3 +103,10 @@ app.*.map.json
 **/target/
 
 calotter/postgres/data/
+
+# .gitignore content
+**/target/
+*.jar
+*.class
+.idea/
+*.iml
