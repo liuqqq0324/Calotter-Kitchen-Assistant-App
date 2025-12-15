@@ -116,6 +116,9 @@ public class NutritionLogService {
                 .orElseThrow(() -> new IllegalArgumentException("剩菜不存在: " + leftoverId));
         
         // 2. 先验证食用重量（早验证早失败，避免不必要的服务调用）
+        if (consumedGram == null || consumedGram <= 0) {
+            throw new IllegalArgumentException("食用重量必须大于0");
+        }
         if (consumedGram > leftover.getCurrentQuantityGram()) {
             throw new IllegalArgumentException(
                     String.format("食用重量(%d克)超过剩余重量(%d克)", 
