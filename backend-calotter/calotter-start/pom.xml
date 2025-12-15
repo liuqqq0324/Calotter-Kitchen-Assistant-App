@@ -60,6 +60,12 @@
             <artifactId>calotter-inventory</artifactId>
             <version>${project.version}</version>
         </dependency>
+        
+        <dependency>
+            <groupId>com.calotter</groupId>
+            <artifactId>calotter-health</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 
     <build>

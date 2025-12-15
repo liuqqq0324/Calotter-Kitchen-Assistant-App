@@ -1,8 +1,8 @@
-com/calotter/inventory/domain/entity/Ingredient.class
-com/calotter/inventory/repository/IngredientRepository.class
-com/calotter/inventory/domain/entity/HouseholdSpice.class
-com/calotter/inventory/repository/HouseholdSpiceRepository.class
-com/calotter/inventory/domain/entity/LeftoverDish.class
-com/calotter/inventory/repository/HouseholdUtensilRepository.class
-com/calotter/inventory/domain/entity/HouseholdUtensil.class
-com/calotter/inventory/repository/LeftoverDishRepository.class
+com\calotter\inventory\domain\entity\LeftoverDish.class
+com\calotter\inventory\repository\IngredientRepository.class
+com\calotter\inventory\domain\entity\HouseholdSpice.class
+com\calotter\inventory\repository\LeftoverDishRepository.class
+com\calotter\inventory\domain\entity\Ingredient.class
+com\calotter\inventory\repository\HouseholdUtensilRepository.class
+com\calotter\inventory\repository\HouseholdSpiceRepository.class
+com\calotter\inventory\domain\entity\HouseholdUtensil.class
