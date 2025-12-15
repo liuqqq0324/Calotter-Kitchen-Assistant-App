@@ -109,4 +109,4 @@ calotter/postgres/data/
 *.jar
 *.class
 .idea/
-*.iml
+*.iml**/target/
