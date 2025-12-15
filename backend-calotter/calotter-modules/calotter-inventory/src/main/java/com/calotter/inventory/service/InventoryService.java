@@ -304,9 +304,8 @@ public class InventoryService {
 
         LeftoverDish leftover = new LeftoverDish();
         leftover.setHousehold(household);
-        leftover.setName(request.getName());
-        leftover.setCoverImage(request.getCoverImage());
-        leftover.setQuantityGram(request.getQuantityGram());
+        leftover.setOriginalDishId(request.getOriginalDishId());
+        leftover.setCurrentQuantityGram(request.getCurrentQuantityGram());
         leftover.setProducedTime(request.getProducedTime());
 
         leftover = leftoverRepository.save(leftover);
@@ -321,14 +320,11 @@ public class InventoryService {
         LeftoverDish leftover = leftoverRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("剩菜不存在"));
 
-        if (request.getName() != null) {
-            leftover.setName(request.getName());
+        if (request.getOriginalDishId() != null) {
+            leftover.setOriginalDishId(request.getOriginalDishId());
         }
-        if (request.getCoverImage() != null) {
-            leftover.setCoverImage(request.getCoverImage());
-        }
-        if (request.getQuantityGram() != null) {
-            leftover.setQuantityGram(request.getQuantityGram());
+        if (request.getCurrentQuantityGram() != null) {
+            leftover.setCurrentQuantityGram(request.getCurrentQuantityGram());
         }
         if (request.getProducedTime() != null) {
             leftover.setProducedTime(request.getProducedTime());
@@ -410,9 +406,8 @@ public class InventoryService {
         return LeftoverResponse.builder()
                 .id(leftover.getId())
                 .householdId(leftover.getHousehold().getId())
-                .name(leftover.getName())
-                .coverImage(leftover.getCoverImage())
-                .quantityGram(leftover.getQuantityGram())
+                .originalDishId(leftover.getOriginalDishId())
+                .currentQuantityGram(leftover.getCurrentQuantityGram())
                 .producedTime(leftover.getProducedTime())
                 .build();
     }

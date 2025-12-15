@@ -15,13 +15,12 @@ public class LeftoverRequest {
     @NotNull(message = "家庭ID不能为空")
     private Long householdId;
     
-    @NotNull(message = "菜名不能为空")
-    private String name;
+    @NotNull(message = "原始菜品ID不能为空")
+    private Long originalDishId;
     
-    private String coverImage;
-    
+    @NotNull(message = "数量必须大于0")
     @Positive(message = "数量必须大于0")
-    private Double quantityGram;
+    private Integer currentQuantityGram;
     
     @NotNull(message = "制作时间不能为空")
     private LocalDateTime producedTime;
