@@ -1,0 +1,101 @@
+package com.calotter.cooking.service;
+
+import com.calotter.cooking.domain.entity.Dish;
+import com.calotter.cooking.repository.DishRepository;
+import com.calotter.cooking.service.dto.MenuDTO;
+import com.calotter.user.domain.entity.Household;
+import com.calotter.user.repository.HouseholdRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+public class FavoriteRecipeService {
+
+    private final DishRepository dishRepository;
+    private final HouseholdRepository householdRepository;
+
+    /**
+        收藏/取消收藏
+     */
+    @Transactional
+    public Dish toggleFavorite(Long householdId, MenuDTO.RecipeDTO recipeDto) {
+        Household household = householdRepository.findById(householdId)
+                .orElseThrow(() -> new IllegalArgumentException("家庭不存在"));
+
+        // 简化：按名称匹配已存在的 Dish
+        Dish dish = dishRepository.findByHouseholdId(householdId).stream()
+                .filter(d -> d.getName().equalsIgnoreCase(recipeDto.getTitle()))
+                .findFirst()
+                .orElse(null);
+        if (dish == null) {
+            dish = mapToDish(recipeDto, household);
+        }
+        dish.setFavorite(!dish.isFavorite());
+        return dishRepository.save(dish);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Dish> listFavorites(Long householdId) {
+        return dishRepository.findByHouseholdIdAndFavoriteTrueOrderByUpdateTimeDesc(householdId);
+    }
+
+    private Dish mapToDish(MenuDTO.RecipeDTO recipeDto, Household household) {
+        Dish dish = new Dish();
+        dish.setHousehold(household);
+        dish.setName(recipeDto.getTitle());
+        dish.setDescription(recipeDto.getShort_description());
+        dish.setCookingTimeMinutes(recipeDto.getCooking_time_min());
+        dish.setDifficulty(parseDifficulty(recipeDto.getDifficulty()));
+        if (recipeDto.getNutrition_estimate() != null) {
+            dish.setTotalCalories(toInt(recipeDto.getNutrition_estimate().getCalories()));
+            dish.setTotalProtein(recipeDto.getNutrition_estimate().getProtein_g());
+            dish.setTotalFat(recipeDto.getNutrition_estimate().getFat_g());
+            dish.setTotalCarb(recipeDto.getNutrition_estimate().getCarbs_g());
+        }
+        if (recipeDto.getIngredients() != null) {
+            dish.setIngredientSnapshots(
+                    recipeDto.getIngredients().stream().map(ing -> {
+                        Dish.IngredientSnapshot snap = new Dish.IngredientSnapshot();
+                        snap.setName(ing.getName());
+                        snap.setQuantityStr((ing.getAmount_value() != null ? ing.getAmount_value() : 0) + ing.getAmount_unit());
+                        return snap;
+                    }).toList()
+            );
+        }
+        if (recipeDto.getSteps() != null) {
+            dish.setSteps(
+                    recipeDto.getSteps().stream().map(s -> {
+                        Dish.CookingStep cs = new Dish.CookingStep();
+                        cs.setStepNumber(s.getStep_number());
+                        cs.setInstruction(s.getInstruction());
+                        cs.setTimeMin(s.getStep_time_min());
+                        return cs;
+                    }).toList()
+            );
+        }
+        // 估算重量（简单累加 g 单位）
+        int totalWeight = recipeDto.getIngredients() == null ? 0 :
+                recipeDto.getIngredients().stream()
+                        .filter(i -> "g".equalsIgnoreCase(i.getAmount_unit()) && i.getAmount_value() != null)
+                        .mapToInt(i -> i.getAmount_value().intValue())
+                        .sum();
+        dish.setTotalWeightGram(totalWeight > 0 ? totalWeight : 1000);
+        return dish;
+    }
+
+    private com.calotter.cooking.domain.enums.DifficultyLevel parseDifficulty(String d) {
+        try {
+            return d == null ? null : com.calotter.cooking.domain.enums.DifficultyLevel.valueOf(d.toUpperCase());
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private Integer toInt(Double v) {
+        return v == null ? null : v.intValue();
+    }
+}
