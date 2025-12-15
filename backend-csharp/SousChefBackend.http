@@ -1,6 +1,0 @@
-@SousChefBackend_HostAddress = http://localhost:5108
-
-GET {{SousChefBackend_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###
