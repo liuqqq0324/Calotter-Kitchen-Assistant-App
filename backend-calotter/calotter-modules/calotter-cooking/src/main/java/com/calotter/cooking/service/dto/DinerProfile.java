@@ -1,7 +1,9 @@
 package com.calotter.cooking.service.dto;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.List;
 import java.util.Map;
@@ -11,6 +13,8 @@ import java.util.Map;
  */
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class DinerProfile {
     // A. 全局硬性限制 (Union of all allergies) -> 任何一道菜都不能出现
     private List<String> globalStrictAvoidance; 
@@ -24,6 +28,8 @@ public class DinerProfile {
 
     @Data
     @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class DinerSlot {
         private String dinerId;   // "M-101" (家人) 或 "G-1" (客人)
         private String displayName; // "Dad", "Grandma"
@@ -33,6 +39,8 @@ public class DinerProfile {
 
     @Data
     @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class PreferenceConflictReport {
         // 大家都讨厌的 (AI 绝对不放)
         private List<String> universalDislikes;

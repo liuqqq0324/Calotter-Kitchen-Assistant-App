@@ -7,6 +7,7 @@ import 'package:personal_sous_chef/models/recipe_models.dart';
 import 'package:personal_sous_chef/pages/recipes/recipe_generate_page.dart';
 import 'package:personal_sous_chef/pages/recipes/recipe_filter_page.dart';
 import 'package:personal_sous_chef/pages/recipes/recipe_instruction_page.dart';
+import 'package:personal_sous_chef/services/household_service.dart';
 import 'package:personal_sous_chef/widgets/generate_recipe_button.dart';
 import 'package:personal_sous_chef/widgets/sketchy_card.dart';
 
@@ -31,7 +32,13 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
   Future<void> _loadFavorites() async {
     setState(() => _loadingFavorites = true);
     try {
-      await CollectedRecipesStore.fetchFromServer();
+      // 获取householdId
+      final householdId = await HouseholdService.getHouseholdId();
+      if (householdId != null) {
+        await CollectedRecipesStore.fetchFromServer(householdId: householdId);
+      } else {
+        debugPrint('Failed to get householdId, cannot load favorites');
+      }
     } catch (e) {
       debugPrint('Failed to load favorites: $e');
     } finally {

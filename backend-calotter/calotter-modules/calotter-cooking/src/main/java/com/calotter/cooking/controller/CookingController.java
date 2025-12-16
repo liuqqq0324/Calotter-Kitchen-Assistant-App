@@ -26,7 +26,6 @@ public class CookingController {
     private final CookingContextBuilderService cookingContextBuilderService;
     private final CookingSessionService cookingSessionService;
     private final CookingWorkflowService cookingWorkflowService;
-    private final CookingWorkflowService cookingWorkflowService;
 
     /**
      * 生成烹饪上下文

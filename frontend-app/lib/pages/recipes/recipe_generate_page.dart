@@ -4,6 +4,7 @@ import 'package:personal_sous_chef/models/recipe_models.dart';
 import 'package:personal_sous_chef/pages/recipes/recipe_filter_page.dart';
 import 'package:personal_sous_chef/pages/recipes/recipe_instruction_page.dart';
 import 'package:personal_sous_chef/services/recipe_api_service.dart';
+import 'package:personal_sous_chef/services/household_service.dart';
 
 class RecipeGeneratePage extends StatefulWidget {
   /// 从 RecipesHomePage 传过来的筛选条件（可为空）
@@ -38,7 +39,12 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
     });
 
     try {
-      final menus = await RecipeApiService.generateMenus(widget.filter);
+      // 获取householdId
+      final householdId = await HouseholdService.getHouseholdId();
+      final menus = await RecipeApiService.generateMenus(
+        widget.filter,
+        householdId: householdId,
+      );
       setState(() {
         _menus = menus;
       });

@@ -2,6 +2,12 @@ package com.calotter.cooking.service;
 
 import com.calotter.cooking.controller.dto.RecipeGenerationFilter;
 import com.calotter.cooking.service.dto.MenuDTO;
+import com.calotter.inventory.domain.entity.Ingredient;
+import com.calotter.inventory.domain.entity.HouseholdSpice;
+import com.calotter.inventory.domain.entity.HouseholdUtensil;
+import com.calotter.inventory.repository.IngredientRepository;
+import com.calotter.inventory.repository.HouseholdSpiceRepository;
+import com.calotter.inventory.repository.HouseholdUtensilRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -15,9 +21,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +35,9 @@ public class AiMenuService {
 
     private final ObjectMapper objectMapper;
     private final RestTemplate restTemplate = new RestTemplate();
+    private final IngredientRepository ingredientRepository;
+    private final HouseholdSpiceRepository spiceRepository;
+    private final HouseholdUtensilRepository utensilRepository;
 
     @Value("${ai.api.key:}")
     private String apiKey;
@@ -39,7 +51,11 @@ public class AiMenuService {
     /**
      * 调用 AI 生成 5 套菜单
      */
-    public List<MenuDTO> generateMenus(RecipeGenerationFilter filter) {
+    public List<MenuDTO> generateMenus(RecipeGenerationFilter filter, Long householdId) {
+        // 如果提供了householdId，自动填充inventory、cookers、seasonings
+        if (householdId != null) {
+            enrichFilterFromHousehold(filter, householdId);
+        }
         if (apiKey == null || apiKey.isBlank()) {
             throw new IllegalStateException("AI API key 未配置");
         }
@@ -93,6 +109,50 @@ public class AiMenuService {
             c = c.substring(0, c.length() - 3);
         }
         return c.trim();
+    }
+
+    /**
+     * 从household自动填充filter的inventory、cookers、seasonings
+     */
+    private void enrichFilterFromHousehold(RecipeGenerationFilter filter, Long householdId) {
+        // 填充inventory（如果为空）
+        if (filter.getInventory() == null || filter.getInventory().isEmpty()) {
+            List<Ingredient> ingredients = ingredientRepository.findByHouseholdIdAndQuantityGreaterThan(householdId, 0.0);
+            List<RecipeGenerationFilter.InventoryItem> inventoryItems = ingredients.stream()
+                    .map(ing -> {
+                        RecipeGenerationFilter.InventoryItem item = new RecipeGenerationFilter.InventoryItem();
+                        item.setName(ing.getMetadata().getName());
+                        item.setAmount_value(ing.getQuantity());
+                        item.setAmount_unit(ing.getUnit());
+                        if (ing.getExpirationDate() != null) {
+                            item.setExpires_at(ing.getExpirationDate().format(DateTimeFormatter.ISO_LOCAL_DATE));
+                        }
+                        return item;
+                    })
+                    .collect(Collectors.toList());
+            filter.setInventory(inventoryItems);
+            log.info("自动填充inventory: {} 项", inventoryItems.size());
+        }
+
+        // 填充cookers（如果为空）
+        if (filter.getCookers() == null || filter.getCookers().isEmpty()) {
+            List<HouseholdUtensil> utensils = utensilRepository.findByHouseholdIdAndIsAvailableTrue(householdId);
+            List<String> cookerNames = utensils.stream()
+                    .map(u -> u.getMetadata().getName())
+                    .collect(Collectors.toList());
+            filter.setCookers(cookerNames);
+            log.info("自动填充cookers: {} 项", cookerNames.size());
+        }
+
+        // 填充seasonings（如果为空）
+        if (filter.getSeasonings() == null || filter.getSeasonings().isEmpty()) {
+            List<HouseholdSpice> spices = spiceRepository.findByHouseholdIdAndIsAvailableTrue(householdId);
+            List<String> spiceNames = spices.stream()
+                    .map(s -> s.getMetadata().getName())
+                    .collect(Collectors.toList());
+            filter.setSeasonings(spiceNames);
+            log.info("自动填充seasonings: {} 项", spiceNames.size());
+        }
     }
 
     // 来自需求的 Prompt 配置（简化保存在常量）

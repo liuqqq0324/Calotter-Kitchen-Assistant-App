@@ -10,8 +10,10 @@ import com.calotter.user.domain.entity.FamilyMember;
 import com.calotter.user.domain.entity.HealthGoal;
 import com.calotter.user.repository.FamilyMemberRepository;
 import com.calotter.user.repository.HealthGoalRepository;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -221,8 +223,13 @@ public class CookingContextBuilderService {
                         .build())
                 .build();
 
+        CompositeNutritionalGoal.Range<Integer> calorieRange = CompositeNutritionalGoal.Range.<Integer>builder()
+                .min(totalMinCal)
+                .max(totalMaxCal)
+                .build();
+        
         CompositeNutritionalGoal goal = CompositeNutritionalGoal.builder()
-                .totalCalories(new CompositeNutritionalGoal.Range<>(totalMinCal, totalMaxCal))
+                .totalCalories(calorieRange)
                 .totalProtein(totalP)
                 .totalFat(totalF)
                 .totalCarb(totalC)
@@ -248,34 +255,27 @@ public class CookingContextBuilderService {
 
         for (Ingredient ing : ingredients) {
             // 计算剩余天数
+            String expireStatus;
             if (ing.getExpirationDate() == null) {
-                // 如果没有过期日期，放入普通列表
-                KitchenSnapshot.Item item = KitchenSnapshot.Item.builder()
-                        .name(ing.getMetadata().getName())
-                        .quantity(ing.getQuantity().toString())
-                        .unit(ing.getUnit())
-                        .expireStatus("NORMAL")
-                        .build();
-                common.add(item);
-                continue;
+                expireStatus = "NORMAL";
+            } else {
+                long daysLeft = ChronoUnit.DAYS.between(today, ing.getExpirationDate());
+                // 逻辑：过期时间 <= 3天 标记为紧急
+                expireStatus = daysLeft <= 3 ? "URGENT" : "NORMAL";
             }
-            
-            long daysLeft = ChronoUnit.DAYS.between(today, ing.getExpirationDate());
             
             // 构建 Item DTO
             KitchenSnapshot.Item item = KitchenSnapshot.Item.builder()
                     .name(ing.getMetadata().getName()) // 使用标准名
                     .quantity(ing.getQuantity().toString()) // 转字符串
                     .unit(ing.getUnit())
+                    .expireStatus(expireStatus)
                     .build();
 
-            // 逻辑：过期时间 <= 3天 标记为紧急
-            // 未来可扩展：如果是 LeftoverDish 类型，也直接加入 Priority
-            if (daysLeft <= 3) {
-                item.setExpireStatus("URGENT");
+            // 根据过期状态添加到对应列表
+            if ("URGENT".equals(expireStatus)) {
                 priority.add(item);
             } else {
-                item.setExpireStatus("NORMAL");
                 common.add(item);
             }
         }
@@ -315,6 +315,8 @@ public class CookingContextBuilderService {
     // --- 内部传输对象 (仅用于此 Service 内部传递双返回值) ---
     @Data
     @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     private static class DinerProfileAndGoal {
         private CompositeNutritionalGoal compositeGoal;
         private DinerProfile dinerProfile;

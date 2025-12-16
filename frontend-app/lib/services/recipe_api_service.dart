@@ -3,12 +3,16 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:personal_sous_chef/config/api_config.dart';
 import 'package:personal_sous_chef/models/recipe_models.dart';
+import 'package:personal_sous_chef/services/auth_service.dart';
 
 class RecipeApiService {
   static Future<List<RecipeMenuModel>> generateMenus(
-    Map<String, dynamic>? filter,
-  ) async {
-    final url = Uri.parse('${ApiConfig.recipeBaseUrl}/api/recipes/generate');
+    Map<String, dynamic>? filter, {
+    int? householdId,
+  }) async {
+    // 使用传入的householdId或从filter中获取
+    final hId = householdId ?? filter?['householdId'];
+    final url = Uri.parse('${ApiConfig.recipeBaseUrl}/api/ai/generate-menus');
 
     final body = _buildRequestBody(filter);
     final payload = jsonEncode(body);
@@ -34,11 +38,25 @@ class RecipeApiService {
 
     final data = jsonDecode(response.body);
     List<dynamic>? menusJson;
-    if (data is List) {
+    
+    // 处理Result<T>格式: {code: 200, msg: "...", data: [...]}
+    if (data is Map && data.containsKey('code')) {
+      final code = data['code'] as int;
+      if (code != 200) {
+        throw Exception(data['msg']?.toString() ?? 'Failed to generate menus');
+      }
+      final responseData = data['data'];
+      if (responseData is List) {
+        menusJson = responseData;
+      } else if (responseData is Map && responseData['menus'] is List) {
+        menusJson = responseData['menus'] as List;
+      }
+    } else if (data is List) {
       menusJson = data;
     } else if (data is Map && data['menus'] is List) {
       menusJson = data['menus'] as List;
     }
+    
     if (menusJson == null) {
       throw Exception('Unexpected response format.');
     }

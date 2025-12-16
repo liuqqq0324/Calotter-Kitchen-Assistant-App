@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:personal_sous_chef/data/collected_recipes_store.dart';
 import 'package:personal_sous_chef/models/recipe_models.dart';
 import 'package:personal_sous_chef/pages/recipes/recipe_meal_summary_page.dart';
+import 'package:personal_sous_chef/services/cooking_api_service.dart';
+import 'package:personal_sous_chef/services/household_service.dart';
 
 class RecipeInstructionPage extends StatefulWidget {
   final RecipeMenuModel menu;
@@ -28,12 +30,73 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
   final Map<int, Timer> _runningTimers = {};
   final Map<int, bool> _pausedSteps = {};
   final Set<int> _completedSteps = {};
+  int? _sessionId;
+  bool _sessionCreated = false;
 
   @override
   void initState() {
     super.initState();
     _currentIndex = widget.initialRecipeIndex;
     _completedDishes = <int>{};
+    _createCookingSession();
+  }
+
+  /// 创建烹饪session
+  Future<void> _createCookingSession() async {
+    try {
+      final householdId = await HouseholdService.getHouseholdId();
+      final initiatorId = await HouseholdService.getInitiatorId();
+      
+      if (householdId == null || initiatorId == null) {
+        print('[RecipePage] Failed to get householdId or initiatorId');
+        return;
+      }
+
+      final currentRecipe = widget.menu.recipes[_currentIndex];
+      // 将RecipeModel转换为后端需要的格式
+      final recipeJson = {
+        'title': currentRecipe.title,
+        'short_description': currentRecipe.shortDescription,
+        'servings': currentRecipe.servings,
+        'cooking_time_min': currentRecipe.cookingTimeMin,
+        'difficulty': currentRecipe.difficulty,
+        'nutrition_estimate': {
+          'calories': currentRecipe.totalCaloriesEstimate,
+          'protein_g': 0.0,
+          'fat_g': 0.0,
+          'carbs_g': 0.0,
+        },
+        'ingredients': currentRecipe.ingredients.map((ing) => {
+          'name': ing.name,
+          'amount_value': ing.amountValue,
+          'amount_unit': ing.amountUnit,
+          'is_optional': ing.isOptional,
+          'source_type': 'MANUAL_ADD',
+        }).toList(),
+        'steps': currentRecipe.steps.map((step) => {
+          'step_number': step.stepNumber,
+          'instruction': step.instruction,
+          'step_time_min': step.stepTimeMin,
+        }).toList(),
+      };
+
+      final sessionId = await CookingApiService.startCooking(
+        householdId: householdId,
+        initiatorId: initiatorId,
+        recipe: recipeJson,
+      );
+
+      if (mounted) {
+        setState(() {
+          _sessionId = sessionId;
+          _sessionCreated = true;
+        });
+        print('[RecipePage] Created cooking session: $sessionId');
+      }
+    } catch (e) {
+      print('[RecipePage] Failed to create cooking session: $e');
+      // 不阻止用户继续使用，只是记录错误
+    }
   }
 
   @override
@@ -54,7 +117,12 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
     final recipe = widget.menu.recipes[_currentIndex];
     final wasCollected = CollectedRecipesStore.isCollected(recipe);
     try {
-      final saved = await CollectedRecipesStore.toggle(recipe);
+      final householdId = await HouseholdService.getHouseholdId();
+      if (householdId == null) {
+        throw Exception('Failed to get householdId');
+      }
+
+      final saved = await CollectedRecipesStore.toggle(recipe, householdId: householdId);
       if (!wasCollected && saved != null) {
         setState(() {
           widget.menu.recipes[_currentIndex] = saved;
@@ -122,6 +190,7 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
         builder: (_) => RecipeMealSummaryPage(
           menu: widget.menu,
           filter: widget.filter,
+          sessionId: _sessionId,
         ),
       ),
     );

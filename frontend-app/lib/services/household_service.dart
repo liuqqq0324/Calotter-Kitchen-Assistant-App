@@ -73,8 +73,9 @@ class HouseholdService {
 
   /// 获取当前用户的initiatorId（FamilyMember ID）
   static Future<int?> getInitiatorId({String? userId}) async {
+    String? userIdParam;
     try {
-      final userIdParam = userId ?? await AuthService.getUserId();
+      userIdParam = userId ?? await AuthService.getUserId();
       if (userIdParam == null) {
         return null;
       }
@@ -117,7 +118,7 @@ class HouseholdService {
       return int.tryParse(userIdParam);
     } catch (e) {
       print('[HouseholdService] Error getting initiatorId: $e');
-      return int.tryParse(userIdParam ?? '');
+      return userIdParam != null ? int.tryParse(userIdParam) : null;
     }
   }
 }

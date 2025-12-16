@@ -3,6 +3,7 @@ package com.calotter.cooking.service.dto;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * 复合营养目标
@@ -10,6 +11,8 @@ import lombok.Data;
  */
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class CompositeNutritionalGoal {
     private Range<Integer> totalCalories; 
     private Integer totalProtein; // g
@@ -19,6 +22,8 @@ public class CompositeNutritionalGoal {
 
     @Data
     @AllArgsConstructor
+    @NoArgsConstructor
+    @Builder
     public static class Range<T> {
         private T min;
         private T max;

@@ -1,7 +1,9 @@
 package com.calotter.cooking.service.dto;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.List;
 
@@ -10,6 +12,8 @@ import java.util.List;
  */
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class KitchenSnapshot {
     // 必须优先使用的 (临期、剩菜) -> Prompt: "MUST USE these if possible"
     private List<Item> priorityIngredients;
@@ -25,6 +29,8 @@ public class KitchenSnapshot {
 
     @Data
     @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class Item {
         private String name;
         private String quantity; // "500g", "2 pcs"

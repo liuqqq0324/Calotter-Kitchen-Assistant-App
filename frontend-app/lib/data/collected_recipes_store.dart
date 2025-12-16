@@ -9,9 +9,9 @@ class CollectedRecipesStore {
   static final ValueNotifier<List<RecipeModel>> favorites =
       ValueNotifier<List<RecipeModel>>([]);
 
-  static Future<void> fetchFromServer() async {
+  static Future<void> fetchFromServer({required int householdId}) async {
     print('[CollectedStore] Fetching favorites from server...');
-    final list = await FavoriteRecipesApiService.fetchFavorites();
+    final list = await FavoriteRecipesApiService.fetchFavorites(householdId: householdId);
     favorites.value = list;
   }
 
@@ -19,7 +19,7 @@ class CollectedRecipesStore {
     return favorites.value.any((r) => r.id == recipe.id);
   }
 
-  static Future<RecipeModel> add(RecipeModel recipe) async {
+  static Future<RecipeModel> add(RecipeModel recipe, {required int householdId}) async {
     if (isCollected(recipe)) {
       return favorites.value.firstWhere(
         (r) => r.id == recipe.id,
@@ -27,25 +27,26 @@ class CollectedRecipesStore {
       );
     }
     print('[CollectedStore] Adding favorite ${recipe.title}');
-    final saved = await FavoriteRecipesApiService.addFavorite(recipe);
+    final saved = await FavoriteRecipesApiService.addFavorite(recipe, householdId: householdId);
     favorites.value = [...favorites.value, saved];
     return saved;
   }
 
-  static Future<void> remove(RecipeModel recipe) async {
-    final targetId = _resolveId(recipe);
-    print('[CollectedStore] Removing favorite id=$targetId (${recipe.title})');
-    await FavoriteRecipesApiService.removeFavorite(targetId);
-    favorites.value =
-        favorites.value.where((r) => r.id != targetId).toList();
+  static Future<void> remove(RecipeModel recipe, {required int householdId}) async {
+    print('[CollectedStore] Removing favorite ${recipe.title}');
+    final result = await FavoriteRecipesApiService.toggleFavorite(recipe, householdId: householdId);
+    if (result == null) {
+      // 已取消收藏
+      favorites.value = favorites.value.where((r) => r.id != recipe.id).toList();
+    }
   }
 
-  static Future<RecipeModel?> toggle(RecipeModel recipe) async {
+  static Future<RecipeModel?> toggle(RecipeModel recipe, {required int householdId}) async {
     if (isCollected(recipe)) {
-      await remove(recipe);
+      await remove(recipe, householdId: householdId);
       return null;
     } else {
-      return await add(recipe);
+      return await add(recipe, householdId: householdId);
     }
   }
 

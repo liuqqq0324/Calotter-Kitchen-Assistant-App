@@ -2,15 +2,18 @@
 import 'package:flutter/material.dart';
 import 'package:personal_sous_chef/data/consumption_history_store.dart';
 import 'package:personal_sous_chef/models/recipe_models.dart';
+import 'package:personal_sous_chef/services/cooking_api_service.dart';
 
 class RecipeMealSummaryPage extends StatefulWidget {
   final RecipeMenuModel menu;
   final Map<String, dynamic>? filter;
+  final int? sessionId;
 
   const RecipeMealSummaryPage({
     super.key,
     required this.menu,
     this.filter,
+    this.sessionId,
   });
 
   @override
@@ -69,7 +72,77 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
     return int.tryParse(raw.toString());
   }
 
-  void _saveConsumption(BuildContext context) {
+  Future<void> _saveConsumption(BuildContext context) async {
+    // 如果有sessionId，调用后端API完成烹饪
+    if (widget.sessionId != null) {
+      try {
+        // 收集所有使用的食材
+        final finalIngredients = <Map<String, dynamic>>[];
+        double totalCalories = 0;
+        double totalProtein = 0;
+        double totalFat = 0;
+        double totalCarbs = 0;
+
+        for (final recipe in widget.menu.recipes) {
+          final ingControllers = _ingredientControllers[recipe.id] ?? {};
+          
+          for (final ing in recipe.ingredients) {
+            final controller = ingControllers[ing.name];
+            final parsed = double.tryParse(controller?.text.trim() ?? '');
+            final amount = parsed ?? ing.amountValue;
+            
+            finalIngredients.add({
+              'name': ing.name,
+              'amountValue': amount,
+              'amountUnit': ing.amountUnit,
+              'sourceType': ing.name.toLowerCase().contains('salt') || 
+                           ing.name.toLowerCase().contains('oil') ||
+                           ing.name.toLowerCase().contains('pepper')
+                  ? 'MANUAL_ADD' : 'INVENTORY', // 简化判断，实际应该从recipe中获取
+            });
+          }
+
+          // 累加营养信息（简化处理，实际应该从recipe中获取）
+          totalCalories += recipe.totalCaloriesEstimate;
+        }
+
+        // 调用finish cooking API
+        await CookingApiService.finishCooking(
+          sessionId: widget.sessionId!,
+          finalIngredients: finalIngredients,
+          totalNutrition: {
+            'calories': totalCalories,
+            'protein': totalProtein,
+            'fat': totalFat,
+            'carbs': totalCarbs,
+          },
+        );
+
+        if (!mounted) return;
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            const SnackBar(
+              content: Text('Meal consumption recorded successfully!'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+      } catch (e) {
+        print('[MealSummary] Failed to finish cooking: $e');
+        if (!mounted) return;
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text('Failed to save: $e'),
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        return; // 如果API调用失败，不继续
+      }
+    }
+
+    // 同时保存到本地（用于历史记录）
     final dishes = <DishConsumptionRecord>[];
 
     for (final recipe in widget.menu.recipes) {
@@ -105,15 +178,7 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
 
     ConsumptionHistoryStore.add(record);
 
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        const SnackBar(
-          content: Text('Meal consumption recorded locally.'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-
+    if (!mounted) return;
     Navigator.popUntil(context, (route) => route.isFirst);
   }
 

@@ -5,14 +5,11 @@ import 'package:personal_sous_chef/config/api_config.dart';
 import 'package:personal_sous_chef/models/recipe_models.dart';
 
 class FavoriteRecipesApiService {
-  static Uri _favoritesUrl() =>
-      Uri.parse('${ApiConfig.recipeBaseUrl}/api/users/me/favorite-recipes');
-
   /// Fetch favorite list and hydrate each item with its detail payload.
-  static Future<List<RecipeModel>> fetchFavorites() async {
-    final url = _favoritesUrl();
+  static Future<List<RecipeModel>> fetchFavorites({required int householdId}) async {
+    final url = Uri.parse('${ApiConfig.recipeBaseUrl}/api/recipes/favorites?householdId=$householdId');
     print('[FavoriteApi] GET $url');
-    final listResp = await http.get(_favoritesUrl());
+    final listResp = await http.get(url);
     print('[FavoriteApi] GET resp ${listResp.statusCode}: ${_preview(listResp.body)}');
     if (listResp.statusCode != 200) {
       throw Exception(
@@ -20,48 +17,98 @@ class FavoriteRecipesApiService {
     }
 
     final data = jsonDecode(listResp.body);
-    final recipesJson = (data['recipes'] as List?) ?? [];
+    // 处理Result<T>格式
+    List<dynamic>? recipesJson;
+    if (data is Map && data.containsKey('code')) {
+      final code = data['code'] as int;
+      if (code != 200) {
+        throw Exception(data['msg']?.toString() ?? 'Failed to load favorites');
+      }
+      final responseData = data['data'];
+      recipesJson = responseData is List ? responseData : [];
+    } else if (data is List) {
+      recipesJson = data;
+    } else {
+      recipesJson = (data['recipes'] as List?) ?? [];
+    }
+    
     final result = <RecipeModel>[];
 
+    // 后端返回的是Dish实体列表，需要转换为RecipeModel
     for (final item in recipesJson) {
-      final recipeId = item['recipeId']?.toString() ?? '';
-      if (recipeId.isEmpty) continue;
       try {
-        result.add(await fetchFavoriteDetail(recipeId));
+        result.add(_dishToRecipeModel(item));
       } catch (e) {
-        // Fallback to summary if detail fails so UI still renders something.
-        result.add(RecipeModel.fromJson(item));
+        print('[FavoriteApi] Failed to parse dish: $e');
       }
     }
     return result;
   }
 
-  /// Fetch a single favorite with full detail.
-  static Future<RecipeModel> fetchFavoriteDetail(String recipeId) async {
-    final url = Uri.parse('${_favoritesUrl()}/$recipeId');
-    print('[FavoriteApi] GET $url');
-    final resp = await http.get(url);
-    print('[FavoriteApi] GET detail resp ${resp.statusCode}: ${_preview(resp.body)}');
-    if (resp.statusCode != 200) {
-      throw Exception(
-          'Failed to load favorite detail: ${resp.statusCode} ${resp.body}');
-    }
-    final data = jsonDecode(resp.body);
-    return RecipeModel.fromJson(data);
+  /// 将Dish实体转换为RecipeModel
+  static RecipeModel _dishToRecipeModel(Map<String, dynamic> dish) {
+    // 解析ingredients
+    final ingredientsJson = dish['ingredientSnapshots'] as List? ?? [];
+    final ingredients = ingredientsJson.map((ing) {
+      final name = ing['name']?.toString() ?? '';
+      final quantityStr = ing['quantityStr']?.toString() ?? '0g';
+      // 解析quantityStr，例如 "500g" -> amountValue=500, amountUnit="g"
+      double amountValue = 0;
+      String amountUnit = 'g';
+      try {
+        final match = RegExp(r'(\d+\.?\d*)\s*(\w+)').firstMatch(quantityStr);
+        if (match != null) {
+          amountValue = double.parse(match.group(1)!);
+          amountUnit = match.group(2)!;
+        }
+      } catch (e) {
+        // 解析失败，使用默认值
+      }
+      
+      return {
+        'name': name,
+        'amount_value': amountValue,
+        'amount_unit': amountUnit,
+        'is_optional': false,
+      };
+    }).toList();
+    
+    // 解析steps
+    final stepsJson = dish['steps'] as List? ?? [];
+    final steps = stepsJson.map((step) {
+      return {
+        'step_number': step['stepNumber'] ?? step['step_number'] ?? 0,
+        'instruction': step['instruction']?.toString() ?? '',
+        'step_time_min': step['timeMin'] ?? step['step_time_min'] ?? 0,
+      };
+    }).toList();
+    
+    return RecipeModel.fromJson({
+      'id': dish['id']?.toString() ?? '',
+      'title': dish['name']?.toString() ?? '',
+      'short_description': dish['description']?.toString() ?? '',
+      'servings': 1, // Dish实体中没有servings字段，使用默认值
+      'cooking_time_min': dish['cookingTimeMinutes'] ?? dish['cookingTimeMinutes'] ?? 0,
+      'difficulty': (dish['difficulty']?.toString() ?? 'medium').toLowerCase(),
+      'total_calories_estimate': dish['totalCalories']?.toDouble() ?? 0.0,
+      'ingredients': ingredients,
+      'steps': steps,
+      'emoji': '🍽️', // 默认emoji
+    });
   }
 
   /// Add a recipe to favorites and return the saved recipe with server id.
-  static Future<RecipeModel> addFavorite(RecipeModel recipe,
-      {String source = 'generated_menu'}) async {
-    final payload = {
-      'source': source,
-      'recipe': _recipeToJson(recipe),
-    };
-    final url = _favoritesUrl();
+  static Future<RecipeModel> addFavorite(
+    RecipeModel recipe, {
+    required int householdId,
+    String source = 'generated_menu',
+  }) async {
+    final payload = _recipeToJson(recipe);
+    final url = Uri.parse('${ApiConfig.recipeBaseUrl}/api/recipes/favorite?householdId=$householdId');
     print('[FavoriteApi] POST $url');
     print('[FavoriteApi] body: ${jsonEncode(payload)}');
     final resp = await http.post(
-      _favoritesUrl(),
+      url,
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(payload),
     );
@@ -71,20 +118,67 @@ class FavoriteRecipesApiService {
           'Failed to add favorite: ${resp.statusCode} ${resp.body}');
     }
     final data = jsonDecode(resp.body);
-    final newId = data['recipeId']?.toString();
-    return _cloneWithId(recipe, newId);
+    // 处理Result<T>格式
+    Map<String, dynamic> dishData;
+    if (data is Map && data.containsKey('code')) {
+      final code = data['code'] as int;
+      if (code != 200) {
+        throw Exception(data['msg']?.toString() ?? 'Failed to add favorite');
+      }
+      dishData = data['data'] as Map<String, dynamic>;
+    } else {
+      dishData = data as Map<String, dynamic>;
+    }
+    
+    return _dishToRecipeModel(dishData);
   }
 
-  /// Remove a favorite by id.
-  static Future<void> removeFavorite(String recipeId) async {
-    final url = Uri.parse('${_favoritesUrl()}/$recipeId');
-    print('[FavoriteApi] DELETE $url');
-    final resp = await http.delete(url);
-    print('[FavoriteApi] DELETE resp ${resp.statusCode}: ${_preview(resp.body)}');
-    if (resp.statusCode != 200 && resp.statusCode != 204) {
+  /// Remove a favorite by id (toggle off).
+  static Future<void> removeFavorite(String recipeId, {required int householdId}) async {
+    // 后端使用toggle接口，需要传递完整的recipe信息
+    // 这里我们需要先获取recipe详情，然后调用toggle
+    throw UnimplementedError('Use toggleFavorite instead');
+  }
+
+  /// Toggle favorite (add or remove)
+  static Future<RecipeModel?> toggleFavorite(
+    RecipeModel recipe, {
+    required int householdId,
+  }) async {
+    final payload = _recipeToJson(recipe);
+    final url = Uri.parse('${ApiConfig.recipeBaseUrl}/api/recipes/favorite?householdId=$householdId');
+    print('[FavoriteApi] POST (toggle) $url');
+    print('[FavoriteApi] body: ${jsonEncode(payload)}');
+    final resp = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(payload),
+    );
+    print('[FavoriteApi] POST resp ${resp.statusCode}: ${_preview(resp.body)}');
+    if (resp.statusCode != 200) {
       throw Exception(
-          'Failed to remove favorite: ${resp.statusCode} ${resp.body}');
+          'Failed to toggle favorite: ${resp.statusCode} ${resp.body}');
     }
+    final data = jsonDecode(resp.body);
+    // 处理Result<T>格式
+    Map<String, dynamic>? dishData;
+    if (data is Map && data.containsKey('code')) {
+      final code = data['code'] as int;
+      if (code != 200) {
+        throw Exception(data['msg']?.toString() ?? 'Failed to toggle favorite');
+      }
+      dishData = data['data'] as Map<String, dynamic>?;
+    } else {
+      dishData = data as Map<String, dynamic>?;
+    }
+    
+    if (dishData == null) return null;
+    
+    // 检查是否还是收藏状态
+    final isFavorite = dishData['favorite'] as bool? ?? false;
+    if (!isFavorite) return null; // 已取消收藏
+    
+    return _dishToRecipeModel(dishData);
   }
 
   static Map<String, dynamic> _recipeToJson(RecipeModel recipe) {
@@ -94,13 +188,19 @@ class FavoriteRecipesApiService {
       'servings': recipe.servings,
       'cooking_time_min': recipe.cookingTimeMin,
       'difficulty': recipe.difficulty,
-      'total_calories_estimate': recipe.totalCaloriesEstimate,
+      'nutrition_estimate': {
+        'calories': recipe.totalCaloriesEstimate,
+        'protein_g': 0.0, // RecipeModel中没有这些字段，使用默认值
+        'fat_g': 0.0,
+        'carbs_g': 0.0,
+      },
       'ingredients': recipe.ingredients
           .map((i) => {
                 'name': i.name,
                 'amount_value': i.amountValue,
                 'amount_unit': i.amountUnit,
                 'is_optional': i.isOptional,
+                'source_type': 'MANUAL_ADD', // 默认值
               })
           .toList(),
       'steps': recipe.steps
@@ -111,21 +211,6 @@ class FavoriteRecipesApiService {
               })
           .toList(),
     };
-  }
-
-  static RecipeModel _cloneWithId(RecipeModel recipe, String? newId) {
-    return RecipeModel(
-      id: (newId ?? recipe.id),
-      title: recipe.title,
-      shortDescription: recipe.shortDescription,
-      servings: recipe.servings,
-      cookingTimeMin: recipe.cookingTimeMin,
-      difficulty: recipe.difficulty,
-      totalCaloriesEstimate: recipe.totalCaloriesEstimate,
-      ingredients: recipe.ingredients,
-      steps: recipe.steps,
-      emoji: recipe.emoji,
-    );
   }
 
   static String _preview(String body, {int max = 300}) {
