@@ -35,11 +35,10 @@ public class WeeklyReportVO {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class NutritionStats {
-        private Integer calories;
+        private Integer energy;
         private Double protein;
         private Double fat;
-        private Double carb;
-        private Double fiber;
+        private Double carbohydrates;
         
         /**
          * 计算达标率（百分比）
@@ -47,14 +46,14 @@ public class WeeklyReportVO {
          * @param target 目标值
          * @return 达标率（0-100）
          */
-        public Double getCaloriesProgress(NutritionStats target) {
-            if (target == null || target.calories == null || target.calories == 0) {
+        public Double getEnergyProgress(NutritionStats target) {
+            if (target == null || target.energy == null || target.energy == 0) {
                 return 0.0;
             }
-            if (calories == null) {
+            if (energy == null) {
                 return 0.0;
             }
-            return (double) calories / target.calories * 100;
+            return (double) energy / target.energy * 100;
         }
     }
     

@@ -247,11 +247,10 @@ class NutritionLogServiceTest {
         request.setFoodName("苹果");
         request.setQuantity(200.0);
         request.setUnit("g");
-        request.setCalories(80);
+        request.setEnergy(80);
         request.setProtein(0.5);
         request.setFat(0.3);
-        request.setCarb(20.0);
-        request.setFiber(4.0);
+        request.setCarbohydrates(20.0);
         request.setMealType(MealType.SNACK);
 
         when(familyMemberRepository.findById(1L)).thenReturn(Optional.of(member));
@@ -284,7 +283,7 @@ class NutritionLogServiceTest {
         request.setFamilyMemberId(1L);
         request.setEatenAt(LocalDateTime.of(2024, 1, 1, 12, 0)); // 12点，应该是LUNCH
         request.setFoodName("苹果");
-        request.setCalories(80);
+        request.setEnergy(80);
 
         when(familyMemberRepository.findById(1L)).thenReturn(Optional.of(member));
         when(nutritionLogRepository.save(any(NutritionLog.class))).thenAnswer(invocation -> {

@@ -1,86 +1,63 @@
 package com.calotter.health.controller;
 
 import com.calotter.common.core.Result;
-import com.calotter.health.controller.dto.ManualNutritionLogRequest;
-import com.calotter.health.controller.dto.WeeklyReportVO;
-import com.calotter.health.domain.entity.NutritionLog;
-import com.calotter.health.service.NutritionAggregateService;
-import com.calotter.health.service.NutritionLogService;
-import jakarta.validation.Valid;
+import com.calotter.health.service.INutritionService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.web.bind.annotation.*;
-
-import java.time.LocalDate;
-import java.time.LocalDateTime;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 营养管理Controller
+ * Nutrition Controller
+ * 营养相关API控制器（从旧版 homepage 迁移）
+ *
+ * 将旧版逻辑适配到当前模块：使用项目内的 Result 响应格式，保留原有接口形态。
+ *
+ * GET /api/nutrition/targets/weekly?familyMemberId={familyMemberId}
+ * GET /api/nutrition/summary?period=week&familyMemberId={familyMemberId}
  */
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/nutrition")
-@RequiredArgsConstructor
 public class NutritionController {
-    
-    private final NutritionLogService nutritionLogService;
-    private final NutritionAggregateService aggregateService;
-    
+
+    private final INutritionService nutritionService;
+
     /**
-     * 获取周健康报告
-     * 
-     * @param memberId 家庭成员ID
-     * @param weekStart 周开始日期（可选，默认为本周一）
-     * @return 周报告VO
+     * Get Weekly Nutrition Targets
+     * GET /api/nutrition/targets/weekly?familyMemberId={familyMemberId}
      */
-    @GetMapping("/weekly")
-    public Result<WeeklyReportVO> getWeeklyReport(
-            @RequestParam Long memberId,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate weekStart) {
-        
-        // 如果没有指定weekStart，默认使用本周一
-        if (weekStart == null) {
-            LocalDate today = LocalDate.now();
-            weekStart = today.minusDays(today.getDayOfWeek().getValue() - 1); // 本周一
+    @GetMapping("/targets/weekly")
+    public Result<INutritionService.WeeklyNutritionTargetsResponse> getWeeklyNutritionTargets(
+            @RequestParam("familyMemberId") Long familyMemberId) {
+        try {
+            INutritionService.WeeklyNutritionTargetsResponse response =
+                    nutritionService.getWeeklyNutritionTargets(familyMemberId);
+            return Result.success(response);
+        } catch (Exception e) {
+            return Result.error("Failed to get weekly nutrition targets: " + e.getMessage());
         }
-        
-        WeeklyReportVO report = aggregateService.getWeeklyReport(memberId, weekStart);
-        return Result.success(report);
     }
-    
+
     /**
-     * 手动记录营养摄入
-     * 
-     * @param request 手动记录请求
-     * @return 创建的营养日志
+     * Get Weekly Nutrition Summary
+     * GET /api/nutrition/summary?period=week&familyMemberId={familyMemberId}
      */
-    @PostMapping("/log/manual")
-    public Result<NutritionLog> createManualLog(@Valid @RequestBody ManualNutritionLogRequest request) {
-        NutritionLog log = nutritionLogService.createManual(request);
-        return Result.success(log);
-    }
-    
-    /**
-     * 从剩菜记录营养摄入
-     * 
-     * @param leftoverId 剩菜ID
-     * @param memberId 家庭成员ID
-     * @param consumedGram 食用重量（克）
-     * @param eatenAt 进食时间（可选，默认为当前时间）
-     * @return 创建的营养日志
-     */
-    @PostMapping("/log/leftover")
-    public Result<NutritionLog> createFromLeftover(
-            @RequestParam Long leftoverId,
-            @RequestParam Long memberId,
-            @RequestParam Integer consumedGram,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime eatenAt) {
-        
-        if (eatenAt == null) {
-            eatenAt = LocalDateTime.now();
+    @GetMapping("/summary")
+    public Result<INutritionService.WeeklyNutritionSummaryResponse> getWeeklyNutritionSummary(
+            @RequestParam(defaultValue = "week") String period,
+            @RequestParam("familyMemberId") Long familyMemberId) {
+        try {
+            if (!"week".equals(period)) {
+                return Result.error("Only 'week' period is currently supported");
+            }
+
+            INutritionService.WeeklyNutritionSummaryResponse response =
+                    nutritionService.getWeeklyNutritionSummary(familyMemberId);
+            return Result.success(response);
+        } catch (Exception e) {
+            return Result.error("Failed to get weekly nutrition summary: " + e.getMessage());
         }
-        
-        NutritionLog log = nutritionLogService.createFromLeftover(leftoverId, memberId, consumedGram, eatenAt);
-        return Result.success(log);
     }
 }
-

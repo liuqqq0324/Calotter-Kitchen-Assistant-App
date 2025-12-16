@@ -8,7 +8,7 @@ import 'package:personal_sous_chef/services/auth_service.dart';
 /// 处理营养和摄入相关的API调用
 class HomepageApiService {
   /// 获取基础headers（仅Content-Type，不包含Authorization）
-  /// 注意：此模块使用 userId 作为 URL 参数，与其他模块（inventory）保持一致
+  /// 注意：此模块使用 familyMemberId 作为 URL 参数，与后端 controller 保持一致
   static Map<String, String> _getHeaders() {
     return {'Content-Type': 'application/json'};
   }
@@ -73,18 +73,18 @@ class HomepageApiService {
   }
 
   /// 1. 获取周营养目标
-  /// GET /api/nutrition/targets/weekly?userId={userId}
+  /// GET /api/nutrition/targets/weekly?familyMemberId={familyMemberId}
   static Future<Map<String, dynamic>> getWeeklyNutritionTargets({
-    String? userId,
+    String? familyMemberId,
   }) async {
     try {
-      final userIdParam = userId ?? await AuthService.getUserId();
-      if (userIdParam == null) {
+      final familyMemberIdParam = familyMemberId ?? await AuthService.getUserId();
+      if (familyMemberIdParam == null) {
         return {'success': false, 'error': 'User not logged in', 'code': 401};
       }
 
       final url = Uri.parse(
-        '${ApiConfig.homepageBaseUrl}/api/nutrition/targets/weekly?userId=$userIdParam',
+        '${ApiConfig.homepageBaseUrl}/api/nutrition/targets/weekly?familyMemberId=$familyMemberIdParam',
       );
       final headers = _getHeaders();
 
@@ -140,18 +140,18 @@ class HomepageApiService {
   }
 
   /// 2. 获取周营养摘要
-  /// GET /api/nutrition/summary?period=week&userId={userId}
+  /// GET /api/nutrition/summary?period=week&familyMemberId={familyMemberId}
   static Future<Map<String, dynamic>> getWeeklyNutritionSummary({
-    String? userId,
+    String? familyMemberId,
   }) async {
     try {
-      final userIdParam = userId ?? await AuthService.getUserId();
-      if (userIdParam == null) {
+      final familyMemberIdParam = familyMemberId ?? await AuthService.getUserId();
+      if (familyMemberIdParam == null) {
         return {'success': false, 'error': 'User not logged in', 'code': 401};
       }
 
       final url = Uri.parse(
-        '${ApiConfig.homepageBaseUrl}/api/nutrition/summary?period=week&userId=$userIdParam',
+        '${ApiConfig.homepageBaseUrl}/api/nutrition/summary?period=week&familyMemberId=$familyMemberIdParam',
       );
       final headers = _getHeaders();
 
@@ -205,19 +205,19 @@ class HomepageApiService {
   }
 
   /// 3. 获取今日摄入记录
-  /// GET /api/intake/today?source=recipe|manual|all&userId={userId}
+  /// GET /api/intake/today?source=recipe|manual|all&familyMemberId={familyMemberId}
   static Future<Map<String, dynamic>> getTodayIntakes({
     String source = 'all',
-    String? userId,
+    String? familyMemberId,
   }) async {
     try {
-      final userIdParam = userId ?? await AuthService.getUserId();
-      if (userIdParam == null) {
+      final familyMemberIdParam = familyMemberId ?? await AuthService.getUserId();
+      if (familyMemberIdParam == null) {
         return {'success': false, 'error': 'User not logged in', 'code': 401};
       }
 
       final url = Uri.parse(
-        '${ApiConfig.homepageBaseUrl}/api/intake/today?source=$source&userId=$userIdParam',
+        '${ApiConfig.homepageBaseUrl}/api/intake/today?source=$source&familyMemberId=$familyMemberIdParam',
       );
       final headers = _getHeaders();
 
@@ -271,20 +271,20 @@ class HomepageApiService {
   }
 
   /// 4. 更新摄入百分比
-  /// PATCH /api/intake/{intake_id}?userId={userId}
+  /// PATCH /api/intake/{intake_id}?familyMemberId={familyMemberId}
   static Future<Map<String, dynamic>> updateIntakePercentage({
     required int intakeId,
     required double consumedPercentage,
-    String? userId,
+    String? familyMemberId,
   }) async {
     try {
-      final userIdParam = userId ?? await AuthService.getUserId();
-      if (userIdParam == null) {
+      final familyMemberIdParam = familyMemberId ?? await AuthService.getUserId();
+      if (familyMemberIdParam == null) {
         return {'success': false, 'error': 'User not logged in', 'code': 401};
       }
 
       final url = Uri.parse(
-        '${ApiConfig.homepageBaseUrl}/api/intake/$intakeId?userId=$userIdParam',
+        '${ApiConfig.homepageBaseUrl}/api/intake/$intakeId?familyMemberId=$familyMemberIdParam',
       );
       final headers = _getHeaders();
 
@@ -341,21 +341,21 @@ class HomepageApiService {
   }
 
   /// 5. 添加手动摄入
-  /// POST /api/intake/manual?userId={userId}
+  /// POST /api/intake/manual?familyMemberId={familyMemberId}
   static Future<Map<String, dynamic>> addManualIntake({
     required String foodName,
     String? portionDescription,
     DateTime? date,
-    String? userId,
+    String? familyMemberId,
   }) async {
     try {
-      final userIdParam = userId ?? await AuthService.getUserId();
-      if (userIdParam == null) {
+      final familyMemberIdParam = familyMemberId ?? await AuthService.getUserId();
+      if (familyMemberIdParam == null) {
         return {'success': false, 'error': 'User not logged in', 'code': 401};
       }
 
       final url = Uri.parse(
-        '${ApiConfig.homepageBaseUrl}/api/intake/manual?userId=$userIdParam',
+        '${ApiConfig.homepageBaseUrl}/api/intake/manual?familyMemberId=$familyMemberIdParam',
       );
       final headers = _getHeaders();
 
@@ -389,6 +389,100 @@ class HomepageApiService {
       );
 
       return _handleResponse(response);
+    } on http.ClientException catch (e) {
+      return {
+        'success': false,
+        'error':
+            'Network connection failed. Please check your internet connection.',
+        'code': 0,
+      };
+    } on Exception catch (e) {
+      String errorMsg = 'Network error';
+      if (e.toString().contains('timeout')) {
+        errorMsg = 'Request timeout. Please try again.';
+      } else if (e.toString().contains('Failed host lookup') ||
+          e.toString().contains('Connection refused')) {
+        errorMsg =
+            'Cannot connect to server. Please check:\n'
+            '1. Backend service is running on port ${ApiConfig.homepagePort}\n'
+            '2. IP address is correct (${ApiConfig.serverIp})\n'
+            '3. Network connection is available';
+      } else {
+        errorMsg = 'Network error: ${e.toString()}';
+      }
+      return {'success': false, 'error': errorMsg, 'code': 0};
+    } catch (e) {
+      return {
+        'success': false,
+        'error': 'Unexpected error: ${e.toString()}',
+        'code': 0,
+      };
+    }
+  }
+
+  /// 6. 删除摄入记录
+  /// DELETE /api/intake/{intake_id}?familyMemberId={familyMemberId}
+  static Future<Map<String, dynamic>> deleteIntake({
+    required int intakeId,
+    String? familyMemberId,
+  }) async {
+    try {
+      final familyMemberIdParam = familyMemberId ?? await AuthService.getUserId();
+      if (familyMemberIdParam == null) {
+        return {'success': false, 'error': 'User not logged in', 'code': 401};
+      }
+
+      final url = Uri.parse(
+        '${ApiConfig.homepageBaseUrl}/api/intake/$intakeId?familyMemberId=$familyMemberIdParam',
+      );
+      final headers = _getHeaders();
+
+      print('[HomepageApi] DELETE $url');
+
+      final response = await http
+          .delete(url, headers: headers)
+          .timeout(
+            const Duration(seconds: 10),
+            onTimeout: () {
+              throw Exception(
+                'Request timeout: Server did not respond in time',
+              );
+            },
+          );
+
+      print(
+        '[HomepageApi] Response ${response.statusCode}: ${response.body.substring(0, response.body.length > 200 ? 200 : response.body.length)}',
+      );
+
+      // Prefer the unified R<T> handler, but also improve diagnostics for Spring default error JSON.
+      final handled = _handleResponse(response);
+      if (handled['success'] == false &&
+          (handled['error'] == 'Request failed' ||
+              (handled['error'] as String?)?.isEmpty == true)) {
+        try {
+          final data = jsonDecode(response.body);
+          if (data is Map) {
+            final status = data['status'] ?? response.statusCode;
+            final error = data['error'];
+            final message = data['message'];
+            final path = data['path'];
+            final best = (message is String && message.isNotEmpty)
+                ? message
+                : (error is String && error.isNotEmpty)
+                ? error
+                : 'Request failed';
+            return {
+              'success': false,
+              'error': '$best (HTTP $status${path != null ? ', $path' : ''})',
+              'code': status,
+              'msg': best,
+            };
+          }
+        } catch (_) {
+          // ignore, keep handled
+        }
+      }
+      return handled;
     } on http.ClientException catch (e) {
       return {
         'success': false,

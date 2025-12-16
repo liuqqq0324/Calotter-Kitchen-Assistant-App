@@ -1,13 +1,15 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:personal_sous_chef/theme/fallback_google_fonts.dart';
 import 'package:personal_sous_chef/services/homepage_api_service.dart';
 
 /// 额外食物数据模型
 class ExtraFood {
+  final int? intakeId;
   final String name;
   final NutritionInfo nutrition;
 
-  ExtraFood({required this.name, required this.nutrition});
+  ExtraFood({this.intakeId, required this.name, required this.nutrition});
 }
 
 /// 营养信息
@@ -37,87 +39,140 @@ class _AddFoodDialogState extends State<AddFoodDialog> {
   final TextEditingController _foodController = TextEditingController();
   final List<ExtraFood> _addedFoods = [];
   bool _isLoading = false;
+  bool _isLoadingTodayFoods = false;
+  final ScrollController _foodsScrollController = ScrollController();
 
-  // 模拟食物营养数据库 (以后接真实API)
-  final Map<String, NutritionInfo> _foodDatabase = {
-    'apple': NutritionInfo(calories: 95, protein: 0.5, fat: 0.3, carbs: 25),
-    'banana': NutritionInfo(calories: 105, protein: 1.3, fat: 0.4, carbs: 27),
-    'bread': NutritionInfo(calories: 79, protein: 2.7, fat: 1.0, carbs: 15),
-    'rice': NutritionInfo(calories: 206, protein: 4.3, fat: 0.4, carbs: 45),
-    'chicken': NutritionInfo(calories: 165, protein: 31, fat: 3.6, carbs: 0),
-    'egg': NutritionInfo(calories: 78, protein: 6, fat: 5, carbs: 0.6),
-    'milk': NutritionInfo(calories: 149, protein: 8, fat: 8, carbs: 12),
-    'pizza': NutritionInfo(calories: 285, protein: 12, fat: 10, carbs: 36),
-    'burger': NutritionInfo(calories: 354, protein: 20, fat: 17, carbs: 29),
-    'salad': NutritionInfo(calories: 65, protein: 2.5, fat: 3.5, carbs: 6),
-    'pasta': NutritionInfo(calories: 220, protein: 8, fat: 1.3, carbs: 43),
-    'coffee': NutritionInfo(calories: 2, protein: 0.3, fat: 0, carbs: 0),
-    'orange juice': NutritionInfo(
-      calories: 112,
-      protein: 1.7,
-      fat: 0.5,
-      carbs: 26,
-    ),
-  };
+  @override
+  void initState() {
+    super.initState();
+    _refreshTodayManualFoods();
+  }
 
   @override
   void dispose() {
     _foodController.dispose();
+    _foodsScrollController.dispose();
     super.dispose();
+  }
+
+  NutritionInfo _nutritionFromBackend(Map<String, dynamic>? effectiveNutrition) {
+    if (effectiveNutrition == null) {
+      return NutritionInfo(calories: 0, protein: 0, fat: 0, carbs: 0);
+    }
+    return NutritionInfo(
+      calories: (effectiveNutrition['energy'] as num?)?.toDouble() ?? 0,
+      protein: (effectiveNutrition['protein'] as num?)?.toDouble() ?? 0,
+      fat: (effectiveNutrition['fat'] as num?)?.toDouble() ?? 0,
+      carbs: (effectiveNutrition['carbohydrates'] as num?)?.toDouble() ?? 0,
+    );
+  }
+
+  Future<void> _refreshTodayManualFoods() async {
+    if (_isLoadingTodayFoods) return;
+    setState(() => _isLoadingTodayFoods = true);
+
+    try {
+      final result = await HomepageApiService.getTodayIntakes(source: 'manual');
+
+      if (!mounted) return;
+      setState(() => _isLoadingTodayFoods = false);
+
+      if (result['success'] == true) {
+        final data = result['data'] as Map<String, dynamic>?;
+        final items = data?['items'] as List<dynamic>? ?? const [];
+
+        setState(() {
+          _addedFoods
+            ..clear()
+            ..addAll(
+              items.map((e) {
+                final item = (e as Map).cast<String, dynamic>();
+                final intakeId = (item['intakeId'] as num?)?.toInt();
+                final name = (item['manualFoodName'] as String?) ?? '';
+                final effectiveNutrition =
+                    (item['effectiveNutrition'] as Map?)?.cast<String, dynamic>();
+                return ExtraFood(
+                  intakeId: intakeId,
+                  name: name,
+                  nutrition: _nutritionFromBackend(effectiveNutrition),
+                );
+              }).where((f) => f.name.trim().isNotEmpty),
+            );
+        });
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isLoadingTodayFoods = false);
+    }
+  }
+
+  void _applyTodayManualFoodsList(List<dynamic> foods) {
+    setState(() {
+      _addedFoods
+        ..clear()
+        ..addAll(
+          foods.map((e) {
+            final item = (e as Map).cast<String, dynamic>();
+            final intakeId = (item['intakeId'] as num?)?.toInt();
+            final name = (item['manualFoodName'] as String?) ?? '';
+            final effectiveNutrition =
+                (item['effectiveNutrition'] as Map?)?.cast<String, dynamic>();
+            return ExtraFood(
+              intakeId: intakeId,
+              name: name,
+              nutrition: _nutritionFromBackend(effectiveNutrition),
+            );
+          }).where((f) => f.name.trim().isNotEmpty),
+        );
+    });
+  }
+
+  void _applyTodayManualFoodsFromAddResponse(Map<String, dynamic> data) {
+    final foods = data['todayManualFoods'] as List<dynamic>?;
+    if (foods == null) return;
+    _applyTodayManualFoodsList(foods);
   }
 
   void _addFood() async {
     final foodName = _foodController.text.trim();
     if (foodName.isEmpty) return;
 
-    setState(() => _isLoading = true);
+    // Optimistic UI: show immediately in the list
+    final optimisticFood = ExtraFood(
+      intakeId: null,
+      name: foodName,
+      nutrition: NutritionInfo(calories: 0, protein: 0, fat: 0, carbs: 0),
+    );
+    setState(() {
+      _isLoading = true;
+      _addedFoods.insert(0, optimisticFood);
+      _foodController.clear();
+    });
 
     try {
-      // 查找本地食物营养信息（用于显示）
-      final foodNameLower = foodName.toLowerCase();
-      NutritionInfo? nutrition = _foodDatabase[foodNameLower];
-
-      // 如果没找到，生成默认营养信息（仅用于显示）
-      nutrition ??= NutritionInfo(calories: 150, protein: 5, fat: 5, carbs: 20);
-
       // 调用API添加手动摄入
       final result = await HomepageApiService.addManualIntake(
         foodName: foodName,
         portionDescription: null,
       );
 
+      if (!mounted) return;
       setState(() => _isLoading = false);
 
       if (result['success'] == true) {
-        // 如果API返回了营养信息，使用API的数据
         final data = result['data'] as Map<String, dynamic>?;
-        if (data != null && data['intake'] != null) {
-          final intake = data['intake'] as Map<String, dynamic>;
-          final effectiveNutrition =
-              intake['effectiveNutrition'] as Map<String, dynamic>?;
-          if (effectiveNutrition != null) {
-            nutrition = NutritionInfo(
-              calories:
-                  (effectiveNutrition['energy'] as num?)?.toDouble() ??
-                  nutrition.calories,
-              protein:
-                  (effectiveNutrition['protein'] as num?)?.toDouble() ??
-                  nutrition.protein,
-              fat:
-                  (effectiveNutrition['fat'] as num?)?.toDouble() ??
-                  nutrition.fat,
-              carbs:
-                  (effectiveNutrition['carbohydrates'] as num?)?.toDouble() ??
-                  nutrition.carbs,
-            );
-          }
+        if (data != null) {
+          _applyTodayManualFoodsFromAddResponse(data);
+        } else {
+          await _refreshTodayManualFoods();
         }
-
-        setState(() {
-          _addedFoods.add(ExtraFood(name: foodName, nutrition: nutrition!));
-          _foodController.clear();
-        });
       } else {
+        // revert optimistic UI
+        if (mounted) {
+          setState(() {
+            _addedFoods.remove(optimisticFood);
+          });
+        }
         final errorCode = result['code'] as int?;
         final errorMsg = result['error'] as String? ?? 'Unknown error';
 
@@ -142,7 +197,11 @@ class _AddFoodDialogState extends State<AddFoodDialog> {
         }
       }
     } catch (e) {
-      setState(() => _isLoading = false);
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _addedFoods.remove(optimisticFood);
+      });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -155,10 +214,65 @@ class _AddFoodDialogState extends State<AddFoodDialog> {
     }
   }
 
-  void _removeFood(int index) {
+  Future<void> _deleteFood(ExtraFood food, int index) async {
+    final intakeId = food.intakeId;
+    if (intakeId == null) {
+      // Not persisted yet (optimistic item); local remove only.
+      setState(() => _addedFoods.removeAt(index));
+      return;
+    }
+
+    final removed = food;
     setState(() {
       _addedFoods.removeAt(index);
+      _isLoading = true;
     });
+
+    try {
+      final result = await HomepageApiService.deleteIntake(intakeId: intakeId);
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+
+      if (result['success'] == true) {
+        final data = result['data'] as Map<String, dynamic>?;
+        final foods = data?['todayManualFoods'] as List<dynamic>?;
+        if (foods != null) {
+          _applyTodayManualFoodsList(foods);
+        } else {
+          await _refreshTodayManualFoods();
+        }
+      } else {
+        // revert on failure
+        setState(() {
+          _addedFoods.insert(index.clamp(0, _addedFoods.length), removed);
+        });
+        final errorMsg = result['error'] as String? ?? 'Unknown error';
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to delete food: $errorMsg'),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _addedFoods.insert(index.clamp(0, _addedFoods.length), removed);
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Unexpected error: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -167,7 +281,7 @@ class _AddFoodDialogState extends State<AddFoodDialog> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Container(
         padding: const EdgeInsets.all(24),
-        constraints: const BoxConstraints(maxWidth: 400, maxHeight: 550),
+        constraints: const BoxConstraints(maxWidth: 400, maxHeight: 650),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -281,15 +395,34 @@ class _AddFoodDialogState extends State<AddFoodDialog> {
             const SizedBox(height: 10),
 
             Flexible(
-              child: _addedFoods.isEmpty
+              child: (_isLoadingTodayFoods && _addedFoods.isEmpty)
+                  ? const Center(child: CircularProgressIndicator())
+                  : _addedFoods.isEmpty
                   ? _buildEmptyState()
-                  : ListView.separated(
-                      shrinkWrap: true,
-                      itemCount: _addedFoods.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 10),
-                      itemBuilder: (context, index) {
-                        return _buildFoodItem(_addedFoods[index], index);
-                      },
+                  : ScrollConfiguration(
+                      behavior: ScrollConfiguration.of(context).copyWith(
+                        dragDevices: {
+                          PointerDeviceKind.touch,
+                          PointerDeviceKind.mouse,
+                          PointerDeviceKind.trackpad,
+                          PointerDeviceKind.stylus,
+                          PointerDeviceKind.unknown,
+                        },
+                      ),
+                      child: Scrollbar(
+                        controller: _foodsScrollController,
+                        thumbVisibility: true,
+                        child: ListView.separated(
+                          controller: _foodsScrollController,
+                          itemCount: _addedFoods.length,
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          separatorBuilder: (_, _) =>
+                              const SizedBox(height: 10),
+                          itemBuilder: (context, index) {
+                            return _buildFoodItem(_addedFoods[index], index);
+                          },
+                        ),
+                      ),
                     ),
             ),
 
@@ -400,7 +533,7 @@ class _AddFoodDialogState extends State<AddFoodDialog> {
 
           // 删除按钮
           IconButton(
-            onPressed: () => _removeFood(index),
+            onPressed: _isLoading ? null : () => _deleteFood(food, index),
             icon: Icon(Icons.remove_circle_outline, color: Colors.red.shade400),
             iconSize: 22,
           ),

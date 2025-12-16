@@ -104,9 +104,10 @@ public class NutritionAggregateService {
                 .findByFamilyMemberAndDateBetween(member, weekStart, weekEnd);
         
         // 4. 计算本周总摄入
-        com.calotter.health.controller.dto.WeeklyReportVO.NutritionStats totalIntake = 
+        com.calotter.health.controller.dto.WeeklyReportVO.NutritionStats totalIntake =
                 com.calotter.health.controller.dto.WeeklyReportVO.NutritionStats.builder()
-                        .calories(actuals.stream()
+                        // DTO统一为 energy/carbohydrates，这里从实体聚合表 calories/carb 映射
+                        .energy(actuals.stream()
                                 .mapToInt(a -> a.getTotalCalories() != null ? a.getTotalCalories() : 0)
                                 .sum())
                         .protein(actuals.stream()
@@ -115,11 +116,8 @@ public class NutritionAggregateService {
                         .fat(actuals.stream()
                                 .mapToDouble(a -> a.getTotalFat() != null ? a.getTotalFat() : 0.0)
                                 .sum())
-                        .carb(actuals.stream()
+                        .carbohydrates(actuals.stream()
                                 .mapToDouble(a -> a.getTotalCarb() != null ? a.getTotalCarb() : 0.0)
-                                .sum())
-                        .fiber(actuals.stream()
-                                .mapToDouble(a -> a.getTotalFiber() != null ? a.getTotalFiber() : 0.0)
                                 .sum())
                         .build();
         
@@ -127,11 +125,10 @@ public class NutritionAggregateService {
         com.calotter.health.controller.dto.WeeklyReportVO.NutritionStats weeklyTarget = null;
         if (goal != null) {
             weeklyTarget = com.calotter.health.controller.dto.WeeklyReportVO.NutritionStats.builder()
-                    .calories(goal.getDailyCalories() != null ? goal.getDailyCalories() * 7 : null)
+                    .energy(goal.getDailyCalories() != null ? goal.getDailyCalories() * 7 : null)
                     .protein(goal.getProtein() != null ? goal.getProtein() * 7.0 : null)
                     .fat(goal.getFat() != null ? goal.getFat() * 7.0 : null)
-                    .carb(goal.getCarb() != null ? goal.getCarb() * 7.0 : null)
-                    .fiber(goal.getFiber() != null ? goal.getFiber() * 7.0 : null)
+                    .carbohydrates(goal.getCarb() != null ? goal.getCarb() * 7.0 : null)
                     .build();
         }
         
@@ -146,28 +143,25 @@ public class NutritionAggregateService {
             
             com.calotter.health.controller.dto.WeeklyReportVO.NutritionStats dailyActual = aggregateOpt
                     .map(a -> com.calotter.health.controller.dto.WeeklyReportVO.NutritionStats.builder()
-                            .calories(a.getTotalCalories())
+                            .energy(a.getTotalCalories())
                             .protein(a.getTotalProtein())
                             .fat(a.getTotalFat())
-                            .carb(a.getTotalCarb())
-                            .fiber(a.getTotalFiber())
+                            .carbohydrates(a.getTotalCarb())
                             .build())
                     .orElse(com.calotter.health.controller.dto.WeeklyReportVO.NutritionStats.builder()
-                            .calories(0)
+                            .energy(0)
                             .protein(0.0)
                             .fat(0.0)
-                            .carb(0.0)
-                            .fiber(0.0)
+                            .carbohydrates(0.0)
                             .build());
             
             com.calotter.health.controller.dto.WeeklyReportVO.NutritionStats dailyTarget = null;
             if (finalGoal != null) {
                 dailyTarget = com.calotter.health.controller.dto.WeeklyReportVO.NutritionStats.builder()
-                        .calories(finalGoal.getDailyCalories())
+                        .energy(finalGoal.getDailyCalories())
                         .protein(finalGoal.getProtein() != null ? finalGoal.getProtein().doubleValue() : null)
                         .fat(finalGoal.getFat() != null ? finalGoal.getFat().doubleValue() : null)
-                        .carb(finalGoal.getCarb() != null ? finalGoal.getCarb().doubleValue() : null)
-                        .fiber(finalGoal.getFiber() != null ? finalGoal.getFiber().doubleValue() : null)
+                        .carbohydrates(finalGoal.getCarb() != null ? finalGoal.getCarb().doubleValue() : null)
                         .build();
             }
             
