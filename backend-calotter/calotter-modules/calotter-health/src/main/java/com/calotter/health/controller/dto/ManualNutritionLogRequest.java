@@ -30,8 +30,8 @@ public class ManualNutritionLogRequest {
     private String unit; // g, ml, serving
     
     // 营养信息
-    @Min(value = 0, message = "卡路里必须大于等于0")
-    private Integer calories;
+    @Min(value = 0, message = "能量必须大于等于0")
+    private Integer energy;
     
     @Min(value = 0, message = "蛋白质必须大于等于0")
     private Double protein;
@@ -40,9 +40,6 @@ public class ManualNutritionLogRequest {
     private Double fat;
     
     @Min(value = 0, message = "碳水必须大于等于0")
-    private Double carb;
-    
-    @Min(value = 0, message = "纤维必须大于等于0")
-    private Double fiber;
+    private Double carbohydrates;
 }
 

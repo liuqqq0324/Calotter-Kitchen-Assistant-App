@@ -193,11 +193,13 @@ public class NutritionLogService {
         log.setLogDate(request.getEatenAt().toLocalDate());
         
         // 设置营养数据
-        log.setCalories(request.getCalories());
+        // DTO字段统一为 energy/carbohydrates，这里映射到实体的 calories/carb
+        log.setCalories(request.getEnergy());
         log.setProtein(request.getProtein());
         log.setFat(request.getFat());
-        log.setCarb(request.getCarb());
-        log.setFiber(request.getFiber());
+        log.setCarb(request.getCarbohydrates());
+        // 统一字段后不再从手动请求传入 fiber
+        log.setFiber(null);
         
         NutritionLog savedLog = nutritionLogRepository.save(log);
         

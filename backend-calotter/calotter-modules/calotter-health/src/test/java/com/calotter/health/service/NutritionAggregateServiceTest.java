@@ -222,17 +222,17 @@ class NutritionAggregateServiceTest {
         assertThat(report.getWeekEnd()).isEqualTo(weekEnd);
 
         // 验证周目标：2000 * 7 = 14000
-        assertThat(report.getWeeklyTarget().getCalories()).isEqualTo(14000);
+        assertThat(report.getWeeklyTarget().getEnergy()).isEqualTo(14000);
         assertThat(report.getWeeklyTarget().getProtein()).isEqualTo(700.0); // 100 * 7
 
         // 验证周实际：7天累计
-        assertThat(report.getWeeklyActual().getCalories()).isEqualTo(14000); // 总和
+        assertThat(report.getWeeklyActual().getEnergy()).isEqualTo(14000); // 总和
         assertThat(report.getWeeklyActual().getProtein()).isEqualTo(700.0);
 
         // 验证每日详情
         assertThat(report.getDailyReports()).hasSize(7);
         assertThat(report.getDailyReports().get(0).getDate()).isEqualTo(weekStart);
-        assertThat(report.getDailyReports().get(0).getActual().getCalories()).isEqualTo(2000);
+        assertThat(report.getDailyReports().get(0).getActual().getEnergy()).isEqualTo(2000);
     }
 
     @Test
