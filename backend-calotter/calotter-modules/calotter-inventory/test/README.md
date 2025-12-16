@@ -15,6 +15,7 @@
 ### 文档
 - **`INVENTORY_API_TEST_RESULTS.md`** - 详细测试结果文档
 - **`INVENTORY_API_TEST_SUMMARY.md`** - 测试总结文档
+- **`test-search-examples.md`** - 标准食材库查找功能测试用例
 
 ## 🚀 使用方法
 
@@ -46,9 +47,16 @@ bash test-inventory-full.sh
 
 - **用户**: testuser / inventory_test (密码: password123)
 - **家庭**: Household ID 1 (邀请码: TEST001)
-- **标准食材**: 10个 (ID: 1001-1010)
+- **标准食材**: 90个 (ID: 1001-1090)
+  - 肉类: 20个 (1001-1020)
+  - 蔬菜类: 48个 (1003-1006, 1010, 1021-1050)
+  - 谷物类: 11个 (1007, 1051-1060)
+  - 水果类: 15个 (1061-1075)
+  - 豆制品类: 5个 (1076-1080)
+  - 其他类: 11个 (1081-1090)
 - **标准调料**: 15个 (ID: 3001-3015)
 - **标准厨具**: 15个 (ID: 2001-2015)
+- **标准过敏原**: 8个 (ID: 1-8)
 
 ## ⚠️ 注意事项
 
@@ -69,3 +77,18 @@ bash test-inventory-full.sh
 所有API测试均通过，返回200状态码。详细结果请查看：
 - `INVENTORY_API_TEST_SUMMARY.md` - 快速总结
 - `INVENTORY_API_TEST_RESULTS.md` - 详细结果
+
+## 🔍 查找功能测试
+
+标准食材库查找功能测试用例请参考：
+- `test-search-examples.md` - 包含精确匹配和模糊匹配的测试用例
+
+### 快速测试查找功能
+
+```bash
+# 精确匹配测试
+curl "http://localhost:8080/api/inventory/standard-ingredients/search?name=鸡胸肉&fuzzy=false"
+
+# 模糊匹配测试（应该返回多个结果）
+curl "http://localhost:8080/api/inventory/standard-ingredients/search?name=白菜&fuzzy=true"
+```
