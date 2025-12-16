@@ -298,7 +298,39 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
                   // Save to API
                   try {
                     if (widget.isNew) {
-                      // Add new item
+                      // ✅ 添加新食材：先查找标准食材ID
+                      if (mounted) {
+                        // 显示加载提示
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Searching for ingredient...'),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      }
+
+                      // 通过名称查找标准食材ID
+                      final standardIngredientId =
+                          await InventoryApiService.findStandardIngredientIdByName(
+                            widget.ingredient.name,
+                          );
+
+                      if (standardIngredientId == null) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Ingredient "${widget.ingredient.name}" not found in standard library. '
+                                'Please check the name or add it to the standard library first.',
+                              ),
+                              duration: const Duration(seconds: 4),
+                            ),
+                          );
+                        }
+                        return;
+                      }
+
+                      // ✅ 找到标准食材ID，添加库存
                       final result = await InventoryApiService.addInventory(
                         name: widget.ingredient.name,
                         quantity: widget.ingredient.quantity.toDouble(),
@@ -306,11 +338,11 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
                         expiryDate: widget.ingredient.expiryDate
                             .toIso8601String()
                             .split('T')[0],
+                        standardIngredientId: standardIngredientId,
                       );
-                      widget.ingredient.inventoryId = result['inventory_id']
-                          ?.toString();
+                      widget.ingredient.inventoryId = result['id']?.toString();
                     } else if (widget.ingredient.inventoryId != null) {
-                      // Update existing item
+                      // ✅ 更新现有食材（不需要 standardIngredientId，因为已经存在）
                       await InventoryApiService.updateInventory(
                         inventoryId: widget.ingredient.inventoryId!,
                         quantity: widget.ingredient.quantity.toDouble(),

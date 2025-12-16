@@ -411,4 +411,21 @@ public class InventoryService {
                 .producedTime(leftover.getProducedTime())
                 .build();
     }
+
+    // ==================== 标准食材库查询 ====================
+
+    /**
+     * 通过名称查找标准食材（精确匹配）
+     */
+    public StandardIngredient findStandardIngredientByName(String name) {
+        return standardIngredientRepository.findByName(name)
+                .orElseThrow(() -> new IllegalArgumentException("标准食材不存在: " + name));
+    }
+
+    /**
+     * 通过名称模糊查找标准食材（不区分大小写）
+     */
+    public List<StandardIngredient> searchStandardIngredientsByName(String name) {
+        return standardIngredientRepository.findByNameContainingIgnoreCase(name);
+    }
 }

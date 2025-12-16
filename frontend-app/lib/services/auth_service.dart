@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class AuthService {
   static const String _tokenKey = 'auth_token';
   static const String _userIdKey = 'user_id';
+  static const String _householdIdKey = 'household_id';
 
   // Register
   static Future<Map<String, dynamic>> register({
@@ -15,7 +16,12 @@ class AuthService {
     required String confirmPassword,
   }) async {
     try {
-      final url = Uri.parse('${ApiConfig.baseUrl}/api/ums/auth/register');
+      // API路径: /api/user/register
+      final url = Uri.parse('${ApiConfig.baseUrl}/api/user/register');
+      //  前端验证密码匹配，但不发送 confirmPassword 给后端
+      if (password != confirmPassword) {
+        return {'success': false, 'error': 'Passwords do not match'};
+      }
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
@@ -23,14 +29,29 @@ class AuthService {
           'username': username,
           'email': email,
           'password': password,
-          'confirmPassword': confirmPassword,
+          // 'confirmPassword': confirmPassword,
+          //  不发送 confirmPassword，后端不需要
         }),
       );
 
       final data = jsonDecode(response.body);
-      if (response.statusCode == 200) {
-        return {'success': true, 'data': data};
+      // 适配后端返回的 Result<T> 格式
+      if (response.statusCode == 200 && data['code'] == 200) {
+        // 后端返回格式: {code: 200, message: "...", data: {...}}
+        final responseData = data['data'];
+
+        // 保存 token、userId 和 householdId（注册成功后自动登录）
+        if (responseData['token'] != null && responseData['userId'] != null) {
+          await _saveToken(responseData['token']);
+          await _saveUserId(responseData['userId'].toString());
+          if (responseData['householdId'] != null) {
+            await _saveHouseholdId(responseData['householdId'].toString());
+          }
+        }
+
+        return {'success': true, 'data': responseData};
       } else {
+        // 后端返回错误格式: {code: 400/500, message: "错误信息"}
         return {
           'success': false,
           'error': data['message'] ?? 'Registration failed',
@@ -61,29 +82,41 @@ class AuthService {
     required String password,
   }) async {
     try {
-      final url = Uri.parse('${ApiConfig.baseUrl}/api/ums/auth/login');
+      //  步骤2.1: 修改API路径
+      final url = Uri.parse('${ApiConfig.baseUrl}/api/user/login');
+
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'identifier': identifier, 'password': password}),
+        // 步骤2.2: 修改字段名 identifier → usernameOrEmail
+        body: jsonEncode({'usernameOrEmail': identifier, 'password': password}),
       );
 
       final data = jsonDecode(response.body);
-      if (response.statusCode == 200) {
-        // Check if login was successful (userId should not be 0)
-        if (data['userId'] == null || data['userId'] == 0) {
+
+      //  步骤2.3: 适配后端返回的 Result<T> 格式
+      if (response.statusCode == 200 && data['code'] == 200) {
+        // 后端返回格式: {code: 200, message: "...", data: {...}}
+        final responseData = data['data'];
+
+        // 步骤2.4: token 是字符串，不是对象
+        if (responseData['userId'] == null || responseData['userId'] == 0) {
           return {'success': false, 'error': 'Invalid username or password'};
         }
-        // Save token and user ID
-        await _saveToken(data['token']['accessToken']);
-        await _saveUserId(data['userId'].toString());
-        return {'success': true, 'data': data};
+
+        // 直接使用 token（字符串），不是 data['token']['accessToken']
+        await _saveToken(responseData['token']);
+        await _saveUserId(responseData['userId'].toString());
+        if (responseData['householdId'] != null) {
+          await _saveHouseholdId(responseData['householdId'].toString());
+        }
+        return {'success': true, 'data': responseData};
       } else {
-        // Handle 401 (Unauthorized) or 403 (Forbidden) errors
+        // 后端返回错误格式: {code: 400/401/403, message: "错误信息"}
         String errorMessage = 'Login failed';
-        if (response.statusCode == 401) {
+        if (data['code'] == 401) {
           errorMessage = 'Invalid username or password';
-        } else if (response.statusCode == 403) {
+        } else if (data['code'] == 403) {
           errorMessage = 'Account is disabled';
         }
         return {'success': false, 'error': data['message'] ?? errorMessage};
@@ -110,8 +143,10 @@ class AuthService {
   // Logout
   static Future<Map<String, dynamic>> logout() async {
     try {
-      final url = Uri.parse('${ApiConfig.baseUrl}/api/ums/auth/logout');
+      // ✅ 修改API路径
+      final url = Uri.parse('${ApiConfig.baseUrl}/api/user/logout');
       final token = await getToken();
+
       final response = await http.post(
         url,
         headers: {
@@ -120,25 +155,32 @@ class AuthService {
         },
       );
 
-      // Clear local storage regardless of API response
+      // ✅ 无论 API 响应如何，都清除本地存储
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_tokenKey);
       await prefs.remove(_userIdKey);
+      await prefs.remove(_householdIdKey);
 
-      if (response.statusCode == 200) {
-        return {'success': true, 'message': 'Logged out successfully'};
+      // ✅ 适配后端返回的 Result<T> 格式
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200 && data['code'] == 200) {
+        return {
+          'success': true,
+          'message': data['data'] ?? 'Logged out successfully',
+        };
       } else {
-        // Even if API fails, we've cleared local storage
+        // 即使 API 失败，本地存储已清除，仍返回成功
         return {
           'success': true,
           'message': 'Logged out (local storage cleared)',
         };
       }
     } catch (e) {
-      // Clear local storage even if network error
+      // ✅ 即使网络错误，也清除本地存储
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_tokenKey);
       await prefs.remove(_userIdKey);
+      await prefs.remove(_householdIdKey);
       return {'success': true, 'message': 'Logged out (local storage cleared)'};
     }
   }
@@ -153,6 +195,12 @@ class AuthService {
   static Future<String?> getUserId() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_userIdKey);
+  }
+
+  // Get stored household ID
+  static Future<String?> getHouseholdId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_householdIdKey);
   }
 
   // Check if user is logged in
@@ -171,5 +219,11 @@ class AuthService {
   static Future<void> _saveUserId(String userId) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_userIdKey, userId);
+  }
+
+  // Save household ID
+  static Future<void> _saveHouseholdId(String householdId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_householdIdKey, householdId);
   }
 }

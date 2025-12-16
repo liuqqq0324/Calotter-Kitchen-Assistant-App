@@ -1,6 +1,8 @@
 package com.calotter.user.service;
 
 import com.calotter.user.controller.dto.AuthResponse;
+import com.calotter.user.controller.dto.HouseholdRequest;
+import com.calotter.user.controller.dto.HouseholdResponse;
 import com.calotter.user.controller.dto.LoginRequest;
 import com.calotter.user.controller.dto.RegisterRequest;
 import com.calotter.user.domain.entity.User;
@@ -9,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 /**
  * 用户服务
@@ -20,6 +24,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final HouseholdService householdService;
     
     /**
      * 用户注册
@@ -48,6 +53,19 @@ public class UserService {
         // 保存用户
         user = userRepository.save(user);
         
+        // 自动创建默认家庭
+        Long householdId = null;
+        try {
+            HouseholdRequest householdRequest = new HouseholdRequest();
+            householdRequest.setName(user.getUsername() + "'s Home");
+            householdRequest.setOwnerId(user.getId());
+            HouseholdResponse household = householdService.createHousehold(householdRequest);
+            householdId = household.getId();
+        } catch (Exception e) {
+            // 如果创建家庭失败，记录日志但不影响注册流程
+            // log.warn("Failed to create default household for user: " + user.getId(), e);
+        }
+        
         // 生成 JWT Token
         String token = jwtService.generateToken(user.getId(), user.getUsername());
         
@@ -58,6 +76,7 @@ public class UserService {
                 .username(user.getUsername())
                 .email(user.getEmail())
                 .role(user.getRole())
+                .householdId(householdId)
                 .build();
     }
     
@@ -86,6 +105,17 @@ public class UserService {
         // 生成 JWT Token
         String token = jwtService.generateToken(user.getId(), user.getUsername());
         
+        // 获取用户的第一个家庭（如果有）
+        Long householdId = null;
+        try {
+            List<HouseholdResponse> households = householdService.getHouseholdsByOwner(user.getId());
+            if (!households.isEmpty()) {
+                householdId = households.get(0).getId(); // 使用第一个家庭
+            }
+        } catch (Exception e) {
+            // 如果获取家庭失败，householdId 保持为 null
+        }
+        
         // 返回认证响应
         return AuthResponse.builder()
                 .token(token)
@@ -93,6 +123,7 @@ public class UserService {
                 .username(user.getUsername())
                 .email(user.getEmail())
                 .role(user.getRole())
+                .householdId(householdId)
                 .build();
     }
 }
