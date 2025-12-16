@@ -59,22 +59,25 @@ class _InventoryPageState extends State<InventoryPage>
       final data = await InventoryApiService.getInventory();
       setState(() {
         _ingredients = data.map((item) {
-          // Convert API response to Ingredient model
+          // ✅ 适配后端返回的 IngredientResponse 格式
           DateTime expiryDate = DateTime.now().add(const Duration(days: 7));
-          if (item['expiry_date'] != null) {
+          if (item['expirationDate'] != null) {
             try {
-              expiryDate = DateTime.parse(item['expiry_date']);
+              expiryDate = DateTime.parse(item['expirationDate']);
             } catch (e) {
               // Keep default if parsing fails
             }
           }
           return Ingredient(
-            name: item['name'] ?? 'Unknown',
+            // ✅ 使用 standardIngredientName（后端返回的字段）
+            name: item['standardIngredientName'] ?? item['name'] ?? 'Unknown',
             expiryDate: expiryDate,
             quantity: (item['quantity'] ?? 0).toInt(),
             unit: item['unit'] ?? 'pcs',
             imagePlaceholder: item['image_url'] != null ? '🖼️' : '📦',
-            inventoryId: item['inventory_id']?.toString(),
+            // ✅ 使用 id（后端返回的字段）
+            inventoryId:
+                item['id']?.toString() ?? item['inventory_id']?.toString(),
           );
         }).toList();
         _sortItems();

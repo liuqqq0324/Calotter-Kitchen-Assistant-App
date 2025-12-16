@@ -19,4 +19,5 @@ public class AuthResponse {
     private String username;
     private String email;
     private String role;
+    private Long householdId; // 家庭ID（可选，如果没有则为null）
 }

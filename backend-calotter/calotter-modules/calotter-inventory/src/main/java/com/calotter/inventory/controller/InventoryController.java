@@ -109,6 +109,35 @@ public class InventoryController {
         }
     }
 
+    // ==================== 标准食材库查询 ====================
+
+    /**
+     * 通过名称查找标准食材
+     * GET /api/inventory/standard-ingredients/search?name={name}&fuzzy={fuzzy}
+     * - fuzzy=false: 精确匹配，返回单个结果
+     * - fuzzy=true: 模糊匹配，返回列表
+     */
+    @GetMapping("/standard-ingredients/search")
+    public Result<?> searchStandardIngredients(
+            @RequestParam("name") String name,
+            @RequestParam(value = "fuzzy", defaultValue = "false") boolean fuzzy) {
+        try {
+            if (fuzzy) {
+                // 模糊匹配，返回列表
+                List<com.calotter.common.core.domain.entity.StandardIngredient> ingredients = 
+                        inventoryService.searchStandardIngredientsByName(name);
+                return Result.success(ingredients);
+            } else {
+                // 精确匹配，返回单个结果
+                com.calotter.common.core.domain.entity.StandardIngredient ingredient = 
+                        inventoryService.findStandardIngredientByName(name);
+                return Result.success(ingredient);
+            }
+        } catch (IllegalArgumentException e) {
+            return Result.error(e.getMessage());
+        }
+    }
+
     // ==================== 调料管理 ====================
 
     /**
