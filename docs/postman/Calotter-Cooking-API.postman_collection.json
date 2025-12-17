@@ -1,64 +1,34 @@
 {
 	"info": {
-		"_postman_id": "calotter-cooking-api-12-17",
+		"_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
 		"name": "Calotter Cooking API",
-		"description": "Calotter Cooking 模块 API 测试集合\n\n包含以下功能：\n- 烹饪流程（开始/完成）\n- AI 菜单生成\n- 收藏管理\n- 默认 Filter 获取\n\n创建时间：2024.12.17",
+		"description": "Calotter Cooking 模块 API 测试集合",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"variable": [
 		{
 			"key": "baseUrl",
-			"value": "http://localhost:8080",
-			"type": "string"
+			"value": "http://localhost:8080"
 		},
 		{
 			"key": "householdId",
-			"value": "1",
-			"type": "string"
+			"value": "1"
 		},
 		{
 			"key": "initiatorId",
-			"value": "1",
-			"type": "string"
+			"value": "1"
 		},
 		{
 			"key": "sessionId",
-			"value": "",
-			"type": "string"
+			"value": "1"
 		}
 	],
 	"item": [
 		{
 			"name": "1. Cooking 流程",
-			"description": "烹饪流程相关 API",
 			"item": [
 				{
 					"name": "1.1 开始烹饪 - 单道菜",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"var jsonData = pm.response.json();",
-									"if (jsonData.code === 200 && jsonData.data) {",
-									"    pm.collectionVariables.set('sessionId', jsonData.data);",
-									"    console.log('Session ID saved:', jsonData.data);",
-									"}",
-									"",
-									"pm.test('Status code is 200', function () {",
-									"    pm.response.to.have.status(200);",
-									"});",
-									"",
-									"pm.test('Response has correct structure', function () {",
-									"    pm.expect(jsonData).to.have.property('code');",
-									"    pm.expect(jsonData).to.have.property('data');",
-									"    pm.expect(jsonData.code).to.eql(200);",
-									"});"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
 					"request": {
 						"method": "POST",
 						"header": [
@@ -69,50 +39,18 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"householdId\": {{householdId}},\n    \"initiatorId\": {{initiatorId}},\n    \"recipe\": {\n        \"title\": \"番茄炒蛋\",\n        \"short_description\": \"经典家常菜，营养美味\",\n        \"servings\": 2,\n        \"cooking_time_min\": 15,\n        \"difficulty\": \"easy\",\n        \"nutrition_estimate\": {\n            \"calories\": 250,\n            \"protein_g\": 12,\n            \"fat_g\": 15,\n            \"carbs_g\": 10\n        },\n        \"ingredients\": [\n            {\n                \"name\": \"鸡蛋\",\n                \"amount_value\": 3,\n                \"amount_unit\": \"个\",\n                \"is_optional\": false,\n                \"source_type\": \"INVENTORY\"\n            },\n            {\n                \"name\": \"番茄\",\n                \"amount_value\": 200,\n                \"amount_unit\": \"g\",\n                \"is_optional\": false,\n                \"source_type\": \"INVENTORY\"\n            },\n            {\n                \"name\": \"盐\",\n                \"amount_value\": 3,\n                \"amount_unit\": \"g\",\n                \"is_optional\": false,\n                \"source_type\": \"MANUAL_ADD\"\n            }\n        ],\n        \"steps\": [\n            {\n                \"step_number\": 1,\n                \"instruction\": \"鸡蛋打散，加少许盐调味\",\n                \"step_time_min\": 2\n            },\n            {\n                \"step_number\": 2,\n                \"instruction\": \"番茄切块备用\",\n                \"step_time_min\": 3\n            },\n            {\n                \"step_number\": 3,\n                \"instruction\": \"热锅倒油，倒入蛋液炒至凝固盛出\",\n                \"step_time_min\": 3\n            },\n            {\n                \"step_number\": 4,\n                \"instruction\": \"锅中留底油，倒入番茄翻炒出汁\",\n                \"step_time_min\": 4\n            },\n            {\n                \"step_number\": 5,\n                \"instruction\": \"倒入炒好的鸡蛋，翻炒均匀即可出锅\",\n                \"step_time_min\": 3\n            }\n        ]\n    }\n}"
+							"raw": "{\n    \"householdId\": {{householdId}},\n    \"initiatorId\": {{initiatorId}},\n    \"recipe\": {\n        \"title\": \"番茄炒蛋\",\n        \"short_description\": \"经典家常菜\",\n        \"servings\": 2,\n        \"cooking_time_min\": 15,\n        \"difficulty\": \"easy\",\n        \"nutrition_estimate\": {\n            \"calories\": 250,\n            \"protein_g\": 12,\n            \"fat_g\": 15,\n            \"carbs_g\": 10\n        },\n        \"ingredients\": [\n            {\n                \"name\": \"鸡蛋\",\n                \"amount_value\": 3,\n                \"amount_unit\": \"个\",\n                \"is_optional\": false,\n                \"source_type\": \"INVENTORY\"\n            },\n            {\n                \"name\": \"番茄\",\n                \"amount_value\": 200,\n                \"amount_unit\": \"g\",\n                \"is_optional\": false,\n                \"source_type\": \"INVENTORY\"\n            }\n        ],\n        \"steps\": [\n            {\n                \"step_number\": 1,\n                \"instruction\": \"鸡蛋打散\",\n                \"step_time_min\": 2\n            },\n            {\n                \"step_number\": 2,\n                \"instruction\": \"炒熟即可\",\n                \"step_time_min\": 10\n            }\n        ]\n    }\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/cooking/start",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"cooking",
-								"start"
-							]
-						},
-						"description": "开始烹饪 - 传入单道菜的 recipe 对象"
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "cooking", "start"]
+						}
 					},
 					"response": []
 				},
 				{
-					"name": "1.2 开始烹饪 - 多道菜(Menu)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"var jsonData = pm.response.json();",
-									"if (jsonData.code === 200 && jsonData.data) {",
-									"    pm.collectionVariables.set('sessionId', jsonData.data);",
-									"    console.log('Session ID saved:', jsonData.data);",
-									"}",
-									"",
-									"pm.test('Status code is 200', function () {",
-									"    pm.response.to.have.status(200);",
-									"});",
-									"",
-									"pm.test('Response has correct structure', function () {",
-									"    pm.expect(jsonData).to.have.property('code');",
-									"    pm.expect(jsonData).to.have.property('data');",
-									"    pm.expect(jsonData.code).to.eql(200);",
-									"});"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
+					"name": "1.2 开始烹饪 - 多道菜",
 					"request": {
 						"method": "POST",
 						"header": [
@@ -123,49 +61,18 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"householdId\": {{householdId}},\n    \"initiatorId\": {{initiatorId}},\n    \"menuId\": 1,\n    \"recipes\": [\n        {\n            \"title\": \"番茄炒蛋\",\n            \"short_description\": \"经典家常菜\",\n            \"servings\": 2,\n            \"cooking_time_min\": 15,\n            \"difficulty\": \"easy\",\n            \"nutrition_estimate\": {\n                \"calories\": 250,\n                \"protein_g\": 12,\n                \"fat_g\": 15,\n                \"carbs_g\": 10\n            },\n            \"ingredients\": [\n                {\n                    \"name\": \"鸡蛋\",\n                    \"amount_value\": 3,\n                    \"amount_unit\": \"个\",\n                    \"is_optional\": false,\n                    \"source_type\": \"INVENTORY\"\n                },\n                {\n                    \"name\": \"番茄\",\n                    \"amount_value\": 200,\n                    \"amount_unit\": \"g\",\n                    \"is_optional\": false,\n                    \"source_type\": \"INVENTORY\"\n                }\n            ],\n            \"steps\": [\n                {\n                    \"step_number\": 1,\n                    \"instruction\": \"鸡蛋打散\",\n                    \"step_time_min\": 2\n                },\n                {\n                    \"step_number\": 2,\n                    \"instruction\": \"炒熟即可\",\n                    \"step_time_min\": 10\n                }\n            ]\n        },\n        {\n            \"title\": \"蒜蓉西兰花\",\n            \"short_description\": \"健康蔬菜\",\n            \"servings\": 2,\n            \"cooking_time_min\": 10,\n            \"difficulty\": \"easy\",\n            \"nutrition_estimate\": {\n                \"calories\": 80,\n                \"protein_g\": 4,\n                \"fat_g\": 3,\n                \"carbs_g\": 8\n            },\n            \"ingredients\": [\n                {\n                    \"name\": \"西兰花\",\n                    \"amount_value\": 300,\n                    \"amount_unit\": \"g\",\n                    \"is_optional\": false,\n                    \"source_type\": \"INVENTORY\"\n                },\n                {\n                    \"name\": \"大蒜\",\n                    \"amount_value\": 20,\n                    \"amount_unit\": \"g\",\n                    \"is_optional\": false,\n                    \"source_type\": \"INVENTORY\"\n                }\n            ],\n            \"steps\": [\n                {\n                    \"step_number\": 1,\n                    \"instruction\": \"西兰花焯水\",\n                    \"step_time_min\": 3\n                },\n                {\n                    \"step_number\": 2,\n                    \"instruction\": \"蒜蓉爆香后加入西兰花翻炒\",\n                    \"step_time_min\": 5\n                }\n            ]\n        }\n    ]\n}"
+							"raw": "{\n    \"householdId\": {{householdId}},\n    \"initiatorId\": {{initiatorId}},\n    \"menuId\": 1,\n    \"recipes\": [\n        {\n            \"title\": \"番茄炒蛋\",\n            \"short_description\": \"经典家常菜\",\n            \"servings\": 2,\n            \"cooking_time_min\": 15,\n            \"difficulty\": \"easy\",\n            \"nutrition_estimate\": {\n                \"calories\": 250,\n                \"protein_g\": 12,\n                \"fat_g\": 15,\n                \"carbs_g\": 10\n            },\n            \"ingredients\": [\n                {\n                    \"name\": \"鸡蛋\",\n                    \"amount_value\": 3,\n                    \"amount_unit\": \"个\"\n                }\n            ],\n            \"steps\": [\n                {\n                    \"step_number\": 1,\n                    \"instruction\": \"炒熟\",\n                    \"step_time_min\": 10\n                }\n            ]\n        },\n        {\n            \"title\": \"蒜蓉西兰花\",\n            \"short_description\": \"健康蔬菜\",\n            \"servings\": 2,\n            \"cooking_time_min\": 10,\n            \"difficulty\": \"easy\",\n            \"nutrition_estimate\": {\n                \"calories\": 80,\n                \"protein_g\": 4,\n                \"fat_g\": 3,\n                \"carbs_g\": 8\n            },\n            \"ingredients\": [\n                {\n                    \"name\": \"西兰花\",\n                    \"amount_value\": 300,\n                    \"amount_unit\": \"g\"\n                }\n            ],\n            \"steps\": [\n                {\n                    \"step_number\": 1,\n                    \"instruction\": \"翻炒\",\n                    \"step_time_min\": 5\n                }\n            ]\n        }\n    ]\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/cooking/start",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"cooking",
-								"start"
-							]
-						},
-						"description": "开始烹饪 - 传入多道菜的 recipes 列表（整个 Menu）"
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "cooking", "start"]
+						}
 					},
 					"response": []
 				},
 				{
 					"name": "1.3 完成烹饪 - 全部完成",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status code is 200', function () {",
-									"    pm.response.to.have.status(200);",
-									"});",
-									"",
-									"var jsonData = pm.response.json();",
-									"pm.test('Response has correct structure', function () {",
-									"    pm.expect(jsonData).to.have.property('code');",
-									"    pm.expect(jsonData).to.have.property('data');",
-									"    pm.expect(jsonData.code).to.eql(200);",
-									"});",
-									"",
-									"pm.test('Session status is COOKED', function () {",
-									"    pm.expect(jsonData.data.status).to.eql('COOKED');",
-									"});"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
 					"request": {
 						"method": "POST",
 						"header": [
@@ -176,49 +83,18 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"sessionId\": {{sessionId}},\n    \"finalIngredients\": [\n        {\n            \"name\": \"鸡蛋\",\n            \"amountValue\": 3,\n            \"amountUnit\": \"个\",\n            \"sourceType\": \"INVENTORY\"\n        },\n        {\n            \"name\": \"番茄\",\n            \"amountValue\": 200,\n            \"amountUnit\": \"g\",\n            \"sourceType\": \"INVENTORY\"\n        },\n        {\n            \"name\": \"盐\",\n            \"amountValue\": 3,\n            \"amountUnit\": \"g\",\n            \"sourceType\": \"MANUAL_ADD\"\n        }\n    ],\n    \"totalNutrition\": {\n        \"calories\": 250,\n        \"protein\": 12,\n        \"fat\": 15,\n        \"carbs\": 10\n    }\n}"
+							"raw": "{\n    \"sessionId\": {{sessionId}},\n    \"finalIngredients\": [\n        {\n            \"name\": \"鸡蛋\",\n            \"amountValue\": 3,\n            \"amountUnit\": \"个\",\n            \"sourceType\": \"INVENTORY\"\n        },\n        {\n            \"name\": \"番茄\",\n            \"amountValue\": 200,\n            \"amountUnit\": \"g\",\n            \"sourceType\": \"INVENTORY\"\n        }\n    ],\n    \"totalNutrition\": {\n        \"calories\": 250,\n        \"protein\": 12,\n        \"fat\": 15,\n        \"carbs\": 10\n    }\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/cooking/finish",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"cooking",
-								"finish"
-							]
-						},
-						"description": "完成烹饪 - 不传 completedDishIds，默认完成所有菜品"
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "cooking", "finish"]
+						}
 					},
 					"response": []
 				},
 				{
-					"name": "1.4 完成烹饪 - 部分完成",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status code is 200', function () {",
-									"    pm.response.to.have.status(200);",
-									"});",
-									"",
-									"var jsonData = pm.response.json();",
-									"pm.test('Response has correct structure', function () {",
-									"    pm.expect(jsonData).to.have.property('code');",
-									"    pm.expect(jsonData).to.have.property('data');",
-									"    pm.expect(jsonData.code).to.eql(200);",
-									"});",
-									"",
-									"pm.test('Session has completedDishIds', function () {",
-									"    pm.expect(jsonData.data).to.have.property('completedDishIds');",
-									"});"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
+					"name": "1.4 完成烹饪 - 部分完成+用餐者",
 					"request": {
 						"method": "POST",
 						"header": [
@@ -229,20 +105,13 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"sessionId\": {{sessionId}},\n    \"completedDishIds\": [1],\n    \"finalIngredients\": [\n        {\n            \"name\": \"鸡蛋\",\n            \"amountValue\": 3,\n            \"amountUnit\": \"个\",\n            \"sourceType\": \"INVENTORY\"\n        },\n        {\n            \"name\": \"番茄\",\n            \"amountValue\": 200,\n            \"amountUnit\": \"g\",\n            \"sourceType\": \"INVENTORY\"\n        }\n    ],\n    \"totalNutrition\": {\n        \"calories\": 250,\n        \"protein\": 12,\n        \"fat\": 15,\n        \"carbs\": 10\n    },\n    \"diners\": [\n        {\n            \"familyMemberId\": 1,\n            \"portionPercentage\": 0.5,\n            \"note\": \"吃了一半\"\n        },\n        {\n            \"familyMemberId\": 2,\n            \"portionPercentage\": 0.5,\n            \"note\": \"吃了一半\"\n        }\n    ]\n}"
+							"raw": "{\n    \"sessionId\": {{sessionId}},\n    \"completedDishIds\": [1],\n    \"finalIngredients\": [\n        {\n            \"name\": \"鸡蛋\",\n            \"amountValue\": 3,\n            \"amountUnit\": \"个\",\n            \"sourceType\": \"INVENTORY\"\n        }\n    ],\n    \"totalNutrition\": {\n        \"calories\": 250,\n        \"protein\": 12,\n        \"fat\": 15,\n        \"carbs\": 10\n    },\n    \"diners\": [\n        {\n            \"familyMemberId\": 1,\n            \"portionPercentage\": 0.5,\n            \"note\": \"吃了一半\"\n        }\n    ]\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/cooking/finish",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"cooking",
-								"finish"
-							]
-						},
-						"description": "完成烹饪 - 只完成部分菜品，并提供用餐者信息"
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "cooking", "finish"]
+						}
 					},
 					"response": []
 				}
@@ -250,35 +119,9 @@
 		},
 		{
 			"name": "2. AI 菜单生成",
-			"description": "AI 菜单生成相关 API",
 			"item": [
 				{
 					"name": "2.1 生成菜单 - 基础版",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status code is 200', function () {",
-									"    pm.response.to.have.status(200);",
-									"});",
-									"",
-									"var jsonData = pm.response.json();",
-									"pm.test('Response has correct structure', function () {",
-									"    pm.expect(jsonData).to.have.property('code');",
-									"    pm.expect(jsonData).to.have.property('data');",
-									"    pm.expect(jsonData.code).to.eql(200);",
-									"});",
-									"",
-									"pm.test('Response contains 5 menus', function () {",
-									"    pm.expect(jsonData.data).to.be.an('array');",
-									"    pm.expect(jsonData.data.length).to.eql(5);",
-									"});"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
 					"request": {
 						"method": "POST",
 						"header": [
@@ -289,45 +132,18 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"inventory\": [\n        {\n            \"name\": \"鸡蛋\",\n            \"amount_value\": 10,\n            \"amount_unit\": \"个\",\n            \"expires_at\": \"2024-12-25\"\n        },\n        {\n            \"name\": \"番茄\",\n            \"amount_value\": 500,\n            \"amount_unit\": \"g\",\n            \"expires_at\": \"2024-12-20\"\n        },\n        {\n            \"name\": \"西兰花\",\n            \"amount_value\": 300,\n            \"amount_unit\": \"g\",\n            \"expires_at\": \"2024-12-19\"\n        },\n        {\n            \"name\": \"鸡胸肉\",\n            \"amount_value\": 400,\n            \"amount_unit\": \"g\",\n            \"expires_at\": \"2024-12-18\"\n        }\n    ],\n    \"servings\": 2,\n    \"diet_preferences\": {\n        \"allergies\": [],\n        \"avoid_ingredients\": [\"香菜\"],\n        \"cuisine_preferences\": [\"chinese\"],\n        \"taste_preferences\": [\"light\"]\n    },\n    \"generation_settings\": {\n        \"dish_count\": 2,\n        \"max_cooking_time_min\": 30,\n        \"difficulty_target\": \"easy\"\n    },\n    \"calorie_target\": {\n        \"min_total_kcal\": 500,\n        \"max_total_kcal\": 700\n    },\n    \"cookers\": [\"stove\", \"rice_cooker\"],\n    \"seasonings\": [\"盐\", \"酱油\", \"食用油\", \"蒜\"]\n}"
+							"raw": "{\n    \"inventory\": [\n        {\n            \"name\": \"鸡蛋\",\n            \"amount_value\": 10,\n            \"amount_unit\": \"个\"\n        },\n        {\n            \"name\": \"番茄\",\n            \"amount_value\": 500,\n            \"amount_unit\": \"g\"\n        }\n    ],\n    \"servings\": 2,\n    \"diet_preferences\": {\n        \"allergies\": [],\n        \"avoid_ingredients\": [\"香菜\"],\n        \"cuisine_preferences\": [\"chinese\"],\n        \"taste_preferences\": [\"light\"]\n    },\n    \"generation_settings\": {\n        \"dish_count\": 2,\n        \"max_cooking_time_min\": 30,\n        \"difficulty_target\": \"easy\"\n    },\n    \"calorie_target\": {\n        \"min_total_kcal\": 500,\n        \"max_total_kcal\": 700\n    },\n    \"cookers\": [\"stove\"],\n    \"seasonings\": [\"盐\", \"酱油\"]\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/ai/generate-menus",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"ai",
-								"generate-menus"
-							]
-						},
-						"description": "生成 5 套菜单 - 基础版，手动传入所有参数"
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "ai", "generate-menus"]
+						}
 					},
 					"response": []
 				},
 				{
-					"name": "2.2 生成菜单 - 自动填充库存",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status code is 200', function () {",
-									"    pm.response.to.have.status(200);",
-									"});",
-									"",
-									"var jsonData = pm.response.json();",
-									"pm.test('Response has correct structure', function () {",
-									"    pm.expect(jsonData).to.have.property('code');",
-									"    pm.expect(jsonData).to.have.property('data');",
-									"    pm.expect(jsonData.code).to.eql(200);",
-									"});"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
+					"name": "2.2 生成菜单 - 自动填充",
 					"request": {
 						"method": "POST",
 						"header": [
@@ -342,22 +158,15 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/ai/generate-menus?householdId={{householdId}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"ai",
-								"generate-menus"
-							],
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "ai", "generate-menus"],
 							"query": [
 								{
 									"key": "householdId",
 									"value": "{{householdId}}"
 								}
 							]
-						},
-						"description": "生成菜单 - 传入 householdId，自动填充 inventory/cookers/seasonings"
+						}
 					},
 					"response": []
 				}
@@ -365,84 +174,28 @@
 		},
 		{
 			"name": "3. 收藏管理",
-			"description": "收藏菜谱相关 API",
 			"item": [
 				{
 					"name": "3.1 获取收藏列表",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status code is 200', function () {",
-									"    pm.response.to.have.status(200);",
-									"});",
-									"",
-									"var jsonData = pm.response.json();",
-									"pm.test('Response has correct structure', function () {",
-									"    pm.expect(jsonData).to.have.property('code');",
-									"    pm.expect(jsonData).to.have.property('data');",
-									"    pm.expect(jsonData.code).to.eql(200);",
-									"});",
-									"",
-									"pm.test('Data is an array', function () {",
-									"    pm.expect(jsonData.data).to.be.an('array');",
-									"});"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
 					"request": {
 						"method": "GET",
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/recipes/favorites?householdId={{householdId}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"recipes",
-								"favorites"
-							],
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "recipes", "favorites"],
 							"query": [
 								{
 									"key": "householdId",
 									"value": "{{householdId}}"
 								}
 							]
-						},
-						"description": "获取家庭的收藏菜谱列表"
+						}
 					},
 					"response": []
 				},
 				{
 					"name": "3.2 收藏/取消收藏",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status code is 200', function () {",
-									"    pm.response.to.have.status(200);",
-									"});",
-									"",
-									"var jsonData = pm.response.json();",
-									"pm.test('Response has correct structure', function () {",
-									"    pm.expect(jsonData).to.have.property('code');",
-									"    pm.expect(jsonData).to.have.property('data');",
-									"    pm.expect(jsonData.code).to.eql(200);",
-									"});",
-									"",
-									"pm.test('Dish has favorite field', function () {",
-									"    pm.expect(jsonData.data).to.have.property('favorite');",
-									"});"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
 					"request": {
 						"method": "POST",
 						"header": [
@@ -453,26 +206,19 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"title\": \"番茄炒蛋\",\n    \"short_description\": \"经典家常菜，营养美味\",\n    \"servings\": 2,\n    \"cooking_time_min\": 15,\n    \"difficulty\": \"easy\",\n    \"nutrition_estimate\": {\n        \"calories\": 250,\n        \"protein_g\": 12,\n        \"fat_g\": 15,\n        \"carbs_g\": 10\n    },\n    \"ingredients\": [\n        {\n            \"name\": \"鸡蛋\",\n            \"amount_value\": 3,\n            \"amount_unit\": \"个\",\n            \"is_optional\": false,\n            \"source_type\": \"INVENTORY\"\n        },\n        {\n            \"name\": \"番茄\",\n            \"amount_value\": 200,\n            \"amount_unit\": \"g\",\n            \"is_optional\": false,\n            \"source_type\": \"INVENTORY\"\n        }\n    ],\n    \"steps\": [\n        {\n            \"step_number\": 1,\n            \"instruction\": \"鸡蛋打散\",\n            \"step_time_min\": 2\n        },\n        {\n            \"step_number\": 2,\n            \"instruction\": \"番茄切块\",\n            \"step_time_min\": 3\n        },\n        {\n            \"step_number\": 3,\n            \"instruction\": \"炒熟即可\",\n            \"step_time_min\": 10\n        }\n    ]\n}"
+							"raw": "{\n    \"title\": \"番茄炒蛋\",\n    \"short_description\": \"经典家常菜\",\n    \"servings\": 2,\n    \"cooking_time_min\": 15,\n    \"difficulty\": \"easy\",\n    \"nutrition_estimate\": {\n        \"calories\": 250,\n        \"protein_g\": 12,\n        \"fat_g\": 15,\n        \"carbs_g\": 10\n    },\n    \"ingredients\": [\n        {\n            \"name\": \"鸡蛋\",\n            \"amount_value\": 3,\n            \"amount_unit\": \"个\"\n        }\n    ],\n    \"steps\": [\n        {\n            \"step_number\": 1,\n            \"instruction\": \"炒熟\",\n            \"step_time_min\": 10\n        }\n    ]\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/recipes/favorite?householdId={{householdId}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"recipes",
-								"favorite"
-							],
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "recipes", "favorite"],
 							"query": [
 								{
 									"key": "householdId",
 									"value": "{{householdId}}"
 								}
 							]
-						},
-						"description": "收藏或取消收藏菜谱（toggle）"
+						}
 					},
 					"response": []
 				}
@@ -480,251 +226,21 @@
 		},
 		{
 			"name": "4. 默认 Filter",
-			"description": "获取用户默认偏好设置",
 			"item": [
 				{
 					"name": "4.1 获取默认 Filter",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status code is 200', function () {",
-									"    pm.response.to.have.status(200);",
-									"});",
-									"",
-									"var jsonData = pm.response.json();",
-									"pm.test('Response has correct structure', function () {",
-									"    pm.expect(jsonData).to.have.property('code');",
-									"    pm.expect(jsonData).to.have.property('data');",
-									"    pm.expect(jsonData.code).to.eql(200);",
-									"});",
-									"",
-									"pm.test('Filter has required fields', function () {",
-									"    var filter = jsonData.data;",
-									"    pm.expect(filter).to.have.property('servings');",
-									"    pm.expect(filter).to.have.property('diet_preferences');",
-									"});"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
 					"request": {
 						"method": "GET",
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/recipes/default-filter?householdId={{householdId}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"recipes",
-								"default-filter"
-							],
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "recipes", "default-filter"],
 							"query": [
 								{
 									"key": "householdId",
 									"value": "{{householdId}}"
 								}
-							]
-						},
-						"description": "获取基于用户偏好和健康目标的默认 Filter 设置"
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "5. 完整流程测试",
-			"description": "测试完整的烹饪流程",
-			"item": [
-				{
-					"name": "Step 1: 获取默认 Filter",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status code is 200', function () {",
-									"    pm.response.to.have.status(200);",
-									"});",
-									"console.log('Step 1 完成: 获取默认 Filter');"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/recipes/default-filter?householdId={{householdId}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"recipes",
-								"default-filter"
-							],
-							"query": [
-								{
-									"key": "householdId",
-									"value": "{{householdId}}"
-								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Step 2: 生成菜单",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status code is 200', function () {",
-									"    pm.response.to.have.status(200);",
-									"});",
-									"",
-									"var jsonData = pm.response.json();",
-									"if (jsonData.code === 200 && jsonData.data && jsonData.data.length > 0) {",
-									"    // 保存第一个菜单的第一道菜信息",
-									"    var firstMenu = jsonData.data[0];",
-									"    pm.collectionVariables.set('generatedMenu', JSON.stringify(firstMenu));",
-									"    console.log('Step 2 完成: 生成菜单，保存第一个菜单');",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"servings\": 2,\n    \"diet_preferences\": {\n        \"allergies\": [],\n        \"avoid_ingredients\": [],\n        \"cuisine_preferences\": [\"chinese\"],\n        \"taste_preferences\": [\"light\"]\n    },\n    \"generation_settings\": {\n        \"dish_count\": 2,\n        \"max_cooking_time_min\": 30,\n        \"difficulty_target\": \"easy\"\n    },\n    \"calorie_target\": {\n        \"min_total_kcal\": 500,\n        \"max_total_kcal\": 700\n    }\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/ai/generate-menus?householdId={{householdId}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"ai",
-								"generate-menus"
-							],
-							"query": [
-								{
-									"key": "householdId",
-									"value": "{{householdId}}"
-								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Step 3: 开始烹饪",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"var jsonData = pm.response.json();",
-									"if (jsonData.code === 200 && jsonData.data) {",
-									"    pm.collectionVariables.set('sessionId', jsonData.data);",
-									"    console.log('Step 3 完成: 开始烹饪，Session ID:', jsonData.data);",
-									"}",
-									"",
-									"pm.test('Status code is 200', function () {",
-									"    pm.response.to.have.status(200);",
-									"});"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"householdId\": {{householdId}},\n    \"initiatorId\": {{initiatorId}},\n    \"recipe\": {\n        \"title\": \"测试菜品\",\n        \"short_description\": \"完整流程测试\",\n        \"servings\": 2,\n        \"cooking_time_min\": 15,\n        \"difficulty\": \"easy\",\n        \"nutrition_estimate\": {\n            \"calories\": 300,\n            \"protein_g\": 15,\n            \"fat_g\": 10,\n            \"carbs_g\": 20\n        },\n        \"ingredients\": [\n            {\n                \"name\": \"测试食材\",\n                \"amount_value\": 100,\n                \"amount_unit\": \"g\",\n                \"is_optional\": false,\n                \"source_type\": \"MANUAL_ADD\"\n            }\n        ],\n        \"steps\": [\n            {\n                \"step_number\": 1,\n                \"instruction\": \"测试步骤\",\n                \"step_time_min\": 5\n            }\n        ]\n    }\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/cooking/start",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"cooking",
-								"start"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Step 4: 完成烹饪",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status code is 200', function () {",
-									"    pm.response.to.have.status(200);",
-									"});",
-									"",
-									"var jsonData = pm.response.json();",
-									"pm.test('Session status is COOKED', function () {",
-									"    pm.expect(jsonData.data.status).to.eql('COOKED');",
-									"});",
-									"",
-									"console.log('Step 4 完成: 完成烹饪');",
-									"console.log('完整流程测试通过! ✅');"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"sessionId\": {{sessionId}},\n    \"finalIngredients\": [\n        {\n            \"name\": \"测试食材\",\n            \"amountValue\": 100,\n            \"amountUnit\": \"g\",\n            \"sourceType\": \"MANUAL_ADD\"\n        }\n    ],\n    \"totalNutrition\": {\n        \"calories\": 300,\n        \"protein\": 15,\n        \"fat\": 10,\n        \"carbs\": 20\n    }\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/cooking/finish",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"cooking",
-								"finish"
 							]
 						}
 					},
@@ -734,4 +250,3 @@
 		}
 	]
 }
-
