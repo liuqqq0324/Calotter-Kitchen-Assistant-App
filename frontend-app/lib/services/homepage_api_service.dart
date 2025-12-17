@@ -8,7 +8,7 @@ import 'package:personal_sous_chef/services/auth_service.dart';
 /// 处理营养和摄入相关的API调用
 class HomepageApiService {
   /// 获取基础headers（仅Content-Type，不包含Authorization）
-  /// 注意：此模块使用 familyMemberId 作为 URL 参数，与后端 controller 保持一致
+  /// 注意：后端 controller 使用 userId 作为 URL 参数
   static Map<String, String> _getHeaders() {
     return {'Content-Type': 'application/json'};
   }
@@ -73,7 +73,7 @@ class HomepageApiService {
   }
 
   /// 1. 获取周营养目标
-  /// GET /api/nutrition/targets/weekly?familyMemberId={familyMemberId}
+  /// GET /api/nutrition/targets/weekly?userId={userId}
   static Future<Map<String, dynamic>> getWeeklyNutritionTargets({
     String? familyMemberId,
   }) async {
@@ -84,7 +84,7 @@ class HomepageApiService {
       }
 
       final url = Uri.parse(
-        '${ApiConfig.homepageBaseUrl}/api/nutrition/targets/weekly?familyMemberId=$familyMemberIdParam',
+        '${ApiConfig.homepageBaseUrl}/api/nutrition/targets/weekly?userId=$familyMemberIdParam',
       );
       final headers = _getHeaders();
 
@@ -140,7 +140,7 @@ class HomepageApiService {
   }
 
   /// 2. 获取周营养摘要
-  /// GET /api/nutrition/summary?period=week&familyMemberId={familyMemberId}
+  /// GET /api/nutrition/summary?period=week&userId={userId}
   static Future<Map<String, dynamic>> getWeeklyNutritionSummary({
     String? familyMemberId,
   }) async {
@@ -151,7 +151,7 @@ class HomepageApiService {
       }
 
       final url = Uri.parse(
-        '${ApiConfig.homepageBaseUrl}/api/nutrition/summary?period=week&familyMemberId=$familyMemberIdParam',
+        '${ApiConfig.homepageBaseUrl}/api/nutrition/summary?period=week&userId=$familyMemberIdParam',
       );
       final headers = _getHeaders();
 
@@ -205,7 +205,7 @@ class HomepageApiService {
   }
 
   /// 3. 获取今日摄入记录
-  /// GET /api/intake/today?source=recipe|manual|all&familyMemberId={familyMemberId}
+  /// GET /api/intake/today?source=recipe|manual|all&userId={userId}
   static Future<Map<String, dynamic>> getTodayIntakes({
     String source = 'all',
     String? familyMemberId,
@@ -217,7 +217,7 @@ class HomepageApiService {
       }
 
       final url = Uri.parse(
-        '${ApiConfig.homepageBaseUrl}/api/intake/today?source=$source&familyMemberId=$familyMemberIdParam',
+        '${ApiConfig.homepageBaseUrl}/api/intake/today?source=$source&userId=$familyMemberIdParam',
       );
       final headers = _getHeaders();
 
@@ -271,7 +271,7 @@ class HomepageApiService {
   }
 
   /// 4. 更新摄入百分比
-  /// PATCH /api/intake/{intake_id}?familyMemberId={familyMemberId}
+  /// PATCH /api/intake/{intake_id}?userId={userId}
   static Future<Map<String, dynamic>> updateIntakePercentage({
     required int intakeId,
     required double consumedPercentage,
@@ -284,7 +284,7 @@ class HomepageApiService {
       }
 
       final url = Uri.parse(
-        '${ApiConfig.homepageBaseUrl}/api/intake/$intakeId?familyMemberId=$familyMemberIdParam',
+        '${ApiConfig.homepageBaseUrl}/api/intake/$intakeId?userId=$familyMemberIdParam',
       );
       final headers = _getHeaders();
 
@@ -341,7 +341,7 @@ class HomepageApiService {
   }
 
   /// 5. 添加手动摄入
-  /// POST /api/intake/manual?familyMemberId={familyMemberId}
+  /// POST /api/intake/manual?userId={userId}
   static Future<Map<String, dynamic>> addManualIntake({
     required String foodName,
     String? portionDescription,
@@ -355,7 +355,7 @@ class HomepageApiService {
       }
 
       final url = Uri.parse(
-        '${ApiConfig.homepageBaseUrl}/api/intake/manual?familyMemberId=$familyMemberIdParam',
+        '${ApiConfig.homepageBaseUrl}/api/intake/manual?userId=$familyMemberIdParam',
       );
       final headers = _getHeaders();
 
@@ -421,7 +421,7 @@ class HomepageApiService {
   }
 
   /// 6. 删除摄入记录
-  /// DELETE /api/intake/{intake_id}?familyMemberId={familyMemberId}
+  /// DELETE /api/intake/{intake_id}?userId={userId}
   static Future<Map<String, dynamic>> deleteIntake({
     required int intakeId,
     String? familyMemberId,
@@ -433,7 +433,7 @@ class HomepageApiService {
       }
 
       final url = Uri.parse(
-        '${ApiConfig.homepageBaseUrl}/api/intake/$intakeId?familyMemberId=$familyMemberIdParam',
+        '${ApiConfig.homepageBaseUrl}/api/intake/$intakeId?userId=$familyMemberIdParam',
       );
       final headers = _getHeaders();
 

@@ -30,6 +30,51 @@ public class NutritionAggregateService {
     private final UserHealthService userHealthService;
     
     /**
+     * 重建某一天的聚合表（用于“更新百分比/删除记录”等会改变历史数据的场景）
+     * 通过重新汇总当天所有 NutritionLog，保证 DailyNutrientAggregate 与真实流水一致。
+     */
+    @Transactional
+    public DailyNutrientAggregate rebuildDailyAggregate(User user, LocalDate date) {
+        // 1) 拿到当天所有流水
+        List<NutritionLog> logs = nutritionLogRepository.findByUserAndLogDate(user, date);
+
+        // 2) 汇总（空值按0处理）
+        int totalEnergy = logs.stream().mapToInt(l -> l.getEnergy() == null ? 0 : l.getEnergy()).sum();
+        double totalProtein = logs.stream().mapToDouble(l -> l.getProtein() == null ? 0.0 : l.getProtein()).sum();
+        double totalFat = logs.stream().mapToDouble(l -> l.getFat() == null ? 0.0 : l.getFat()).sum();
+        double totalCarbohydrates = logs.stream().mapToDouble(l -> l.getCarbohydrates() == null ? 0.0 : l.getCarbohydrates()).sum();
+        double totalFiber = logs.stream().mapToDouble(l -> l.getFiber() == null ? 0.0 : l.getFiber()).sum();
+
+        // 3) 获取或创建聚合记录
+        DailyNutrientAggregate aggregate = aggregateRepository
+                .findByUserAndDate(user, date)
+                .orElseGet(() -> {
+                    DailyNutrientAggregate a = new DailyNutrientAggregate();
+                    a.setUser(user);
+                    a.setDate(date);
+                    // 新建时快照当天目标
+                    UserHealthService.UserHealthInfo healthInfo = userHealthService.getUserHealthInfo(user.getId());
+                    if (healthInfo.getDailyEnergy() != null) {
+                        a.setGoalEnergySnapshot(healthInfo.getDailyEnergy());
+                        a.setGoalProteinSnapshot(healthInfo.getDailyProtein());
+                        a.setGoalFatSnapshot(healthInfo.getDailyFat());
+                        a.setGoalCarbohydratesSnapshot(healthInfo.getDailyCarbohydrates());
+                        a.setGoalFiberSnapshot(healthInfo.getDailyFiber());
+                    }
+                    return a;
+                });
+
+        // 4) 覆盖写回（而不是增量累加）
+        aggregate.setTotalEnergy(totalEnergy);
+        aggregate.setTotalProtein(totalProtein);
+        aggregate.setTotalFat(totalFat);
+        aggregate.setTotalCarbohydrates(totalCarbohydrates);
+        aggregate.setTotalFiber(totalFiber);
+
+        return aggregateRepository.save(aggregate);
+    }
+
+    /**
      * 更新聚合表（通过事件监听器调用）
      * 
      * @param log 营养日志
