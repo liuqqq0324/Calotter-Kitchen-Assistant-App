@@ -12,12 +12,16 @@ import com.calotter.health.service.event.NutritionLogCreatedEvent;
 import com.calotter.inventory.domain.entity.LeftoverDish;
 import com.calotter.inventory.repository.LeftoverDishRepository;
 import com.calotter.user.domain.entity.FamilyMember;
+import com.calotter.user.domain.entity.User;
 import com.calotter.user.repository.FamilyMemberRepository;
+import com.calotter.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -31,7 +35,8 @@ import java.util.List;
 public class NutritionLogService {
     
     private final NutritionLogRepository nutritionLogRepository;
-    private final FamilyMemberRepository familyMemberRepository;
+    private final FamilyMemberRepository familyMemberRepository; // 保留用于事件处理
+    private final UserRepository userRepository;
     private final LeftoverDishRepository leftoverDishRepository;
     private final LeftoverDishService leftoverDishService;
     private final ApplicationEventPublisher eventPublisher;
@@ -57,11 +62,16 @@ public class NutritionLogService {
         
         // 为每个用餐者创建日志
         for (CookingSessionCompletedEvent.DinerConsumptionData diner : event.getDiners()) {
+            // 事件中使用 FamilyMemberId，需要先找到 FamilyMember 再获取 User
             FamilyMember member = familyMemberRepository.findById(diner.getFamilyMemberId())
                     .orElseThrow(() -> new IllegalArgumentException("家庭成员不存在: " + diner.getFamilyMemberId()));
+            User user = member.getUser();
+            if (user == null) {
+                throw new IllegalArgumentException("家庭成员没有关联的用户: " + diner.getFamilyMemberId());
+            }
             
             NutritionLog log = new NutritionLog();
-            log.setFamilyMember(member);
+            log.setUser(user);
             log.setDishId(event.getDishId()); // ✅ 使用弱引用关联Dish
             log.setLogDate(event.getConsumedAt().toLocalDate());
             log.setSourceType(LogSourceType.APP_COOKING);
@@ -69,22 +79,35 @@ public class NutritionLogService {
             log.setEatenAt(event.getConsumedAt());
             log.setMealType(mealType);
             
-            // ✅ 基于事件中的Dish营养快照计算并存储快照值
-            double ratio = diner.getPortionPercentage();
+            // ✅ 基于事件中的Dish营养快照存储基础值和实际值
+            double portionRatio = diner.getPortionPercentage(); // 0.0-1.0，用餐者分配的百分比
             CookingSessionCompletedEvent.DishNutritionSnapshot nutrition = event.getDishNutrition();
             
-            log.setCalories(nutrition.getTotalCalories() != null ? 
-                    (int) (nutrition.getTotalCalories() * ratio) : null);
+            // 存储基础营养值（100%时的值，从Dish获取）
+            log.setBaseEnergy(nutrition.getTotalCalories());
+            log.setBaseProtein(nutrition.getTotalProtein());
+            log.setBaseFat(nutrition.getTotalFat());
+            log.setBaseCarbohydrates(nutrition.getTotalCarb());
+            log.setBaseFiber(nutrition.getTotalFiber());
+            
+            // 初始 consumedPercentage 基于 portionPercentage（用餐者分配的百分比）
+            BigDecimal initialConsumedPct = BigDecimal.valueOf(portionRatio * 100.0);
+            log.setConsumedPercentage(initialConsumedPct);
+            
+            // 计算实际摄入营养值（基于 portionPercentage，后续用户可以在 todays_recipes 页面调整）
+            BigDecimal consumedRatio = initialConsumedPct.divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP);
+            log.setEnergy(nutrition.getTotalCalories() != null ? 
+                    (int) (nutrition.getTotalCalories() * consumedRatio.doubleValue()) : null);
             log.setProtein(nutrition.getTotalProtein() != null ? 
-                    nutrition.getTotalProtein() * ratio : null);
+                    nutrition.getTotalProtein() * consumedRatio.doubleValue() : null);
             log.setFat(nutrition.getTotalFat() != null ? 
-                    nutrition.getTotalFat() * ratio : null);
-            log.setCarb(nutrition.getTotalCarb() != null ? 
-                    nutrition.getTotalCarb() * ratio : null);
+                    nutrition.getTotalFat() * consumedRatio.doubleValue() : null);
+            log.setCarbohydrates(nutrition.getTotalCarb() != null ? 
+                    nutrition.getTotalCarb() * consumedRatio.doubleValue() : null);
             log.setFiber(nutrition.getTotalFiber() != null ? 
-                    nutrition.getTotalFiber() * ratio : null);
+                    nutrition.getTotalFiber() * consumedRatio.doubleValue() : null);
             log.setQuantity(nutrition.getTotalWeightGram() != null ? 
-                    (double)(nutrition.getTotalWeightGram() * ratio) : null);
+                    (double)(nutrition.getTotalWeightGram() * consumedRatio.doubleValue()) : null);
             log.setUnit("g");
             
             logs.add(log);
@@ -125,9 +148,9 @@ public class NutritionLogService {
                             consumedGram, leftover.getCurrentQuantityGram()));
         }
         
-        // 3. 查询家庭成员
-        FamilyMember member = familyMemberRepository.findById(memberId)
-                .orElseThrow(() -> new IllegalArgumentException("家庭成员不存在: " + memberId));
+        // 3. 查询用户（memberId 实际上是 userId）
+        User user = userRepository.findById(memberId)
+                .orElseThrow(() -> new IllegalArgumentException("用户不存在: " + memberId));
         
         // 4. 使用LeftoverDishService计算营养（该Service在cooking模块）
         // 注意：calculateNutritionForConsumption内部也会验证重量，但这里已经提前验证了
@@ -140,7 +163,7 @@ public class NutritionLogService {
         
         // 6. 创建NutritionLog
         NutritionLog log = new NutritionLog();
-        log.setFamilyMember(member);
+        log.setUser(user);
         log.setDishId(leftover.getOriginalDishId()); // ✅ 使用弱引用存储Dish ID
         log.setSourceType(LogSourceType.LEFTOVER);
         log.setFoodName(leftoverDetail.getName()); // ✅ 从LeftoverDishService获取
@@ -151,10 +174,21 @@ public class NutritionLogService {
         log.setLogDate(eatenAt.toLocalDate());
         
         // 7. 设置营养数据（从NutritionInfo，这些是计算后的实际摄入量）
-        log.setCalories(nutritionInfo.getCalories());
+        // 注意：剩菜的营养值已经是基于 consumedGram 计算后的值，所以 base 和 actual 相同
+        // 但为了统一，我们设置 base 值为从 Dish 获取的100%值（需要从 LeftoverDishService 获取）
+        // 暂时简化：假设当前值就是100%时的值
+        log.setBaseEnergy(nutritionInfo.getCalories());
+        log.setBaseProtein(nutritionInfo.getProtein());
+        log.setBaseFat(nutritionInfo.getFat());
+        log.setBaseCarbohydrates(nutritionInfo.getCarb());
+        log.setBaseFiber(nutritionInfo.getFiber());
+        
+        // 实际摄入值（剩菜全部吃掉，100%）
+        log.setConsumedPercentage(BigDecimal.valueOf(100.0));
+        log.setEnergy(nutritionInfo.getCalories());
         log.setProtein(nutritionInfo.getProtein());
         log.setFat(nutritionInfo.getFat());
-        log.setCarb(nutritionInfo.getCarb());
+        log.setCarbohydrates(nutritionInfo.getCarb());
         log.setFiber(nutritionInfo.getFiber());
         
         // 8. 保存日志
@@ -178,11 +212,11 @@ public class NutritionLogService {
      */
     @Transactional
     public NutritionLog createManual(ManualNutritionLogRequest request) {
-        FamilyMember member = familyMemberRepository.findById(request.getFamilyMemberId())
-                .orElseThrow(() -> new IllegalArgumentException("家庭成员不存在: " + request.getFamilyMemberId()));
+        User user = userRepository.findById(request.getUserId())
+                .orElseThrow(() -> new IllegalArgumentException("用户不存在: " + request.getUserId()));
         
         NutritionLog log = new NutritionLog();
-        log.setFamilyMember(member);
+        log.setUser(user);
         log.setDishId(null); // 手动记录没有Dish关联
         log.setSourceType(LogSourceType.MANUAL);
         log.setFoodName(request.getFoodName());
@@ -193,11 +227,19 @@ public class NutritionLogService {
         log.setLogDate(request.getEatenAt().toLocalDate());
         
         // 设置营养数据
-        // DTO字段统一为 energy/carbohydrates，这里映射到实体的 calories/carb
-        log.setCalories(request.getEnergy());
+        // DTO字段统一为 energy/carbohydrates，实体字段也已统一
+        // 手动输入的营养值就是实际摄入值，假设100%吃掉
+        log.setConsumedPercentage(BigDecimal.valueOf(100.0));
+        log.setBaseEnergy(request.getEnergy());
+        log.setBaseProtein(request.getProtein());
+        log.setBaseFat(request.getFat());
+        log.setBaseCarbohydrates(request.getCarbohydrates());
+        log.setBaseFiber(null);
+        
+        log.setEnergy(request.getEnergy());
         log.setProtein(request.getProtein());
         log.setFat(request.getFat());
-        log.setCarb(request.getCarbohydrates());
+        log.setCarbohydrates(request.getCarbohydrates());
         // 统一字段后不再从手动请求传入 fiber
         log.setFiber(null);
         

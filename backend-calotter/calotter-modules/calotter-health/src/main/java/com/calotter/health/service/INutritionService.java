@@ -17,19 +17,19 @@ public interface INutritionService {
      * Get weekly nutrition targets for a family member
      * 获取家庭成员的周营养目标
      *
-     * @param familyMemberId Family Member ID
+     * @param userId Family Member ID
      * @return Weekly nutrition targets response
      */
-    WeeklyNutritionTargetsResponse getWeeklyNutritionTargets(Long familyMemberId);
+    WeeklyNutritionTargetsResponse getWeeklyNutritionTargets(Long userId);
 
     /**
      * Get weekly nutrition summary (consumed and remaining)
      * 获取周营养摘要（已消费和剩余）
      *
-     * @param familyMemberId Family Member ID
+     * @param userId Family Member ID
      * @return Weekly nutrition summary response
      */
-    WeeklyNutritionSummaryResponse getWeeklyNutritionSummary(Long familyMemberId);
+    WeeklyNutritionSummaryResponse getWeeklyNutritionSummary(Long userId);
 
     /**
      * Weekly Nutrition Targets Response

@@ -42,7 +42,8 @@ Response (B -> F):
   }
 }
 3. Get Today Intakes (F -> B)
-Request method and path: GET /api/intake/today?source=recipe GET /api/intake/today?source=manual
+Request method and path: GET /api/intake/today?source=recipe 
+                         GET /api/intake/today?source=manual
 Request header:
 Authorization: Bearer
 Response 1 (B -> F):
