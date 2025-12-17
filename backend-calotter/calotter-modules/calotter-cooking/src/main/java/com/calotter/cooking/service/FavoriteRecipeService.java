@@ -60,6 +60,9 @@ public class FavoriteRecipeService {
 
     @Transactional(readOnly = true)
     public List<Dish> listFavorites(Long householdId) {
+        // 先校验家庭是否存在
+        householdRepository.findById(householdId)
+                .orElseThrow(() -> new IllegalArgumentException("家庭不存在"));
         return dishRepository.findByHouseholdIdAndFavoriteTrueOrderByUpdateTimeDesc(householdId);
     }
 
