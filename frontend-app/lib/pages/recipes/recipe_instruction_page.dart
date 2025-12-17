@@ -41,7 +41,7 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
     _createCookingSession();
   }
 
-  /// 创建烹饪session
+  /// 创建烹饪session（传入整个 Menu）
   Future<void> _createCookingSession() async {
     try {
       final householdId = await HouseholdService.getHouseholdId();
@@ -52,38 +52,38 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
         return;
       }
 
-      final currentRecipe = widget.menu.recipes[_currentIndex];
-      // 将RecipeModel转换为后端需要的格式
-      final recipeJson = {
-        'title': currentRecipe.title,
-        'short_description': currentRecipe.shortDescription,
-        'servings': currentRecipe.servings,
-        'cooking_time_min': currentRecipe.cookingTimeMin,
-        'difficulty': currentRecipe.difficulty,
+      // 将整个 Menu 的所有菜品转换为后端需要的格式
+      final recipesJson = widget.menu.recipes.map((recipe) => {
+        'title': recipe.title,
+        'short_description': recipe.shortDescription,
+        'servings': recipe.servings,
+        'cooking_time_min': recipe.cookingTimeMin,
+        'difficulty': recipe.difficulty,
         'nutrition_estimate': {
-          'calories': currentRecipe.totalCaloriesEstimate,
-          'protein_g': 0.0,
-          'fat_g': 0.0,
-          'carbs_g': 0.0,
+          'calories': recipe.totalCaloriesEstimate,
+          'protein_g': recipe.totalProtein ?? 0.0,
+          'fat_g': recipe.totalFat ?? 0.0,
+          'carbs_g': recipe.totalCarb ?? 0.0,
         },
-        'ingredients': currentRecipe.ingredients.map((ing) => {
+        'ingredients': recipe.ingredients.map((ing) => {
           'name': ing.name,
           'amount_value': ing.amountValue,
           'amount_unit': ing.amountUnit,
           'is_optional': ing.isOptional,
           'source_type': 'MANUAL_ADD',
         }).toList(),
-        'steps': currentRecipe.steps.map((step) => {
+        'steps': recipe.steps.map((step) => {
           'step_number': step.stepNumber,
           'instruction': step.instruction,
           'step_time_min': step.stepTimeMin,
         }).toList(),
-      };
+      }).toList();
 
       final sessionId = await CookingApiService.startCooking(
         householdId: householdId,
         initiatorId: initiatorId,
-        recipe: recipeJson,
+        recipes: recipesJson, // 传入整个 Menu
+        menuId: widget.menu.menuId,
       );
 
       if (mounted) {
@@ -91,7 +91,7 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
           _sessionId = sessionId;
           _sessionCreated = true;
         });
-        print('[RecipePage] Created cooking session: $sessionId');
+        print('[RecipePage] Created cooking session: $sessionId for menu with ${widget.menu.recipes.length} dishes');
       }
     } catch (e) {
       print('[RecipePage] Failed to create cooking session: $e');
@@ -182,7 +182,18 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
   }
 
   void _onMealDone() {
-    if (!_isWholeMealDone) return;
+    // 支持部分完成：即使不是全部完成也可以保存
+    if (_completedDishes.isEmpty) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('Please mark at least one dish as done.'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      return;
+    }
 
     Navigator.push(
       context,
@@ -580,7 +591,8 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
     final theme = Theme.of(context);
 
     final isCurrentDone = _isCurrentDishDone;
-    final isMealDone = _isWholeMealDone;
+    final completedCount = _completedDishes.length;
+    final hasCompleted = completedCount > 0;
 
     return SafeArea(
       child: Padding(
@@ -588,7 +600,7 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // 上面一行：第几道菜 + 左右切换
+            // 上面一行：第几道菜 + 进度 + 左右切换
             Row(
               children: [
                 Text(
@@ -597,6 +609,16 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
+                if (hasCompleted) ...[
+                  const SizedBox(width: 8),
+                  Text(
+                    '($completedCount/$_totalDishes completed)',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: Colors.orange,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
                 const Spacer(),
                 IconButton(
                   onPressed: _currentIndex > 0 ? _goToPrevDish : null,
@@ -611,7 +633,7 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
             ),
             const SizedBox(height: 8),
 
-            // 下面一行：Dish done + Meal done
+            // 下面一行：Dish done + Save progress
             Row(
               children: [
                 Expanded(
@@ -630,12 +652,16 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: isMealDone ? _onMealDone : null,
+                    onPressed: hasCompleted ? _onMealDone : null,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.orange,
                       foregroundColor: Colors.white,
                     ),
-                    child: const Text('Meal done'),
+                    child: Text(
+                      _isWholeMealDone 
+                          ? 'Meal done' 
+                          : 'Save progress ($completedCount dishes)',
+                    ),
                   ),
                 ),
               ],

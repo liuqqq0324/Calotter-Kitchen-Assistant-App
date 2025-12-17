@@ -76,7 +76,8 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
     // 如果有sessionId，调用后端API完成烹饪
     if (widget.sessionId != null) {
       try {
-        // 收集所有使用的食材
+        // 收集已完成的菜品 ID（如果 percentEaten > 0，认为已完成）
+        final completedDishIds = <int>[];
         final finalIngredients = <Map<String, dynamic>>[];
         double totalCalories = 0;
         double totalProtein = 0;
@@ -84,31 +85,61 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
         double totalCarbs = 0;
 
         for (final recipe in widget.menu.recipes) {
-          final ingControllers = _ingredientControllers[recipe.id] ?? {};
+          final percentEaten = _percentEaten[recipe.id] ?? 0;
           
-          for (final ing in recipe.ingredients) {
-            final controller = ingControllers[ing.name];
-            final parsed = double.tryParse(controller?.text.trim() ?? '');
-            final amount = parsed ?? ing.amountValue;
+          // 如果吃了 > 0%，认为这道菜已完成
+          if (percentEaten > 0) {
+            // 尝试解析 recipe.id 为 int（如果是后端返回的 Dish ID）
+            // 注意：如果 recipe.id 不是数字格式，completedDishIds 可能为空
+            // 这种情况下，后端会完成所有菜品（如果 completedDishIds 为空）
+            final dishId = int.tryParse(recipe.id);
+            if (dishId != null && dishId > 0) {
+              completedDishIds.add(dishId);
+            }
             
-            finalIngredients.add({
-              'name': ing.name,
-              'amountValue': amount,
-              'amountUnit': ing.amountUnit,
-              'sourceType': ing.name.toLowerCase().contains('salt') || 
-                           ing.name.toLowerCase().contains('oil') ||
-                           ing.name.toLowerCase().contains('pepper')
-                  ? 'MANUAL_ADD' : 'INVENTORY', // 简化判断，实际应该从recipe中获取
-            });
-          }
+            final ingControllers = _ingredientControllers[recipe.id] ?? {};
+            
+            // 只收集已完成的菜品用到的食材
+            for (final ing in recipe.ingredients) {
+              final controller = ingControllers[ing.name];
+              final parsed = double.tryParse(controller?.text.trim() ?? '');
+              final amount = parsed ?? ing.amountValue;
+              
+              finalIngredients.add({
+                'name': ing.name,
+                'amountValue': amount,
+                'amountUnit': ing.amountUnit,
+                'sourceType': ing.name.toLowerCase().contains('salt') || 
+                             ing.name.toLowerCase().contains('oil') ||
+                             ing.name.toLowerCase().contains('pepper')
+                    ? 'MANUAL_ADD' : 'INVENTORY', // 简化判断，实际应该从recipe中获取
+              });
+            }
 
-          // 累加营养信息（简化处理，实际应该从recipe中获取）
-          totalCalories += recipe.totalCaloriesEstimate;
+            // 累加营养信息（按比例计算）
+            totalCalories += (recipe.totalCaloriesEstimate * percentEaten / 100);
+            totalProtein += (recipe.totalProtein ?? 0) * percentEaten / 100;
+            totalFat += (recipe.totalFat ?? 0) * percentEaten / 100;
+            totalCarbs += (recipe.totalCarb ?? 0) * percentEaten / 100;
+          }
+        }
+
+        if (completedDishIds.isEmpty) {
+          ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(
+              const SnackBar(
+                content: Text('Please mark at least one dish as completed.'),
+                duration: Duration(seconds: 2),
+              ),
+            );
+          return;
         }
 
         // 调用finish cooking API
         await CookingApiService.finishCooking(
           sessionId: widget.sessionId!,
+          completedDishIds: completedDishIds, // 传入已完成的菜品 ID
           finalIngredients: finalIngredients,
           totalNutrition: {
             'calories': totalCalories,
@@ -116,6 +147,7 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
             'fat': totalFat,
             'carbs': totalCarbs,
           },
+          // diners: 可选，后续可以添加用餐者信息输入
         );
 
         if (!mounted) return;

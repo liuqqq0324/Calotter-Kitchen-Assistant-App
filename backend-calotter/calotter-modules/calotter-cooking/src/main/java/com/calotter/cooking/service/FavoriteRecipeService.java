@@ -81,7 +81,8 @@ public class FavoriteRecipeService {
                     recipeDto.getIngredients().stream().map(ing -> {
                         Dish.IngredientSnapshot snap = new Dish.IngredientSnapshot();
                         snap.setName(ing.getName());
-                        snap.setQuantityStr((ing.getAmount_value() != null ? ing.getAmount_value() : 0) + ing.getAmount_unit());
+                        snap.setAmountValue(ing.getAmount_value() != null ? ing.getAmount_value() : 0.0);
+                        snap.setAmountUnit(ing.getAmount_unit() != null ? ing.getAmount_unit() : "g");
                         return snap;
                     }).toList()
             );

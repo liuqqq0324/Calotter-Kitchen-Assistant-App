@@ -82,8 +82,8 @@ public class Dish extends BaseEntity {
     private List<String> tags;
 
     /**
-     * 原料清单的文本快照（快照模式，确保历史数据准确）
-     * 结构: [{"name": "五花肉", "quantityStr": "500g"}, ...]
+     * 原料清单的快照（快照模式，确保历史数据准确）
+     * 结构: [{"name": "五花肉", "amountValue": 500.0, "amountUnit": "g"}, ...]
      */
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
@@ -125,6 +125,7 @@ public class Dish extends BaseEntity {
     @Data
     public static class IngredientSnapshot {
         private String name;
-        private String quantityStr; // "500g", "2勺"
+        private Double amountValue; // 数量值，如 500.0
+        private String amountUnit;  // 单位，如 "g", "ml", "pcs"
     }
 }

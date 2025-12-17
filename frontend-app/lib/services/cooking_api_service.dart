@@ -11,18 +11,26 @@ class CookingApiService {
     required int initiatorId,
     int? dishId,
     Map<String, dynamic>? recipe,
+    List<Map<String, dynamic>>? recipes, // 支持整个 Menu
+    int? menuId,
   }) async {
     final url = Uri.parse('${ApiConfig.recipeBaseUrl}/api/cooking/start');
     final body = <String, dynamic>{
       'householdId': householdId,
       'initiatorId': initiatorId,
     };
-    if (dishId != null) {
+    if (recipes != null && recipes.isNotEmpty) {
+      // 支持多道菜（Menu）
+      body['recipes'] = recipes;
+      if (menuId != null) {
+        body['menuId'] = menuId;
+      }
+    } else if (dishId != null) {
       body['dishId'] = dishId;
     } else if (recipe != null) {
       body['recipe'] = recipe;
     } else {
-      throw Exception('Must provide either dishId or recipe');
+      throw Exception('Must provide either dishId, recipe, or recipes');
     }
 
     print('[CookingApi] POST $url');
@@ -56,19 +64,27 @@ class CookingApiService {
     }
   }
 
-  /// 完成烹饪：保存快照，生成剩菜/健康事件
+  /// 完成烹饪：保存快照，扣减库存，创建剩菜记录
   /// POST /api/cooking/finish
   static Future<Map<String, dynamic>> finishCooking({
     required int sessionId,
     required List<Map<String, dynamic>> finalIngredients,
     required Map<String, dynamic> totalNutrition,
+    List<int>? completedDishIds, // 已完成的菜品 ID 列表（可选）
+    List<Map<String, dynamic>>? diners, // 用餐者信息（可选）
   }) async {
     final url = Uri.parse('${ApiConfig.recipeBaseUrl}/api/cooking/finish');
-    final body = {
+    final body = <String, dynamic>{
       'sessionId': sessionId,
       'finalIngredients': finalIngredients,
       'totalNutrition': totalNutrition,
     };
+    if (completedDishIds != null && completedDishIds.isNotEmpty) {
+      body['completedDishIds'] = completedDishIds;
+    }
+    if (diners != null && diners.isNotEmpty) {
+      body['diners'] = diners;
+    }
 
     print('[CookingApi] POST $url');
     print('[CookingApi] body: ${jsonEncode(body)}');

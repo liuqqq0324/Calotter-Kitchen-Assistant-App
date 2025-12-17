@@ -1,5 +1,7 @@
 // lib/pages/recipes/recipe_filter_page.dart
 import 'package:flutter/material.dart';
+import 'package:personal_sous_chef/services/recipe_api_service.dart';
+import 'package:personal_sous_chef/services/household_service.dart';
 
 class RecipeFilterPage extends StatefulWidget {
   const RecipeFilterPage({super.key});
@@ -65,6 +67,95 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> {
     "slow_cooker",
     "blender",
   ];
+
+  bool _isLoadingDefaults = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDefaultFilter();
+  }
+
+  /// 加载默认 Filter 并填充表单
+  Future<void> _loadDefaultFilter() async {
+    setState(() => _isLoadingDefaults = true);
+    try {
+      final householdId = await HouseholdService.getHouseholdId();
+      if (householdId == null) {
+        print('[FilterPage] Failed to get householdId, skipping default filter');
+        return;
+      }
+      
+      final defaultFilter = await RecipeApiService.getDefaultFilter(householdId: householdId);
+      
+      if (mounted) {
+        setState(() {
+          // 填充 servings
+          final servings = defaultFilter['servings'];
+          if (servings != null) {
+            _servingsController.text = servings.toString();
+          }
+          
+          // 填充 dish_count
+          final dishCount = defaultFilter['dish_count'];
+          if (dishCount != null) {
+            _dishCountController.text = dishCount.toString();
+          }
+          
+          // 填充 calorie_target
+          final calorieTarget = defaultFilter['calorie_target'];
+          if (calorieTarget != null) {
+            _calorieController.text = calorieTarget.toString();
+          }
+          
+          // 填充 max_cooking_time_min
+          final maxTime = defaultFilter['max_cooking_time_min'];
+          if (maxTime != null) {
+            _maxTimeController.text = maxTime.toString();
+          }
+          
+          // 填充 diet_preferences
+          final dietPrefs = defaultFilter['diet_preferences'] as Map<String, dynamic>? ?? {};
+          final allergies = (dietPrefs['allergies'] as List?) ?? [];
+          if (allergies.isNotEmpty) {
+            _allergyController.text = allergies.join(', ');
+          }
+          
+          final avoidIngredients = (dietPrefs['avoid_ingredients'] as List?) ?? [];
+          if (avoidIngredients.isNotEmpty) {
+            _tabooController.text = avoidIngredients.join(', ');
+          }
+          
+          final cuisines = (dietPrefs['cuisine_preferences'] as List?) ?? [];
+          _selectedCuisines = Set<String>.from(cuisines);
+          
+          final tastes = (dietPrefs['taste_preferences'] as List?) ?? [];
+          _selectedTastes = Set<String>.from(tastes);
+          
+          // 填充 difficulty_target
+          final difficulty = defaultFilter['difficulty_target'];
+          if (difficulty != null) {
+            if (difficulty is List) {
+              _selectedDifficulties = Set<String>.from(difficulty);
+            } else {
+              _selectedDifficulties = {difficulty.toString()};
+            }
+          }
+          
+          // 填充 cookers
+          final cookers = (defaultFilter['cookers'] as List?) ?? [];
+          _selectedCookers = Set<String>.from(cookers);
+        });
+      }
+    } catch (e) {
+      print('[FilterPage] Failed to load default filter: $e');
+      // 不阻止用户使用，只是记录错误
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingDefaults = false);
+      }
+    }
+  }
 
   @override
   void dispose() {

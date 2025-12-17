@@ -47,23 +47,17 @@ class FavoriteRecipesApiService {
 
   /// 将Dish实体转换为RecipeModel
   static RecipeModel _dishToRecipeModel(Map<String, dynamic> dish) {
-    // 解析ingredients
+    // 解析ingredients - 直接使用 amountValue 和 amountUnit（不再解析字符串）
     final ingredientsJson = dish['ingredientSnapshots'] as List? ?? [];
     final ingredients = ingredientsJson.map((ing) {
       final name = ing['name']?.toString() ?? '';
-      final quantityStr = ing['quantityStr']?.toString() ?? '0g';
-      // 解析quantityStr，例如 "500g" -> amountValue=500, amountUnit="g"
-      double amountValue = 0;
-      String amountUnit = 'g';
-      try {
-        final match = RegExp(r'(\d+\.?\d*)\s*(\w+)').firstMatch(quantityStr);
-        if (match != null) {
-          amountValue = double.parse(match.group(1)!);
-          amountUnit = match.group(2)!;
-        }
-      } catch (e) {
-        // 解析失败，使用默认值
-      }
+      // 直接使用 amountValue 和 amountUnit
+      final amountValue = (ing['amountValue'] ?? ing['amount_value'] ?? 0) is num
+          ? (ing['amountValue'] ?? ing['amount_value']).toDouble()
+          : 0.0;
+      final amountUnit = ing['amountUnit']?.toString() ?? 
+                          ing['amount_unit']?.toString() ?? 
+                          'g';
       
       return {
         'name': name,
@@ -83,6 +77,21 @@ class FavoriteRecipesApiService {
       };
     }).toList();
     
+    // 解析营养字段
+    int? parseInt(dynamic value) {
+      if (value == null) return null;
+      if (value is int) return value;
+      if (value is num) return value.toInt();
+      return int.tryParse(value.toString());
+    }
+    
+    double? parseDouble(dynamic value) {
+      if (value == null) return null;
+      if (value is double) return value;
+      if (value is num) return value.toDouble();
+      return double.tryParse(value.toString());
+    }
+    
     return RecipeModel.fromJson({
       'id': dish['id']?.toString() ?? '',
       'title': dish['name']?.toString() ?? '',
@@ -94,6 +103,13 @@ class FavoriteRecipesApiService {
       'ingredients': ingredients,
       'steps': steps,
       'emoji': '🍽️', // 默认emoji
+      // 营养字段（跟着后端）
+      'total_weight_gram': parseInt(dish['totalWeightGram'] ?? dish['total_weight_gram']),
+      'total_calories': parseInt(dish['totalCalories'] ?? dish['total_calories']),
+      'total_protein': parseDouble(dish['totalProtein'] ?? dish['total_protein']),
+      'total_fat': parseDouble(dish['totalFat'] ?? dish['total_fat']),
+      'total_carb': parseDouble(dish['totalCarb'] ?? dish['total_carb']),
+      'total_fiber': parseDouble(dish['totalFiber'] ?? dish['total_fiber']),
     });
   }
 
