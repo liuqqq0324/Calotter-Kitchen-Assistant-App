@@ -7,7 +7,9 @@
 ### 测试脚本
 - **`inject-test-data.sh`** - 自动注入测试数据到数据库
 - **`test-inventory-api.sh`** - 基础API测试脚本
-- **`test-inventory-full.sh`** - 完整CRUD测试脚本
+- **`test-inventory-full.sh`** - 完整CRUD测试脚本（包含所有模块）
+- **`test-search-api.sh`** - 标准食材库查找功能测试脚本
+- **`test-ingredients-crud.sh`** - Ingredients CRUD API 测试脚本（新增，推荐使用）
 
 ### 数据文件
 - **`insert-test-data.sql`** - SQL测试数据脚本
@@ -34,11 +36,17 @@ bash calotter-modules/calotter-inventory/test/inject-test-data.sh
 ### 2. 运行测试
 
 ```bash
+# 标准食材库查找功能测试
+bash test-search-api.sh
+
+# Ingredients CRUD API 测试（推荐，专门测试库存管理）
+bash test-ingredients-crud.sh
+
+# 完整测试（包含所有模块：ingredients, spices, utensils, leftovers）
+bash test-inventory-full.sh
+
 # 基础测试
 bash test-inventory-api.sh
-
-# 完整测试（推荐）
-bash test-inventory-full.sh
 ```
 
 ## 📋 测试数据

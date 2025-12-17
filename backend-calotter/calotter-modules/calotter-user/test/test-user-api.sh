@@ -61,20 +61,76 @@ REGISTER_RESPONSE=$(curl -s -X POST "${BASE_URL}/api/user/register" \
     \"password\": \"password123\"
   }")
 
-test_api "注册用户" "POST" "${BASE_URL}/api/user/register" \
-  "{\"username\":\"${TEST_USERNAME}\",\"email\":\"${TEST_EMAIL}\",\"password\":\"password123\"}"
-
+# 检查注册响应
+REGISTER_CODE=$(echo $REGISTER_RESPONSE | grep -o '"code":[0-9]*' | cut -d':' -f2)
 USER_ID=$(echo $REGISTER_RESPONSE | grep -o '"userId":[0-9]*' | cut -d':' -f2)
 TOKEN=$(echo $REGISTER_RESPONSE | grep -o '"token":"[^"]*' | cut -d'"' -f4)
 
-if [ ! -z "$USER_ID" ]; then
-    echo -e "${GREEN}注册的用户ID: $USER_ID${NC}"
-    if [ ! -z "$TOKEN" ]; then
-        echo -e "${GREEN}Token: ${TOKEN:0:50}...${NC}"
-    fi
+# 测试注册结果
+if [ "$REGISTER_CODE" = "200" ]; then
+    echo -e "${YELLOW}测试: 注册用户${NC}"
+    echo -e "${GREEN}✓ 通过 (code: $REGISTER_CODE)${NC}"
+    echo "响应: $REGISTER_RESPONSE" | python3 -m json.tool 2>/dev/null || echo "响应: $REGISTER_RESPONSE"
+    ((PASS_COUNT++))
     echo ""
     
-    # 2. 登录用户
+    if [ ! -z "$USER_ID" ]; then
+        echo -e "${GREEN}注册的用户ID: $USER_ID${NC}"
+        if [ ! -z "$TOKEN" ]; then
+            echo -e "${GREEN}Token: ${TOKEN:0:50}...${NC}"
+        fi
+        echo ""
+    fi
+else
+    echo -e "${YELLOW}测试: 注册用户${NC}"
+    echo -e "${RED}✗ 失败 (期望: 200, 实际: $REGISTER_CODE)${NC}"
+    echo "响应: $REGISTER_RESPONSE"
+    ((FAIL_COUNT++))
+    echo ""
+    
+    # 如果注册失败（可能是用户已存在），尝试使用不同的用户名
+    echo -e "${YELLOW}⚠ 注册失败，尝试使用新的随机用户名...${NC}"
+    TIMESTAMP=$(date +%s)
+    TEST_USERNAME="testuser_${TIMESTAMP}_retry"
+    TEST_EMAIL="test_${TIMESTAMP}_retry@example.com"
+    
+    REGISTER_RESPONSE=$(curl -s -X POST "${BASE_URL}/api/user/register" \
+      -H "Content-Type: application/json" \
+      -d "{
+        \"username\": \"${TEST_USERNAME}\",
+        \"email\": \"${TEST_EMAIL}\",
+        \"password\": \"password123\"
+      }")
+    
+    REGISTER_CODE=$(echo $REGISTER_RESPONSE | grep -o '"code":[0-9]*' | cut -d':' -f2)
+    USER_ID=$(echo $REGISTER_RESPONSE | grep -o '"userId":[0-9]*' | cut -d':' -f2)
+    TOKEN=$(echo $REGISTER_RESPONSE | grep -o '"token":"[^"]*' | cut -d'"' -f4)
+    
+    if [ "$REGISTER_CODE" = "200" ]; then
+        echo -e "${YELLOW}测试: 注册用户（重试）${NC}"
+        echo -e "${GREEN}✓ 通过 (code: $REGISTER_CODE)${NC}"
+        echo "响应: $REGISTER_RESPONSE" | python3 -m json.tool 2>/dev/null || echo "响应: $REGISTER_RESPONSE"
+        ((PASS_COUNT++))
+        echo ""
+        
+        if [ ! -z "$USER_ID" ]; then
+            echo -e "${GREEN}注册的用户ID: $USER_ID${NC}"
+            if [ ! -z "$TOKEN" ]; then
+                echo -e "${GREEN}Token: ${TOKEN:0:50}...${NC}"
+            fi
+            echo ""
+        fi
+    else
+        echo -e "${YELLOW}测试: 注册用户（重试）${NC}"
+        echo -e "${RED}✗ 失败 (期望: 200, 实际: $REGISTER_CODE)${NC}"
+        echo "响应: $REGISTER_RESPONSE"
+        ((FAIL_COUNT++))
+        echo ""
+    fi
+fi
+
+# 2. 登录用户（如果注册成功）
+if [ ! -z "$USER_ID" ]; then
     echo -e "${BLUE}========== 用户登录 ==========${NC}"
     LOGIN_RESPONSE=$(curl -s -X POST "${BASE_URL}/api/user/login" \
       -H "Content-Type: application/json" \
@@ -91,13 +147,8 @@ if [ ! -z "$USER_ID" ]; then
     test_api "用户登录（使用邮箱）" "POST" "${BASE_URL}/api/user/login" \
       "{\"usernameOrEmail\":\"${TEST_EMAIL}\",\"password\":\"password123\"}"
 else
-    echo -e "${YELLOW}⚠ 无法获取用户ID，可能用户已存在${NC}"
+    echo -e "${YELLOW}⚠ 无法获取用户ID，跳过登录测试${NC}"
     echo ""
-    
-    # 尝试登录已存在的用户
-    echo -e "${BLUE}========== 尝试登录 ==========${NC}"
-    test_api "用户登录" "POST" "${BASE_URL}/api/user/login" \
-      "{\"usernameOrEmail\":\"${TEST_USERNAME}\",\"password\":\"password123\"}"
 fi
 
 # 4. 错误处理测试
