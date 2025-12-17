@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 public class ManualNutritionLogRequest {
     
     @NotNull(message = "家庭成员ID不能为空")
-    private Long familyMemberId;
+    private Long userId;
     
     @NotNull(message = "进食时间不能为空")
     private LocalDateTime eatenAt;

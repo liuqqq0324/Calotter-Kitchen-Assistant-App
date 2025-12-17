@@ -29,18 +29,18 @@ public class IntakeController {
 
     /**
      * Get Today Intakes
-     * GET /api/intake/today?source=recipe|manual&familyMemberId={familyMemberId}
+     * GET /api/intake/today?source=recipe|manual&userId={userId}
      */
     @GetMapping("/today")
     public Result<IIntakeService.TodayIntakesResponse> getTodayIntakes(
             @RequestParam(required = false, defaultValue = "all") String source,
-            @RequestParam("familyMemberId") Long familyMemberId) {
+            @RequestParam("userId") Long userId) {
         try {
             if (!"all".equals(source) && !"recipe".equals(source) && !"manual".equals(source)) {
                 return Result.error("Invalid source parameter. Must be 'recipe', 'manual', or 'all'");
             }
 
-            IIntakeService.TodayIntakesResponse response = intakeService.getTodayIntakes(familyMemberId, source);
+            IIntakeService.TodayIntakesResponse response = intakeService.getTodayIntakes(userId, source);
             return Result.success(response);
         } catch (Exception e) {
             return Result.error("Failed to get today intakes: " + e.getMessage());
@@ -49,12 +49,12 @@ public class IntakeController {
 
     /**
      * Update Intake Percentage
-     * PATCH /api/intake/{intake_id}?familyMemberId={familyMemberId}
+     * PATCH /api/intake/{intake_id}?userId={userId}
      */
     @PatchMapping("/{intake_id}")
     public Result<IIntakeService.UpdateIntakeResponse> updateIntakePercentage(
             @PathVariable("intake_id") Long intakeId,
-            @RequestParam("familyMemberId") Long familyMemberId,
+            @RequestParam("userId") Long userId,
             @RequestBody UpdateIntakeRequest request) {
         try {
             if (request.consumedPercentage == null) {
@@ -67,7 +67,7 @@ public class IntakeController {
             }
 
             IIntakeService.UpdateIntakeResponse response = intakeService.updateIntakePercentage(
-                    familyMemberId, intakeId, request.consumedPercentage);
+                    userId, intakeId, request.consumedPercentage);
             return Result.success(response);
         } catch (RuntimeException e) {
             if (e.getMessage() != null && e.getMessage().contains("not found")) {
@@ -83,11 +83,11 @@ public class IntakeController {
 
     /**
      * Add Manual Intake
-     * POST /api/intake/manual?familyMemberId={familyMemberId}
+     * POST /api/intake/manual?userId={userId}
      */
     @PostMapping("/manual")
     public Result<IIntakeService.AddManualIntakeResponse> addManualIntake(
-            @RequestParam("familyMemberId") Long familyMemberId,
+            @RequestParam("userId") Long userId,
             @RequestBody AddManualIntakeRequest request) {
         try {
             if (request.foodName == null || request.foodName.trim().isEmpty()) {
@@ -95,7 +95,7 @@ public class IntakeController {
             }
 
             IIntakeService.AddManualIntakeResponse response = intakeService.addManualIntake(
-                    familyMemberId, request.date, request.foodName, request.portionDescription);
+                    userId, request.date, request.foodName, request.portionDescription);
             return Result.success(response);
         } catch (Exception e) {
             return Result.error("Failed to add manual intake: " + e.getMessage());
@@ -104,14 +104,14 @@ public class IntakeController {
 
     /**
      * Delete Intake Record
-     * DELETE /api/intake/{intake_id}?familyMemberId={familyMemberId}
+     * DELETE /api/intake/{intake_id}?userId={userId}
      */
     @DeleteMapping("/{intake_id}")
     public Result<IIntakeService.DeleteIntakeResponse> deleteIntake(
             @PathVariable("intake_id") Long intakeId,
-            @RequestParam("familyMemberId") Long familyMemberId) {
+            @RequestParam("userId") Long userId) {
         try {
-            IIntakeService.DeleteIntakeResponse response = intakeService.deleteIntake(familyMemberId, intakeId);
+            IIntakeService.DeleteIntakeResponse response = intakeService.deleteIntake(userId, intakeId);
             return Result.success(response);
         } catch (RuntimeException e) {
             if (e.getMessage() != null && e.getMessage().contains("not found")) {

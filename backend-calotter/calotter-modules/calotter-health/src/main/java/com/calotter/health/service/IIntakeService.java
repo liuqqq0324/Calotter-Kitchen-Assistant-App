@@ -18,44 +18,44 @@ public interface IIntakeService {
      * Get today's intake records by source type
      * 获取今日摄入记录
      *
-     * @param familyMemberId Family Member ID
+     * @param userId Family Member ID
      * @param source Source type (recipe, manual, all)
      * @return Today intakes response
      */
-    TodayIntakesResponse getTodayIntakes(Long familyMemberId, String source);
+    TodayIntakesResponse getTodayIntakes(Long userId, String source);
 
     /**
      * Update intake percentage
      * 更新摄入百分比
      *
-     * @param familyMemberId Family Member ID
+     * @param userId Family Member ID
      * @param intakeId Intake record ID
      * @param consumedPercentage New consumed percentage
      * @return Update intake response
      */
-    UpdateIntakeResponse updateIntakePercentage(Long familyMemberId, Long intakeId, BigDecimal consumedPercentage);
+    UpdateIntakeResponse updateIntakePercentage(Long userId, Long intakeId, BigDecimal consumedPercentage);
 
     /**
      * Add manual intake
      * 添加手动摄入
      *
-     * @param familyMemberId Family Member ID
+     * @param userId Family Member ID
      * @param date Intake date
      * @param foodName Food name
      * @param portionDescription Portion description
      * @return Add manual intake response
      */
-    AddManualIntakeResponse addManualIntake(Long familyMemberId, LocalDate date, String foodName, String portionDescription);
+    AddManualIntakeResponse addManualIntake(Long userId, LocalDate date, String foodName, String portionDescription);
 
     /**
      * Delete an intake record
      * 删除摄入记录（需要校验归属）
      *
-     * @param familyMemberId Family Member ID
+     * @param userId Family Member ID
      * @param intakeId Intake record ID
      * @return Delete intake response
      */
-    DeleteIntakeResponse deleteIntake(Long familyMemberId, Long intakeId);
+    DeleteIntakeResponse deleteIntake(Long userId, Long intakeId);
 
     /**
      * Today Intakes Response
