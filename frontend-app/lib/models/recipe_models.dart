@@ -62,10 +62,18 @@ class RecipeModel {
   final int servings;
   final int cookingTimeMin;
   final String difficulty; // 'easy' / 'medium' / 'hard'
-  final double totalCaloriesEstimate;
+  final double totalCaloriesEstimate; // 保留用于向后兼容
   final List<RecipeIngredientModel> ingredients;
   final List<RecipeStepModel> steps;
   final String emoji; // 简单当配图用
+  
+  // 营养字段（跟着后端）
+  final int? totalWeightGram;
+  final int? totalCalories; // 对应后端 Integer totalCalories
+  final double? totalProtein;
+  final double? totalFat;
+  final double? totalCarb;
+  final double? totalFiber;
 
   const RecipeModel({
     required this.id,
@@ -78,6 +86,12 @@ class RecipeModel {
     required this.ingredients,
     required this.steps,
     this.emoji = '🍽️',
+    this.totalWeightGram,
+    this.totalCalories,
+    this.totalProtein,
+    this.totalFat,
+    this.totalCarb,
+    this.totalFiber,
   });
 
   factory RecipeModel.fromJson(Map<String, dynamic> json) {
@@ -90,6 +104,21 @@ class RecipeModel {
         : (json['title']?.toString().isNotEmpty == true
             ? 'recipe_${json['title'].toString().hashCode}'
             : 'recipe_${DateTime.now().microsecondsSinceEpoch}');
+
+    // 解析营养字段
+    int? parseInt(dynamic value) {
+      if (value == null) return null;
+      if (value is int) return value;
+      if (value is num) return value.toInt();
+      return int.tryParse(value.toString());
+    }
+    
+    double? parseDouble(dynamic value) {
+      if (value == null) return null;
+      if (value is double) return value;
+      if (value is num) return value.toDouble();
+      return double.tryParse(value.toString());
+    }
 
     return RecipeModel(
       id: resolvedId,
@@ -115,6 +144,13 @@ class RecipeModel {
           ingredientsJson.map((e) => RecipeIngredientModel.fromJson(e)).toList(),
       steps: recipesSteps.map((e) => RecipeStepModel.fromJson(e)).toList(),
       emoji: json['emoji']?.toString() ?? '🍽️',
+      // 营养字段（跟着后端）
+      totalWeightGram: parseInt(json['total_weight_gram'] ?? json['totalWeightGram']),
+      totalCalories: parseInt(json['total_calories'] ?? json['totalCalories']),
+      totalProtein: parseDouble(json['total_protein'] ?? json['totalProtein']),
+      totalFat: parseDouble(json['total_fat'] ?? json['totalFat']),
+      totalCarb: parseDouble(json['total_carb'] ?? json['totalCarb']),
+      totalFiber: parseDouble(json['total_fiber'] ?? json['totalFiber']),
     );
   }
 }

@@ -60,6 +60,9 @@ public class FavoriteRecipeService {
 
     @Transactional(readOnly = true)
     public List<Dish> listFavorites(Long householdId) {
+        // 先校验家庭是否存在
+        householdRepository.findById(householdId)
+                .orElseThrow(() -> new IllegalArgumentException("家庭不存在"));
         return dishRepository.findByHouseholdIdAndFavoriteTrueOrderByUpdateTimeDesc(householdId);
     }
 
@@ -81,7 +84,8 @@ public class FavoriteRecipeService {
                     recipeDto.getIngredients().stream().map(ing -> {
                         Dish.IngredientSnapshot snap = new Dish.IngredientSnapshot();
                         snap.setName(ing.getName());
-                        snap.setQuantityStr((ing.getAmount_value() != null ? ing.getAmount_value() : 0) + ing.getAmount_unit());
+                        snap.setAmountValue(ing.getAmount_value() != null ? ing.getAmount_value() : 0.0);
+                        snap.setAmountUnit(ing.getAmount_unit() != null ? ing.getAmount_unit() : "g");
                         return snap;
                     }).toList()
             );

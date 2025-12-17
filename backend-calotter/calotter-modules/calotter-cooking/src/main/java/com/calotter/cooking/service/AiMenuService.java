@@ -8,6 +8,10 @@ import com.calotter.inventory.domain.entity.HouseholdUtensil;
 import com.calotter.inventory.repository.IngredientRepository;
 import com.calotter.inventory.repository.HouseholdSpiceRepository;
 import com.calotter.inventory.repository.HouseholdUtensilRepository;
+import com.calotter.user.domain.entity.FamilyMember;
+import com.calotter.user.domain.entity.HealthGoal;
+import com.calotter.user.repository.FamilyMemberRepository;
+import com.calotter.user.repository.HealthGoalRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +42,8 @@ public class AiMenuService {
     private final IngredientRepository ingredientRepository;
     private final HouseholdSpiceRepository spiceRepository;
     private final HouseholdUtensilRepository utensilRepository;
+    private final FamilyMemberRepository familyMemberRepository;
+    private final HealthGoalRepository healthGoalRepository;
 
     @Value("${ai.api.key:}")
     private String apiKey;
@@ -109,6 +115,87 @@ public class AiMenuService {
             c = c.substring(0, c.length() - 3);
         }
         return c.trim();
+    }
+
+    /**
+     * 获取默认 Filter（基于用户的偏好和健康目标）
+     */
+    public RecipeGenerationFilter getDefaultFilter(Long householdId) {
+        RecipeGenerationFilter filter = new RecipeGenerationFilter();
+        
+        // 1. 获取家庭成员信息
+        List<FamilyMember> members = familyMemberRepository.findByHouseholdId(householdId);
+        
+        // 2. 收集过敏信息
+        List<String> allergies = new ArrayList<>();
+        List<String> avoidIngredients = new ArrayList<>();
+        List<String> cuisinePreferences = new ArrayList<>();
+        List<String> tastePreferences = new ArrayList<>();
+        
+        // 3. 计算卡路里目标（从健康目标）
+        Double avgCalorieTarget = null;
+        int activeGoalCount = 0;
+        int totalCalories = 0;
+        
+        for (FamilyMember member : members) {
+            // 收集过敏
+            if (member.getAllergies() != null) {
+                member.getAllergies().forEach(a -> allergies.add(a.getName()));
+            }
+            
+            // 收集偏好
+            if (member.getPreferences() != null) {
+                List<String> dislikes = member.getPreferences().getOrDefault("DISLIKE", new ArrayList<>());
+                avoidIngredients.addAll(dislikes);
+                
+                List<String> cuisines = member.getPreferences().getOrDefault("CUISINE", new ArrayList<>());
+                cuisinePreferences.addAll(cuisines);
+                
+                List<String> tastes = member.getPreferences().getOrDefault("TASTE", new ArrayList<>());
+                tastePreferences.addAll(tastes);
+            }
+            
+            // 计算卡路里目标
+            HealthGoal goal = healthGoalRepository.findByFamilyMemberAndStatus(member, 1); // 1=Active
+            if (goal != null && goal.getDailyCalories() != null) {
+                totalCalories += goal.getDailyCalories();
+                activeGoalCount++;
+            }
+        }
+        
+        // 计算平均卡路里目标（每人）
+        if (activeGoalCount > 0) {
+            avgCalorieTarget = (double) totalCalories / activeGoalCount;
+        } else if (!members.isEmpty()) {
+            // 如果没有健康目标，使用默认值（成年人平均）
+            avgCalorieTarget = 600.0; // 默认每人600卡
+        }
+        
+        // 4. 设置 diet_preferences
+        RecipeGenerationFilter.DietPreferences dietPrefs = new RecipeGenerationFilter.DietPreferences();
+        dietPrefs.setAllergies(allergies.stream().distinct().collect(Collectors.toList()));
+        dietPrefs.setAvoid_ingredients(avoidIngredients.stream().distinct().collect(Collectors.toList()));
+        dietPrefs.setCuisine_preferences(cuisinePreferences.stream().distinct().collect(Collectors.toList()));
+        dietPrefs.setTaste_preferences(tastePreferences.stream().distinct().collect(Collectors.toList()));
+        filter.setDiet_preferences(dietPrefs);
+        
+        // 5. 设置卡路里目标
+        if (avgCalorieTarget != null) {
+            RecipeGenerationFilter.CalorieTarget calorieTarget = new RecipeGenerationFilter.CalorieTarget();
+            calorieTarget.setMin_total_kcal(avgCalorieTarget);
+            calorieTarget.setMax_total_kcal(avgCalorieTarget);
+            filter.setCalorie_target(calorieTarget);
+        }
+        
+        // 6. 设置默认值
+        filter.setServings(members.isEmpty() ? 1 : members.size());
+        filter.setGeneration_settings(new RecipeGenerationFilter.GenerationSettings());
+        filter.getGeneration_settings().setDish_count(1);
+        
+        // 7. 自动填充库存、厨具、调料
+        enrichFilterFromHousehold(filter, householdId);
+        
+        return filter;
     }
 
     /**

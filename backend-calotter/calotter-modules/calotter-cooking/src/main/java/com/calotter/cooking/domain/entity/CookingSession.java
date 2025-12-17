@@ -9,6 +9,9 @@ import lombok.EqualsAndHashCode;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * 烹饪会话记录表
  * 用于记录：谁在什么时候请求了什么，AI 生成了什么，以及用户最终选了没。
@@ -62,7 +65,21 @@ public class CookingSession extends BaseEntity {
     private Double remainingRatio;
 
     // --- 核心：结构化Dish引用 ---
-    // 当AI生成配方后，创建Dish快照，这里引用结构化数据（便于查询和关联）
+    // 支持多道菜：一个 Session 可以对应一个 Menu（多道菜）
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "cooking_session_dishes",
+        joinColumns = @JoinColumn(name = "session_id"),
+        inverseJoinColumns = @JoinColumn(name = "dish_id")
+    )
+    private List<Dish> dishes = new ArrayList<>();
+    
+    // 记录完成了哪些菜品（Dish ID 列表）
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
+    private List<Long> completedDishIds = new ArrayList<>();
+    
+    // 保留用于向后兼容：作为主菜标识
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "final_dish_id")
     private Dish finalDish;

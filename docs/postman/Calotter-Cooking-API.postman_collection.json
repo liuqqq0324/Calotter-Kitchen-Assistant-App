@@ -1,0 +1,252 @@
+{
+	"info": {
+		"_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+		"name": "Calotter Cooking API",
+		"description": "Calotter Cooking 模块 API 测试集合",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8080"
+		},
+		{
+			"key": "householdId",
+			"value": "1"
+		},
+		{
+			"key": "initiatorId",
+			"value": "1"
+		},
+		{
+			"key": "sessionId",
+			"value": "1"
+		}
+	],
+	"item": [
+		{
+			"name": "1. Cooking 流程",
+			"item": [
+				{
+					"name": "1.1 开始烹饪 - 单道菜",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"householdId\": {{householdId}},\n    \"initiatorId\": {{initiatorId}},\n    \"recipe\": {\n        \"title\": \"番茄炒蛋\",\n        \"short_description\": \"经典家常菜\",\n        \"servings\": 2,\n        \"cooking_time_min\": 15,\n        \"difficulty\": \"easy\",\n        \"nutrition_estimate\": {\n            \"calories\": 250,\n            \"protein_g\": 12,\n            \"fat_g\": 15,\n            \"carbs_g\": 10\n        },\n        \"ingredients\": [\n            {\n                \"name\": \"鸡蛋\",\n                \"amount_value\": 3,\n                \"amount_unit\": \"个\",\n                \"is_optional\": false,\n                \"source_type\": \"INVENTORY\"\n            },\n            {\n                \"name\": \"番茄\",\n                \"amount_value\": 200,\n                \"amount_unit\": \"g\",\n                \"is_optional\": false,\n                \"source_type\": \"INVENTORY\"\n            }\n        ],\n        \"steps\": [\n            {\n                \"step_number\": 1,\n                \"instruction\": \"鸡蛋打散\",\n                \"step_time_min\": 2\n            },\n            {\n                \"step_number\": 2,\n                \"instruction\": \"炒熟即可\",\n                \"step_time_min\": 10\n            }\n        ]\n    }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/cooking/start",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "cooking", "start"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "1.2 开始烹饪 - 多道菜",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"householdId\": {{householdId}},\n    \"initiatorId\": {{initiatorId}},\n    \"menuId\": 1,\n    \"recipes\": [\n        {\n            \"title\": \"番茄炒蛋\",\n            \"short_description\": \"经典家常菜\",\n            \"servings\": 2,\n            \"cooking_time_min\": 15,\n            \"difficulty\": \"easy\",\n            \"nutrition_estimate\": {\n                \"calories\": 250,\n                \"protein_g\": 12,\n                \"fat_g\": 15,\n                \"carbs_g\": 10\n            },\n            \"ingredients\": [\n                {\n                    \"name\": \"鸡蛋\",\n                    \"amount_value\": 3,\n                    \"amount_unit\": \"个\"\n                }\n            ],\n            \"steps\": [\n                {\n                    \"step_number\": 1,\n                    \"instruction\": \"炒熟\",\n                    \"step_time_min\": 10\n                }\n            ]\n        },\n        {\n            \"title\": \"蒜蓉西兰花\",\n            \"short_description\": \"健康蔬菜\",\n            \"servings\": 2,\n            \"cooking_time_min\": 10,\n            \"difficulty\": \"easy\",\n            \"nutrition_estimate\": {\n                \"calories\": 80,\n                \"protein_g\": 4,\n                \"fat_g\": 3,\n                \"carbs_g\": 8\n            },\n            \"ingredients\": [\n                {\n                    \"name\": \"西兰花\",\n                    \"amount_value\": 300,\n                    \"amount_unit\": \"g\"\n                }\n            ],\n            \"steps\": [\n                {\n                    \"step_number\": 1,\n                    \"instruction\": \"翻炒\",\n                    \"step_time_min\": 5\n                }\n            ]\n        }\n    ]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/cooking/start",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "cooking", "start"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "1.3 完成烹饪 - 全部完成",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"sessionId\": {{sessionId}},\n    \"finalIngredients\": [\n        {\n            \"name\": \"鸡蛋\",\n            \"amountValue\": 3,\n            \"amountUnit\": \"个\",\n            \"sourceType\": \"INVENTORY\"\n        },\n        {\n            \"name\": \"番茄\",\n            \"amountValue\": 200,\n            \"amountUnit\": \"g\",\n            \"sourceType\": \"INVENTORY\"\n        }\n    ],\n    \"totalNutrition\": {\n        \"calories\": 250,\n        \"protein\": 12,\n        \"fat\": 15,\n        \"carbs\": 10\n    }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/cooking/finish",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "cooking", "finish"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "1.4 完成烹饪 - 部分完成+用餐者",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"sessionId\": {{sessionId}},\n    \"completedDishIds\": [1],\n    \"finalIngredients\": [\n        {\n            \"name\": \"鸡蛋\",\n            \"amountValue\": 3,\n            \"amountUnit\": \"个\",\n            \"sourceType\": \"INVENTORY\"\n        }\n    ],\n    \"totalNutrition\": {\n        \"calories\": 250,\n        \"protein\": 12,\n        \"fat\": 15,\n        \"carbs\": 10\n    },\n    \"diners\": [\n        {\n            \"familyMemberId\": 1,\n            \"portionPercentage\": 0.5,\n            \"note\": \"吃了一半\"\n        }\n    ]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/cooking/finish",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "cooking", "finish"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "2. AI 菜单生成",
+			"item": [
+				{
+					"name": "2.1 生成菜单 - 基础版",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"inventory\": [\n        {\n            \"name\": \"鸡蛋\",\n            \"amount_value\": 10,\n            \"amount_unit\": \"个\"\n        },\n        {\n            \"name\": \"番茄\",\n            \"amount_value\": 500,\n            \"amount_unit\": \"g\"\n        }\n    ],\n    \"servings\": 2,\n    \"diet_preferences\": {\n        \"allergies\": [],\n        \"avoid_ingredients\": [\"香菜\"],\n        \"cuisine_preferences\": [\"chinese\"],\n        \"taste_preferences\": [\"light\"]\n    },\n    \"generation_settings\": {\n        \"dish_count\": 2,\n        \"max_cooking_time_min\": 30,\n        \"difficulty_target\": \"easy\"\n    },\n    \"calorie_target\": {\n        \"min_total_kcal\": 500,\n        \"max_total_kcal\": 700\n    },\n    \"cookers\": [\"stove\"],\n    \"seasonings\": [\"盐\", \"酱油\"]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/ai/generate-menus",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "ai", "generate-menus"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "2.2 生成菜单 - 自动填充",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"servings\": 2,\n    \"diet_preferences\": {\n        \"allergies\": [],\n        \"avoid_ingredients\": [],\n        \"cuisine_preferences\": [\"chinese\"],\n        \"taste_preferences\": [\"light\"]\n    },\n    \"generation_settings\": {\n        \"dish_count\": 2,\n        \"max_cooking_time_min\": 30,\n        \"difficulty_target\": \"easy\"\n    },\n    \"calorie_target\": {\n        \"min_total_kcal\": 500,\n        \"max_total_kcal\": 700\n    }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/ai/generate-menus?householdId={{householdId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "ai", "generate-menus"],
+							"query": [
+								{
+									"key": "householdId",
+									"value": "{{householdId}}"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "3. 收藏管理",
+			"item": [
+				{
+					"name": "3.1 获取收藏列表",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/recipes/favorites?householdId={{householdId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "recipes", "favorites"],
+							"query": [
+								{
+									"key": "householdId",
+									"value": "{{householdId}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "3.2 收藏/取消收藏",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"番茄炒蛋\",\n    \"short_description\": \"经典家常菜\",\n    \"servings\": 2,\n    \"cooking_time_min\": 15,\n    \"difficulty\": \"easy\",\n    \"nutrition_estimate\": {\n        \"calories\": 250,\n        \"protein_g\": 12,\n        \"fat_g\": 15,\n        \"carbs_g\": 10\n    },\n    \"ingredients\": [\n        {\n            \"name\": \"鸡蛋\",\n            \"amount_value\": 3,\n            \"amount_unit\": \"个\"\n        }\n    ],\n    \"steps\": [\n        {\n            \"step_number\": 1,\n            \"instruction\": \"炒熟\",\n            \"step_time_min\": 10\n        }\n    ]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/recipes/favorite?householdId={{householdId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "recipes", "favorite"],
+							"query": [
+								{
+									"key": "householdId",
+									"value": "{{householdId}}"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "4. 默认 Filter",
+			"item": [
+				{
+					"name": "4.1 获取默认 Filter",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/recipes/default-filter?householdId={{householdId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "recipes", "default-filter"],
+							"query": [
+								{
+									"key": "householdId",
+									"value": "{{householdId}}"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}
