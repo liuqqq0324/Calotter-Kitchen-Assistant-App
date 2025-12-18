@@ -24,7 +24,10 @@ class UserService {
 
       final data = jsonDecode(response.body);
       if (response.statusCode == 200) {
-        return {'success': true, 'data': data};
+        // 后端返回的是 Result<UserResponse> 格式: {code, message, data: {userId, userName, ...}}
+        // 需要提取 data.data 字段
+        final userData = data['data'] ?? data;
+        return {'success': true, 'data': userData};
       } else {
         return {
           'success': false,
@@ -65,7 +68,10 @@ class UserService {
 
       final data = jsonDecode(response.body);
       if (response.statusCode == 200) {
-        return {'success': true, 'data': data};
+        // 后端返回的是 Result<UserResponse> 格式: {code, message, data: {userId, userName, ...}}
+        // 需要提取 data.data 字段
+        final userData = data['data'] ?? data;
+        return {'success': true, 'data': userData};
       } else {
         return {
           'success': false,
@@ -90,7 +96,10 @@ class UserService {
 
       final data = jsonDecode(response.body);
       if (response.statusCode == 200) {
-        return {'success': true, 'data': data};
+        // 后端返回的是 Result<PreferencesResponse> 格式: {code, message, data: {preferences: {...}}}
+        // 需要提取 data.data 字段
+        final responseData = data['data'] ?? data;
+        return {'success': true, 'data': responseData};
       } else {
         return {
           'success': false,
@@ -128,7 +137,10 @@ class UserService {
 
       final data = jsonDecode(response.body);
       if (response.statusCode == 200) {
-        return {'success': true, 'data': data};
+        // 后端返回的是 Result<PreferencesResponse> 格式: {code, message, data: {preferences: {...}}}
+        // 需要提取 data.data 字段
+        final responseData = data['data'] ?? data;
+        return {'success': true, 'data': responseData};
       } else {
         return {
           'success': false,
@@ -151,7 +163,10 @@ class UserService {
 
       final data = jsonDecode(response.body);
       if (response.statusCode == 200) {
-        return {'success': true, 'data': data};
+        // 后端返回的是 Result<TaboosResponse> 格式: {code, message, data: {taboos: [...]}}
+        // 需要提取 data.data 字段
+        final responseData = data['data'] ?? data;
+        return {'success': true, 'data': responseData};
       } else {
         return {
           'success': false,
@@ -181,7 +196,10 @@ class UserService {
 
       final data = jsonDecode(response.body);
       if (response.statusCode == 200) {
-        return {'success': true, 'data': data};
+        // 后端返回的是 Result<TaboosResponse> 格式: {code, message, data: {taboos: [...]}}
+        // 需要提取 data.data 字段
+        final responseData = data['data'] ?? data;
+        return {'success': true, 'data': responseData};
       } else {
         return {
           'success': false,
@@ -204,7 +222,10 @@ class UserService {
 
       final data = jsonDecode(response.body);
       if (response.statusCode == 200) {
-        return {'success': true, 'data': data};
+        // 后端返回的是 Result<AllergiesResponse> 格式: {code, message, data: {allergies: [...]}}
+        // 需要提取 data.data 字段
+        final responseData = data['data'] ?? data;
+        return {'success': true, 'data': responseData};
       } else {
         return {
           'success': false,
@@ -234,7 +255,10 @@ class UserService {
 
       final data = jsonDecode(response.body);
       if (response.statusCode == 200) {
-        return {'success': true, 'data': data};
+        // 后端返回的是 Result<AllergiesResponse> 格式: {code, message, data: {allergies: [...]}}
+        // 需要提取 data.data 字段
+        final responseData = data['data'] ?? data;
+        return {'success': true, 'data': responseData};
       } else {
         return {
           'success': false,

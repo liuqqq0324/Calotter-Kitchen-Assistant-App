@@ -1,18 +1,19 @@
 package com.calotter.user.service;
 
-import com.calotter.user.controller.dto.AuthResponse;
-import com.calotter.user.controller.dto.HouseholdRequest;
-import com.calotter.user.controller.dto.HouseholdResponse;
-import com.calotter.user.controller.dto.LoginRequest;
-import com.calotter.user.controller.dto.RegisterRequest;
+import com.calotter.common.core.domain.entity.RefAllergen;
+import com.calotter.user.controller.dto.*;
+import com.calotter.user.domain.entity.FamilyMember;
 import com.calotter.user.domain.entity.User;
+import com.calotter.user.repository.FamilyMemberRepository;
+import com.calotter.user.repository.RefAllergenRepository;
 import com.calotter.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 用户服务
@@ -25,6 +26,9 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final HouseholdService householdService;
+    private final FamilyMemberRepository familyMemberRepository;
+    private final RefAllergenRepository refAllergenRepository;
+    private final com.calotter.user.repository.HouseholdRepository householdRepository;
     
     /**
      * 用户注册
@@ -124,6 +128,256 @@ public class UserService {
                 .email(user.getEmail())
                 .role(user.getRole())
                 .householdId(householdId)
+                .build();
+    }
+    
+    /**
+     * 获取用户信息
+     */
+    public UserResponse getUserInfo(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("用户不存在"));
+        
+        Map<String, Object> settings = user.getSettings();
+        if (settings == null) {
+            settings = new HashMap<>();
+        }
+        
+        // 从 settings 中提取 profile，如果不存在则返回空 Map
+        @SuppressWarnings("unchecked")
+        Map<String, Object> profile = (Map<String, Object>) settings.getOrDefault("profile", new HashMap<>());
+        
+        return UserResponse.builder()
+                .userId(user.getId())
+                .userName(user.getUsername())
+                .email(user.getEmail())
+                .role(user.getRole())
+                .profile(profile)
+                .build();
+    }
+    
+    /**
+     * 更新用户信息
+     */
+    @Transactional
+    public UserResponse updateUserInfo(Long userId, UserRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("用户不存在"));
+        
+        Map<String, Object> settings = user.getSettings();
+        if (settings == null) {
+            settings = new HashMap<>();
+        }
+        
+        // 更新 profile 信息
+        if (request.getProfile() != null) {
+            settings.put("profile", request.getProfile());
+        }
+        
+        user.setSettings(settings);
+        user = userRepository.save(user);
+        
+        // 返回更新后的用户信息
+        @SuppressWarnings("unchecked")
+        Map<String, Object> profile = (Map<String, Object>) user.getSettings().getOrDefault("profile", new HashMap<>());
+        
+        return UserResponse.builder()
+                .userId(user.getId())
+                .userName(user.getUsername())
+                .email(user.getEmail())
+                .role(user.getRole())
+                .profile(profile)
+                .build();
+    }
+    
+    /**
+     * 获取用户偏好
+     */
+    public PreferencesResponse getUserPreferences(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("用户不存在"));
+        
+        Map<String, Object> settings = user.getSettings();
+        if (settings == null) {
+            settings = new HashMap<>();
+        }
+        
+        // 从 settings 中提取 preferences，如果不存在则返回空 Map
+        @SuppressWarnings("unchecked")
+        Map<String, Object> preferences = (Map<String, Object>) settings.getOrDefault("preferences", new HashMap<>());
+        
+        return PreferencesResponse.builder()
+                .preferences(preferences)
+                .build();
+    }
+    
+    /**
+     * 更新用户偏好
+     */
+    @Transactional
+    public PreferencesResponse updateUserPreferences(Long userId, PreferencesRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("用户不存在"));
+        
+        Map<String, Object> settings = user.getSettings();
+        if (settings == null) {
+            settings = new HashMap<>();
+        }
+        
+        // 更新偏好信息
+        Map<String, Object> preferences = new HashMap<>();
+        if (request.getDietaryType() != null) {
+            preferences.put("dietaryType", request.getDietaryType());
+        }
+        if (request.getCuisineTypes() != null) {
+            preferences.put("cuisineTypes", request.getCuisineTypes());
+        }
+        if (request.getSpiceLevel() != null) {
+            preferences.put("spiceLevel", request.getSpiceLevel());
+        }
+        if (request.getCookingTimePreference() != null) {
+            preferences.put("cookingTimePreference", request.getCookingTimePreference());
+        }
+        
+        // 合并到 settings 中
+        settings.put("preferences", preferences);
+        user.setSettings(settings);
+        user = userRepository.save(user);
+        
+        return PreferencesResponse.builder()
+                .preferences((Map<String, Object>) user.getSettings().get("preferences"))
+                .build();
+    }
+    
+    /**
+     * 获取用户禁忌
+     */
+    public TaboosResponse getUserTaboos(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("用户不存在"));
+        
+        Map<String, Object> settings = user.getSettings();
+        if (settings == null) {
+            return TaboosResponse.builder()
+                    .taboos(new ArrayList<>())
+                    .build();
+        }
+        
+        @SuppressWarnings("unchecked")
+        List<String> taboos = (List<String>) settings.getOrDefault("taboos", new ArrayList<>());
+        
+        return TaboosResponse.builder()
+                .taboos(taboos)
+                .build();
+    }
+    
+    /**
+     * 更新用户禁忌
+     */
+    @Transactional
+    public TaboosResponse updateUserTaboos(Long userId, TaboosRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("用户不存在"));
+        
+        Map<String, Object> settings = user.getSettings();
+        if (settings == null) {
+            settings = new HashMap<>();
+        }
+        
+        settings.put("taboos", request.getTaboos() != null ? request.getTaboos() : new ArrayList<>());
+        user.setSettings(settings);
+        user = userRepository.save(user);
+        
+        @SuppressWarnings("unchecked")
+        List<String> taboos = (List<String>) user.getSettings().get("taboos");
+        
+        return TaboosResponse.builder()
+                .taboos(taboos != null ? taboos : new ArrayList<>())
+                .build();
+    }
+    
+    /**
+     * 获取用户过敏
+     */
+    public AllergiesResponse getUserAllergies(Long userId) {
+        // 查找用户的家庭成员
+        List<FamilyMember> members = familyMemberRepository.findByUserId(userId);
+        
+        if (members.isEmpty()) {
+            return AllergiesResponse.builder()
+                    .allergies(new ArrayList<>())
+                    .build();
+        }
+        
+        // 使用第一个家庭成员（通常用户只有一个家庭成员记录）
+        FamilyMember member = members.get(0);
+        List<RefAllergen> allergies = member.getAllergies();
+        
+        if (allergies == null) {
+            return AllergiesResponse.builder()
+                    .allergies(new ArrayList<>())
+                    .build();
+        }
+        
+        // 转换为名称列表
+        List<String> allergyNames = allergies.stream()
+                .map(RefAllergen::getName)
+                .collect(Collectors.toList());
+        
+        return AllergiesResponse.builder()
+                .allergies(allergyNames)
+                .build();
+    }
+    
+    /**
+     * 更新用户过敏
+     */
+    @Transactional
+    public AllergiesResponse updateUserAllergies(Long userId, AllergiesRequest request) {
+        // 查找用户的家庭成员
+        List<FamilyMember> members = familyMemberRepository.findByUserId(userId);
+        
+        FamilyMember member;
+        if (members.isEmpty()) {
+            // 如果不存在家庭成员，需要创建一个
+            // 首先获取用户的第一个家庭
+            List<HouseholdResponse> households = householdService.getHouseholdsByOwner(userId);
+            if (households.isEmpty()) {
+                throw new IllegalArgumentException("用户没有家庭，无法设置过敏信息");
+            }
+            
+            // 获取 Household 实体
+            com.calotter.user.domain.entity.Household household = householdRepository.findById(households.get(0).getId())
+                    .orElseThrow(() -> new IllegalArgumentException("家庭不存在"));
+            
+            // 创建家庭成员记录
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new IllegalArgumentException("用户不存在"));
+            
+            member = new FamilyMember();
+            member.setUser(user);
+            member.setHousehold(household);
+            member.setName(user.getUsername());
+            member.setIsAdmin(false);
+        } else {
+            member = members.get(0);
+        }
+        
+        // 根据名称查找过敏原
+        List<String> allergyNames = request.getAllergies() != null ? request.getAllergies() : new ArrayList<>();
+        List<RefAllergen> allergens = refAllergenRepository.findByNameIn(allergyNames);
+        
+        // 更新过敏列表
+        member.setAllergies(allergens);
+        member = familyMemberRepository.save(member);
+        
+        // 转换为名称列表返回
+        List<String> result = member.getAllergies() != null ? member.getAllergies().stream()
+                .map(RefAllergen::getName)
+                .collect(Collectors.toList()) : new ArrayList<>();
+        
+        return AllergiesResponse.builder()
+                .allergies(result)
                 .build();
     }
 }

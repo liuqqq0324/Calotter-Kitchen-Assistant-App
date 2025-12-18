@@ -10,4 +10,5 @@ import java.util.List;
 public interface FamilyMemberRepository extends JpaRepository<FamilyMember, Long> {
     List<FamilyMember> findAllByIdIn(List<Long> ids);
     List<FamilyMember> findByHouseholdId(Long householdId);
+    List<FamilyMember> findByUserId(Long userId);
 }
