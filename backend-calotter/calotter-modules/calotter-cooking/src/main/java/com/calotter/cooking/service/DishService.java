@@ -91,7 +91,8 @@ public class DishService {
                     .map(ing -> {
                         Dish.IngredientSnapshot snapshot = new Dish.IngredientSnapshot();
                         snapshot.setName(ing.getName());
-                        snapshot.setQuantityStr(ing.getAmountValue() + ing.getAmountUnit());
+                        snapshot.setAmountValue(ing.getAmountValue() != null ? ing.getAmountValue() : 0.0);
+                        snapshot.setAmountUnit(ing.getAmountUnit() != null ? ing.getAmountUnit() : "g");
                         return snapshot;
                     })
                     .collect(Collectors.toList());

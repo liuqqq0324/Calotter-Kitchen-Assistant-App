@@ -102,15 +102,19 @@ public class CookingWorkflowService {
 
         // 确定完成了哪些菜品
         List<Long> completedDishIds = req.getCompletedDishIds();
+        // 使用 final 变量来避免 lambda 表达式中的编译错误
+        final List<Long> finalCompletedDishIds;
         if (completedDishIds == null || completedDishIds.isEmpty()) {
             // 如果没指定，默认完成所有菜品
-            completedDishIds = allDishes.stream()
+            finalCompletedDishIds = allDishes.stream()
                 .map(Dish::getId)
                 .collect(Collectors.toList());
+        } else {
+            finalCompletedDishIds = completedDishIds;
         }
 
         List<Dish> completedDishes = allDishes.stream()
-            .filter(d -> completedDishIds.contains(d.getId()))
+            .filter(d -> finalCompletedDishIds.contains(d.getId()))
             .collect(Collectors.toList());
 
         if (completedDishes.isEmpty()) {
@@ -118,15 +122,21 @@ public class CookingWorkflowService {
         }
 
         // 保存快照（汇总所有已完成的菜品）
-        session.setIngredientsSnapshot(req.getFinalIngredients());
-        session.setTotalNutritionSnapshot(req.getTotalNutrition());
-        session.setCompletedDishIds(completedDishIds);
+        if (req.getFinalIngredients() != null) {
+            session.setIngredientsSnapshot(req.getFinalIngredients());
+        }
+        if (req.getTotalNutrition() != null) {
+            session.setTotalNutritionSnapshot(req.getTotalNutrition());
+        }
+        session.setCompletedDishIds(finalCompletedDishIds);
         session.setRemainingRatio(1.0);
         session.setStatus(CookingSession.SessionStatus.COOKED);
         sessionRepository.save(session);
 
         // 扣减库存（所有已完成的菜品用到的食材）
-        deductInventory(session.getHouseholdId(), req.getFinalIngredients());
+        if (req.getFinalIngredients() != null && !req.getFinalIngredients().isEmpty()) {
+            deductInventory(session.getHouseholdId(), req.getFinalIngredients());
+        }
 
         // 为每个已完成的菜品创建 LeftoverDish（初始100%，表示全部存入冰箱）
         // 注意：Cooking 模块只负责创建记录，具体管理由 inventory 模块处理

@@ -9,6 +9,7 @@ import lombok.EqualsAndHashCode;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.util.List;
 
 /**
@@ -28,6 +29,7 @@ public class Dish extends BaseEntity {
     private Long id;
 
     // 使用JPA强引用关联Household
+    @JsonIgnore  // 防止 Jackson 序列化懒加载代理
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "household_id", nullable = false)
     private Household household;
