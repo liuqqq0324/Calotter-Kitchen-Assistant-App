@@ -4,9 +4,9 @@ import com.calotter.health.domain.entity.DailyNutrientAggregate;
 import com.calotter.health.domain.entity.NutritionLog;
 import com.calotter.health.repository.DailyNutrientAggregateRepository;
 import com.calotter.health.repository.NutritionLogRepository;
-import com.calotter.user.domain.entity.FamilyMember;
+import com.calotter.user.domain.entity.User;
 import com.calotter.user.domain.entity.HealthGoal;
-import com.calotter.user.repository.FamilyMemberRepository;
+import com.calotter.user.repository.UserRepository;
 import com.calotter.user.repository.HealthGoalRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -27,7 +27,7 @@ public class NutritionAggregateService {
     
     private final DailyNutrientAggregateRepository aggregateRepository;
     private final NutritionLogRepository nutritionLogRepository;
-    private final FamilyMemberRepository familyMemberRepository;
+    private final UserRepository userRepository;
     private final HealthGoalRepository healthGoalRepository;
     
     /**
@@ -37,19 +37,19 @@ public class NutritionAggregateService {
      */
     @Transactional
     public void updateAggregate(NutritionLog log) {
-        FamilyMember member = log.getFamilyMember();
+        User user = log.getUser();
         LocalDate logDate = log.getLogDate();
         
         // 获取或创建聚合记录
         DailyNutrientAggregate aggregate = aggregateRepository
-                .findByFamilyMemberAndDate(member, logDate)
+                .findByUserAndDate(user, logDate)
                 .orElseGet(() -> {
                     DailyNutrientAggregate newAggregate = new DailyNutrientAggregate();
-                    newAggregate.setFamilyMember(member);
+                    newAggregate.setUser(user);
                     newAggregate.setDate(logDate);
                     
                     // 快照当天的健康目标（如果存在）
-                    HealthGoal goal = healthGoalRepository.findByFamilyMemberAndStatus(member, 1); // 1=ACTIVE
+                    HealthGoal goal = healthGoalRepository.findByUserAndStatus(user, 1); // 1=ACTIVE
                     if (goal != null) {
                         newAggregate.setGoalCaloriesSnapshot(goal.getDailyCalories());
                         newAggregate.setGoalProteinSnapshot(goal.getProtein());
@@ -84,24 +84,24 @@ public class NutritionAggregateService {
     /**
      * 获取周健康报告
      * 
-     * @param memberId 家庭成员ID
+     * @param userId 用户ID
      * @param weekStart 周开始日期
      * @return 周报告VO
      */
     @Transactional(readOnly = true)
-    public com.calotter.health.controller.dto.WeeklyReportVO getWeeklyReport(Long memberId, LocalDate weekStart) {
+    public com.calotter.health.controller.dto.WeeklyReportVO getWeeklyReport(Long userId, LocalDate weekStart) {
         LocalDate weekEnd = weekStart.plusDays(6);
         
-        // 1. 获取家庭成员
-        FamilyMember member = familyMemberRepository.findById(memberId)
-                .orElseThrow(() -> new IllegalArgumentException("家庭成员不存在: " + memberId));
+        // 1. 获取用户
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("用户不存在: " + userId));
         
         // 2. 获取健康目标
-        HealthGoal goal = healthGoalRepository.findByFamilyMemberAndStatus(member, 1); // 1=ACTIVE
+        HealthGoal goal = healthGoalRepository.findByUserAndStatus(user, 1); // 1=ACTIVE
         
         // 3. 获取实际摄入（查询聚合表）
         List<DailyNutrientAggregate> actuals = aggregateRepository
-                .findByFamilyMemberAndDateBetween(member, weekStart, weekEnd);
+                .findByUserAndDateBetween(user, weekStart, weekEnd);
         
         // 4. 计算本周总摄入
         com.calotter.health.controller.dto.WeeklyReportVO.NutritionStats totalIntake = 
@@ -191,20 +191,20 @@ public class NutritionAggregateService {
     /**
      * 获取或创建日聚合记录
      * 
-     * @param member 家庭成员
+     * @param user 用户
      * @param date 日期
      * @return 日聚合记录
      */
     @Transactional
-    public DailyNutrientAggregate getOrCreateDailyAggregate(FamilyMember member, LocalDate date) {
-        return aggregateRepository.findByFamilyMemberAndDate(member, date)
+    public DailyNutrientAggregate getOrCreateDailyAggregate(User user, LocalDate date) {
+        return aggregateRepository.findByUserAndDate(user, date)
                 .orElseGet(() -> {
                     DailyNutrientAggregate aggregate = new DailyNutrientAggregate();
-                    aggregate.setFamilyMember(member);
+                    aggregate.setUser(user);
                     aggregate.setDate(date);
                     
                     // 快照当天的健康目标（如果存在）
-                    HealthGoal goal = healthGoalRepository.findByFamilyMemberAndStatus(member, 1);
+                    HealthGoal goal = healthGoalRepository.findByUserAndStatus(user, 1);
                     if (goal != null) {
                         aggregate.setGoalCaloriesSnapshot(goal.getDailyCalories());
                         aggregate.setGoalProteinSnapshot(goal.getProtein());

@@ -6,9 +6,9 @@ import com.calotter.inventory.domain.entity.Ingredient;
 import com.calotter.inventory.repository.HouseholdSpiceRepository;
 import com.calotter.inventory.repository.HouseholdUtensilRepository;
 import com.calotter.inventory.repository.IngredientRepository;
-import com.calotter.user.domain.entity.FamilyMember;
+import com.calotter.user.domain.entity.User;
 import com.calotter.user.domain.entity.HealthGoal;
-import com.calotter.user.repository.FamilyMemberRepository;
+import com.calotter.user.repository.UserRepository;
 import com.calotter.user.repository.HealthGoalRepository;
 import lombok.Builder;
 import lombok.Data;
@@ -24,13 +24,13 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class CookingContextBuilderService {
 
-    private final FamilyMemberRepository memberRepo;
+    private final UserRepository userRepo;
     private final IngredientRepository ingredientRepo;
     private final HealthGoalRepository healthGoalRepo;
     private final HouseholdUtensilRepository utensilRepo;
     private final HouseholdSpiceRepository spiceRepo;
 
-    // 常量定义：FamilyMember.preferences JSON 中的 Key
+    // 常量定义：User.preferences JSON 中的 Key
     private static final String PREF_KEY_DISLIKE = "DISLIKE";
     private static final String PREF_KEY_TASTE = "TASTE";
     private static final String PREF_KEY_CUISINE = "CUISINE";
@@ -40,14 +40,19 @@ public class CookingContextBuilderService {
      */
     public AiCookingContext buildContext(CookingGenerationRequest req) {
         // 1. 获取基础数据
-        List<FamilyMember> members = memberRepo.findAllById(req.getMemberIds());
-        if (members.isEmpty()) {
-            throw new RuntimeException("No family members found for IDs: " + req.getMemberIds());
+        List<User> users = userRepo.findAllById(req.getUserIds());
+        if (users.isEmpty()) {
+            throw new RuntimeException("No users found for IDs: " + req.getUserIds());
         }
-        Long householdId = members.get(0).getHousehold().getId();
+        // 从第一个用户的当前家庭获取 householdId
+        User firstUser = users.get(0);
+        Long householdId = firstUser.getCurrentHouseholdId();
+        if (householdId == null) {
+            throw new RuntimeException("User " + firstUser.getId() + " has no active household");
+        }
 
         // 2. 处理食客与目标 (合并家人 + 客人)
-        DinerProfileAndGoal combinedData = processDinersAndGoals(members, req.getGuests(), req.getTargetCuisines());
+        DinerProfileAndGoal combinedData = processDinersAndGoals(users, req.getGuests(), req.getTargetCuisines());
 
         // 3. 处理库存 (分类处理临期品)
         KitchenSnapshot inventory = processInventory(householdId);
@@ -74,7 +79,7 @@ public class CookingContextBuilderService {
     /**
      * 核心逻辑 A：处理所有用餐者的画像与营养目标
      */
-    private DinerProfileAndGoal processDinersAndGoals(List<FamilyMember> members,
+    private DinerProfileAndGoal processDinersAndGoals(List<User> users,
                                                       List<CookingGenerationRequest.GuestInfo> guests,
                                                       List<String> overrideCuisines) {
 
@@ -92,29 +97,29 @@ public class CookingContextBuilderService {
         // 假设本餐占全天热量的比例 (可配置)
         Double ratio = 0.35; 
 
-        // --- 1. 处理家人 (Members) ---
-        for (FamilyMember m : members) {
+        // --- 1. 处理家人 (Users) ---
+        for (User u : users) {
             // 1.1 收集硬性限制 (过敏 + 饮食风格)
-            if (m.getAllergies() != null) {
-                m.getAllergies().forEach(a -> globalAvoidance.add(a.getName()));
+            if (u.getAllergies() != null) {
+                u.getAllergies().forEach(a -> globalAvoidance.add(a.getName()));
             }
-            if (m.getDietaryStyles() != null) {
-                globalAvoidance.addAll(m.getDietaryStyles());
+            if (u.getDietaryStyles() != null) {
+                globalAvoidance.addAll(u.getDietaryStyles());
             }
 
             // 1.2 收集软性偏好并计数
-            if (m.getPreferences() != null) {
-                countPreferences(m.getPreferences(), PREF_KEY_DISLIKE, dislikeCounter);
-                countPreferences(m.getPreferences(), PREF_KEY_TASTE, tasteCounter);
-                countPreferences(m.getPreferences(), PREF_KEY_CUISINE, cuisineCounter);
+            if (u.getPreferences() != null) {
+                countPreferences(u.getPreferences(), PREF_KEY_DISLIKE, dislikeCounter);
+                countPreferences(u.getPreferences(), PREF_KEY_TASTE, tasteCounter);
+                countPreferences(u.getPreferences(), PREF_KEY_CUISINE, cuisineCounter);
             }
 
             // 1.3 提取个人忌口 (用于 Roster)
-            List<String> personalDislikes = m.getPreferences() != null ?
-                    m.getPreferences().getOrDefault(PREF_KEY_DISLIKE, new ArrayList<>()) : new ArrayList<>();
+            List<String> personalDislikes = u.getPreferences() != null ?
+                    u.getPreferences().getOrDefault(PREF_KEY_DISLIKE, new ArrayList<>()) : new ArrayList<>();
 
             // 1.4 计算单人营养目标
-            HealthGoal g = healthGoalRepo.findByFamilyMemberAndStatus(m, 1); // 1=Active
+            HealthGoal g = healthGoalRepo.findByUserAndStatus(u, 1); // 1=Active
             int pCal;
             
             if (g != null) {
@@ -136,8 +141,8 @@ public class CookingContextBuilderService {
 
             // 1.5 加入花名册
             roster.add(DinerProfile.DinerSlot.builder()
-                    .dinerId("M-" + m.getId()) // ID 格式: M-101
-                    .displayName(m.getName())
+                    .dinerId("U-" + u.getId()) // ID 格式: U-101
+                    .displayName(u.getDisplayname() != null ? u.getDisplayname() : u.getUsername())
                     .targetCalories(pCal)
                     .personalDislikes(personalDislikes)
                     .build());

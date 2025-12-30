@@ -62,7 +62,7 @@ public class CookingSessionCompletedEvent extends ApplicationEvent {
     @AllArgsConstructor
     @Builder
     public static class DinerConsumptionData {
-        private Long familyMemberId;
+        private Long userId;
         private Double portionPercentage;
         private String note;
     }

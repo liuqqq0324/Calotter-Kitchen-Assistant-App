@@ -1,7 +1,7 @@
 package com.calotter.health.domain.entity;
 
 import com.calotter.common.core.domain.BaseEntity;
-import com.calotter.user.domain.entity.FamilyMember;
+import com.calotter.user.domain.entity.User;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -17,7 +17,7 @@ import java.time.LocalDate;
 @Entity
 @Table(name = "daily_nutrient_aggregates", 
        indexes = {
-           @Index(name = "idx_aggregate_member_date", columnList = "family_member_id, date", unique = true)
+           @Index(name = "idx_aggregate_user_date", columnList = "user_id, date", unique = true)
        })
 public class DailyNutrientAggregate extends BaseEntity {
 
@@ -27,8 +27,8 @@ public class DailyNutrientAggregate extends BaseEntity {
 
     // ✅ 使用JPA关联，而不是Long类型
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "family_member_id", nullable = false)
-    private FamilyMember familyMember;
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
     @Column(nullable = false)
     private LocalDate date; // 哪一天

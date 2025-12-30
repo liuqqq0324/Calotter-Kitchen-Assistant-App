@@ -11,8 +11,8 @@ import com.calotter.health.repository.NutritionLogRepository;
 import com.calotter.health.service.event.NutritionLogCreatedEvent;
 import com.calotter.inventory.domain.entity.LeftoverDish;
 import com.calotter.inventory.repository.LeftoverDishRepository;
-import com.calotter.user.domain.entity.FamilyMember;
-import com.calotter.user.repository.FamilyMemberRepository;
+import com.calotter.user.domain.entity.User;
+import com.calotter.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -31,7 +31,7 @@ import java.util.List;
 public class NutritionLogService {
     
     private final NutritionLogRepository nutritionLogRepository;
-    private final FamilyMemberRepository familyMemberRepository;
+    private final UserRepository userRepository;
     private final LeftoverDishRepository leftoverDishRepository;
     private final LeftoverDishService leftoverDishService;
     private final ApplicationEventPublisher eventPublisher;
@@ -57,11 +57,11 @@ public class NutritionLogService {
         
         // 为每个用餐者创建日志
         for (CookingSessionCompletedEvent.DinerConsumptionData diner : event.getDiners()) {
-            FamilyMember member = familyMemberRepository.findById(diner.getFamilyMemberId())
-                    .orElseThrow(() -> new IllegalArgumentException("家庭成员不存在: " + diner.getFamilyMemberId()));
+            User user = userRepository.findById(diner.getUserId())
+                    .orElseThrow(() -> new IllegalArgumentException("用户不存在: " + diner.getUserId()));
             
             NutritionLog log = new NutritionLog();
-            log.setFamilyMember(member);
+            log.setUser(user);
             log.setDishId(event.getDishId()); // ✅ 使用弱引用关联Dish
             log.setLogDate(event.getConsumedAt().toLocalDate());
             log.setSourceType(LogSourceType.APP_COOKING);
@@ -103,13 +103,13 @@ public class NutritionLogService {
      * 从剩菜创建营养日志
      * 
      * @param leftoverId 剩菜ID
-     * @param memberId 家庭成员ID
+     * @param userId 用户ID
      * @param consumedGram 食用重量（克）
      * @param eatenAt 进食时间
      * @return 创建的营养日志
      */
     @Transactional
-    public NutritionLog createFromLeftover(Long leftoverId, Long memberId, 
+    public NutritionLog createFromLeftover(Long leftoverId, Long userId, 
                                            Integer consumedGram, LocalDateTime eatenAt) {
         // 1. 查询LeftoverDish
         LeftoverDish leftover = leftoverDishRepository.findById(leftoverId)
@@ -125,9 +125,9 @@ public class NutritionLogService {
                             consumedGram, leftover.getCurrentQuantityGram()));
         }
         
-        // 3. 查询家庭成员
-        FamilyMember member = familyMemberRepository.findById(memberId)
-                .orElseThrow(() -> new IllegalArgumentException("家庭成员不存在: " + memberId));
+        // 3. 查询用户
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("用户不存在: " + userId));
         
         // 4. 使用LeftoverDishService计算营养（该Service在cooking模块）
         // 注意：calculateNutritionForConsumption内部也会验证重量，但这里已经提前验证了
@@ -140,7 +140,7 @@ public class NutritionLogService {
         
         // 6. 创建NutritionLog
         NutritionLog log = new NutritionLog();
-        log.setFamilyMember(member);
+        log.setUser(user);
         log.setDishId(leftover.getOriginalDishId()); // ✅ 使用弱引用存储Dish ID
         log.setSourceType(LogSourceType.LEFTOVER);
         log.setFoodName(leftoverDetail.getName()); // ✅ 从LeftoverDishService获取
@@ -178,11 +178,11 @@ public class NutritionLogService {
      */
     @Transactional
     public NutritionLog createManual(ManualNutritionLogRequest request) {
-        FamilyMember member = familyMemberRepository.findById(request.getFamilyMemberId())
-                .orElseThrow(() -> new IllegalArgumentException("家庭成员不存在: " + request.getFamilyMemberId()));
+        User user = userRepository.findById(request.getUserId())
+                .orElseThrow(() -> new IllegalArgumentException("用户不存在: " + request.getUserId()));
         
         NutritionLog log = new NutritionLog();
-        log.setFamilyMember(member);
+        log.setUser(user);
         log.setDishId(null); // 手动记录没有Dish关联
         log.setSourceType(LogSourceType.MANUAL);
         log.setFoodName(request.getFoodName());

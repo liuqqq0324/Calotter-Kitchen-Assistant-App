@@ -13,8 +13,8 @@ import java.time.LocalDateTime;
 @Data
 public class ManualNutritionLogRequest {
     
-    @NotNull(message = "家庭成员ID不能为空")
-    private Long familyMemberId;
+    @NotNull(message = "用户ID不能为空")
+    private Long userId;
     
     @NotNull(message = "进食时间不能为空")
     private LocalDateTime eatenAt;

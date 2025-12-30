@@ -1,7 +1,7 @@
 package com.calotter.health.repository;
 
 import com.calotter.health.domain.entity.NutritionLog;
-import com.calotter.user.domain.entity.FamilyMember;
+import com.calotter.user.domain.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -15,15 +15,15 @@ import java.util.List;
 public interface NutritionLogRepository extends JpaRepository<NutritionLog, Long> {
     
     /**
-     * 根据家庭成员和日期范围查询营养日志
+     * 根据用户和日期范围查询营养日志
      */
-    List<NutritionLog> findByFamilyMemberAndLogDateBetween(
-            FamilyMember member, LocalDate start, LocalDate end);
+    List<NutritionLog> findByUserAndLogDateBetween(
+            User user, LocalDate start, LocalDate end);
     
     /**
-     * 根据家庭成员查询所有营养日志
+     * 根据用户查询所有营养日志
      */
-    List<NutritionLog> findByFamilyMember(FamilyMember member);
+    List<NutritionLog> findByUser(User user);
     
     /**
      * 根据Dish ID查询营养日志（用于追溯）

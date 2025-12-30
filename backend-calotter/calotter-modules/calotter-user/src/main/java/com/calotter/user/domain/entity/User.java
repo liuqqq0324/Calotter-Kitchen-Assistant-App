@@ -1,16 +1,22 @@
 package com.calotter.user.domain.entity;
 
 import com.calotter.common.core.domain.BaseEntity;
+import com.calotter.common.core.domain.entity.RefAllergen;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 /**
  * 用户实体
+ * 用户现在直接代表一个人，包含健康数据和饮食偏好
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
@@ -47,4 +53,51 @@ public class User extends BaseEntity {
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb") 
     private Map<String, Object> settings;
+
+    // --- 从 FamilyMember 迁移的健康数据字段 ---
+    
+    private Integer gender;
+    private LocalDate birthdate;
+    private Integer currentHeight;
+    private BigDecimal currentWeight;
+
+    // --- 饮食画像 (PostgreSQL JSONB) ---
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
+    private List<String> dietaryStyles;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
+    private Map<String, List<String>> preferences;
+
+    /**
+     * 需要在代码层面约定好 Key 的名字即可，不需要改数据库结构。
+     * 我们约定以下三个 Key：
+     * 1. "TASTE"：口味 (e.g., "Sour", "Spicy", "Light")
+     * 2. "CUISINE"：菜系 (e.g., "Sichuan", "Italian")
+     * 3. "DISLIKE"：不喜欢的食材 (e.g., "Cilantro", "Carrot", "Lamb")
+     */
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "user_allergies",
+        joinColumns = @JoinColumn(name = "user_id"),
+        inverseJoinColumns = @JoinColumn(name = "allergen_id")
+    )
+    private List<RefAllergen> allergies = new ArrayList<>();
+
+    // --- 家庭关系 (ManyToMany) ---
+    
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "users_households",
+        joinColumns = @JoinColumn(name = "user_id"),
+        inverseJoinColumns = @JoinColumn(name = "household_id")
+    )
+    private List<Household> joinedHouseholds = new ArrayList<>();
+
+    // --- 当前活跃的家庭上下文 ---
+    
+    @Column(name = "current_household_id")
+    private Long currentHouseholdId;
 }

@@ -3,7 +3,7 @@ package com.calotter.health.domain.entity;
 import com.calotter.common.core.domain.BaseEntity;
 import com.calotter.health.domain.enums.LogSourceType;
 import com.calotter.health.domain.enums.MealType;
-import com.calotter.user.domain.entity.FamilyMember;
+import com.calotter.user.domain.entity.User;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -19,7 +19,7 @@ import java.time.LocalDateTime;
 @EqualsAndHashCode(callSuper = true)
 @Entity
 @Table(name = "nutrition_logs", indexes = {
-    @Index(name = "idx_log_member_date", columnList = "family_member_id, log_date")
+    @Index(name = "idx_log_user_date", columnList = "user_id, log_date")
 })
 public class NutritionLog extends BaseEntity {
 
@@ -29,8 +29,8 @@ public class NutritionLog extends BaseEntity {
 
     // --- 归属信息 (使用JPA强引用) ---
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "family_member_id", nullable = false)
-    private FamilyMember familyMember;
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
     @Column(name = "log_date", nullable = false)
     private LocalDate logDate;   // 记录日期（冗余字段，便于分区查询）
