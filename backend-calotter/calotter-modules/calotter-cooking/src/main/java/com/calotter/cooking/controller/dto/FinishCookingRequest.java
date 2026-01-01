@@ -23,10 +23,15 @@ public class FinishCookingRequest {
      */
     private List<Long> completedDishIds;
 
-    @NotNull
+    /**
+     * 最终用料列表（可选）
+     * 如果不提供，不扣减库存
+     */
     private List<FinalIngredient> finalIngredients;
 
-    @NotNull
+    /**
+     * 总营养快照（可选）
+     */
     private NutritionSnapshot totalNutrition;
 
     /**
