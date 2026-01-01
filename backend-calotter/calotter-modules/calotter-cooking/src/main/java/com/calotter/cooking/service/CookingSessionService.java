@@ -102,7 +102,7 @@ public class CookingSessionService {
         // 转换用餐者数据
         List<CookingSessionCompletedEvent.DinerConsumptionData> dinerData = req.getDiners().stream()
                 .map(diner -> new CookingSessionCompletedEvent.DinerConsumptionData(
-                        diner.getFamilyMemberId(),
+                        diner.getUserId(),
                         diner.getPortionPercentage(),
                         diner.getNote()))
                 .toList();

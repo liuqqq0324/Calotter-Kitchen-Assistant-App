@@ -2,9 +2,7 @@ package com.calotter.user.service;
 
 import com.calotter.common.core.domain.entity.RefAllergen;
 import com.calotter.user.controller.dto.*;
-import com.calotter.user.domain.entity.FamilyMember;
 import com.calotter.user.domain.entity.User;
-import com.calotter.user.repository.FamilyMemberRepository;
 import com.calotter.user.repository.RefAllergenRepository;
 import com.calotter.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +24,6 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final HouseholdService householdService;
-    private final FamilyMemberRepository familyMemberRepository;
     private final RefAllergenRepository refAllergenRepository;
     private final com.calotter.user.repository.HouseholdRepository householdRepository;
     
@@ -300,20 +297,12 @@ public class UserService {
      * 获取用户过敏
      */
     public AllergiesResponse getUserAllergies(Long userId) {
-        // 查找用户的家庭成员
-        List<FamilyMember> members = familyMemberRepository.findByUserId(userId);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("用户不存在"));
         
-        if (members.isEmpty()) {
-            return AllergiesResponse.builder()
-                    .allergies(new ArrayList<>())
-                    .build();
-        }
+        List<RefAllergen> allergies = user.getAllergies();
         
-        // 使用第一个家庭成员（通常用户只有一个家庭成员记录）
-        FamilyMember member = members.get(0);
-        List<RefAllergen> allergies = member.getAllergies();
-        
-        if (allergies == null) {
+        if (allergies == null || allergies.isEmpty()) {
             return AllergiesResponse.builder()
                     .allergies(new ArrayList<>())
                     .build();
@@ -334,45 +323,19 @@ public class UserService {
      */
     @Transactional
     public AllergiesResponse updateUserAllergies(Long userId, AllergiesRequest request) {
-        // 查找用户的家庭成员
-        List<FamilyMember> members = familyMemberRepository.findByUserId(userId);
-        
-        FamilyMember member;
-        if (members.isEmpty()) {
-            // 如果不存在家庭成员，需要创建一个
-            // 首先获取用户的第一个家庭
-            List<HouseholdResponse> households = householdService.getHouseholdsByOwner(userId);
-            if (households.isEmpty()) {
-                throw new IllegalArgumentException("用户没有家庭，无法设置过敏信息");
-            }
-            
-            // 获取 Household 实体
-            com.calotter.user.domain.entity.Household household = householdRepository.findById(households.get(0).getId())
-                    .orElseThrow(() -> new IllegalArgumentException("家庭不存在"));
-            
-            // 创建家庭成员记录
-            User user = userRepository.findById(userId)
-                    .orElseThrow(() -> new IllegalArgumentException("用户不存在"));
-            
-            member = new FamilyMember();
-            member.setUser(user);
-            member.setHousehold(household);
-            member.setName(user.getUsername());
-            member.setIsAdmin(false);
-        } else {
-            member = members.get(0);
-        }
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("用户不存在"));
         
         // 根据名称查找过敏原
         List<String> allergyNames = request.getAllergies() != null ? request.getAllergies() : new ArrayList<>();
         List<RefAllergen> allergens = refAllergenRepository.findByNameIn(allergyNames);
         
         // 更新过敏列表
-        member.setAllergies(allergens);
-        member = familyMemberRepository.save(member);
+        user.setAllergies(allergens);
+        user = userRepository.save(user);
         
         // 转换为名称列表返回
-        List<String> result = member.getAllergies() != null ? member.getAllergies().stream()
+        List<String> result = user.getAllergies() != null ? user.getAllergies().stream()
                 .map(RefAllergen::getName)
                 .collect(Collectors.toList()) : new ArrayList<>();
         

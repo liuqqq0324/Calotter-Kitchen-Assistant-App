@@ -35,8 +35,8 @@ public class Household extends BaseEntity {
     @Column(nullable = false)
     private Long ownerId;
 
-    // --- 级联管理 ---
+    // --- 成员关系 (ManyToMany) ---
     
-    @OneToMany(mappedBy = "household", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    private List<FamilyMember> members = new ArrayList<>();
+    @ManyToMany(mappedBy = "joinedHouseholds", fetch = FetchType.LAZY)
+    private List<User> members = new ArrayList<>();
 }

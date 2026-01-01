@@ -14,7 +14,7 @@ import java.math.BigDecimal;
 @EqualsAndHashCode(callSuper = true)
 @Entity
 @Table(name = "health_goals", indexes = {
-    @Index(name = "idx_goal_member_status", columnList = "member_id, status")
+    @Index(name = "idx_goal_user_status", columnList = "user_id, status")
 })
 public class HealthGoal extends BaseEntity {
     
@@ -23,8 +23,8 @@ public class HealthGoal extends BaseEntity {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "member_id", nullable = false)
-    private FamilyMember familyMember;
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
     @Column(nullable = false, columnDefinition = "int default 1")
     private Integer status; // 1: ACTIVE, 0: ARCHIVED

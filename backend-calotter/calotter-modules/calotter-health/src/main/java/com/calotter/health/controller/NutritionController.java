@@ -25,39 +25,58 @@ public class NutritionController {
     private final INutritionService nutritionService;
 
     /**
-     * Get Weekly Nutrition Targets
-     * GET /api/nutrition/targets/weekly?userId={userId}
+     * 获取周健康报告
+     * 
+     * @param userId 用户ID
+     * @param weekStart 周开始日期（可选，默认为本周一）
+     * @return 周报告VO
      */
-    @GetMapping("/targets/weekly")
-    public Result<INutritionService.WeeklyNutritionTargetsResponse> getWeeklyNutritionTargets(
-            @RequestParam("userId") Long userId) {
-        try {
-            INutritionService.WeeklyNutritionTargetsResponse response =
-                    nutritionService.getWeeklyNutritionTargets(userId);
-            return Result.success(response);
-        } catch (Exception e) {
-            return Result.error("Failed to get weekly nutrition targets: " + e.getMessage());
+    @GetMapping("/weekly")
+    public Result<WeeklyReportVO> getWeeklyReport(
+            @RequestParam Long userId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate weekStart) {
+        
+        // 如果没有指定weekStart，默认使用本周一
+        if (weekStart == null) {
+            LocalDate today = LocalDate.now();
+            weekStart = today.minusDays(today.getDayOfWeek().getValue() - 1); // 本周一
         }
+        
+        WeeklyReportVO report = aggregateService.getWeeklyReport(userId, weekStart);
+        return Result.success(report);
     }
 
     /**
      * Get Weekly Nutrition Summary
      * GET /api/nutrition/summary?period=week&userId={userId}
      */
-    @GetMapping("/summary")
-    public Result<INutritionService.WeeklyNutritionSummaryResponse> getWeeklyNutritionSummary(
-            @RequestParam(defaultValue = "week") String period,
-            @RequestParam("userId") Long userId) {
-        try {
-            if (!"week".equals(period)) {
-                return Result.error("Only 'week' period is currently supported");
-            }
-
-            INutritionService.WeeklyNutritionSummaryResponse response =
-                    nutritionService.getWeeklyNutritionSummary(userId);
-            return Result.success(response);
-        } catch (Exception e) {
-            return Result.error("Failed to get weekly nutrition summary: " + e.getMessage());
+    @PostMapping("/log/manual")
+    public Result<NutritionLog> createManualLog(@Valid @RequestBody ManualNutritionLogRequest request) {
+        NutritionLog log = nutritionLogService.createManual(request);
+        return Result.success(log);
+    }
+    
+    /**
+     * 从剩菜记录营养摄入
+     * 
+     * @param leftoverId 剩菜ID
+     * @param userId 用户ID
+     * @param consumedGram 食用重量（克）
+     * @param eatenAt 进食时间（可选，默认为当前时间）
+     * @return 创建的营养日志
+     */
+    @PostMapping("/log/leftover")
+    public Result<NutritionLog> createFromLeftover(
+            @RequestParam Long leftoverId,
+            @RequestParam Long userId,
+            @RequestParam Integer consumedGram,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime eatenAt) {
+        
+        if (eatenAt == null) {
+            eatenAt = LocalDateTime.now();
         }
+        
+        NutritionLog log = nutritionLogService.createFromLeftover(leftoverId, userId, consumedGram, eatenAt);
+        return Result.success(log);
     }
 }

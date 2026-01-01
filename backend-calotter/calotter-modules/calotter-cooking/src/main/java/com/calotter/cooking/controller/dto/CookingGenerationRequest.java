@@ -9,7 +9,7 @@ import java.util.List;
  */
 @Data
 public class CookingGenerationRequest {
-    private List<Long> memberIds;  // 家庭成员ID列表
+    private List<Long> userIds;  // 用户ID列表
     private List<GuestInfo> guests; // 客人信息（可选）
     private Integer dishCount;      // 几道菜
     private Integer maxTimeMinutes; // 最大时间（分钟）

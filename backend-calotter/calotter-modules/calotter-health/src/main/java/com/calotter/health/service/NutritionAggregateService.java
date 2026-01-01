@@ -5,8 +5,9 @@ import com.calotter.health.domain.entity.NutritionLog;
 import com.calotter.health.repository.DailyNutrientAggregateRepository;
 import com.calotter.health.repository.NutritionLogRepository;
 import com.calotter.user.domain.entity.User;
+import com.calotter.user.domain.entity.HealthGoal;
 import com.calotter.user.repository.UserRepository;
-import com.calotter.user.service.UserHealthService;
+import com.calotter.user.repository.HealthGoalRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,7 +28,7 @@ public class NutritionAggregateService {
     private final DailyNutrientAggregateRepository aggregateRepository;
     private final NutritionLogRepository nutritionLogRepository;
     private final UserRepository userRepository;
-    private final UserHealthService userHealthService;
+    private final HealthGoalRepository healthGoalRepository;
     
     /**
      * 重建某一天的聚合表（用于“更新百分比/删除记录”等会改变历史数据的场景）
@@ -92,14 +93,14 @@ public class NutritionAggregateService {
                     newAggregate.setUser(user);
                     newAggregate.setDate(logDate);
                     
-                    // 快照当天的健康目标（从 calotter-user 模块获取）
-                    UserHealthService.UserHealthInfo healthInfo = userHealthService.getUserHealthInfo(user.getId());
-                    if (healthInfo.getDailyEnergy() != null) {
-                        newAggregate.setGoalEnergySnapshot(healthInfo.getDailyEnergy());
-                        newAggregate.setGoalProteinSnapshot(healthInfo.getDailyProtein());
-                        newAggregate.setGoalFatSnapshot(healthInfo.getDailyFat());
-                        newAggregate.setGoalCarbohydratesSnapshot(healthInfo.getDailyCarbohydrates());
-                        newAggregate.setGoalFiberSnapshot(healthInfo.getDailyFiber());
+                    // 快照当天的健康目标（如果存在）
+                    HealthGoal goal = healthGoalRepository.findByUserAndStatus(user, 1); // 1=ACTIVE
+                    if (goal != null) {
+                        newAggregate.setGoalCaloriesSnapshot(goal.getDailyCalories());
+                        newAggregate.setGoalProteinSnapshot(goal.getProtein());
+                        newAggregate.setGoalFatSnapshot(goal.getFat());
+                        newAggregate.setGoalCarbSnapshot(goal.getCarb());
+                        newAggregate.setGoalFiberSnapshot(goal.getFiber());
                     }
                     
                     return newAggregate;
@@ -140,8 +141,8 @@ public class NutritionAggregateService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("用户不存在: " + userId));
         
-        // 2. 从 calotter-user 模块获取健康目标
-        UserHealthService.UserHealthInfo healthInfo = userHealthService.getUserHealthInfo(userId);
+        // 2. 获取健康目标
+        HealthGoal goal = healthGoalRepository.findByUserAndStatus(user, 1); // 1=ACTIVE
         
         // 3. 获取实际摄入（查询聚合表）
         List<DailyNutrientAggregate> actuals = aggregateRepository
@@ -241,14 +242,14 @@ public class NutritionAggregateService {
                     aggregate.setUser(user);
                     aggregate.setDate(date);
                     
-                    // 快照当天的健康目标（从 calotter-user 模块获取）
-                    UserHealthService.UserHealthInfo healthInfo = userHealthService.getUserHealthInfo(user.getId());
-                    if (healthInfo.getDailyEnergy() != null) {
-                        aggregate.setGoalEnergySnapshot(healthInfo.getDailyEnergy());
-                        aggregate.setGoalProteinSnapshot(healthInfo.getDailyProtein());
-                        aggregate.setGoalFatSnapshot(healthInfo.getDailyFat());
-                        aggregate.setGoalCarbohydratesSnapshot(healthInfo.getDailyCarbohydrates());
-                        aggregate.setGoalFiberSnapshot(healthInfo.getDailyFiber());
+                    // 快照当天的健康目标（如果存在）
+                    HealthGoal goal = healthGoalRepository.findByUserAndStatus(user, 1);
+                    if (goal != null) {
+                        aggregate.setGoalCaloriesSnapshot(goal.getDailyCalories());
+                        aggregate.setGoalProteinSnapshot(goal.getProtein());
+                        aggregate.setGoalFatSnapshot(goal.getFat());
+                        aggregate.setGoalCarbSnapshot(goal.getCarb());
+                        aggregate.setGoalFiberSnapshot(goal.getFiber());
                     }
                     
                     return aggregateRepository.save(aggregate);
