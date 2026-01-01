@@ -3,6 +3,7 @@ package com.calotter.common.exception;
 import com.calotter.common.core.Result;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -58,5 +59,20 @@ public class GlobalExceptionHandler {
         // 返回第一个错误信息
         String firstError = errors.values().iterator().next();
         return Result.error(400, firstError);
+    }
+    
+    /**
+     * 处理 JSON 解析错误
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public Result<Object> handleHttpMessageNotReadableException(HttpMessageNotReadableException e) {
+        log.warn("JSON 解析错误: {}", e.getMessage());
+        String message = e.getMessage();
+        // 提取更友好的错误信息
+        if (message != null && message.contains("JSON parse error")) {
+            return Result.error(400, "请求体格式错误，请检查 JSON 格式");
+        }
+        return Result.error(400, "请求体格式错误: " + message);
     }
 }

@@ -7,10 +7,12 @@
 ### 测试脚本
 - **`test-user-api.sh`** - User API测试脚本（注册、登录）
 - **`test-household-api.sh`** - Household API测试脚本（家庭CRUD）
+- **`test-user-preferences-api.sh`** - 用户偏好、禁忌、过敏 API测试脚本
 - **`test-all-user-apis.sh`** - 完整测试脚本（运行所有测试）
 
 ### 文档
 - **`HOUSEHOLD_API_README.md`** - Household API详细文档
+- **`USER_PREFERENCES_API_README.md`** - 用户偏好、禁忌、过敏 API详细文档
 
 ## 🚀 使用方法
 
@@ -28,7 +30,14 @@ cd calotter-modules/calotter-user/test
 bash test-household-api.sh
 ```
 
-### 3. 运行所有测试
+### 3. 测试用户偏好、禁忌、过敏 API
+
+```bash
+cd calotter-modules/calotter-user/test
+bash test-user-preferences-api.sh
+```
+
+### 4. 运行所有测试
 
 ```bash
 cd calotter-modules/calotter-user/test
@@ -48,6 +57,16 @@ bash test-all-user-apis.sh
 - `GET /api/household/owner/{ownerId}` - 获取用户的所有家庭
 - `PUT /api/household/{id}` - 更新家庭信息
 - `DELETE /api/household/{id}?ownerId={ownerId}` - 删除家庭
+
+### 用户偏好、禁忌、过敏 API
+- `GET /api/user/preferences` - 获取用户偏好
+- `PUT /api/user/preferences` - 更新用户偏好
+- `GET /api/user/taboos` - 获取用户禁忌
+- `PUT /api/user/taboos` - 更新用户禁忌
+- `GET /api/user/allergies` - 获取用户过敏
+- `PUT /api/user/allergies` - 更新用户过敏
+
+**注意：** 所有 API 同时支持 `/api/user/*` 和 `/api/ums/user/*` 路径
 
 ## ⚠️ 注意事项
 
