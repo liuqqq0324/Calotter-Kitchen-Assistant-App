@@ -3,67 +3,81 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:personal_sous_chef/config/api_config.dart';
 import 'package:personal_sous_chef/services/auth_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HouseholdService {
-  /// 获取用户的householdId
-  /// 通过调用user API获取用户信息，然后从FamilyMember中获取householdId
+  static const String _householdIdKey = 'household_id';
+
+  /// 获取用户的householdId（当前活跃的家庭）
+  /// 优先从本地存储获取（登录时保存），否则从API获取用户当前活跃的家庭
   static Future<int?> getHouseholdId({String? userId}) async {
     try {
+      // 1. 优先从本地存储获取（登录时保存的）
+      final savedHouseholdId = await AuthService.getHouseholdId();
+      if (savedHouseholdId != null && savedHouseholdId.isNotEmpty) {
+        final id = int.tryParse(savedHouseholdId);
+        if (id != null) {
+          return id;
+        }
+      }
+
+      // 2. 如果本地没有，从API获取用户当前活跃的家庭
       final userIdParam = userId ?? await AuthService.getUserId();
       if (userIdParam == null) {
+        print('[HouseholdService] No userId available');
         return null;
       }
 
-      // 调用user API获取用户信息
-      final url = Uri.parse('${ApiConfig.baseUrl}/api/ums/user?id=$userIdParam');
-      final response = await http.get(url);
+      // 调用household API获取用户当前活跃的家庭
+      final url = Uri.parse(
+        '${ApiConfig.baseUrl}/api/household/current?userId=$userIdParam',
+      );
+      final token = await AuthService.getToken();
+
+      final response = await http.get(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+      );
 
       if (response.statusCode != 200) {
-        print('[HouseholdService] Failed to get user info: ${response.statusCode}');
+        print(
+          '[HouseholdService] Failed to get current household: ${response.statusCode}',
+        );
         return null;
       }
 
       final data = jsonDecode(response.body);
+      Map<String, dynamic>? householdData;
+
       // 处理Result<T>格式
-      Map<String, dynamic> userData;
       if (data is Map && data.containsKey('code')) {
         final code = data['code'] as int;
         if (code != 200) {
+          print('[HouseholdService] API returned error: ${data['message']}');
           return null;
         }
-        userData = data['data'] as Map<String, dynamic>;
-      } else {
-        userData = data as Map<String, dynamic>;
+        householdData = data['data'] as Map<String, dynamic>?;
+      } else if (data is Map) {
+        householdData = Map<String, dynamic>.from(data);
       }
 
-      // 从userData中获取householdId
-      // 注意：实际API返回的字段名可能不同，需要根据实际情况调整
-      if (userData.containsKey('householdId')) {
-        return (userData['householdId'] as num?)?.toInt();
-      }
-      if (userData.containsKey('household_id')) {
-        return (userData['household_id'] as num?)?.toInt();
-      }
-      if (userData.containsKey('familyMember')) {
-        final familyMember = userData['familyMember'] as Map<String, dynamic>?;
-        if (familyMember != null) {
-          if (familyMember.containsKey('householdId')) {
-            return (familyMember['householdId'] as num?)?.toInt();
-          }
-          if (familyMember.containsKey('household_id')) {
-            return (familyMember['household_id'] as num?)?.toInt();
-          }
-          if (familyMember.containsKey('household')) {
-            final household = familyMember['household'] as Map<String, dynamic>?;
-            if (household != null) {
-              return (household['id'] as num?)?.toInt();
-            }
-          }
-        }
+      if (householdData == null) {
+        print('[HouseholdService] User has no current household');
+        return null;
       }
 
-      // 如果无法获取，返回null
-      print('[HouseholdService] Could not find householdId in user data');
+      // 返回当前活跃家庭的ID
+      final householdId = householdData['id'] as num?;
+      if (householdId != null) {
+        final id = householdId.toInt();
+        // 保存到本地存储，方便下次使用
+        await _saveHouseholdId(id.toString());
+        return id;
+      }
+
       return null;
     } catch (e) {
       print('[HouseholdService] Error getting householdId: $e');
@@ -71,55 +85,24 @@ class HouseholdService {
     }
   }
 
-  /// 获取当前用户的initiatorId（FamilyMember ID）
+  /// 保存householdId到本地存储
+  static Future<void> _saveHouseholdId(String householdId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_householdIdKey, householdId);
+  }
+
+  /// 获取当前用户的initiatorId（即userId）
+  /// 注意：FamilyMember已被删除，现在直接使用userId
   static Future<int?> getInitiatorId({String? userId}) async {
-    String? userIdParam;
     try {
-      userIdParam = userId ?? await AuthService.getUserId();
+      final userIdParam = userId ?? await AuthService.getUserId();
       if (userIdParam == null) {
         return null;
       }
-
-      // 调用user API获取用户信息
-      final url = Uri.parse('${ApiConfig.baseUrl}/api/ums/user?id=$userIdParam');
-      final response = await http.get(url);
-
-      if (response.statusCode != 200) {
-        return null;
-      }
-
-      final data = jsonDecode(response.body);
-      Map<String, dynamic> userData;
-      if (data is Map && data.containsKey('code')) {
-        final code = data['code'] as int;
-        if (code != 200) {
-          return null;
-        }
-        userData = data['data'] as Map<String, dynamic>;
-      } else {
-        userData = data as Map<String, dynamic>;
-      }
-
-      // 从userData中获取familyMemberId
-      if (userData.containsKey('familyMemberId')) {
-        return (userData['familyMemberId'] as num?)?.toInt();
-      }
-      if (userData.containsKey('family_member_id')) {
-        return (userData['family_member_id'] as num?)?.toInt();
-      }
-      if (userData.containsKey('familyMember')) {
-        final familyMember = userData['familyMember'] as Map<String, dynamic>?;
-        if (familyMember != null && familyMember.containsKey('id')) {
-          return (familyMember['id'] as num?)?.toInt();
-        }
-      }
-
-      // 如果无法获取familyMemberId，使用userId作为fallback
       return int.tryParse(userIdParam);
     } catch (e) {
       print('[HouseholdService] Error getting initiatorId: $e');
-      return userIdParam != null ? int.tryParse(userIdParam) : null;
+      return null;
     }
   }
 }
-

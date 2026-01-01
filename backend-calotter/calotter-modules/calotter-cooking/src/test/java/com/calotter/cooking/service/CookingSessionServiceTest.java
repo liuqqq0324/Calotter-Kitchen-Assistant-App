@@ -86,11 +86,11 @@ class CookingSessionServiceTest {
         request.setConsumedAt(LocalDateTime.now());
 
         CookingCompletionRequest.DinerConsumption diner1 = new CookingCompletionRequest.DinerConsumption();
-        diner1.setFamilyMemberId(1L);
+        diner1.setUserId(1L);
         diner1.setPortionPercentage(0.3); // 30%
 
         CookingCompletionRequest.DinerConsumption diner2 = new CookingCompletionRequest.DinerConsumption();
-        diner2.setFamilyMemberId(2L);
+        diner2.setUserId(2L);
         diner2.setPortionPercentage(0.3); // 30%
 
         request.setDiners(Arrays.asList(diner1, diner2));
@@ -230,7 +230,7 @@ class CookingSessionServiceTest {
     void testCompleteSession_SmallLeftoverPercentage() {
         // Given: 只剩余2%（小于5%阈值），不应该创建剩菜
         CookingCompletionRequest.DinerConsumption diner1 = new CookingCompletionRequest.DinerConsumption();
-        diner1.setFamilyMemberId(1L);
+        diner1.setUserId(1L);
         diner1.setPortionPercentage(0.98); // 98%，剩余2%
 
         request.setDiners(Arrays.asList(diner1));

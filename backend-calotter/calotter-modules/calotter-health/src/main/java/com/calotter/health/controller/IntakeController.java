@@ -2,6 +2,7 @@ package com.calotter.health.controller;
 
 import com.calotter.common.core.Result;
 import com.calotter.health.service.IIntakeService;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -129,6 +130,12 @@ public class IntakeController {
      * Update Intake Request
      */
     public static class UpdateIntakeRequest {
+        /**
+         * 消费百分比（0.0-100.0）
+         * Jackson会自动将JSON中的数字类型（double/int）转换为BigDecimal
+         * 例如：80.0 (double) -> BigDecimal("80.0")
+         * 前端可以发送数字类型，无需转换为字符串
+         */
         public BigDecimal consumedPercentage;
     }
 
@@ -136,6 +143,11 @@ public class IntakeController {
      * Add Manual Intake Request
      */
     public static class AddManualIntakeRequest {
+        /**
+         * 日期字段，支持ISO 8601格式字符串（"yyyy-MM-dd"）自动转换为LocalDate
+         * 例如："2025-11-29" -> LocalDate.of(2025, 11, 29)
+         */
+        @JsonFormat(pattern = "yyyy-MM-dd")
         public LocalDate date;
         public String foodName;
         public String portionDescription;

@@ -33,6 +33,12 @@ public class CookingSession extends BaseEntity {
     @Column(nullable = false)
     private Long initiatorId; // 发起请求的用户 ID
 
+    /**
+     * Menu ID（1-5），用于标识用户选择了哪套菜单
+     * 当用户从 AI 生成的 5 套菜单中选择一套时，记录该菜单的 ID
+     */
+    private Integer menuId;
+
     // --- 核心：请求快照 (Input) ---
     // 这里直接存 AiCookingContext 的 JSON
     // 优点：以后排查 Bug，直接复制这个 JSON 丢给 AI 就能复现

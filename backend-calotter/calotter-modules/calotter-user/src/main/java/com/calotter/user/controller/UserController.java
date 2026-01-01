@@ -236,6 +236,21 @@ public class UserController {
             return Result.error("更新用户过敏失败: " + e.getMessage());
         }
     }
+
+    /**
+     * 获取所有标准过敏源库
+     * GET /api/user/standard-allergens
+     */
+    @GetMapping("/standard-allergens")
+    public Result<java.util.List<com.calotter.common.core.domain.entity.RefAllergen>> getAllStandardAllergens() {
+        try {
+            java.util.List<com.calotter.common.core.domain.entity.RefAllergen> allergens = 
+                    userService.getAllStandardAllergens();
+            return Result.success(allergens);
+        } catch (Exception e) {
+            return Result.error("获取标准过敏源库失败: " + e.getMessage());
+        }
+    }
     
     /**
      * 从 Authorization header 或请求参数中获取用户ID

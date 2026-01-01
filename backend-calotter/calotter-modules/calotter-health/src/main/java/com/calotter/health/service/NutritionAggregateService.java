@@ -8,6 +8,7 @@ import com.calotter.user.domain.entity.User;
 import com.calotter.user.domain.entity.HealthGoal;
 import com.calotter.user.repository.UserRepository;
 import com.calotter.user.repository.HealthGoalRepository;
+import com.calotter.user.service.UserHealthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +30,7 @@ public class NutritionAggregateService {
     private final NutritionLogRepository nutritionLogRepository;
     private final UserRepository userRepository;
     private final HealthGoalRepository healthGoalRepository;
+    private final UserHealthService userHealthService;
     
     /**
      * 重建某一天的聚合表（用于“更新百分比/删除记录”等会改变历史数据的场景）
@@ -141,8 +143,8 @@ public class NutritionAggregateService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("用户不存在: " + userId));
         
-        // 2. 获取健康目标
-        HealthGoal goal = healthGoalRepository.findByUserAndStatus(user, 1); // 1=ACTIVE
+        // 2. 获取用户健康信息（包含BMI和目标营养）
+        UserHealthService.UserHealthInfo healthInfo = userHealthService.getUserHealthInfo(userId);
         
         // 3. 获取实际摄入（查询聚合表）
         List<DailyNutrientAggregate> actuals = aggregateRepository
@@ -200,15 +202,15 @@ public class NutritionAggregateService {
                             .carbohydrates(0.0)
                             .build());
             
-                  com.calotter.health.controller.dto.WeeklyReportVO.NutritionStats dailyTarget = null;
-                  if (finalHealthInfo.getDailyEnergy() != null) {
-                      dailyTarget = com.calotter.health.controller.dto.WeeklyReportVO.NutritionStats.builder()
-                              .energy(finalHealthInfo.getDailyEnergy())
-                              .protein(finalHealthInfo.getDailyProtein() != null ? finalHealthInfo.getDailyProtein().doubleValue() : null)
-                              .fat(finalHealthInfo.getDailyFat() != null ? finalHealthInfo.getDailyFat().doubleValue() : null)
-                              .carbohydrates(finalHealthInfo.getDailyCarbohydrates() != null ? finalHealthInfo.getDailyCarbohydrates().doubleValue() : null)
-                              .build();
-                  }
+            com.calotter.health.controller.dto.WeeklyReportVO.NutritionStats dailyTarget = null;
+            if (finalHealthInfo.getDailyEnergy() != null) {
+                dailyTarget = com.calotter.health.controller.dto.WeeklyReportVO.NutritionStats.builder()
+                        .energy(finalHealthInfo.getDailyEnergy())
+                        .protein(finalHealthInfo.getDailyProtein() != null ? finalHealthInfo.getDailyProtein().doubleValue() : null)
+                        .fat(finalHealthInfo.getDailyFat() != null ? finalHealthInfo.getDailyFat().doubleValue() : null)
+                        .carbohydrates(finalHealthInfo.getDailyCarbohydrates() != null ? finalHealthInfo.getDailyCarbohydrates().doubleValue() : null)
+                        .build();
+            }
             
             dailyReports.add(com.calotter.health.controller.dto.WeeklyReportVO.DailyReport.builder()
                     .date(currentDate)
@@ -217,13 +219,24 @@ public class NutritionAggregateService {
                     .build());
         }
         
-        // 7. 组装返回
+        // 7. 构建 basis 信息
+        com.calotter.health.controller.dto.WeeklyReportVO.Basis basis = 
+                com.calotter.health.controller.dto.WeeklyReportVO.Basis.builder()
+                        .bmi(healthInfo.getBmi())
+                        .goalType(healthInfo.getGoalType() != null ? healthInfo.getGoalType().toLowerCase() : "maintenance")
+                        .calculationModel("health_goal") // 使用健康目标作为计算模型
+                        .weekStart(weekStart)
+                        .weekEnd(weekEnd)
+                        .build();
+        
+        // 8. 组装返回
         return com.calotter.health.controller.dto.WeeklyReportVO.builder()
                 .weekStart(weekStart)
                 .weekEnd(weekEnd)
                 .weeklyTarget(weeklyTarget)
                 .weeklyActual(totalIntake)
                 .dailyReports(dailyReports)
+                .basis(basis)
                 .build();
     }
     
@@ -254,6 +267,88 @@ public class NutritionAggregateService {
                     
                     return aggregateRepository.save(aggregate);
                 });
+    }
+    
+    /**
+     * 获取周营养摘要
+     * 基于聚合表查询，返回已消耗和剩余的营养值
+     * 
+     * @param userId 用户ID
+     * @param weekStart 周开始日期（可选，默认为本周一）
+     * @return 周营养摘要VO
+     */
+    @Transactional(readOnly = true)
+    public com.calotter.health.controller.dto.WeeklySummaryVO getWeeklySummary(Long userId, LocalDate weekStart) {
+        LocalDate weekEnd = weekStart.plusDays(6);
+        
+        // 1. 获取用户
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("用户不存在: " + userId));
+        
+        // 2. 获取用户健康信息（包含目标营养）
+        UserHealthService.UserHealthInfo healthInfo = userHealthService.getUserHealthInfo(userId);
+        
+        // 3. 获取实际摄入（查询聚合表）
+        List<DailyNutrientAggregate> actuals = aggregateRepository
+                .findByUserAndDateBetween(user, weekStart, weekEnd);
+        
+        // 4. 计算本周总摄入（已消耗）
+        int consumedEnergy = actuals.stream()
+                .mapToInt(a -> a.getTotalEnergy() != null ? a.getTotalEnergy() : 0)
+                .sum();
+        double consumedProtein = actuals.stream()
+                .mapToDouble(a -> a.getTotalProtein() != null ? a.getTotalProtein() : 0.0)
+                .sum();
+        double consumedFat = actuals.stream()
+                .mapToDouble(a -> a.getTotalFat() != null ? a.getTotalFat() : 0.0)
+                .sum();
+        double consumedCarbohydrates = actuals.stream()
+                .mapToDouble(a -> a.getTotalCarbohydrates() != null ? a.getTotalCarbohydrates() : 0.0)
+                .sum();
+        
+        // 5. 计算本周总目标（日目标 * 7）
+        int weeklyTargetEnergy = 0;
+        double weeklyTargetProtein = 0.0;
+        double weeklyTargetFat = 0.0;
+        double weeklyTargetCarbohydrates = 0.0;
+        
+        if (healthInfo.getDailyEnergy() != null) {
+            weeklyTargetEnergy = healthInfo.getDailyEnergy() * 7;
+            weeklyTargetProtein = healthInfo.getDailyProtein() != null ? healthInfo.getDailyProtein() * 7.0 : 0.0;
+            weeklyTargetFat = healthInfo.getDailyFat() != null ? healthInfo.getDailyFat() * 7.0 : 0.0;
+            weeklyTargetCarbohydrates = healthInfo.getDailyCarbohydrates() != null ? healthInfo.getDailyCarbohydrates() * 7.0 : 0.0;
+        }
+        
+        // 6. 计算剩余值（目标值 - 已消耗值，不能为负数）
+        int remainingEnergy = Math.max(0, weeklyTargetEnergy - consumedEnergy);
+        double remainingProtein = Math.max(0.0, weeklyTargetProtein - consumedProtein);
+        double remainingFat = Math.max(0.0, weeklyTargetFat - consumedFat);
+        double remainingCarbohydrates = Math.max(0.0, weeklyTargetCarbohydrates - consumedCarbohydrates);
+        
+        // 7. 构建返回对象
+        com.calotter.health.controller.dto.WeeklySummaryVO.NutritionValues consumed = 
+                com.calotter.health.controller.dto.WeeklySummaryVO.NutritionValues.builder()
+                        .energy(consumedEnergy)
+                        .protein(consumedProtein)
+                        .fat(consumedFat)
+                        .carbohydrates(consumedCarbohydrates)
+                        .build();
+        
+        com.calotter.health.controller.dto.WeeklySummaryVO.NutritionValues remaining = 
+                com.calotter.health.controller.dto.WeeklySummaryVO.NutritionValues.builder()
+                        .energy(remainingEnergy)
+                        .protein(remainingProtein)
+                        .fat(remainingFat)
+                        .carbohydrates(remainingCarbohydrates)
+                        .build();
+        
+        return com.calotter.health.controller.dto.WeeklySummaryVO.builder()
+                .period("week")
+                .weekStart(weekStart)
+                .weekEnd(weekEnd)
+                .consumed(consumed)
+                .remaining(remaining)
+                .build();
     }
 }
 

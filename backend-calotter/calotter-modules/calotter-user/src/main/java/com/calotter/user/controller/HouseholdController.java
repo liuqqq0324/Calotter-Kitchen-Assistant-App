@@ -93,6 +93,20 @@ public class HouseholdController {
     }
 
     /**
+     * 获取用户的当前活跃家庭
+     * GET /api/household/current?userId={userId}
+     */
+    @GetMapping("/current")
+    public Result<HouseholdResponse> getCurrentHousehold(@RequestParam Long userId) {
+        try {
+            HouseholdResponse response = householdService.getCurrentHousehold(userId);
+            return Result.success(response);
+        } catch (IllegalArgumentException e) {
+            return Result.error(e.getMessage());
+        }
+    }
+
+    /**
      * 删除家庭
      * DELETE /api/household/{id}?ownerId={ownerId}
      */

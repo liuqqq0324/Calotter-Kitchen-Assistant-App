@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:personal_sous_chef/config/api_config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:personal_sous_chef/services/standard_library_service.dart';
 
 class AuthService {
   static const String _tokenKey = 'auth_token';
@@ -16,7 +17,7 @@ class AuthService {
     required String confirmPassword,
   }) async {
     try {
-      // API路径: /api/user/register
+      // API路径: /api/user/register (统一使用 /api/user 路径)
       final url = Uri.parse('${ApiConfig.baseUrl}/api/user/register');
       //  前端验证密码匹配，但不发送 confirmPassword 给后端
       if (password != confirmPassword) {
@@ -82,7 +83,7 @@ class AuthService {
     required String password,
   }) async {
     try {
-      //  步骤2.1: 修改API路径
+      // API路径: /api/user/login (统一使用 /api/user 路径)
       final url = Uri.parse('${ApiConfig.baseUrl}/api/user/login');
 
       final response = await http.post(
@@ -110,6 +111,10 @@ class AuthService {
         if (responseData['householdId'] != null) {
           await _saveHouseholdId(responseData['householdId'].toString());
         }
+        
+        // ✅ 登录成功后，后台异步预加载标准库（不阻塞登录流程）
+        _preloadStandardLibraries();
+        
         return {'success': true, 'data': responseData};
       } else {
         // 后端返回错误格式: {code: 400/401/403, message: "错误信息"}
@@ -143,7 +148,7 @@ class AuthService {
   // Logout
   static Future<Map<String, dynamic>> logout() async {
     try {
-      // ✅ 修改API路径
+      // API路径: /api/user/logout (统一使用 /api/user 路径)
       final url = Uri.parse('${ApiConfig.baseUrl}/api/user/logout');
       final token = await getToken();
 
@@ -225,5 +230,21 @@ class AuthService {
   static Future<void> _saveHouseholdId(String householdId) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_householdIdKey, householdId);
+  }
+
+  // ✅ 后台异步预加载标准库（不阻塞登录流程）
+  static void _preloadStandardLibraries() {
+    // 不等待完成，后台静默加载
+    Future.microtask(() async {
+      try {
+        await StandardLibraryService.preloadOnLogin();
+        // ignore: avoid_print
+        print('[AuthService] Standard libraries preloaded successfully');
+      } catch (e) {
+        // 静默失败，不影响登录流程
+        // ignore: avoid_print
+        print('[AuthService] Failed to preload standard libraries: $e');
+      }
+    });
   }
 }

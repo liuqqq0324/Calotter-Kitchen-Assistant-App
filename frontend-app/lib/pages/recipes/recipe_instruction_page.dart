@@ -52,30 +52,30 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
         return;
       }
 
-      // 将整个 Menu 的所有菜品转换为后端需要的格式
+      // 将整个 Menu 的所有菜品转换为后端需要的格式（使用驼峰命名）
       final recipesJson = widget.menu.recipes.map((recipe) => {
         'title': recipe.title,
-        'short_description': recipe.shortDescription,
+        'shortDescription': recipe.shortDescription,
         'servings': recipe.servings,
-        'cooking_time_min': recipe.cookingTimeMin,
+        'cookingTimeMin': recipe.cookingTimeMin,
         'difficulty': recipe.difficulty,
-        'nutrition_estimate': {
+        'nutritionEstimate': {
           'calories': recipe.totalCaloriesEstimate,
-          'protein_g': recipe.totalProtein ?? 0.0,
-          'fat_g': recipe.totalFat ?? 0.0,
-          'carbs_g': recipe.totalCarb ?? 0.0,
+          'proteinG': recipe.totalProtein ?? 0.0,
+          'fatG': recipe.totalFat ?? 0.0,
+          'carbsG': recipe.totalCarb ?? 0.0,
         },
         'ingredients': recipe.ingredients.map((ing) => {
           'name': ing.name,
-          'amount_value': ing.amountValue,
-          'amount_unit': ing.amountUnit,
-          'is_optional': ing.isOptional,
-          'source_type': 'MANUAL_ADD',
+          'amountValue': ing.amountValue,
+          'amountUnit': ing.amountUnit,
+          'isOptional': ing.isOptional,
+          'sourceType': 'MANUAL_ADD',
         }).toList(),
         'steps': recipe.steps.map((step) => {
-          'step_number': step.stepNumber,
+          'stepNumber': step.stepNumber,
           'instruction': step.instruction,
-          'step_time_min': step.stepTimeMin,
+          'stepTimeMin': step.stepTimeMin,
         }).toList(),
       }).toList();
 

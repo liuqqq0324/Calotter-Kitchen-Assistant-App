@@ -1,0 +1,47 @@
+spring:
+  application:
+    name: calotter-test
+  
+  datasource:
+    url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+  
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        format_sql: true
+  
+  # 禁用JPA Auditing（测试时不需要）
+  jpa:
+    properties:
+      hibernate:
+        enable_lazy_load_no_trans: true
+
+server:
+  port: 0 # 随机端口，避免冲突
+
+jwt:
+  key: TestJwtKeyForIntegrationTestingThatShouldBeAtLeast32CharactersLong!
+  issuer: CalotterBackend
+  audience: CalotterFrontend
+  expiration: 3000
+
+# AI API配置（测试时使用mock）
+ai:
+  api:
+    key: test-api-key
+    url: http://localhost:9999/mock-ai-api
+    model: test-model
+
+logging:
+  level:
+    root: WARN
+    com.calotter: DEBUG
+    org.springframework.web: DEBUG
+

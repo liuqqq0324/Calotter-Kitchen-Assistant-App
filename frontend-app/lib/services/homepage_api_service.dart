@@ -22,7 +22,7 @@ class HomepageApiService {
       // 检查是否是R<T>格式
       if (data is Map && data.containsKey('code')) {
         final code = data['code'] as int;
-        final msg = data['msg'] as String? ?? '';
+        final msg = data['message'] as String? ?? '';
         final responseData = data['data'];
 
         if (code == 200) {
@@ -75,16 +75,16 @@ class HomepageApiService {
   /// 1. 获取周营养目标
   /// GET /api/nutrition/targets/weekly?userId={userId}
   static Future<Map<String, dynamic>> getWeeklyNutritionTargets({
-    String? familyMemberId,
+    String? userId,
   }) async {
     try {
-      final familyMemberIdParam = familyMemberId ?? await AuthService.getUserId();
-      if (familyMemberIdParam == null) {
+      final userIdParam = userId ?? await AuthService.getUserId();
+      if (userIdParam == null) {
         return {'success': false, 'error': 'User not logged in', 'code': 401};
       }
 
       final url = Uri.parse(
-        '${ApiConfig.homepageBaseUrl}/api/nutrition/targets/weekly?userId=$familyMemberIdParam',
+        '${ApiConfig.homepageBaseUrl}/api/nutrition/targets/weekly?userId=$userIdParam',
       );
       final headers = _getHeaders();
 
@@ -142,16 +142,16 @@ class HomepageApiService {
   /// 2. 获取周营养摘要
   /// GET /api/nutrition/summary?period=week&userId={userId}
   static Future<Map<String, dynamic>> getWeeklyNutritionSummary({
-    String? familyMemberId,
+    String? userId,
   }) async {
     try {
-      final familyMemberIdParam = familyMemberId ?? await AuthService.getUserId();
-      if (familyMemberIdParam == null) {
+      final userIdParam = userId ?? await AuthService.getUserId();
+      if (userIdParam == null) {
         return {'success': false, 'error': 'User not logged in', 'code': 401};
       }
 
       final url = Uri.parse(
-        '${ApiConfig.homepageBaseUrl}/api/nutrition/summary?period=week&userId=$familyMemberIdParam',
+        '${ApiConfig.homepageBaseUrl}/api/nutrition/summary?period=week&userId=$userIdParam',
       );
       final headers = _getHeaders();
 
@@ -208,16 +208,16 @@ class HomepageApiService {
   /// GET /api/intake/today?source=recipe|manual|all&userId={userId}
   static Future<Map<String, dynamic>> getTodayIntakes({
     String source = 'all',
-    String? familyMemberId,
+    String? userId,
   }) async {
     try {
-      final familyMemberIdParam = familyMemberId ?? await AuthService.getUserId();
-      if (familyMemberIdParam == null) {
+      final userIdParam = userId ?? await AuthService.getUserId();
+      if (userIdParam == null) {
         return {'success': false, 'error': 'User not logged in', 'code': 401};
       }
 
       final url = Uri.parse(
-        '${ApiConfig.homepageBaseUrl}/api/intake/today?source=$source&userId=$familyMemberIdParam',
+        '${ApiConfig.homepageBaseUrl}/api/intake/today?source=$source&userId=$userIdParam',
       );
       final headers = _getHeaders();
 
@@ -275,16 +275,16 @@ class HomepageApiService {
   static Future<Map<String, dynamic>> updateIntakePercentage({
     required int intakeId,
     required double consumedPercentage,
-    String? familyMemberId,
+    String? userId,
   }) async {
     try {
-      final familyMemberIdParam = familyMemberId ?? await AuthService.getUserId();
-      if (familyMemberIdParam == null) {
+      final userIdParam = userId ?? await AuthService.getUserId();
+      if (userIdParam == null) {
         return {'success': false, 'error': 'User not logged in', 'code': 401};
       }
 
       final url = Uri.parse(
-        '${ApiConfig.homepageBaseUrl}/api/intake/$intakeId?userId=$familyMemberIdParam',
+        '${ApiConfig.homepageBaseUrl}/api/intake/$intakeId?userId=$userIdParam',
       );
       final headers = _getHeaders();
 
@@ -346,16 +346,16 @@ class HomepageApiService {
     required String foodName,
     String? portionDescription,
     DateTime? date,
-    String? familyMemberId,
+    String? userId,
   }) async {
     try {
-      final familyMemberIdParam = familyMemberId ?? await AuthService.getUserId();
-      if (familyMemberIdParam == null) {
+      final userIdParam = userId ?? await AuthService.getUserId();
+      if (userIdParam == null) {
         return {'success': false, 'error': 'User not logged in', 'code': 401};
       }
 
       final url = Uri.parse(
-        '${ApiConfig.homepageBaseUrl}/api/intake/manual?userId=$familyMemberIdParam',
+        '${ApiConfig.homepageBaseUrl}/api/intake/manual?userId=$userIdParam',
       );
       final headers = _getHeaders();
 
@@ -424,16 +424,16 @@ class HomepageApiService {
   /// DELETE /api/intake/{intake_id}?userId={userId}
   static Future<Map<String, dynamic>> deleteIntake({
     required int intakeId,
-    String? familyMemberId,
+    String? userId,
   }) async {
     try {
-      final familyMemberIdParam = familyMemberId ?? await AuthService.getUserId();
-      if (familyMemberIdParam == null) {
+      final userIdParam = userId ?? await AuthService.getUserId();
+      if (userIdParam == null) {
         return {'success': false, 'error': 'User not logged in', 'code': 401};
       }
 
       final url = Uri.parse(
-        '${ApiConfig.homepageBaseUrl}/api/intake/$intakeId?userId=$familyMemberIdParam',
+        '${ApiConfig.homepageBaseUrl}/api/intake/$intakeId?userId=$userIdParam',
       );
       final headers = _getHeaders();
 

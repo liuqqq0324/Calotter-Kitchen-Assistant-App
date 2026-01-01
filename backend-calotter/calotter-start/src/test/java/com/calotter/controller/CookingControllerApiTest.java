@@ -46,7 +46,7 @@ class CookingControllerApiTest {
     void testGenerateContext_Success() throws Exception {
         // Given
         CookingGenerationRequest request = new CookingGenerationRequest();
-        request.setMemberIds(Arrays.asList(1L, 2L));
+        request.setUserIds(Arrays.asList(1L, 2L));
         request.setDishCount(3);
         request.setMaxTimeMinutes(60);
         request.setDifficulty("MEDIUM");
@@ -70,7 +70,7 @@ class CookingControllerApiTest {
         CookingCompletionRequest request = new CookingCompletionRequest();
         request.setSessionId(1L);
         CookingCompletionRequest.DinerConsumption diner = new CookingCompletionRequest.DinerConsumption();
-        diner.setFamilyMemberId(1L);
+        diner.setUserId(1L);
         diner.setPortionPercentage(0.4); // 40%
         request.setDiners(Arrays.asList(diner));
 

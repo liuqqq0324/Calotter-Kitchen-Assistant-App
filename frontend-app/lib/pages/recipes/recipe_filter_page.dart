@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:personal_sous_chef/services/recipe_api_service.dart';
 import 'package:personal_sous_chef/services/household_service.dart';
+import 'package:personal_sous_chef/services/standard_library_service.dart';
 
 class RecipeFilterPage extends StatefulWidget {
   const RecipeFilterPage({super.key});
@@ -12,7 +13,7 @@ class RecipeFilterPage extends StatefulWidget {
 
 class _RecipeFilterPageState extends State<RecipeFilterPage> {
   // ------------ 文本输入控制器 ------------
-  final _allergyController = TextEditingController();
+  TextEditingController _allergyController = TextEditingController();
   final _tabooController = TextEditingController();
   final _servingsController = TextEditingController(text: '1');
   final _dishCountController = TextEditingController(text: '1');
@@ -20,10 +21,15 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> {
   final _maxTimeController = TextEditingController();
 
   // ------------ 选项类状态 ------------
-  final Set<String> _selectedCuisines = {};
-  final Set<String> _selectedTastes = {};
-  final Set<String> _selectedCookers = {};
-  final Set<String> _selectedDifficulties = {}; // 支持多选
+  Set<String> _selectedCuisines = {};
+  Set<String> _selectedTastes = {};
+  Set<String> _selectedCookers = {};
+  Set<String> _selectedDifficulties = {}; // 支持多选
+  Set<String> _selectedAllergies = {}; // ✅ 已选择的过敏原列表
+
+  // ✅ 标准过敏源库数据（包含 id 和 name）
+  List<Map<String, dynamic>> _standardAllergens = [];
+  bool _isLoadingAllergens = true;
 
   // 可选值列表（和你 prompt 里面保持一致）
   static const List<String> _cuisineOptions = [
@@ -50,11 +56,7 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> {
     "umami",
   ];
 
-  static const List<String> _difficultyOptions = [
-    "easy",
-    "medium",
-    "hard",
-  ];
+  static const List<String> _difficultyOptions = ["easy", "medium", "hard"];
 
   static const List<String> _cookerOptions = [
     "stove",
@@ -73,7 +75,30 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> {
   @override
   void initState() {
     super.initState();
+    _allergyController = TextEditingController();
     _loadDefaultFilter();
+    _loadStandardAllergens(); // ✅ 加载标准过敏源库
+  }
+
+  /// ✅ 加载标准过敏源库（使用缓存服务）
+  Future<void> _loadStandardAllergens() async {
+    try {
+      final allergens = await StandardLibraryService.getStandardAllergens();
+      if (mounted) {
+        setState(() {
+          _standardAllergens = allergens;
+          _isLoadingAllergens = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingAllergens = false;
+        });
+        print('[FilterPage] Failed to load standard allergens: $e');
+        // 不阻止用户使用，只是记录错误
+      }
+    }
   }
 
   /// 加载默认 Filter 并填充表单
@@ -82,12 +107,16 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> {
     try {
       final householdId = await HouseholdService.getHouseholdId();
       if (householdId == null) {
-        print('[FilterPage] Failed to get householdId, skipping default filter');
+        print(
+          '[FilterPage] Failed to get householdId, skipping default filter',
+        );
         return;
       }
-      
-      final defaultFilter = await RecipeApiService.getDefaultFilter(householdId: householdId);
-      
+
+      final defaultFilter = await RecipeApiService.getDefaultFilter(
+        householdId: householdId,
+      );
+
       if (mounted) {
         setState(() {
           // 填充 servings
@@ -95,43 +124,52 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> {
           if (servings != null) {
             _servingsController.text = servings.toString();
           }
-          
+
           // 填充 dish_count
           final dishCount = defaultFilter['dish_count'];
           if (dishCount != null) {
             _dishCountController.text = dishCount.toString();
           }
-          
+
           // 填充 calorie_target
           final calorieTarget = defaultFilter['calorie_target'];
           if (calorieTarget != null) {
             _calorieController.text = calorieTarget.toString();
           }
-          
+
           // 填充 max_cooking_time_min
           final maxTime = defaultFilter['max_cooking_time_min'];
           if (maxTime != null) {
             _maxTimeController.text = maxTime.toString();
           }
-          
+
           // 填充 diet_preferences
-          final dietPrefs = defaultFilter['diet_preferences'] as Map<String, dynamic>? ?? {};
+          final dietPrefs =
+              defaultFilter['diet_preferences'] as Map<String, dynamic>? ?? {};
           final allergies = (dietPrefs['allergies'] as List?) ?? [];
           if (allergies.isNotEmpty) {
-            _allergyController.text = allergies.join(', ');
+            // ✅ 将过敏原列表存储到Set中，而不是直接显示在TextField中
+            _selectedAllergies = Set<String>.from(allergies);
+            // 如果只有一个且是"none"，显示在TextField中
+            if (allergies.length == 1 && allergies[0] == 'none') {
+              _allergyController.text = 'none';
+            } else {
+              _allergyController.text = ''; // 清空，使用Chip显示
+            }
           }
-          
-          final avoidIngredients = (dietPrefs['avoid_ingredients'] as List?) ?? [];
+
+          final avoidIngredients =
+              (dietPrefs['avoid_ingredients'] as List?) ?? [];
           if (avoidIngredients.isNotEmpty) {
             _tabooController.text = avoidIngredients.join(', ');
           }
-          
+
           final cuisines = (dietPrefs['cuisine_preferences'] as List?) ?? [];
           _selectedCuisines = Set<String>.from(cuisines);
-          
+
           final tastes = (dietPrefs['taste_preferences'] as List?) ?? [];
           _selectedTastes = Set<String>.from(tastes);
-          
+
           // 填充 difficulty_target
           final difficulty = defaultFilter['difficulty_target'];
           if (difficulty != null) {
@@ -141,7 +179,7 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> {
               _selectedDifficulties = {difficulty.toString()};
             }
           }
-          
+
           // 填充 cookers
           final cookers = (defaultFilter['cookers'] as List?) ?? [];
           _selectedCookers = Set<String>.from(cookers);
@@ -180,9 +218,7 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> {
   void _showSnack(String msg) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(content: Text(msg)),
-      );
+      ..showSnackBar(SnackBar(content: Text(msg)));
   }
 
   Future<void> _onConfirmPressed() async {
@@ -201,36 +237,56 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> {
     }
 
     // 2. 过敏必填逻辑
-    String allergyText = _allergyController.text.trim();
-    if (allergyText.isEmpty) {
-      final bool noAllergy = await showDialog<bool>(
-            context: context,
-            builder: (ctx) => AlertDialog(
-              title: const Text("No allergies?"),
-              content: const Text(
-                "You left the allergy field empty.\n\n"
-                "If you truly have no allergies, we will set it to 'none'.",
+    // ✅ 优先使用已选择的过敏原列表，如果没有则检查TextField输入
+    List<String> allergyList;
+    if (_selectedAllergies.isNotEmpty) {
+      allergyList = _selectedAllergies.toList();
+    } else {
+      String allergyText = _allergyController.text.trim();
+      if (allergyText.isEmpty) {
+        final bool noAllergy =
+            await showDialog<bool>(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                title: const Text("No allergies?"),
+                content: const Text(
+                  "You left the allergy field empty.\n\n"
+                  "If you truly have no allergies, we will set it to 'none'.",
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, false),
+                    child: const Text("Go back"),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, true),
+                    child: const Text("I have no allergies"),
+                  ),
+                ],
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx, false),
-                  child: const Text("Go back"),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx, true),
-                  child: const Text("I have no allergies"),
-                ),
-              ],
-            ),
-          ) ??
-          false;
+            ) ??
+            false;
 
-      if (!noAllergy) {
-        // 用户选择返回，重新填写
-        return;
+        if (!noAllergy) {
+          // 用户选择返回，重新填写
+          return;
+        } else {
+          allergyList = ["none"];
+        }
       } else {
-        allergyText = "none";
-        _allergyController.text = "none";
+        // ✅ 验证输入的过敏原是否在标准库中
+        if (allergyText.toLowerCase() != 'none') {
+          final isStandardAllergen = _standardAllergens.any(
+            (allergen) => allergen['name'].toLowerCase() == allergyText.toLowerCase(),
+          );
+          if (!isStandardAllergen) {
+            _showSnack(
+              'Allergy "$allergyText" not found in standard library. Please select from suggestions.',
+            );
+            return;
+          }
+        }
+        allergyList = [allergyText];
       }
     }
 
@@ -245,11 +301,7 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> {
       "calorie_target": calorieTarget, // 这里先用一个值，后端再转成区间
       "max_cooking_time_min": maxTime,
       "diet_preferences": {
-        "allergies": allergyText
-            .split(',')
-            .map((e) => e.trim())
-            .where((e) => e.isNotEmpty)
-            .toList(),
+        "allergies": allergyList, // ✅ 使用验证后的过敏原列表
         "avoid_ingredients": _tabooController.text
             .split(',')
             .map((e) => e.trim())
@@ -272,40 +324,154 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Filter"),
-      ),
+      appBar: AppBar(title: const Text("Filter")),
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Column(
           children: [
             Expanded(
-              child: ListView(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              child: _isLoadingDefaults
+                  ? const Center(child: CircularProgressIndicator())
+                  : ListView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
                 children: [
                   Text(
                     "Filter your generated menus",
-                    style: theme.textTheme.titleMedium
-                        ?.copyWith(fontWeight: FontWeight.bold),
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     "Set allergies, servings, dish count and other preferences.",
-                    style: theme.textTheme.bodyMedium
-                        ?.copyWith(color: Colors.grey[600]),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: Colors.grey[600],
+                    ),
                   ),
                   const SizedBox(height: 24),
 
                   // ---- Allergies & Taboo ----
                   _buildSectionTitle("Allergies & Taboo ingredients"),
                   const SizedBox(height: 8),
-                  _buildTextField(
-                    controller: _allergyController,
-                    label: "Allergies (required)",
-                    hint:
-                        "e.g. peanut, shrimp (comma separated) or 'none' if no allergies",
-                  ),
+                  // ✅ 显示已选择的过敏原Chip
+                  if (_selectedAllergies.isNotEmpty)
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      children: _selectedAllergies.map((allergy) {
+                        return Chip(
+                          label: Text(allergy),
+                          onDeleted: () {
+                            setState(() {
+                              _selectedAllergies.remove(allergy);
+                            });
+                          },
+                          deleteIcon: const Icon(Icons.close, size: 18),
+                        );
+                      }).toList(),
+                    ),
+                  if (_selectedAllergies.isNotEmpty) const SizedBox(height: 8),
+                  // ✅ 使用Autocomplete限制用户只能选择标准过敏原
+                  _isLoadingAllergens
+                      ? const Center(child: CircularProgressIndicator())
+                      : Autocomplete<String>(
+                          optionsBuilder: (TextEditingValue textEditingValue) {
+                            if (textEditingValue.text == '') {
+                              return const Iterable<String>.empty();
+                            }
+                            return _standardAllergens
+                                .where((allergen) {
+                                  final name = allergen['name'] as String? ?? '';
+                                  return name.toLowerCase().contains(
+                                        textEditingValue.text.toLowerCase(),
+                                      );
+                                })
+                                .map((allergen) => allergen['name'] as String);
+                          },
+                          onSelected: (String selection) {
+                            // ✅ 用户选择后，添加到已选择列表
+                            if (selection.toLowerCase() == 'none') {
+                              setState(() {
+                                _selectedAllergies.clear();
+                                _selectedAllergies.add('none');
+                                _allergyController.text = 'none';
+                              });
+                            } else {
+                              setState(() {
+                                _selectedAllergies.remove('none'); // 移除"none"如果存在
+                                if (!_selectedAllergies.contains(selection)) {
+                                  _selectedAllergies.add(selection);
+                                }
+                                _allergyController.text = ''; // 清空输入框
+                              });
+                            }
+                          },
+                          fieldViewBuilder:
+                              (context, controller, focusNode, onEditingComplete) {
+                            // ✅ 使用Autocomplete提供的controller，同步到_allergyController
+                            // 注意：这里需要同步controller的状态
+                            if (_allergyController.text != controller.text) {
+                              controller.text = _allergyController.text;
+                            }
+                            _allergyController = controller;
+                            return TextField(
+                              controller: controller,
+                              focusNode: focusNode,
+                              onEditingComplete: onEditingComplete,
+                              decoration: InputDecoration(
+                                labelText: "Allergies (required)",
+                                hintText:
+                                    "Search and select allergies or type 'none'",
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 10,
+                                ),
+                                suffixIcon: const Icon(Icons.search),
+                              ),
+                              onSubmitted: (value) {
+                                // ✅ 手动提交时验证
+                                final trimmed = value.trim();
+                                if (trimmed.isEmpty) return;
+                                
+                                if (trimmed.toLowerCase() == 'none') {
+                                  setState(() {
+                                    _selectedAllergies.clear();
+                                    _selectedAllergies.add('none');
+                                    controller.text = 'none';
+                                  });
+                                } else {
+                                  // ✅ 验证是否在标准库中
+                                  final matchedAllergen = _standardAllergens.firstWhere(
+                                    (allergen) =>
+                                        allergen['name'].toLowerCase() ==
+                                        trimmed.toLowerCase(),
+                                    orElse: () => {},
+                                  );
+                                  if (matchedAllergen.isNotEmpty) {
+                                    final allergenName = matchedAllergen['name'] as String;
+                                    setState(() {
+                                      _selectedAllergies.remove('none');
+                                      if (!_selectedAllergies.contains(allergenName)) {
+                                        _selectedAllergies.add(allergenName);
+                                      }
+                                      controller.text = '';
+                                    });
+                                  } else {
+                                    _showSnack(
+                                      'Allergy "$trimmed" not found in standard library. Please select from suggestions.',
+                                    );
+                                  }
+                                }
+                              },
+                            );
+                          },
+                        ),
                   const SizedBox(height: 12),
                   _buildTextField(
                     controller: _tabooController,
@@ -480,10 +646,7 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> {
                   ),
                   child: const Text(
                     "Confirm filters",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
@@ -498,10 +661,7 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> {
   Widget _buildSectionTitle(String text) {
     return Text(
       text,
-      style: const TextStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.w700,
-      ),
+      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
     );
   }
 
@@ -528,11 +688,11 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> {
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 10,
         ),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       ),
     );
   }

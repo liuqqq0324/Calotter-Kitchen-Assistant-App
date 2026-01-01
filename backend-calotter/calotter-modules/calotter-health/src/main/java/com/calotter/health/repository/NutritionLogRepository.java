@@ -24,6 +24,17 @@ public interface NutritionLogRepository extends JpaRepository<NutritionLog, Long
             User user, LocalDate start, LocalDate end);
     
     /**
+     * 根据用户和日期查询营养日志
+     */
+    List<NutritionLog> findByUserAndLogDate(User user, LocalDate logDate);
+    
+    /**
+     * 根据用户、日期和来源类型查询营养日志
+     */
+    List<NutritionLog> findByUserAndLogDateAndSourceType(
+            User user, LocalDate logDate, com.calotter.health.domain.enums.LogSourceType sourceType);
+    
+    /**
      * 根据用户查询所有营养日志
      */
     List<NutritionLog> findByUser(User user);

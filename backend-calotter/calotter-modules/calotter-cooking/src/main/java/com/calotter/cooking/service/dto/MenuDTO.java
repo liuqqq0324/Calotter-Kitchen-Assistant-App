@@ -6,17 +6,17 @@ import java.util.List;
 
 @Data
 public class MenuDTO {
-    private Integer menu_id;
+    private Integer menuId;
     private List<RecipeDTO> recipes;
 
     @Data
     public static class RecipeDTO {
         private String title;
-        private String short_description;
+        private String shortDescription;
         private Integer servings;
-        private Integer cooking_time_min;
+        private Integer cookingTimeMin;
         private String difficulty;
-        private NutritionEstimate nutrition_estimate;
+        private NutritionEstimate nutritionEstimate;
         private List<IngredientDTO> ingredients;
         private List<StepDTO> steps;
     }
@@ -24,24 +24,24 @@ public class MenuDTO {
     @Data
     public static class NutritionEstimate {
         private Double calories;
-        private Double protein_g;
-        private Double fat_g;
-        private Double carbs_g;
+        private Double proteinG;
+        private Double fatG;
+        private Double carbsG;
     }
 
     @Data
     public static class IngredientDTO {
         private String name;
-        private Double amount_value;
-        private String amount_unit;
-        private Boolean is_optional;
-        private String source_type; // INVENTORY / MANUAL_ADD
+        private Double amountValue;
+        private String amountUnit;
+        private Boolean isOptional;
+        private String sourceType; // INVENTORY / MANUAL_ADD
     }
 
     @Data
     public static class StepDTO {
-        private Integer step_number;
+        private Integer stepNumber;
         private String instruction;
-        private Integer step_time_min;
+        private Integer stepTimeMin;
     }
 }

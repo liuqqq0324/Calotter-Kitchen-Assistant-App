@@ -39,7 +39,7 @@ class NutritionControllerApiTest {
 
         // When & Then
         mockMvc.perform(get("/api/nutrition/targets/weekly")
-                        .param("familyMemberId", "1"))
+                        .param("userId", "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data").exists());
@@ -55,7 +55,7 @@ class NutritionControllerApiTest {
         // When & Then
         mockMvc.perform(get("/api/nutrition/summary")
                         .param("period", "week")
-                        .param("familyMemberId", "1"))
+                        .param("userId", "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data").exists());

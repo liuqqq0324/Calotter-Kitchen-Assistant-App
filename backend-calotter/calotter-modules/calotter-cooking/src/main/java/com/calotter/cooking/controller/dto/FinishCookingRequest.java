@@ -66,8 +66,8 @@ public class FinishCookingRequest {
      */
     @Data
     public static class DinerConsumption {
-        @NotNull(message = "家庭成员ID不能为空")
-        private Long familyMemberId;
+        @NotNull(message = "用户ID不能为空")
+        private Long userId;
         
         @DecimalMin(value = "0.0", message = "比例不能小于0")
         @DecimalMax(value = "1.0", message = "比例不能大于1")

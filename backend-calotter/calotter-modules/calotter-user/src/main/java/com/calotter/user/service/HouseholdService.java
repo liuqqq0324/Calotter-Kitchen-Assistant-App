@@ -98,6 +98,44 @@ public class HouseholdService {
     }
 
     /**
+     * 获取用户的当前活跃家庭
+     * 优先使用 currentHouseholdId，如果没有则返回第一个拥有的家庭，再没有则返回第一个加入的家庭
+     */
+    @Transactional(readOnly = true)
+    public HouseholdResponse getCurrentHousehold(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("用户不存在"));
+        
+        // 1. 优先使用 currentHouseholdId
+        if (user.getCurrentHouseholdId() != null) {
+            Household household = householdRepository.findById(user.getCurrentHouseholdId())
+                    .orElse(null);
+            if (household != null) {
+                // 验证用户是否真的加入了这个家庭（owner 或 member）
+                if (household.getOwnerId().equals(userId) || 
+                    (user.getJoinedHouseholds() != null && 
+                     user.getJoinedHouseholds().stream()
+                         .anyMatch(h -> h.getId().equals(household.getId())))) {
+                    return toHouseholdResponse(household);
+                }
+            }
+        }
+        
+        // 2. 如果没有 currentHouseholdId 或无效，返回第一个拥有的家庭
+        List<HouseholdResponse> ownedHouseholds = getHouseholdsByOwner(userId);
+        if (!ownedHouseholds.isEmpty()) {
+            return ownedHouseholds.get(0);
+        }
+        
+        // 3. 如果没有拥有的家庭，返回第一个加入的家庭
+        if (user.getJoinedHouseholds() != null && !user.getJoinedHouseholds().isEmpty()) {
+            return toHouseholdResponse(user.getJoinedHouseholds().get(0));
+        }
+        
+        throw new IllegalArgumentException("用户没有关联的家庭");
+    }
+
+    /**
      * 删除家庭
      */
     @Transactional

@@ -1,10 +1,9 @@
 package com.calotter.user.service;
 
-import com.calotter.user.domain.entity.FamilyMember;
 import com.calotter.user.domain.entity.HealthGoal;
 import com.calotter.user.domain.entity.User;
-import com.calotter.user.repository.FamilyMemberRepository;
 import com.calotter.user.repository.HealthGoalRepository;
+import com.calotter.user.repository.UserRepository;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -22,7 +21,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class UserHealthService {
     
-    private final FamilyMemberRepository familyMemberRepository;
+    private final UserRepository userRepository;
     private final HealthGoalRepository healthGoalRepository;
     
     /**
@@ -33,26 +32,23 @@ public class UserHealthService {
      */
     @Transactional(readOnly = true)
     public UserHealthInfo getUserHealthInfo(Long userId) {
-        // 1. 查找用户的 FamilyMember
-        Optional<FamilyMember> memberOpt = familyMemberRepository.findAll().stream()
-                .filter(member -> member.getUser() != null && 
-                        member.getUser().getId().equals(userId))
-                .findFirst();
+        // 1. 查找用户
+        Optional<User> userOpt = userRepository.findById(userId);
         
-        if (memberOpt.isEmpty()) {
+        if (userOpt.isEmpty()) {
             return UserHealthInfo.empty();
         }
         
-        FamilyMember member = memberOpt.get();
+        User user = userOpt.get();
         
-        // 2. 获取健康目标
-        HealthGoal goal = healthGoalRepository.findByFamilyMemberAndStatus(member, 1); // 1=ACTIVE
+        // 2. 获取健康目标（使用 User 而不是 FamilyMember）
+        HealthGoal goal = healthGoalRepository.findByUserAndStatus(user, 1); // 1=ACTIVE
         
         UserHealthInfo info = new UserHealthInfo();
         
-        // 3. 计算 BMI
-        if (member.getCurrentHeight() != null && member.getCurrentWeight() != null) {
-            info.setBmi(calculateBMI(member.getCurrentHeight(), member.getCurrentWeight().intValue()));
+        // 3. 计算 BMI（使用 User 的字段）
+        if (user.getCurrentHeight() != null && user.getCurrentWeight() != null) {
+            info.setBmi(calculateBMI(user.getCurrentHeight(), user.getCurrentWeight().intValue()));
         } else if (goal != null && goal.getHeight() != null && goal.getStartWeight() != null) {
             info.setBmi(calculateBMI(goal.getHeight(), goal.getStartWeight().intValue()));
         }

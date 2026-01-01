@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -28,6 +29,9 @@ public class WeeklyReportVO {
     
     // 每日详情
     private List<DailyReport> dailyReports;
+    
+    // 基础信息（BMI、目标类型、计算模型等）
+    private Basis basis;
     
     // 内部类：营养统计
     @Data
@@ -66,6 +70,19 @@ public class WeeklyReportVO {
         private LocalDate date;
         private NutritionStats target;
         private NutritionStats actual;
+    }
+    
+    // 内部类：基础信息
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class Basis {
+        private BigDecimal bmi;
+        private String goalType; // fat_loss, muscle_gain, maintenance
+        private String calculationModel; // mifflin_st_jeor, health_goal
+        private LocalDate weekStart;
+        private LocalDate weekEnd;
     }
 }
 

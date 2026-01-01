@@ -18,7 +18,7 @@ class UserService {
     try {
       final userIdParam = userId ?? await AuthService.getUserId();
       final url = Uri.parse(
-        '${ApiConfig.baseUrl}/api/ums/user?id=$userIdParam',
+        '${ApiConfig.baseUrl}/api/user?id=$userIdParam',
       );
       final response = await http.get(url, headers: await _getHeaders());
 
@@ -50,7 +50,7 @@ class UserService {
     try {
       final userIdParam = userId ?? await AuthService.getUserId();
       final url = Uri.parse(
-        '${ApiConfig.baseUrl}/api/ums/user?id=$userIdParam',
+        '${ApiConfig.baseUrl}/api/user?id=$userIdParam',
       );
       final response = await http.put(
         url,
@@ -90,7 +90,7 @@ class UserService {
     try {
       final userIdParam = userId ?? await AuthService.getUserId();
       final url = Uri.parse(
-        '${ApiConfig.baseUrl}/api/ums/user/preferences?id=$userIdParam',
+        '${ApiConfig.baseUrl}/api/user/preferences?id=$userIdParam',
       );
       final response = await http.get(url, headers: await _getHeaders());
 
@@ -122,7 +122,7 @@ class UserService {
     try {
       final userIdParam = userId ?? await AuthService.getUserId();
       final url = Uri.parse(
-        '${ApiConfig.baseUrl}/api/ums/user/preferences?id=$userIdParam',
+        '${ApiConfig.baseUrl}/api/user/preferences?id=$userIdParam',
       );
       final response = await http.put(
         url,
@@ -157,7 +157,7 @@ class UserService {
     try {
       final userIdParam = userId ?? await AuthService.getUserId();
       final url = Uri.parse(
-        '${ApiConfig.baseUrl}/api/ums/user/taboos?id=$userIdParam',
+        '${ApiConfig.baseUrl}/api/user/taboos?id=$userIdParam',
       );
       final response = await http.get(url, headers: await _getHeaders());
 
@@ -186,7 +186,7 @@ class UserService {
     try {
       final userIdParam = userId ?? await AuthService.getUserId();
       final url = Uri.parse(
-        '${ApiConfig.baseUrl}/api/ums/user/taboos?id=$userIdParam',
+        '${ApiConfig.baseUrl}/api/user/taboos?id=$userIdParam',
       );
       final response = await http.put(
         url,
@@ -216,7 +216,7 @@ class UserService {
     try {
       final userIdParam = userId ?? await AuthService.getUserId();
       final url = Uri.parse(
-        '${ApiConfig.baseUrl}/api/ums/user/allergies?id=$userIdParam',
+        '${ApiConfig.baseUrl}/api/user/allergies?id=$userIdParam',
       );
       final response = await http.get(url, headers: await _getHeaders());
 
@@ -245,7 +245,7 @@ class UserService {
     try {
       final userIdParam = userId ?? await AuthService.getUserId();
       final url = Uri.parse(
-        '${ApiConfig.baseUrl}/api/ums/user/allergies?id=$userIdParam',
+        '${ApiConfig.baseUrl}/api/user/allergies?id=$userIdParam',
       );
       final response = await http.put(
         url,

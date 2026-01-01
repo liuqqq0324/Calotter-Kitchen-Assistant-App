@@ -112,6 +112,51 @@ public class InventoryController {
     // ==================== 标准食材库查询 ====================
 
     /**
+     * 获取所有标准食材列表
+     * GET /api/inventory/standard-ingredients
+     */
+    @GetMapping("/standard-ingredients")
+    public Result<List<com.calotter.common.core.domain.entity.StandardIngredient>> getAllStandardIngredients() {
+        try {
+            List<com.calotter.common.core.domain.entity.StandardIngredient> ingredients = 
+                    inventoryService.getAllStandardIngredients();
+            return Result.success(ingredients);
+        } catch (IllegalArgumentException e) {
+            return Result.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 获取所有标准厨具列表
+     * GET /api/inventory/standard-utensils
+     */
+    @GetMapping("/standard-utensils")
+    public Result<List<com.calotter.common.core.domain.entity.StandardUtensil>> getAllStandardUtensils() {
+        try {
+            List<com.calotter.common.core.domain.entity.StandardUtensil> utensils = 
+                    inventoryService.getAllStandardUtensils();
+            return Result.success(utensils);
+        } catch (IllegalArgumentException e) {
+            return Result.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 获取所有标准调料列表
+     * GET /api/inventory/standard-spices
+     */
+    @GetMapping("/standard-spices")
+    public Result<List<com.calotter.common.core.domain.entity.StandardSpice>> getAllStandardSpices() {
+        try {
+            List<com.calotter.common.core.domain.entity.StandardSpice> spices = 
+                    inventoryService.getAllStandardSpices();
+            return Result.success(spices);
+        } catch (IllegalArgumentException e) {
+            return Result.error(e.getMessage());
+        }
+    }
+
+    /**
      * 通过名称查找标准食材
      * GET /api/inventory/standard-ingredients/search?name={name}&fuzzy={fuzzy}
      * - fuzzy=false: 精确匹配，返回单个结果
@@ -212,6 +257,20 @@ public class InventoryController {
         }
     }
 
+    /**
+     * 切换调料可用性
+     * PATCH /api/inventory/spices/{id}/toggle
+     */
+    @PatchMapping("/spices/{id}/toggle")
+    public Result<SpiceResponse> toggleSpiceAvailability(@PathVariable Long id) {
+        try {
+            SpiceResponse response = inventoryService.toggleSpiceAvailability(id);
+            return Result.success(response);
+        } catch (IllegalArgumentException e) {
+            return Result.error(e.getMessage());
+        }
+    }
+
     // ==================== 厨具管理 ====================
 
     /**
@@ -281,6 +340,20 @@ public class InventoryController {
         try {
             inventoryService.deleteUtensil(id);
             return Result.success(null);
+        } catch (IllegalArgumentException e) {
+            return Result.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 切换厨具可用性
+     * PATCH /api/inventory/utensils/{id}/toggle
+     */
+    @PatchMapping("/utensils/{id}/toggle")
+    public Result<UtensilResponse> toggleUtensilAvailability(@PathVariable Long id) {
+        try {
+            UtensilResponse response = inventoryService.toggleUtensilAvailability(id);
+            return Result.success(response);
         } catch (IllegalArgumentException e) {
             return Result.error(e.getMessage());
         }

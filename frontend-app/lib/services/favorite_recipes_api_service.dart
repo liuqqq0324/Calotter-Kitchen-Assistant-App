@@ -22,7 +22,7 @@ class FavoriteRecipesApiService {
     if (data is Map && data.containsKey('code')) {
       final code = data['code'] as int;
       if (code != 200) {
-        throw Exception(data['msg']?.toString() ?? 'Failed to load favorites');
+        throw Exception(data['message']?.toString() ?? 'Failed to load favorites');
       }
       final responseData = data['data'];
       recipesJson = responseData is List ? responseData : [];
@@ -139,7 +139,7 @@ class FavoriteRecipesApiService {
     if (data is Map && data.containsKey('code')) {
       final code = data['code'] as int;
       if (code != 200) {
-        throw Exception(data['msg']?.toString() ?? 'Failed to add favorite');
+        throw Exception(data['message']?.toString() ?? 'Failed to add favorite');
       }
       dishData = data['data'] as Map<String, dynamic>;
     } else {
@@ -181,7 +181,7 @@ class FavoriteRecipesApiService {
     if (data is Map && data.containsKey('code')) {
       final code = data['code'] as int;
       if (code != 200) {
-        throw Exception(data['msg']?.toString() ?? 'Failed to toggle favorite');
+        throw Exception(data['message']?.toString() ?? 'Failed to toggle favorite');
       }
       dishData = data['data'] as Map<String, dynamic>?;
     } else {
@@ -200,30 +200,30 @@ class FavoriteRecipesApiService {
   static Map<String, dynamic> _recipeToJson(RecipeModel recipe) {
     return {
       'title': recipe.title,
-      'short_description': recipe.shortDescription,
+      'shortDescription': recipe.shortDescription,
       'servings': recipe.servings,
-      'cooking_time_min': recipe.cookingTimeMin,
+      'cookingTimeMin': recipe.cookingTimeMin,
       'difficulty': recipe.difficulty,
-      'nutrition_estimate': {
+      'nutritionEstimate': {
         'calories': recipe.totalCaloriesEstimate,
-        'protein_g': 0.0, // RecipeModel中没有这些字段，使用默认值
-        'fat_g': 0.0,
-        'carbs_g': 0.0,
+        'proteinG': recipe.totalProtein ?? 0.0,
+        'fatG': recipe.totalFat ?? 0.0,
+        'carbsG': recipe.totalCarb ?? 0.0,
       },
       'ingredients': recipe.ingredients
           .map((i) => {
                 'name': i.name,
-                'amount_value': i.amountValue,
-                'amount_unit': i.amountUnit,
-                'is_optional': i.isOptional,
-                'source_type': 'MANUAL_ADD', // 默认值
+                'amountValue': i.amountValue,
+                'amountUnit': i.amountUnit,
+                'isOptional': i.isOptional,
+                'sourceType': 'MANUAL_ADD', // 默认值
               })
           .toList(),
       'steps': recipe.steps
           .map((s) => {
-                'step_number': s.stepNumber,
+                'stepNumber': s.stepNumber,
                 'instruction': s.instruction,
-                'step_time_min': s.stepTimeMin,
+                'stepTimeMin': s.stepTimeMin,
               })
           .toList(),
     };

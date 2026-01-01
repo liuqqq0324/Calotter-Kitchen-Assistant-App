@@ -189,11 +189,10 @@ class InventoryApiService {
     }
   }
 
-  /// Toggle cookware availability
-  /// ⚠️ 注意：后端 API 路径需要确认，暂时保留原实现但使用 householdId
-  static Future<Map<String, dynamic>> toggleCookware({
-    required String cookwareId,
-    String? name,
+  /// Get all utensils (cookware) for a household
+  /// 获取家庭的所有厨具
+  /// GET /api/inventory/utensils?householdId={householdId}
+  static Future<List<Map<String, dynamic>>> getUtensils({
     String? householdId,
   }) async {
     try {
@@ -203,21 +202,77 @@ class InventoryApiService {
         throw Exception('Household not found. Please register or login first.');
       }
 
-      // ⚠️ 后端 API 路径需要确认，暂时使用推测的路径
-      // 根据后端代码，应该是 /api/inventory/utensils 相关
       final url = Uri.parse(
         '${ApiConfig.inventoryBaseUrl}/api/inventory/utensils?householdId=$householdIdParam',
       );
-      final body = <String, dynamic>{
-        'utensilId': cookwareId, // ⚠️ 字段名需要确认
-        if (name != null) 'name': name,
-      };
+      final response = await http.get(url, headers: await _getHeaders());
 
-      final response = await http.post(
-        url,
-        headers: await _getHeaders(),
-        body: jsonEncode(body),
+      // ✅ 适配后端返回的 Result<T> 格式
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200 && data['code'] == 200) {
+        final responseData = data['data'];
+        if (responseData is List) {
+          return List<Map<String, dynamic>>.from(responseData);
+        }
+        return [];
+      } else {
+        throw Exception(
+          'Failed to get utensils: ${data['message'] ?? 'Unknown error'}',
+        );
+      }
+    } catch (e) {
+      throw Exception('Network error: $e');
+    }
+  }
+
+  /// Get all spices (seasonings) for a household
+  /// 获取家庭的所有调料
+  /// GET /api/inventory/spices?householdId={householdId}
+  static Future<List<Map<String, dynamic>>> getSpices({
+    String? householdId,
+  }) async {
+    try {
+      final householdIdParam =
+          householdId ?? await AuthService.getHouseholdId();
+      if (householdIdParam == null) {
+        throw Exception('Household not found. Please register or login first.');
+      }
+
+      final url = Uri.parse(
+        '${ApiConfig.inventoryBaseUrl}/api/inventory/spices?householdId=$householdIdParam',
       );
+      final response = await http.get(url, headers: await _getHeaders());
+
+      // ✅ 适配后端返回的 Result<T> 格式
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200 && data['code'] == 200) {
+        final responseData = data['data'];
+        if (responseData is List) {
+          return List<Map<String, dynamic>>.from(responseData);
+        }
+        return [];
+      } else {
+        throw Exception(
+          'Failed to get spices: ${data['message'] ?? 'Unknown error'}',
+        );
+      }
+    } catch (e) {
+      throw Exception('Network error: $e');
+    }
+  }
+
+  /// Toggle cookware availability
+  /// ✅ 修复：使用PATCH方法和路径参数
+  /// PATCH /api/inventory/utensils/{id}/toggle
+  static Future<Map<String, dynamic>> toggleCookware({
+    required String cookwareId,
+  }) async {
+    try {
+      final url = Uri.parse(
+        '${ApiConfig.inventoryBaseUrl}/api/inventory/utensils/$cookwareId/toggle',
+      );
+
+      final response = await http.patch(url, headers: await _getHeaders());
 
       // ✅ 适配后端返回的 Result<T> 格式
       final data = jsonDecode(response.body);
@@ -234,34 +289,17 @@ class InventoryApiService {
   }
 
   /// Toggle seasoning availability
-  /// ⚠️ 注意：后端 API 路径需要确认，暂时保留原实现但使用 householdId
+  /// ✅ 修复：使用PATCH方法和路径参数
+  /// PATCH /api/inventory/spices/{id}/toggle
   static Future<Map<String, dynamic>> toggleSeasoning({
     required String seasoningId,
-    String? name,
-    String? householdId,
   }) async {
     try {
-      final householdIdParam =
-          householdId ?? await AuthService.getHouseholdId();
-      if (householdIdParam == null) {
-        throw Exception('Household not found. Please register or login first.');
-      }
-
-      // ⚠️ 后端 API 路径需要确认，暂时使用推测的路径
-      // 根据后端代码，应该是 /api/inventory/spices 相关
       final url = Uri.parse(
-        '${ApiConfig.inventoryBaseUrl}/api/inventory/spices?householdId=$householdIdParam',
+        '${ApiConfig.inventoryBaseUrl}/api/inventory/spices/$seasoningId/toggle',
       );
-      final body = <String, dynamic>{
-        'spiceId': seasoningId, // ⚠️ 字段名需要确认
-        if (name != null) 'name': name,
-      };
 
-      final response = await http.post(
-        url,
-        headers: await _getHeaders(),
-        body: jsonEncode(body),
-      );
+      final response = await http.patch(url, headers: await _getHeaders());
 
       // ✅ 适配后端返回的 Result<T> 格式
       final data = jsonDecode(response.body);
@@ -320,6 +358,184 @@ class InventoryApiService {
     } catch (e) {
       // 如果找不到，返回 null
       return null;
+    }
+  }
+
+  /// Get all standard ingredients
+  /// 获取所有标准食材列表
+  static Future<List<Map<String, dynamic>>> getAllStandardIngredients() async {
+    try {
+      final url = Uri.parse(
+        '${ApiConfig.inventoryBaseUrl}/api/inventory/standard-ingredients',
+      );
+
+      final response = await http.get(url, headers: await _getHeaders());
+
+      // ✅ 适配后端返回的 Result<T> 格式
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200 && data['code'] == 200) {
+        final responseData = data['data'];
+        if (responseData is List) {
+          return List<Map<String, dynamic>>.from(responseData);
+        }
+        return [];
+      } else {
+        throw Exception(
+          'Failed to get standard ingredients: ${data['message'] ?? 'Unknown error'}',
+        );
+      }
+    } catch (e) {
+      throw Exception('Network error: $e');
+    }
+  }
+
+  /// Get all standard utensils (cookware)
+  /// 获取所有标准厨具列表
+  static Future<List<Map<String, dynamic>>> getAllStandardUtensils() async {
+    try {
+      final url = Uri.parse(
+        '${ApiConfig.inventoryBaseUrl}/api/inventory/standard-utensils',
+      );
+
+      final response = await http.get(url, headers: await _getHeaders());
+
+      // ✅ 适配后端返回的 Result<T> 格式
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200 && data['code'] == 200) {
+        final responseData = data['data'];
+        if (responseData is List) {
+          return List<Map<String, dynamic>>.from(responseData);
+        }
+        return [];
+      } else {
+        throw Exception(
+          'Failed to get standard utensils: ${data['message'] ?? 'Unknown error'}',
+        );
+      }
+    } catch (e) {
+      throw Exception('Network error: $e');
+    }
+  }
+
+  /// Get all standard spices (seasonings)
+  /// 获取所有标准调料列表
+  static Future<List<Map<String, dynamic>>> getAllStandardSpices() async {
+    try {
+      final url = Uri.parse(
+        '${ApiConfig.inventoryBaseUrl}/api/inventory/standard-spices',
+      );
+
+      final response = await http.get(url, headers: await _getHeaders());
+
+      // ✅ 适配后端返回的 Result<T> 格式
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200 && data['code'] == 200) {
+        final responseData = data['data'];
+        if (responseData is List) {
+          return List<Map<String, dynamic>>.from(responseData);
+        }
+        return [];
+      } else {
+        throw Exception(
+          'Failed to get standard spices: ${data['message'] ?? 'Unknown error'}',
+        );
+      }
+    } catch (e) {
+      throw Exception('Network error: $e');
+    }
+  }
+
+  /// Create a new utensil (cookware) in household
+  /// 在家庭中创建新厨具
+  /// POST /api/inventory/utensils
+  static Future<Map<String, dynamic>> createUtensil({
+    required int standardUtensilId,
+    required bool isAvailable,
+    String? remark,
+    String? householdId,
+  }) async {
+    try {
+      final householdIdParam =
+          householdId ?? await AuthService.getHouseholdId();
+      if (householdIdParam == null) {
+        throw Exception('Household not found. Please register or login first.');
+      }
+
+      final url = Uri.parse(
+        '${ApiConfig.inventoryBaseUrl}/api/inventory/utensils',
+      );
+
+      final body = {
+        'householdId': int.parse(householdIdParam),
+        'standardUtensilId': standardUtensilId,
+        'isAvailable': isAvailable,
+        if (remark != null) 'remark': remark,
+      };
+
+      final response = await http.post(
+        url,
+        headers: await _getHeaders(),
+        body: jsonEncode(body),
+      );
+
+      // ✅ 适配后端返回的 Result<T> 格式
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200 && data['code'] == 200) {
+        return data['data'] as Map<String, dynamic>;
+      } else {
+        throw Exception(
+          'Failed to create utensil: ${data['message'] ?? 'Unknown error'}',
+        );
+      }
+    } catch (e) {
+      throw Exception('Network error: $e');
+    }
+  }
+
+  /// Create a new spice (seasoning) in household
+  /// 在家庭中创建新调料
+  /// POST /api/inventory/spices
+  static Future<Map<String, dynamic>> createSpice({
+    required int standardSpiceId,
+    required bool isAvailable,
+    String? remark,
+    String? householdId,
+  }) async {
+    try {
+      final householdIdParam =
+          householdId ?? await AuthService.getHouseholdId();
+      if (householdIdParam == null) {
+        throw Exception('Household not found. Please register or login first.');
+      }
+
+      final url = Uri.parse(
+        '${ApiConfig.inventoryBaseUrl}/api/inventory/spices',
+      );
+
+      final body = {
+        'householdId': int.parse(householdIdParam),
+        'standardSpiceId': standardSpiceId,
+        'isAvailable': isAvailable,
+        if (remark != null) 'remark': remark,
+      };
+
+      final response = await http.post(
+        url,
+        headers: await _getHeaders(),
+        body: jsonEncode(body),
+      );
+
+      // ✅ 适配后端返回的 Result<T> 格式
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200 && data['code'] == 200) {
+        return data['data'] as Map<String, dynamic>;
+      } else {
+        throw Exception(
+          'Failed to create spice: ${data['message'] ?? 'Unknown error'}',
+        );
+      }
+    } catch (e) {
+      throw Exception('Network error: $e');
     }
   }
 }

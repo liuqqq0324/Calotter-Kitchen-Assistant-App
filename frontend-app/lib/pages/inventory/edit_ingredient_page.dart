@@ -3,6 +3,8 @@ import 'package:personal_sous_chef/models/ingredient.dart';
 import 'package:personal_sous_chef/widgets/quantity_selector.dart';
 import 'package:personal_sous_chef/data/static_data.dart';
 import 'package:personal_sous_chef/services/inventory_api_service.dart';
+import 'package:personal_sous_chef/services/household_service.dart';
+import 'package:personal_sous_chef/services/standard_library_service.dart';
 
 class EditIngredientPage extends StatefulWidget {
   final Ingredient ingredient;
@@ -25,6 +27,11 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
   late String _unit;
   late DateTime _expiryDate;
 
+  // ✅ 标准食材库数据（包含 id 和 name）
+  List<Map<String, dynamic>> _standardIngredients = [];
+  bool _isLoadingIngredients = true;
+  int? _selectedStandardIngredientId; // 用户选择的标准食材ID
+
   @override
   void initState() {
     super.initState();
@@ -37,6 +44,45 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
 
     _unit = widget.ingredient.unit;
     _expiryDate = widget.ingredient.expiryDate;
+
+    // ✅ 页面加载时获取标准食材库
+    _loadStandardIngredients();
+  }
+
+  /// 加载标准食材库（使用缓存服务）
+  Future<void> _loadStandardIngredients() async {
+    try {
+      // ✅ 使用 StandardLibraryService，优先使用缓存
+      final ingredients = await StandardLibraryService.getStandardIngredients();
+      if (mounted) {
+        setState(() {
+          _standardIngredients = ingredients;
+          _isLoadingIngredients = false;
+          // 如果当前食材名已存在，尝试匹配对应的ID
+          if (widget.ingredient.name.isNotEmpty) {
+            final matched = ingredients.firstWhere(
+              (ing) => ing['name'] == widget.ingredient.name,
+              orElse: () => {},
+            );
+            if (matched.isNotEmpty && matched['id'] != null) {
+              _selectedStandardIngredientId = matched['id'] as int;
+            }
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingIngredients = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load standard ingredients: $e'),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -133,27 +179,44 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
             // 2. 物品名称 (带模糊搜索的 Autocomplete)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 40),
-              child: Autocomplete<String>(
-                // 初始值
-                initialValue: TextEditingValue(text: widget.ingredient.name),
+              child: _isLoadingIngredients
+                  ? const Center(
+                      child: CircularProgressIndicator(),
+                    )
+                  : Autocomplete<String>(
+                      // 初始值
+                      initialValue: TextEditingValue(text: widget.ingredient.name),
 
-                // 搜索逻辑：当用户输入时，从 kAllIngredients 里筛选
-                optionsBuilder: (TextEditingValue textEditingValue) {
-                  if (textEditingValue.text == '') {
-                    return const Iterable<String>.empty();
-                  }
-                  return kAllIngredients.where((String option) {
-                    return option.toLowerCase().contains(
-                      textEditingValue.text.toLowerCase(),
-                    );
-                  });
-                },
+                      // ✅ 搜索逻辑：从标准食材库中筛选
+                      optionsBuilder: (TextEditingValue textEditingValue) {
+                        if (textEditingValue.text == '') {
+                          return const Iterable<String>.empty();
+                        }
+                        return _standardIngredients
+                            .where((ingredient) {
+                              final name = ingredient['name'] as String? ?? '';
+                              return name.toLowerCase().contains(
+                                    textEditingValue.text.toLowerCase(),
+                                  );
+                            })
+                            .map((ingredient) => ingredient['name'] as String);
+                      },
 
-                // 选中回调
-                onSelected: (String selection) {
-                  _nameController.text = selection; // 更新控制器
-                  print('用户选择了: $selection');
-                },
+                      // ✅ 选中回调：记录选中的标准食材ID
+                      onSelected: (String selection) {
+                        _nameController.text = selection; // 更新控制器
+                        // 查找对应的标准食材ID
+                        final matched = _standardIngredients.firstWhere(
+                          (ing) => ing['name'] == selection,
+                          orElse: () => {},
+                        );
+                        if (matched.isNotEmpty && matched['id'] != null) {
+                          setState(() {
+                            _selectedStandardIngredientId = matched['id'] as int;
+                          });
+                        }
+                        print('用户选择了: $selection (ID: $_selectedStandardIngredientId)');
+                      },
 
                 // 自定义输入框样式 (伪装成之前的大橙色字体)
                 fieldViewBuilder:
@@ -298,39 +361,38 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
                   // Save to API
                   try {
                     if (widget.isNew) {
-                      // ✅ 添加新食材：先查找标准食材ID
-                      if (mounted) {
-                        // 显示加载提示
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Searching for ingredient...'),
-                            duration: Duration(seconds: 2),
-                          ),
-                        );
-                      }
-
-                      // 通过名称查找标准食材ID
-                      final standardIngredientId =
-                          await InventoryApiService.findStandardIngredientIdByName(
-                            widget.ingredient.name,
-                          );
-
-                      if (standardIngredientId == null) {
+                      // ✅ 添加新食材：使用已选择的标准食材ID
+                      if (_selectedStandardIngredientId == null) {
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
+                            const SnackBar(
                               content: Text(
-                                'Ingredient "${widget.ingredient.name}" not found in standard library. '
-                                'Please check the name or add it to the standard library first.',
+                                'Please select a standard ingredient from the list.',
                               ),
-                              duration: const Duration(seconds: 4),
+                              duration: Duration(seconds: 3),
                             ),
                           );
                         }
                         return;
                       }
 
-                      // ✅ 找到标准食材ID，添加库存
+                      // ✅ 获取 householdId
+                      final householdId = await HouseholdService.getHouseholdId();
+                      if (householdId == null) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Household not found. Please register or login first.',
+                              ),
+                              duration: Duration(seconds: 3),
+                            ),
+                          );
+                        }
+                        return;
+                      }
+
+                      // ✅ 添加库存（使用标准食材ID和householdId）
                       final result = await InventoryApiService.addInventory(
                         name: widget.ingredient.name,
                         quantity: widget.ingredient.quantity.toDouble(),
@@ -338,11 +400,26 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
                         expiryDate: widget.ingredient.expiryDate
                             .toIso8601String()
                             .split('T')[0],
-                        standardIngredientId: standardIngredientId,
+                        standardIngredientId: _selectedStandardIngredientId,
+                        householdId: householdId.toString(),
                       );
                       widget.ingredient.inventoryId = result['id']?.toString();
                     } else if (widget.ingredient.inventoryId != null) {
                       // ✅ 更新现有食材（不需要 standardIngredientId，因为已经存在）
+                      final householdId = await HouseholdService.getHouseholdId();
+                      if (householdId == null) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Household not found. Please register or login first.',
+                              ),
+                              duration: Duration(seconds: 3),
+                            ),
+                          );
+                        }
+                        return;
+                      }
                       await InventoryApiService.updateInventory(
                         inventoryId: widget.ingredient.inventoryId!,
                         quantity: widget.ingredient.quantity.toDouble(),
@@ -350,6 +427,7 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
                         expiryDate: widget.ingredient.expiryDate
                             .toIso8601String()
                             .split('T')[0],
+                        householdId: householdId.toString(),
                       );
                     }
                     if (mounted) {

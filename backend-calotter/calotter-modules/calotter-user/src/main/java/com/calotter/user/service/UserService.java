@@ -343,4 +343,11 @@ public class UserService {
                 .allergies(result)
                 .build();
     }
+
+    /**
+     * 获取所有标准过敏源库
+     */
+    public List<RefAllergen> getAllStandardAllergens() {
+        return refAllergenRepository.findAll();
+    }
 }

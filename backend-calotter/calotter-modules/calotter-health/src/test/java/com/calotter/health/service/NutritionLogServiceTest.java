@@ -12,8 +12,8 @@ import com.calotter.health.repository.NutritionLogRepository;
 import com.calotter.health.service.event.NutritionLogCreatedEvent;
 import com.calotter.inventory.domain.entity.LeftoverDish;
 import com.calotter.inventory.repository.LeftoverDishRepository;
-import com.calotter.user.domain.entity.FamilyMember;
-import com.calotter.user.repository.FamilyMemberRepository;
+import com.calotter.user.domain.entity.User;
+import com.calotter.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -44,7 +44,7 @@ class NutritionLogServiceTest {
     private NutritionLogRepository nutritionLogRepository;
 
     @Mock
-    private FamilyMemberRepository familyMemberRepository;
+    private UserRepository userRepository;
 
     @Mock
     private LeftoverDishRepository leftoverDishRepository;
@@ -58,21 +58,22 @@ class NutritionLogServiceTest {
     @InjectMocks
     private NutritionLogService nutritionLogService;
 
-    private FamilyMember member;
+    private User user;
     private CookingSessionCompletedEvent event;
     private LeftoverDish leftoverDish;
 
     @BeforeEach
     void setUp() {
-        member = new FamilyMember();
-        member.setId(1L);
-        member.setName("测试用户");
+        user = new User();
+        user.setId(1L);
+        user.setUsername("测试用户");
 
         // 准备烹饪完成事件
         CookingSessionCompletedEvent.DishNutritionSnapshot nutrition = 
             new CookingSessionCompletedEvent.DishNutritionSnapshot(
                 2000, 100.0, 150.0, 50.0, 5.0, 1000);
 
+        // 注意：DinerConsumptionData 现在使用 userId 而不是 familyMemberId
         CookingSessionCompletedEvent.DinerConsumptionData diner1 = 
             new CookingSessionCompletedEvent.DinerConsumptionData(1L, 0.3, null);
         CookingSessionCompletedEvent.DinerConsumptionData diner2 = 
@@ -98,12 +99,12 @@ class NutritionLogServiceTest {
     @Test
     void testCreateFromEvent_Success() {
         // Given
-        FamilyMember member2 = new FamilyMember();
-        member2.setId(2L);
-        member2.setName("测试用户2");
+        User user2 = new User();
+        user2.setId(2L);
+        user2.setUsername("测试用户2");
 
-        when(familyMemberRepository.findById(1L)).thenReturn(Optional.of(member));
-        when(familyMemberRepository.findById(2L)).thenReturn(Optional.of(member2));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(userRepository.findById(2L)).thenReturn(Optional.of(user2));
         when(nutritionLogRepository.saveAll(anyList())).thenAnswer(invocation -> {
             List<NutritionLog> logs = invocation.getArgument(0);
             for (int i = 0; i < logs.size(); i++) {
@@ -120,14 +121,14 @@ class NutritionLogServiceTest {
         
         // 验证第一条日志
         NutritionLog log1 = result.get(0);
-        assertThat(log1.getFamilyMember().getId()).isEqualTo(1L);
+        assertThat(log1.getUser().getId()).isEqualTo(1L);
         assertThat(log1.getDishId()).isEqualTo(200L);
         assertThat(log1.getSourceType()).isEqualTo(LogSourceType.APP_COOKING);
         assertThat(log1.getFoodName()).isEqualTo("红烧肉");
         assertThat(log1.getMealType()).isEqualTo(MealType.LUNCH);
         
         // 验证营养计算：30%的比例
-        assertThat(log1.getCalories()).isEqualTo(600); // 2000 * 0.3
+        assertThat(log1.getEnergy()).isEqualTo(600); // 2000 * 0.3
         assertThat(log1.getProtein()).isEqualTo(30.0); // 100 * 0.3
         assertThat(log1.getFat()).isEqualTo(45.0); // 150 * 0.3
         assertThat(log1.getQuantity()).isEqualTo(300.0); // 1000 * 0.3
@@ -143,7 +144,7 @@ class NutritionLogServiceTest {
     void testCreateFromEvent_InvalidMealType() {
         // Given: 使用无效的餐次类型
         event.setMealType("INVALID_TYPE");
-        when(familyMemberRepository.findById(anyLong())).thenReturn(Optional.of(member));
+        when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
         when(nutritionLogRepository.saveAll(anyList())).thenAnswer(invocation -> 
             invocation.getArgument(0));
 
@@ -155,14 +156,14 @@ class NutritionLogServiceTest {
     }
 
     @Test
-    void testCreateFromEvent_MemberNotFound() {
+    void testCreateFromEvent_UserNotFound() {
         // Given
-        when(familyMemberRepository.findById(1L)).thenReturn(Optional.empty());
+        when(userRepository.findById(1L)).thenReturn(Optional.empty());
 
         // When & Then
         assertThatThrownBy(() -> nutritionLogService.createFromEvent(event))
             .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("家庭成员不存在");
+            .hasMessageContaining("用户不存在");
     }
 
     @Test
@@ -181,7 +182,7 @@ class NutritionLogServiceTest {
             .build();
 
         when(leftoverDishRepository.findById(1L)).thenReturn(Optional.of(leftoverDish));
-        when(familyMemberRepository.findById(1L)).thenReturn(Optional.of(member));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(leftoverDishService.calculateNutritionForConsumption(1L, 100))
             .thenReturn(nutritionInfo);
         when(leftoverDishService.getLeftoverDishDetail(1L)).thenReturn(detailDTO);
@@ -201,7 +202,7 @@ class NutritionLogServiceTest {
         assertThat(result.getDishId()).isEqualTo(200L);
         assertThat(result.getFoodName()).isEqualTo("红烧肉");
         assertThat(result.getQuantity()).isEqualTo(100.0);
-        assertThat(result.getCalories()).isEqualTo(200);
+        assertThat(result.getEnergy()).isEqualTo(200);
         assertThat(result.getProtein()).isEqualTo(10.0);
 
         // 验证剩菜重量更新：300 - 100 = 200
@@ -216,15 +217,15 @@ class NutritionLogServiceTest {
     void testCreateFromLeftover_ExceedsQuantity() {
         // Given: 剩菜300g，尝试吃500g
         when(leftoverDishRepository.findById(1L)).thenReturn(Optional.of(leftoverDish));
-        // 注意：不需要mock familyMember，因为验证会在查询member之前执行
+        // 注意：不需要mock user，因为验证会在查询user之前执行
 
-        // When & Then: 应该在验证重量时就抛出异常，不会执行到查询member
+        // When & Then: 应该在验证重量时就抛出异常，不会执行到查询user
         assertThatThrownBy(() -> nutritionLogService.createFromLeftover(1L, 1L, 500, LocalDateTime.now()))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("食用重量(500克)超过剩余重量(300克)");
         
-        // 验证：不应该调用familyMemberRepository（因为提前验证失败）
-        verify(familyMemberRepository, never()).findById(anyLong());
+        // 验证：不应该调用userRepository（因为提前验证失败）
+        verify(userRepository, never()).findById(anyLong());
     }
 
     @Test
@@ -242,7 +243,7 @@ class NutritionLogServiceTest {
     void testCreateManual_Success() {
         // Given
         ManualNutritionLogRequest request = new ManualNutritionLogRequest();
-        request.setFamilyMemberId(1L);
+        request.setUserId(1L);
         request.setEatenAt(LocalDateTime.now());
         request.setFoodName("苹果");
         request.setQuantity(200.0);
@@ -253,7 +254,7 @@ class NutritionLogServiceTest {
         request.setCarbohydrates(20.0);
         request.setMealType(MealType.SNACK);
 
-        when(familyMemberRepository.findById(1L)).thenReturn(Optional.of(member));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(nutritionLogRepository.save(any(NutritionLog.class))).thenAnswer(invocation -> {
             NutritionLog log = invocation.getArgument(0);
             log.setId(1L);
@@ -269,7 +270,7 @@ class NutritionLogServiceTest {
         assertThat(result.getDishId()).isNull();
         assertThat(result.getFoodName()).isEqualTo("苹果");
         assertThat(result.getMealType()).isEqualTo(MealType.SNACK);
-        assertThat(result.getCalories()).isEqualTo(80);
+        assertThat(result.getEnergy()).isEqualTo(80);
         assertThat(result.getProtein()).isEqualTo(0.5);
 
         // 验证事件发布
@@ -280,12 +281,12 @@ class NutritionLogServiceTest {
     void testCreateManual_AutoDetermineMealType() {
         // Given: 不指定mealType，应该根据时间自动判断
         ManualNutritionLogRequest request = new ManualNutritionLogRequest();
-        request.setFamilyMemberId(1L);
+        request.setUserId(1L);
         request.setEatenAt(LocalDateTime.of(2024, 1, 1, 12, 0)); // 12点，应该是LUNCH
         request.setFoodName("苹果");
         request.setEnergy(80);
 
-        when(familyMemberRepository.findById(1L)).thenReturn(Optional.of(member));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(nutritionLogRepository.save(any(NutritionLog.class))).thenAnswer(invocation -> {
             NutritionLog log = invocation.getArgument(0);
             log.setId(1L);
@@ -300,18 +301,18 @@ class NutritionLogServiceTest {
     }
 
     @Test
-    void testCreateManual_MemberNotFound() {
+    void testCreateManual_UserNotFound() {
         // Given
         ManualNutritionLogRequest request = new ManualNutritionLogRequest();
-        request.setFamilyMemberId(999L);
+        request.setUserId(999L);
         request.setFoodName("苹果");
 
-        when(familyMemberRepository.findById(999L)).thenReturn(Optional.empty());
+        when(userRepository.findById(999L)).thenReturn(Optional.empty());
 
         // When & Then
         assertThatThrownBy(() -> nutritionLogService.createManual(request))
             .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("家庭成员不存在");
+            .hasMessageContaining("用户不存在");
     }
 }
 

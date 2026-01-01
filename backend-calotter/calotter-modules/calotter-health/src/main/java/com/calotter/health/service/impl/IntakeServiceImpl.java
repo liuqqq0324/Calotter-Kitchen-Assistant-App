@@ -25,10 +25,9 @@ import com.calotter.cooking.repository.CookingSessionRepository;
 import com.calotter.cooking.repository.DishRepository;
 import com.calotter.inventory.domain.entity.LeftoverDish;
 import com.calotter.inventory.repository.LeftoverDishRepository;
-import com.calotter.user.domain.entity.FamilyMember;
 import com.calotter.user.domain.entity.Household;
 import com.calotter.user.domain.entity.User;
-import com.calotter.user.repository.FamilyMemberRepository;
+import com.calotter.user.repository.HouseholdRepository;
 import com.calotter.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -62,7 +61,7 @@ public class IntakeServiceImpl implements IIntakeService {
 
     private final NutritionLogRepository nutritionLogRepository;
     private final UserRepository userRepository;
-    private final FamilyMemberRepository familyMemberRepository;
+    private final HouseholdRepository householdRepository;
     private final CookingSessionRepository cookingSessionRepository;
     private final LeftoverDishRepository leftoverDishRepository;
     private final DishRepository dishRepository;
@@ -112,20 +111,27 @@ public class IntakeServiceImpl implements IIntakeService {
      * 如果需要获取完整的菜，应该从 CookingSession 查询当天完成的烹饪会话
      */
     private List<IntakeItem> getTodayRecipesFromInventory(User user, LocalDate today) {
-        // 1. 获取用户的 Household（通过 User -> FamilyMember -> Household）
-        Optional<FamilyMember> familyMemberOpt = familyMemberRepository.findAll().stream()
-                .filter(member -> member.getUser() != null && 
-                        member.getUser().getId().equals(user.getId()))
-                .findFirst();
+        // 1. 获取用户的 Household（优先使用 currentHouseholdId，否则使用第一个 joinedHousehold）
+        Household household = null;
         
-        if (familyMemberOpt.isEmpty()) {
-            log.warn("无法找到用户的家庭成员信息，用户 ID: {}", user.getId());
-            return Collections.emptyList();
+        // 优先使用 currentHouseholdId
+        if (user.getCurrentHouseholdId() != null) {
+            household = householdRepository.findById(user.getCurrentHouseholdId()).orElse(null);
         }
         
-        Household household = familyMemberOpt.get().getHousehold();
+        // 如果 currentHouseholdId 不存在或无效，尝试从 joinedHouseholds 获取第一个
         if (household == null) {
-            log.warn("家庭成员没有关联的家庭，用户 ID: {}", user.getId());
+            // 重新加载用户以获取 joinedHouseholds（避免懒加载问题）
+            User loadedUser = userRepository.findById(user.getId())
+                    .orElseThrow(() -> new IllegalArgumentException("用户不存在: " + user.getId()));
+            
+            if (loadedUser.getJoinedHouseholds() != null && !loadedUser.getJoinedHouseholds().isEmpty()) {
+                household = loadedUser.getJoinedHouseholds().get(0);
+            }
+        }
+        
+        if (household == null) {
+            log.warn("用户没有关联的家庭，用户 ID: {}", user.getId());
             return Collections.emptyList();
         }
         

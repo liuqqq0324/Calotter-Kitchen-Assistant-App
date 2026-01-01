@@ -8,9 +8,11 @@ import com.calotter.inventory.domain.entity.HouseholdUtensil;
 import com.calotter.inventory.repository.IngredientRepository;
 import com.calotter.inventory.repository.HouseholdSpiceRepository;
 import com.calotter.inventory.repository.HouseholdUtensilRepository;
-import com.calotter.user.domain.entity.FamilyMember;
+import com.calotter.user.domain.entity.User;
+import com.calotter.user.domain.entity.Household;
 import com.calotter.user.domain.entity.HealthGoal;
-import com.calotter.user.repository.FamilyMemberRepository;
+import com.calotter.user.repository.HouseholdRepository;
+import com.calotter.user.repository.UserRepository;
 import com.calotter.user.repository.HealthGoalRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -42,7 +44,8 @@ public class AiMenuService {
     private final IngredientRepository ingredientRepository;
     private final HouseholdSpiceRepository spiceRepository;
     private final HouseholdUtensilRepository utensilRepository;
-    private final FamilyMemberRepository familyMemberRepository;
+    private final HouseholdRepository householdRepository;
+    private final UserRepository userRepository;
     private final HealthGoalRepository healthGoalRepository;
 
     @Value("${ai.api.key:}")
@@ -123,27 +126,44 @@ public class AiMenuService {
     public RecipeGenerationFilter getDefaultFilter(Long householdId) {
         RecipeGenerationFilter filter = new RecipeGenerationFilter();
         
-        // 1. 获取家庭成员信息
-        List<FamilyMember> members = familyMemberRepository.findByHouseholdId(householdId);
+        // 1. 验证家庭存在
+        Household household = householdRepository.findById(householdId)
+                .orElseThrow(() -> new IllegalArgumentException("家庭不存在: " + householdId));
         
-        // 2. 收集过敏信息
+        // 2. 获取家庭成员（User列表）- 使用Repository查询避免懒加载问题
+        List<User> members = userRepository.findByJoinedHouseholdsId(householdId);
+        
+        // 如果没有成员，至少包含所有者
+        if (members == null || members.isEmpty()) {
+            // 如果查询结果为空，尝试添加所有者
+            User owner = userRepository.findById(household.getOwnerId()).orElse(null);
+            if (owner != null) {
+                members = new ArrayList<>(List.of(owner));
+                log.info("家庭 {} 没有成员，使用所有者作为默认成员", householdId);
+            } else {
+                log.warn("家庭 {} 没有成员且所有者不存在，使用默认值", householdId);
+                members = new ArrayList<>();
+            }
+        }
+        
+        // 3. 收集过敏信息
         List<String> allergies = new ArrayList<>();
         List<String> avoidIngredients = new ArrayList<>();
         List<String> cuisinePreferences = new ArrayList<>();
         List<String> tastePreferences = new ArrayList<>();
         
-        // 3. 计算卡路里目标（从健康目标）
+        // 4. 计算卡路里目标（从健康目标）
         Double avgCalorieTarget = null;
         int activeGoalCount = 0;
         int totalCalories = 0;
         
-        for (FamilyMember member : members) {
-            // 收集过敏
+        for (User member : members) {
+            // 收集过敏（User.allergies是List<RefAllergen>）
             if (member.getAllergies() != null) {
                 member.getAllergies().forEach(a -> allergies.add(a.getName()));
             }
             
-            // 收集偏好
+            // 收集偏好（User.preferences是Map<String, List<String>>）
             if (member.getPreferences() != null) {
                 List<String> dislikes = member.getPreferences().getOrDefault("DISLIKE", new ArrayList<>());
                 avoidIngredients.addAll(dislikes);
@@ -155,8 +175,8 @@ public class AiMenuService {
                 tastePreferences.addAll(tastes);
             }
             
-            // 计算卡路里目标
-            HealthGoal goal = healthGoalRepository.findByFamilyMemberAndStatus(member, 1); // 1=Active
+            // 计算卡路里目标（使用User而不是FamilyMember）
+            HealthGoal goal = healthGoalRepository.findByUserAndStatus(member, 1); // 1=Active
             if (goal != null && goal.getDailyCalories() != null) {
                 totalCalories += goal.getDailyCalories();
                 activeGoalCount++;
@@ -171,28 +191,28 @@ public class AiMenuService {
             avgCalorieTarget = 600.0; // 默认每人600卡
         }
         
-        // 4. 设置 diet_preferences
+        // 5. 设置 dietPreferences
         RecipeGenerationFilter.DietPreferences dietPrefs = new RecipeGenerationFilter.DietPreferences();
         dietPrefs.setAllergies(allergies.stream().distinct().collect(Collectors.toList()));
-        dietPrefs.setAvoid_ingredients(avoidIngredients.stream().distinct().collect(Collectors.toList()));
-        dietPrefs.setCuisine_preferences(cuisinePreferences.stream().distinct().collect(Collectors.toList()));
-        dietPrefs.setTaste_preferences(tastePreferences.stream().distinct().collect(Collectors.toList()));
-        filter.setDiet_preferences(dietPrefs);
+        dietPrefs.setAvoidIngredients(avoidIngredients.stream().distinct().collect(Collectors.toList()));
+        dietPrefs.setCuisinePreferences(cuisinePreferences.stream().distinct().collect(Collectors.toList()));
+        dietPrefs.setTastePreferences(tastePreferences.stream().distinct().collect(Collectors.toList()));
+        filter.setDietPreferences(dietPrefs);
         
-        // 5. 设置卡路里目标
+        // 6. 设置卡路里目标
         if (avgCalorieTarget != null) {
             RecipeGenerationFilter.CalorieTarget calorieTarget = new RecipeGenerationFilter.CalorieTarget();
-            calorieTarget.setMin_total_kcal(avgCalorieTarget);
-            calorieTarget.setMax_total_kcal(avgCalorieTarget);
-            filter.setCalorie_target(calorieTarget);
+            calorieTarget.setMinTotalKcal(avgCalorieTarget);
+            calorieTarget.setMaxTotalKcal(avgCalorieTarget);
+            filter.setCalorieTarget(calorieTarget);
         }
         
-        // 6. 设置默认值
+        // 7. 设置默认值
         filter.setServings(members.isEmpty() ? 1 : members.size());
-        filter.setGeneration_settings(new RecipeGenerationFilter.GenerationSettings());
-        filter.getGeneration_settings().setDish_count(1);
+        filter.setGenerationSettings(new RecipeGenerationFilter.GenerationSettings());
+        filter.getGenerationSettings().setDishCount(1);
         
-        // 7. 自动填充库存、厨具、调料
+        // 8. 自动填充库存、厨具、调料
         enrichFilterFromHousehold(filter, householdId);
         
         return filter;
@@ -209,10 +229,10 @@ public class AiMenuService {
                     .map(ing -> {
                         RecipeGenerationFilter.InventoryItem item = new RecipeGenerationFilter.InventoryItem();
                         item.setName(ing.getMetadata().getName());
-                        item.setAmount_value(ing.getQuantity());
-                        item.setAmount_unit(ing.getUnit());
+                        item.setAmountValue(ing.getQuantity());
+                        item.setAmountUnit(ing.getUnit());
                         if (ing.getExpirationDate() != null) {
-                            item.setExpires_at(ing.getExpirationDate().format(DateTimeFormatter.ISO_LOCAL_DATE));
+                            item.setExpiresAt(ing.getExpirationDate().format(DateTimeFormatter.ISO_LOCAL_DATE));
                         }
                         return item;
                     })
@@ -250,12 +270,12 @@ public class AiMenuService {
             "",
             "=== 1. CRITICAL DATA REQUIREMENTS (BACKEND RULES) ===",
             "1. NUTRITION ESTIMATE: Instead of just calories, you MUST estimate the full macro-nutrient breakdown for the WHOLE recipe (all servings combined).",
-            "   - Provide: 'calories', 'protein_g', 'fat_g', 'carbs_g'.",
+            "   - Provide: 'calories', 'proteinG', 'fatG', 'carbsG'.",
             "   - Base these estimates on the total ingredients used.",
             "2. INVENTORY SOURCE MATCHING:",
             "   - For every ingredient in the output list, check the input 'inventory'.",
-            "   - If the name loosely matches an item in the fridge, set 'source_type' to 'INVENTORY'.",
-            "   - If it is a new item (or a seasoning not in the list), set 'source_type' to 'MANUAL_ADD'.",
+            "   - If the name loosely matches an item in the fridge, set 'sourceType' to 'INVENTORY'.",
+            "   - If it is a new item (or a seasoning not in the list), set 'sourceType' to 'MANUAL_ADD'.",
             "   - Prefer using ingredients from the inventory to reduce waste.",
             "",
             "=== 2. COOKING LOGIC & CONSTRAINTS (USER RULES) ===",
@@ -265,8 +285,8 @@ public class AiMenuService {
             "- If 'cookers' is empty, assume basic stove + pot/pan only.",
             "",
             "CALORIE LOGIC:",
-            "- The input 'calorie_target' is PER PERSON.",
-            "- However, the output 'nutrition_estimate' must be for the WHOLE RECIPE.",
+            "- The input 'calorieTarget' is PER PERSON.",
+            "- However, the output 'nutritionEstimate' must be for the WHOLE RECIPE.",
             "- Logic: Target Recipe Calories ≈ (Per-Person Target * Servings).",
             "- Keep recipes realistic. Do not force exact math if it ruins the food, but stay within range.",
             "",
@@ -274,12 +294,12 @@ public class AiMenuService {
             "- Easy: Common ingredients, <= 30 mins, basic steps, simple equipment.",
             "- Medium: 30-60 mins, marinating/sauces, moderate attention needed.",
             "- Hard: > 60 mins, complex techniques (deep fry, dough), multiple stages.",
-            "- Respect the 'difficulty_target' if provided.",
+            "- Respect the 'difficultyTarget' if provided.",
             "",
             "SEASONINGS & PREFERENCES:",
             "- Use the provided 'seasonings' list if possible. Assume basic (salt/oil/soy) if empty.",
             "- STRICTLY RESPECT 'allergies'. Never use allergic ingredients.",
-            "- Avoid 'avoid_ingredients'.",
+            "- Avoid 'avoidIngredients'.",
             "",
             "=== 3. OUTPUT FORMAT ===",
             "- Return ONLY valid JSON matching the output_schema.",

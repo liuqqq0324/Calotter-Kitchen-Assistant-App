@@ -54,7 +54,7 @@ class CookingApiService {
     if (data is Map && data.containsKey('code')) {
       final code = data['code'] as int;
       if (code != 200) {
-        throw Exception(data['msg']?.toString() ?? 'Failed to start cooking');
+        throw Exception(data['message']?.toString() ?? 'Failed to start cooking');
       }
       return (data['data'] as num).toInt();
     } else if (data is num) {
@@ -107,7 +107,7 @@ class CookingApiService {
     if (data is Map && data.containsKey('code')) {
       final code = data['code'] as int;
       if (code != 200) {
-        throw Exception(data['msg']?.toString() ?? 'Failed to finish cooking');
+        throw Exception(data['message']?.toString() ?? 'Failed to finish cooking');
       }
       return data['data'] as Map<String, dynamic>;
     } else {

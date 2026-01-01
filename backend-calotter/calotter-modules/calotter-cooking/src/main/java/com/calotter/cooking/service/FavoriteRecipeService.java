@@ -70,22 +70,22 @@ public class FavoriteRecipeService {
         Dish dish = new Dish();
         dish.setHousehold(household);
         dish.setName(recipeDto.getTitle());
-        dish.setDescription(recipeDto.getShort_description());
-        dish.setCookingTimeMinutes(recipeDto.getCooking_time_min());
+        dish.setDescription(recipeDto.getShortDescription());
+        dish.setCookingTimeMinutes(recipeDto.getCookingTimeMin());
         dish.setDifficulty(parseDifficulty(recipeDto.getDifficulty()));
-        if (recipeDto.getNutrition_estimate() != null) {
-            dish.setTotalCalories(toInt(recipeDto.getNutrition_estimate().getCalories()));
-            dish.setTotalProtein(recipeDto.getNutrition_estimate().getProtein_g());
-            dish.setTotalFat(recipeDto.getNutrition_estimate().getFat_g());
-            dish.setTotalCarb(recipeDto.getNutrition_estimate().getCarbs_g());
+        if (recipeDto.getNutritionEstimate() != null) {
+            dish.setTotalCalories(toInt(recipeDto.getNutritionEstimate().getCalories()));
+            dish.setTotalProtein(recipeDto.getNutritionEstimate().getProteinG());
+            dish.setTotalFat(recipeDto.getNutritionEstimate().getFatG());
+            dish.setTotalCarb(recipeDto.getNutritionEstimate().getCarbsG());
         }
         if (recipeDto.getIngredients() != null) {
             dish.setIngredientSnapshots(
                     recipeDto.getIngredients().stream().map(ing -> {
                         Dish.IngredientSnapshot snap = new Dish.IngredientSnapshot();
                         snap.setName(ing.getName());
-                        snap.setAmountValue(ing.getAmount_value() != null ? ing.getAmount_value() : 0.0);
-                        snap.setAmountUnit(ing.getAmount_unit() != null ? ing.getAmount_unit() : "g");
+                        snap.setAmountValue(ing.getAmountValue() != null ? ing.getAmountValue() : 0.0);
+                        snap.setAmountUnit(ing.getAmountUnit() != null ? ing.getAmountUnit() : "g");
                         return snap;
                     }).toList()
             );
@@ -94,9 +94,9 @@ public class FavoriteRecipeService {
             dish.setSteps(
                     recipeDto.getSteps().stream().map(s -> {
                         Dish.CookingStep cs = new Dish.CookingStep();
-                        cs.setStepNumber(s.getStep_number());
+                        cs.setStepNumber(s.getStepNumber());
                         cs.setInstruction(s.getInstruction());
-                        cs.setTimeMin(s.getStep_time_min());
+                        cs.setTimeMin(s.getStepTimeMin());
                         return cs;
                     }).toList()
             );
@@ -104,8 +104,8 @@ public class FavoriteRecipeService {
         // 估算重量（简单累加 g 单位）
         int totalWeight = recipeDto.getIngredients() == null ? 0 :
                 recipeDto.getIngredients().stream()
-                        .filter(i -> "g".equalsIgnoreCase(i.getAmount_unit()) && i.getAmount_value() != null)
-                        .mapToInt(i -> i.getAmount_value().intValue())
+                        .filter(i -> "g".equalsIgnoreCase(i.getAmountUnit()) && i.getAmountValue() != null)
+                        .mapToInt(i -> i.getAmountValue().intValue())
                         .sum();
         dish.setTotalWeightGram(totalWeight > 0 ? totalWeight : 1000);
         return dish;

@@ -214,6 +214,22 @@ public class InventoryService {
         spiceRepository.deleteById(id);
     }
 
+    /**
+     * 切换调料可用性（toggle）
+     */
+    @Transactional
+    public SpiceResponse toggleSpiceAvailability(Long id) {
+        HouseholdSpice spice = spiceRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("调料不存在"));
+        
+        // 切换可用性：true变false，false变true
+        Boolean currentAvailability = spice.getIsAvailable();
+        spice.setIsAvailable(currentAvailability == null || !currentAvailability);
+        
+        spice = spiceRepository.save(spice);
+        return toSpiceResponse(spice);
+    }
+
     // ==================== 厨具管理 ====================
 
     /**
@@ -290,6 +306,22 @@ public class InventoryService {
             throw new IllegalArgumentException("厨具不存在");
         }
         utensilRepository.deleteById(id);
+    }
+
+    /**
+     * 切换厨具可用性（toggle）
+     */
+    @Transactional
+    public UtensilResponse toggleUtensilAvailability(Long id) {
+        HouseholdUtensil utensil = utensilRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("厨具不存在"));
+        
+        // 切换可用性：true变false，false变true
+        Boolean currentAvailability = utensil.getIsAvailable();
+        utensil.setIsAvailable(currentAvailability == null || !currentAvailability);
+        
+        utensil = utensilRepository.save(utensil);
+        return toUtensilResponse(utensil);
     }
 
     // ==================== 剩菜管理 ====================
@@ -427,5 +459,26 @@ public class InventoryService {
      */
     public List<StandardIngredient> searchStandardIngredientsByName(String name) {
         return standardIngredientRepository.findByNameContainingIgnoreCase(name);
+    }
+
+    /**
+     * 获取所有标准食材列表
+     */
+    public List<StandardIngredient> getAllStandardIngredients() {
+        return standardIngredientRepository.findAll();
+    }
+
+    /**
+     * 获取所有标准厨具列表
+     */
+    public List<com.calotter.common.core.domain.entity.StandardUtensil> getAllStandardUtensils() {
+        return standardUtensilRepository.findAll();
+    }
+
+    /**
+     * 获取所有标准调料列表
+     */
+    public List<com.calotter.common.core.domain.entity.StandardSpice> getAllStandardSpices() {
+        return standardSpiceRepository.findAll();
     }
 }
