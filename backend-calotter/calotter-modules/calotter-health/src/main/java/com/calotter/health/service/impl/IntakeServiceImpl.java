@@ -15,6 +15,7 @@ import com.calotter.health.service.IIntakeService.UpdateIntakeItem;
 import com.calotter.health.service.IIntakeService.UpdateIntakeResponse;
 import com.calotter.health.service.IIntakeService.WeeklySummary;
 import com.calotter.health.service.INutritionService;
+import com.calotter.health.service.NutritionAggregateService;
 import com.calotter.health.service.NutritionLogService;
 import com.calotter.health.service.ai.ManualNutritionEstimator;
 import com.calotter.health.service.ai.NutritionEstimate;
@@ -66,6 +67,7 @@ public class IntakeServiceImpl implements IIntakeService {
     private final LeftoverDishRepository leftoverDishRepository;
     private final DishRepository dishRepository;
     private final NutritionLogService nutritionLogService;
+    private final NutritionAggregateService nutritionAggregateService;
     private final INutritionService nutritionService;
     private final ObjectProvider<ManualNutritionEstimator> manualNutritionEstimatorProvider;
 
@@ -333,6 +335,9 @@ public class IntakeServiceImpl implements IIntakeService {
         // 保存更新
         nutritionLogRepository.save(nutritionLog);
 
+        // ✅ 重建当天聚合，避免聚合表与真实流水不一致
+        nutritionAggregateService.rebuildDailyAggregate(user, nutritionLog.getLogDate());
+
         UpdateIntakeResponse response = new UpdateIntakeResponse();
         response.setIntake(convertToUpdateIntakeItem(nutritionLog));
 
@@ -433,6 +438,9 @@ public class IntakeServiceImpl implements IIntakeService {
 
         LocalDate date = nutritionLog.getLogDate();
         nutritionLogRepository.delete(nutritionLog);
+
+        // ✅ 重建当天聚合，避免聚合表与真实流水不一致
+        nutritionAggregateService.rebuildDailyAggregate(user, date);
 
         DeleteIntakeResponse response = new DeleteIntakeResponse();
         response.setDeletedIntakeId(intakeId);

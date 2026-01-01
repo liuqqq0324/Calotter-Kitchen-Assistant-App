@@ -59,7 +59,6 @@ class _HomePageState extends State<HomePage> {
         }
 
         setState(() {
-          // 周目标需要除以7得到每日目标（近似）
           final weeklyEnergy =
               (weeklyTarget['energy'] as num?)?.toDouble() ?? 14000.0;
           final weeklyProtein =
@@ -70,14 +69,14 @@ class _HomePageState extends State<HomePage> {
 
           _nutritionData = {
             'energy_current': (consumed['energy'] as num?)?.toDouble() ?? 0.0,
-            'energy_target': weeklyEnergy / 7,
+            'energy_target': weeklyEnergy,
             'protein_current': (consumed['protein'] as num?)?.toDouble() ?? 0.0,
-            'protein_target': weeklyProtein / 7,
+            'protein_target': weeklyProtein,
             'fat_current': (consumed['fat'] as num?)?.toDouble() ?? 0.0,
-            'fat_target': weeklyFat / 7,
+            'fat_target': weeklyFat,
             'carbs_current':
                 (consumed['carbohydrates'] as num?)?.toDouble() ?? 0.0,
-            'carbs_target': weeklyCarbs / 7,
+            'carbs_target': weeklyCarbs,
           };
           _isLoading = false;
         });
