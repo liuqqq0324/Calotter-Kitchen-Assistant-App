@@ -143,7 +143,7 @@ class InventoryManagementIntegrationTest {
         // 验证食材已保存
         Ingredient savedIngredient = ingredientRepository.findById(ingredientId).orElse(null);
         assertThat(savedIngredient).isNotNull();
-        assertThat(savedIngredient.getHouseholdId()).isEqualTo(household.getId());
+        assertThat(savedIngredient.getHousehold().getId()).isEqualTo(household.getId());
         assertThat(savedIngredient.getQuantity()).isEqualTo(500.0);
 
         // ==================== 步骤2：获取食材列表 ====================

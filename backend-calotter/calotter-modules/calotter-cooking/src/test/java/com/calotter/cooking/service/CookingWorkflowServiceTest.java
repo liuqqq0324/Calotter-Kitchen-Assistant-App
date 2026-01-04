@@ -101,7 +101,7 @@ class CookingWorkflowServiceTest {
         request.setMenuId(1);
 
         MenuDTO.RecipeDTO recipeDto = new MenuDTO.RecipeDTO();
-        recipeDto.setDishName("红烧肉");
+        recipeDto.setTitle("红烧肉");
         request.setRecipes(Arrays.asList(recipeDto));
 
         when(householdRepository.findById(1L)).thenReturn(Optional.of(household));
@@ -302,11 +302,11 @@ class CookingWorkflowServiceTest {
         inventoryIngredient.setId(1L);
         inventoryIngredient.setQuantity(1000.0);
         inventoryIngredient.setUnit("g");
-        // 设置 metadata（假设有 StandardIngredient）
-        com.calotter.inventory.domain.entity.Ingredient.Metadata metadata = 
-                new com.calotter.inventory.domain.entity.Ingredient.Metadata();
-        metadata.setName("五花肉");
-        inventoryIngredient.setMetadata(metadata);
+        // 设置 metadata（使用 StandardIngredient）
+        com.calotter.common.core.domain.entity.StandardIngredient standardIngredient = 
+                new com.calotter.common.core.domain.entity.StandardIngredient();
+        standardIngredient.setName("五花肉");
+        inventoryIngredient.setMetadata(standardIngredient);
 
         FinishCookingRequest request = new FinishCookingRequest();
         request.setSessionId(200L);

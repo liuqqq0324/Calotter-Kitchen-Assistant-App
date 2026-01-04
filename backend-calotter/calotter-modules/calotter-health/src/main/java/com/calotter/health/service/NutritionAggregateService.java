@@ -98,10 +98,10 @@ public class NutritionAggregateService {
                     // 快照当天的健康目标（如果存在）
                     HealthGoal goal = healthGoalRepository.findByUserAndStatus(user, 1); // 1=ACTIVE
                     if (goal != null) {
-                        newAggregate.setGoalCaloriesSnapshot(goal.getDailyCalories());
+                        newAggregate.setGoalEnergySnapshot(goal.getDailyCalories());
                         newAggregate.setGoalProteinSnapshot(goal.getProtein());
                         newAggregate.setGoalFatSnapshot(goal.getFat());
-                        newAggregate.setGoalCarbSnapshot(goal.getCarb());
+                        newAggregate.setGoalCarbohydratesSnapshot(goal.getCarb());
                         newAggregate.setGoalFiberSnapshot(goal.getFiber());
                     }
                     
@@ -258,10 +258,10 @@ public class NutritionAggregateService {
                     // 快照当天的健康目标（如果存在）
                     HealthGoal goal = healthGoalRepository.findByUserAndStatus(user, 1);
                     if (goal != null) {
-                        aggregate.setGoalCaloriesSnapshot(goal.getDailyCalories());
+                        aggregate.setGoalEnergySnapshot(goal.getDailyCalories());
                         aggregate.setGoalProteinSnapshot(goal.getProtein());
                         aggregate.setGoalFatSnapshot(goal.getFat());
-                        aggregate.setGoalCarbSnapshot(goal.getCarb());
+                        aggregate.setGoalCarbohydratesSnapshot(goal.getCarb());
                         aggregate.setGoalFiberSnapshot(goal.getFiber());
                     }
                     

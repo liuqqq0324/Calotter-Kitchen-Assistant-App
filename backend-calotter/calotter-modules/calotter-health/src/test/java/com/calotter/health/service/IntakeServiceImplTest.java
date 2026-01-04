@@ -216,11 +216,11 @@ class IntakeServiceImplTest {
                 .thenReturn(Optional.of(nutritionLog));
         when(nutritionLogRepository.save(any(NutritionLog.class))).thenReturn(nutritionLog);
 
-        IIntakeService.WeeklyNutritionSummaryResponse weeklySummary = 
-                new IIntakeService.WeeklyNutritionSummaryResponse();
+        INutritionService.WeeklyNutritionSummaryResponse weeklySummary = 
+                new INutritionService.WeeklyNutritionSummaryResponse();
         weeklySummary.setWeekStart(LocalDate.now().minusDays(3));
         weeklySummary.setWeekEnd(LocalDate.now().plusDays(3));
-        IIntakeService.Nutrition consumed = new IIntakeService.Nutrition();
+        INutritionService.Nutrition consumed = new INutritionService.Nutrition();
         consumed.setEnergy(BigDecimal.valueOf(2000));
         consumed.setFat(BigDecimal.valueOf(60.0));
         consumed.setCarbohydrates(BigDecimal.valueOf(200.0));
@@ -283,7 +283,7 @@ class IntakeServiceImplTest {
                 BigDecimal.valueOf(18.0),
                 BigDecimal.valueOf(20.0),
                 BigDecimal.valueOf(80.0),
-                BigDecimal.valueOf(5.0)
+                "test-source"
         );
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
@@ -294,11 +294,11 @@ class IntakeServiceImplTest {
                 eq(user), eq(date), eq(LogSourceType.MANUAL)))
                 .thenReturn(Arrays.asList(nutritionLog));
 
-        IIntakeService.WeeklyNutritionSummaryResponse weeklySummary = 
-                new IIntakeService.WeeklyNutritionSummaryResponse();
+        INutritionService.WeeklyNutritionSummaryResponse weeklySummary = 
+                new INutritionService.WeeklyNutritionSummaryResponse();
         weeklySummary.setWeekStart(LocalDate.now().minusDays(3));
         weeklySummary.setWeekEnd(LocalDate.now().plusDays(3));
-        IIntakeService.Nutrition consumed = new IIntakeService.Nutrition();
+        INutritionService.Nutrition consumed = new INutritionService.Nutrition();
         consumed.setEnergy(BigDecimal.valueOf(2000));
         consumed.setFat(BigDecimal.valueOf(60.0));
         consumed.setCarbohydrates(BigDecimal.valueOf(200.0));
@@ -354,11 +354,11 @@ class IntakeServiceImplTest {
                 eq(user), eq(date), eq(LogSourceType.MANUAL)))
                 .thenReturn(Collections.emptyList());
 
-        IIntakeService.WeeklyNutritionSummaryResponse weeklySummary = 
-                new IIntakeService.WeeklyNutritionSummaryResponse();
+        INutritionService.WeeklyNutritionSummaryResponse weeklySummary = 
+                new INutritionService.WeeklyNutritionSummaryResponse();
         weeklySummary.setWeekStart(LocalDate.now().minusDays(3));
         weeklySummary.setWeekEnd(LocalDate.now().plusDays(3));
-        IIntakeService.Nutrition consumed = new IIntakeService.Nutrition();
+        INutritionService.Nutrition consumed = new INutritionService.Nutrition();
         consumed.setEnergy(BigDecimal.valueOf(2000));
         consumed.setFat(BigDecimal.valueOf(60.0));
         consumed.setCarbohydrates(BigDecimal.valueOf(200.0));

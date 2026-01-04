@@ -106,7 +106,10 @@ class AiMenuServiceTest {
         dietPrefs.setCuisinePreferences(Arrays.asList("Chinese"));
         dietPrefs.setTastePreferences(Arrays.asList("spicy"));
         filter.setDietPreferences(dietPrefs);
-        filter.setCalorieTarget(600.0);
+        RecipeGenerationFilter.CalorieTarget calorieTarget = new RecipeGenerationFilter.CalorieTarget();
+        calorieTarget.setMinTotalKcal(600.0);
+        calorieTarget.setMaxTotalKcal(600.0);
+        filter.setCalorieTarget(calorieTarget);
     }
 
     // ==================== getDefaultFilter 测试 ====================
@@ -178,10 +181,10 @@ class AiMenuServiceTest {
         Ingredient ingredient = new Ingredient();
         ingredient.setId(1L);
         ingredient.setQuantity(500.0);
-        com.calotter.inventory.domain.entity.Ingredient.Metadata metadata = 
-                new com.calotter.inventory.domain.entity.Ingredient.Metadata();
-        metadata.setName("chicken");
-        ingredient.setMetadata(metadata);
+        com.calotter.common.core.domain.entity.StandardIngredient standardIngredient = 
+                new com.calotter.common.core.domain.entity.StandardIngredient();
+        standardIngredient.setName("chicken");
+        ingredient.setMetadata(standardIngredient);
 
         HouseholdUtensil utensil = new HouseholdUtensil();
         utensil.setId(1L);
@@ -189,7 +192,7 @@ class AiMenuServiceTest {
         com.calotter.common.core.domain.entity.StandardUtensil standardUtensil = 
                 new com.calotter.common.core.domain.entity.StandardUtensil();
         standardUtensil.setName("wok");
-        utensil.setStandardUtensil(standardUtensil);
+        utensil.setMetadata(standardUtensil);
 
         HouseholdSpice spice = new HouseholdSpice();
         spice.setId(1L);
@@ -197,7 +200,7 @@ class AiMenuServiceTest {
         com.calotter.common.core.domain.entity.StandardSpice standardSpice = 
                 new com.calotter.common.core.domain.entity.StandardSpice();
         standardSpice.setName("salt");
-        spice.setStandardSpice(standardSpice);
+        spice.setMetadata(standardSpice);
 
         when(householdRepository.findById(1L)).thenReturn(Optional.of(household));
         when(userRepository.findByJoinedHouseholdsId(1L)).thenReturn(Arrays.asList(user));
@@ -240,10 +243,10 @@ class AiMenuServiceTest {
         Ingredient ingredient = new Ingredient();
         ingredient.setId(1L);
         ingredient.setQuantity(500.0);
-        com.calotter.inventory.domain.entity.Ingredient.Metadata metadata = 
-                new com.calotter.inventory.domain.entity.Ingredient.Metadata();
-        metadata.setName("chicken");
-        ingredient.setMetadata(metadata);
+        com.calotter.common.core.domain.entity.StandardIngredient standardIngredient = 
+                new com.calotter.common.core.domain.entity.StandardIngredient();
+        standardIngredient.setName("chicken");
+        ingredient.setMetadata(standardIngredient);
 
         when(householdRepository.findById(1L)).thenReturn(Optional.of(household));
         when(ingredientRepository.findByHouseholdIdAndQuantityGreaterThan(1L, 0.0))

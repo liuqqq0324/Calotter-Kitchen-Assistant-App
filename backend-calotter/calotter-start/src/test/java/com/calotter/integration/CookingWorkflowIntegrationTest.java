@@ -224,9 +224,9 @@ class CookingWorkflowIntegrationTest {
     void testCookingWorkflow_StartWithRecipes() throws Exception {
         // Given: 创建RecipeDTO
         MenuDTO.RecipeDTO recipeDto = new MenuDTO.RecipeDTO();
-        recipeDto.setDishName("红烧肉");
-        recipeDto.setDescription("经典红烧肉");
-        recipeDto.setTotalTimeMin(60);
+        recipeDto.setTitle("红烧肉");
+        recipeDto.setShortDescription("经典红烧肉");
+        recipeDto.setCookingTimeMin(60);
         recipeDto.setDifficulty("MEDIUM");
 
         StartCookingRequest startRequest = new StartCookingRequest();
