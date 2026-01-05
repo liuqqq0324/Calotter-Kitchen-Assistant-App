@@ -330,7 +330,10 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
                           InkWell(
                             onTap: () {
                               setState(() {
-                                _selectedMenuId = menu.menuId;
+                                // Toggle: 如果已选中，点击取消；否则选中
+                                _selectedMenuId = _selectedMenuId == menu.menuId
+                                    ? null
+                                    : menu.menuId;
                               });
                             },
                             child: Row(
@@ -446,7 +449,10 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
                   child: OutlinedButton(
                     onPressed: () {
                       setState(() {
-                        _selectedMenuId = menu.menuId;
+                        // Toggle: 如果已选中，点击取消；否则选中
+                        _selectedMenuId = _selectedMenuId == menu.menuId
+                            ? null
+                            : menu.menuId;
                       });
                     },
                     style: OutlinedButton.styleFrom(

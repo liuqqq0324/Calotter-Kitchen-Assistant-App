@@ -40,6 +40,11 @@ public class GroqAiMenuGenerationService implements AiMenuGenerationService {
             "INPUT SUMMARY: You receive fridge inventory, calorie targets (per person), servings, and preferences.",
             "YOUR TASK: Generate EXACTLY 5 menu options based on the input.",
             "",
+            "**IMPORTANT**: Each menu should contain EXACTLY 'generationSettings.dishCount' recipes (dishes).",
+            "- If dishCount=4, each menu must have 4 different recipes.",
+            "- If dishCount=1, each menu has 1 recipe.",
+            "- The recipes in a menu should be complementary (e.g., main dish + side dishes + soup).",
+            "",
             "=== 1. CRITICAL DATA REQUIREMENTS (BACKEND RULES) ===",
             "1. NUTRITION ESTIMATE: Instead of just calories, you MUST estimate the full macro-nutrient breakdown for the WHOLE recipe (all servings combined).",
             "   - Provide: 'calories', 'proteinG', 'fatG', 'carbsG'.",
@@ -117,6 +122,9 @@ public class GroqAiMenuGenerationService implements AiMenuGenerationService {
             "CRITICAL RULES:",
             "- The root object MUST have a 'menus' field containing an array of exactly 5 menu objects.",
             "- Each menu object MUST have 'menuId' (1-5) and 'recipes' array.",
+            "- Each 'recipes' array MUST contain EXACTLY 'generationSettings.dishCount' recipe objects.",
+            "  * If dishCount=4, recipes array length must be 4.",
+            "  * If dishCount=1, recipes array length must be 1.",
             "- Return ONLY valid JSON, no markdown, no code blocks, no explanatory text.",
             "- The JSON must be parseable by standard JSON parsers."
     );

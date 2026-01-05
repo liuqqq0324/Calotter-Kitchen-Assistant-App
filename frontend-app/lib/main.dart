@@ -44,7 +44,12 @@ class SousChefApp extends StatelessWidget {
 class MainScaffold extends StatefulWidget {
   // 🔥 修复点 3: 构造函数接收 key 并传给 super
   // 因为我们要在运行时传入 key，所以这里最好也去掉 const (虽然留着也不一定会错，但去掉更稳妥)
-  const MainScaffold({super.key});
+  final int initialIndex;
+
+  const MainScaffold({
+    super.key,
+    this.initialIndex = 0,
+  });
 
   @override
   State<MainScaffold> createState() => MainScaffoldState();
@@ -52,8 +57,13 @@ class MainScaffold extends StatefulWidget {
 
 // 🔥 修复点 4: 确保类名是 MainScaffoldState (公有，没下划线)，方便外部引用
 class MainScaffoldState extends State<MainScaffold> {
-  // Start on Recipes tab (index 1) for quick testing; change back to 0 if needed.
-  int _selectedIndex = 0;
+  late int _selectedIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedIndex = widget.initialIndex;
+  }
 
   // ✅ 改为 Getter (每次调用都生成新的 Widget 列表)
   // 这样能确保当你 setState 时，InventoryPage 会被重新构建
