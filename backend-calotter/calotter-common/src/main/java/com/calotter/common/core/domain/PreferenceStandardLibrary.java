@@ -25,6 +25,12 @@ public class PreferenceStandardLibrary {
     /** 菜系偏好 Key (对应 User.preferences Map 的 Key) */
     public static final String PREF_KEY_CUISINE = "CUISINE";
     
+    /** 硬性饮食禁忌 Key (对应 User.dietaryStyles Map 的 Key) */
+    public static final String PREF_KEY_TABOO = "TABOO";
+    
+    /** 避免食材 Key (对应 User.dietaryStyles Map 的 Key) */
+    public static final String PREF_KEY_AVOID_INGREDIENT = "AVOID_INGREDIENT";
+    
     // ========== 菜系偏好预设值 (Cuisine Preferences) ==========
     /** 菜系偏好选项列表，与前端 recipe_filter_page.dart 保持一致 */
     public static final List<String> CUISINE_OPTIONS = Arrays.asList(
@@ -75,6 +81,22 @@ public class PreferenceStandardLibrary {
         "blender"
     );
     
+    // ========== 硬性饮食禁忌预设值 (Dietary Taboos) ==========
+    /** 硬性饮食禁忌选项列表（英文值） */
+    public static final List<String> TABOO_OPTIONS = Arrays.asList(
+        "low_sodium",      // 低钠
+        "low_sugar",       // 低糖
+        "low_fat",         // 低脂
+        "low_calorie",     // 低卡
+        "halal",           // 清真
+        "vegetarian",      // 素食
+        "vegan",           // 纯素
+        "gluten_free",     // 无麸质
+        "lactose_free",    // 无乳糖
+        "soy_free",        // 无大豆
+        "nut_free"         // 无坚果
+    );
+    
     // ========== 工具方法：验证 ==========
     
     /**
@@ -111,6 +133,15 @@ public class PreferenceStandardLibrary {
      */
     public static boolean isValidCooker(String cooker) {
         return cooker != null && COOKER_OPTIONS.contains(cooker);
+    }
+    
+    /**
+     * 验证硬性饮食禁忌值是否有效
+     * @param taboo 禁忌值
+     * @return 是否在标准库中
+     */
+    public static boolean isValidTaboo(String taboo) {
+        return taboo != null && TABOO_OPTIONS.contains(taboo);
     }
     
     

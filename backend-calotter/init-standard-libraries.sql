@@ -2,13 +2,27 @@
 -- 标准库数据初始化脚本
 -- Standard Libraries Data Initialization Script
 -- ============================================
--- 使用方法: docker exec -i calotter_postgres psql -U postgres -d calotter < init-standard-libraries.sql
--- Usage: docker exec -i calotter_postgres psql -U postgres -d calotter < init-standard-libraries.sql
-
+-- 
+-- 使用方法:
+--   docker exec -i calotter_postgres psql -U postgres -d calotter < init-standard-libraries.sql
+--   或直接使用 psql: psql -h localhost -U postgres -d calotter -f init-standard-libraries.sql
+-- 
+-- Usage:
+--   docker exec -i calotter_postgres psql -U postgres -d calotter < init-standard-libraries.sql
+--   or directly: psql -h localhost -U postgres -d calotter -f init-standard-libraries.sql
+--
+-- 注意：
+--   1. 此脚本会初始化标准库数据（过敏原、食材、调料、厨具）
+--   2. 使用 ON CONFLICT 确保幂等性，可重复执行
+--   3. 不会影响现有用户数据
+--
 -- ============================================
 -- 1. 清空现有标准库数据（可选，谨慎使用）
 -- Clear existing standard library data (optional, use with caution)
 -- ============================================
+-- 如果需要完全重置标准库，取消下面的注释：
+-- If you need to completely reset standard libraries, uncomment below:
+--
 -- DELETE FROM ingredient_allergens;
 -- DELETE FROM spice_allergens;
 -- DELETE FROM ref_standard_ingredients;
@@ -45,7 +59,7 @@ SELECT setval('ref_standard_allergens_id_seq', (SELECT MAX(id) FROM ref_standard
 -- ============================================
 INSERT INTO ref_standard_ingredients (id, name, category, calories, protein, fat, carb, fiber, average_gram_per_unit, shelf_life_pantry, shelf_life_fridge, shelf_life_freezer, default_location)
 VALUES 
-  -- Fruits (FRUIT) - ID: 1001-1020
+  -- Fruits (FRUIT) - ID: 1001-1024
   (1001, 'Apple', 'FRUIT', 52, 0.3, 0.2, 13.8, 2.4, 150, 30, 30, 0, 'FRIDGE'),
   (1002, 'Apricot', 'FRUIT', 48, 1.4, 0.4, 11.1, 2.0, 50, 5, 7, 0, 'FRIDGE'),
   (1003, 'Banana', 'FRUIT', 89, 1.1, 0.3, 22.8, 2.6, 120, 7, 7, 0, 'PANTRY'),
@@ -71,7 +85,7 @@ VALUES
   (1023, 'Strawberry', 'FRUIT', 32, 0.7, 0.3, 7.7, 2.0, 20, 3, 5, 0, 'FRIDGE'),
   (1024, 'Watermelon', 'FRUIT', 30, 0.6, 0.1, 7.6, 0.3, 2000, 7, 7, 0, 'FRIDGE'),
 
-  -- Vegetables (VEG) - ID: 1025-1055
+  -- Vegetables (VEG) - ID: 1025-1048
   (1025, 'Asparagus', 'VEG', 20, 2.2, 0.1, 3.9, 2.1, 100, 3, 5, 0, 'FRIDGE'),
   (1026, 'Beetroot', 'VEG', 43, 1.6, 0.2, 9.6, 2.8, 200, 14, 30, 0, 'FRIDGE'),
   (1027, 'Bok-Choy', 'VEG', 15, 1.5, 0.2, 2.7, 1.1, 200, 5, 7, 0, 'FRIDGE'),
@@ -97,7 +111,7 @@ VALUES
   (1047, 'Tomato', 'VEG', 18, 0.9, 0.2, 3.9, 1.2, 150, 7, 14, 0, 'FRIDGE'),
   (1048, 'Zucchini', 'VEG', 17, 1.2, 0.3, 3.1, 1.0, 200, 7, 7, 0, 'FRIDGE'),
 
-  -- Meat & Protein (MEAT) - ID: 1055-1070
+  -- Meat & Protein (MEAT) - ID: 1055-1074
   (1055, 'Beef-Lean', 'MEAT', 250, 26.0, 15.0, 0.0, 0.0, 100, 1, 3, 270, 'FRIDGE'),
   (1056, 'Beef-Medium', 'MEAT', 250, 26.0, 15.0, 0.0, 0.0, 100, 1, 3, 270, 'FRIDGE'),
   (1057, 'Beef-Medium-Lean', 'MEAT', 250, 26.0, 15.0, 0.0, 0.0, 100, 1, 3, 270, 'FRIDGE'),
@@ -127,7 +141,7 @@ VALUES
   (1079, 'Pasta', 'GRAIN', 131, 5.0, 1.1, 25.0, 1.8, 100, 365, 0, 0, 'PANTRY'),
   (1080, 'White-Rice', 'GRAIN', 130, 2.7, 0.3, 28.0, 0.4, 100, 365, 0, 0, 'PANTRY'),
 
-  -- Dairy & Others (DAIRY/OTHER) - ID: 1081-1085
+  -- Dairy & Others (DAIRY/OTHER) - ID: 1081-1083
   (1081, 'Butter', 'DAIRY', 717, 0.5, 81.1, 0.1, 0.0, 50, 30, 90, 0, 'FRIDGE'),
   (1082, 'Milk', 'DAIRY', 54, 3.0, 3.2, 3.4, 0.0, 250, 0, 7, 0, 'FRIDGE'),
   (1083, 'Sesame-Seeds', 'OTHER', 573, 17.7, 49.7, 23.4, 11.8, 10, 180, 0, 0, 'PANTRY')
@@ -144,6 +158,9 @@ ON CONFLICT (id) DO UPDATE SET
   shelf_life_fridge = EXCLUDED.shelf_life_fridge,
   shelf_life_freezer = EXCLUDED.shelf_life_freezer,
   default_location = EXCLUDED.default_location;
+
+-- 重置序列（如果需要）
+SELECT setval('ref_standard_ingredients_id_seq', (SELECT MAX(id) FROM ref_standard_ingredients));
 
 -- ============================================
 -- 4. 插入标准调料库（StandardSpice）
@@ -183,6 +200,9 @@ VALUES
   (3030, 'Sugar')
 ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name;
 
+-- 重置序列（如果需要）
+SELECT setval('ref_standard_spices_id_seq', (SELECT MAX(id) FROM ref_standard_spices));
+
 -- ============================================
 -- 5. 插入标准厨具库（StandardUtensil）
 -- Insert Standard Utensils
@@ -217,6 +237,9 @@ VALUES
 ON CONFLICT (id) DO UPDATE SET 
   name = EXCLUDED.name,
   icon_url = EXCLUDED.icon_url;
+
+-- 重置序列（如果需要）
+SELECT setval('ref_standard_utensils_id_seq', (SELECT MAX(id) FROM ref_standard_utensils));
 
 -- ============================================
 -- 6. 关联食材与过敏原（示例）
@@ -269,6 +292,45 @@ WHERE NOT EXISTS (
 );
 
 -- ============================================
+-- 8. 用户数据字段说明（参考）
+-- User Data Field Notes (Reference)
+-- ============================================
+-- 
+-- 注意：users 表的 dietary_styles 字段现在使用 Map 格式（JSONB）
+-- Note: The dietary_styles field in users table now uses Map format (JSONB)
+--
+-- 数据结构示例：
+-- Data structure example:
+-- {
+--   "TABOO": ["low_sodium", "low_sugar", "halal", "vegetarian"],
+--   "AVOID_INGREDIENT": ["cilantro", "carrot", "lamb"]
+-- }
+--
+-- TABOO 选项（来自 PreferenceStandardLibrary.TABOO_OPTIONS）：
+-- TABOO options (from PreferenceStandardLibrary.TABOO_OPTIONS):
+--   - low_sodium      (低钠)
+--   - low_sugar       (低糖)
+--   - low_fat         (低脂)
+--   - low_calorie     (低卡)
+--   - halal           (清真)
+--   - vegetarian      (素食)
+--   - vegan           (纯素)
+--   - gluten_free     (无麸质)
+--   - lactose_free    (无乳糖)
+--   - soy_free        (无大豆)
+--   - nut_free        (无坚果)
+--
+-- AVOID_INGREDIENT: 用户不喜欢吃的食材列表（英文名称）
+-- AVOID_INGREDIENT: List of ingredients user dislikes (English names)
+--
+-- 重要：所有值必须是英文，不能使用中文！
+-- Important: All values must be in English, not Chinese!
+--
+-- 如果需要迁移现有数据，请参考：
+-- If you need to migrate existing data, please refer to:
+--   backend-calotter/calotter-modules/calotter-user/migration/migrate-dietary-styles-to-map.sql
+
+-- ============================================
 -- 完成提示
 -- Completion Message
 -- ============================================
@@ -283,4 +345,3 @@ BEGIN
   RAISE NOTICE 'Standard Allergens: %', (SELECT COUNT(*) FROM ref_standard_allergens);
   RAISE NOTICE '========================================';
 END $$;
-

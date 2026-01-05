@@ -105,7 +105,16 @@ public class AiMenuService {
                 tastePreferences.addAll(tastes);
             }
             
-            // TODO: avoidIngredients 应该从 User.taboos 或其他来源获取，而不是从 preferences
+            // 收集硬性饮食禁忌和避免食材（从 dietaryStyles Map）
+            if (member.getDietaryStyles() != null) {
+                // 提取硬性饮食禁忌（TABOO）
+                List<String> taboos = member.getDietaryStyles().getOrDefault(PreferenceStandardLibrary.PREF_KEY_TABOO, new ArrayList<>());
+                avoidIngredients.addAll(taboos);
+                
+                // 提取不喜欢吃的食材（AVOID_INGREDIENT）
+                List<String> avoidIngs = member.getDietaryStyles().getOrDefault(PreferenceStandardLibrary.PREF_KEY_AVOID_INGREDIENT, new ArrayList<>());
+                avoidIngredients.addAll(avoidIngs);
+            }
             
             // 计算卡路里目标（使用User而不是FamilyMember）
             HealthGoal goal = healthGoalRepository.findByUserAndStatus(member, 1); // 1=Active

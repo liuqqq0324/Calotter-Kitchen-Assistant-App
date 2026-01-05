@@ -16,7 +16,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
   late TextEditingController usernameController;
   late TextEditingController emailController;
   late TextEditingController genderController;
-  late TextEditingController ageController;
+  DateTime? _selectedBirthdate; // Changed from ageController to birthdate
   late TextEditingController heightController;
   late TextEditingController weightController;
 
@@ -49,7 +49,6 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
       TextEditingController();
 
   bool _isLoading = true;
-  Map<String, dynamic>? _userData;
 
   @override
   void initState() {
@@ -66,7 +65,6 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
     final result = await UserService.getUserBriefInfo();
     if (result['success'] == true && mounted) {
       setState(() {
-        _userData = result['data'];
         // Initialize controllers from API data
         final data = result['data'];
         usernameController = TextEditingController(
@@ -76,9 +74,17 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
         genderController = TextEditingController(
           text: data['profile']?['gender'] ?? '',
         );
-        ageController = TextEditingController(
-          text: data['profile']?['age']?.toString() ?? '',
-        );
+        // Parse birthdate from API response
+        final birthdateStr = data['profile']?['birthdate'];
+        if (birthdateStr != null && birthdateStr.toString().isNotEmpty) {
+          try {
+            _selectedBirthdate = DateTime.parse(birthdateStr.toString());
+          } catch (e) {
+            _selectedBirthdate = null;
+          }
+        } else {
+          _selectedBirthdate = null;
+        }
         heightController = TextEditingController(
           text: data['profile']?['height']?.toString() ?? '',
         );
@@ -93,7 +99,16 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
         usernameController = TextEditingController(text: user.username);
         emailController = TextEditingController(text: user.email);
         genderController = TextEditingController(text: user.gender);
-        ageController = TextEditingController(text: user.age);
+        // Parse birthdate from user.age (if it's a date string) or set to null
+        if (user.age.isNotEmpty) {
+          try {
+            _selectedBirthdate = DateTime.parse(user.age);
+          } catch (e) {
+            _selectedBirthdate = null;
+          }
+        } else {
+          _selectedBirthdate = null;
+        }
         heightController = TextEditingController(text: user.height);
         weightController = TextEditingController(text: user.weight);
       }
@@ -230,7 +245,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
     usernameController.dispose();
     emailController.dispose();
     genderController.dispose();
-    ageController.dispose();
+    // ageController removed - using _selectedBirthdate instead
     heightController.dispose();
     weightController.dispose();
     preferenceInputController.dispose();
@@ -323,7 +338,9 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
           TextButton(
             onPressed: () async {
               // Save to backend API
-              final age = int.tryParse(ageController.text);
+              final birthdate = _selectedBirthdate != null 
+                  ? _selectedBirthdate!.toIso8601String().split('T')[0] // YYYY-MM-DD format
+                  : null;
               final gender = genderController.text.trim();
               final height = int.tryParse(
                 heightController.text.replaceAll(' cm', '').trim(),
@@ -334,7 +351,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
 
               // Save user basic info
               final result = await UserService.updateUserInfo(
-                age: age,
+                birthdate: birthdate,
                 gender: gender.isNotEmpty ? gender : null,
                 height: height,
                 weight: weight,
@@ -342,7 +359,8 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
 
               if (result['success'] == true) {
                 // Also update local static data for compatibility
-                kCurrentUser.age = ageController.text;
+                // Store birthdate as ISO string in age field (for backward compatibility)
+                kCurrentUser.age = birthdate ?? '';
                 kCurrentUser.gender = genderController.text;
                 kCurrentUser.height = heightController.text;
                 kCurrentUser.weight = weightController.text;
@@ -475,14 +493,44 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
             const SizedBox(height: 16),
             Row(
               children: [
-                const SizedBox(width: 100, child: Text('AGE')),
+                const SizedBox(width: 100, child: Text('Birthdate')),
                 Expanded(
-                  child: TextField(
-                    controller: ageController,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
+                  child: InkWell(
+                    onTap: () async {
+                      final DateTime? picked = await showDatePicker(
+                        context: context,
+                        initialDate: _selectedBirthdate ?? DateTime.now().subtract(const Duration(days: 365 * 25)), // Default to 25 years ago
+                        firstDate: DateTime(1900),
+                        lastDate: DateTime.now(),
+                        helpText: 'Select birthdate',
+                      );
+                      if (picked != null && picked != _selectedBirthdate) {
+                        setState(() {
+                          _selectedBirthdate = picked;
+                        });
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            _selectedBirthdate != null
+                                ? '${_selectedBirthdate!.year}-${_selectedBirthdate!.month.toString().padLeft(2, '0')}-${_selectedBirthdate!.day.toString().padLeft(2, '0')}'
+                                : 'Select birthdate',
+                            style: TextStyle(
+                              color: _selectedBirthdate != null ? Colors.black : Colors.grey,
+                            ),
+                          ),
+                          const Icon(Icons.calendar_today, size: 20),
+                        ],
+                      ),
                     ),
-                    keyboardType: TextInputType.number,
                   ),
                 ),
               ],

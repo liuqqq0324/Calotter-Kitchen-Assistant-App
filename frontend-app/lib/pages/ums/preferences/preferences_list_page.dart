@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:personal_sous_chef/theme/fallback_google_fonts.dart';
 import '../../../services/user_service.dart';
+import '../../../services/standard_library_service.dart';
 
 class PreferencesListPage extends StatefulWidget {
   const PreferencesListPage({super.key});
@@ -17,30 +18,11 @@ class _PreferencesListPageState extends State<PreferencesListPage> {
   Set<String> _selectedTastes = {}; // 口味偏好
   Set<String> _selectedCuisines = {}; // 菜系偏好
 
-  // 标准库选项（与后端 PreferenceStandardLibrary 保持一致）
-  static const List<String> _cuisineOptions = [
-    "chinese",
-    "japanese",
-    "korean",
-    "south_east_asian",
-    "indian",
-    "western",
-    "italian",
-    "mediterranean",
-    "mexican",
-    "middle_eastern",
-    "fusion",
-  ];
-
-  static const List<String> _tasteOptions = [
-    "light",
-    "rich",
-    "spicy",
-    "sweet",
-    "sour",
-    "salty",
-    "umami",
-  ];
+  // 标准库选项（从 StandardLibraryService 获取，与后端 PreferenceStandardLibrary 保持一致）
+  List<String> get _cuisineOptions => 
+      StandardLibraryService.getStandardPreferences()['cuisines']!;
+  List<String> get _tasteOptions => 
+      StandardLibraryService.getStandardPreferences()['tastes']!;
 
   @override
   void initState() {

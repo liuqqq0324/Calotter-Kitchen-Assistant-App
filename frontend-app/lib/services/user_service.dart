@@ -42,7 +42,7 @@ class UserService {
   // Update user info
   static Future<Map<String, dynamic>> updateUserInfo({
     String? userId,
-    int? age,
+    String? birthdate, // Changed from age to birthdate (ISO format: YYYY-MM-DD)
     String? gender,
     int? height,
     int? weight,
@@ -52,17 +52,28 @@ class UserService {
       final url = Uri.parse(
         '${ApiConfig.baseUrl}/api/user?id=$userIdParam',
       );
+      
+      // Build profile map, only include non-null values
+      final Map<String, dynamic> profile = {};
+      if (birthdate != null && birthdate.isNotEmpty) {
+        profile['birthdate'] = birthdate;
+      }
+      if (gender != null && gender.isNotEmpty) {
+        profile['gender'] = gender;
+      }
+      if (height != null) {
+        profile['height'] = height;
+      }
+      if (weight != null) {
+        profile['weight'] = weight;
+      }
+      
       final response = await http.put(
         url,
         headers: await _getHeaders(),
         body: jsonEncode({
           'userId': int.parse(userIdParam ?? '0'),
-          'profile': {
-            'age': age,
-            'gender': gender,
-            'height': height,
-            'weight': weight,
-          },
+          'profile': profile,
         }),
       );
 

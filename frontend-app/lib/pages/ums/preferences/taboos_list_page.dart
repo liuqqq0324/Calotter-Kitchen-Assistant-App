@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:personal_sous_chef/theme/fallback_google_fonts.dart';
-// Modified by Chase: Import user static data and user service / 由 Chase 修改：导入用户静态数据和服务
-import '../../../data/user_static_data.dart';
 import '../../../services/user_service.dart';
+import '../../../services/standard_library_service.dart';
 
 class TaboosListPage extends StatefulWidget {
   const TaboosListPage({super.key});
@@ -12,9 +11,13 @@ class TaboosListPage extends StatefulWidget {
 }
 
 class _TaboosListPageState extends State<TaboosListPage> {
-  final TextEditingController _textController = TextEditingController();
   bool _isLoading = true;
-  List<String> _taboos = [];
+  bool _isEditing = false; // 编辑模式标志
+  
+  Set<String> _selectedTaboos = {}; // 使用 Set 存储选中的禁忌
+
+  // 标准 TABOO 选项（从 StandardLibraryService 获取，与后端 PreferenceStandardLibrary.TABOO_OPTIONS 保持一致）
+  List<Map<String, String>> get _tabooOptions => StandardLibraryService.getStandardTaboos();
 
   @override
   void initState() {
@@ -30,16 +33,13 @@ class _TaboosListPageState extends State<TaboosListPage> {
     final result = await UserService.getUserTaboos();
     if (result['success'] == true && mounted) {
       setState(() {
-        _taboos = List<String>.from(result['data']['taboos'] ?? []);
-        // Also update local static data for compatibility
-        kCurrentUser.taboos = List.from(_taboos);
+        _selectedTaboos = Set<String>.from(result['data']['taboos'] ?? []);
         _isLoading = false;
       });
     } else {
-      // Fallback to static data if API fails
       if (mounted) {
         setState(() {
-          _taboos = List.from(kCurrentUser.taboos);
+          _selectedTaboos = {};
           _isLoading = false;
         });
       }
@@ -47,24 +47,27 @@ class _TaboosListPageState extends State<TaboosListPage> {
   }
 
   Future<void> _saveTaboos() async {
-    final result = await UserService.updateUserTaboos(taboos: _taboos);
+    final result = await UserService.updateUserTaboos(
+      taboos: _selectedTaboos.toList(),
+    );
     if (result['success'] == true) {
-      // Also update local static data for compatibility
-      kCurrentUser.taboos = List.from(_taboos);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Taboos saved', style: GoogleFonts.kalam()),
+            content: Text('Dietary restrictions saved', style: GoogleFonts.kalam()),
             backgroundColor: Colors.green.shade300,
           ),
         );
+        setState(() {
+          _isEditing = false;
+        });
       }
     } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              result['error'] ?? 'Failed to save taboos',
+              result['error'] ?? 'Failed to save dietary restrictions',
               style: GoogleFonts.kalam(),
             ),
             backgroundColor: Colors.red.shade300,
@@ -74,110 +77,85 @@ class _TaboosListPageState extends State<TaboosListPage> {
     }
   }
 
-  void _addTaboo() {
-    final text = _textController.text.trim();
-    if (text.isNotEmpty) {
-      setState(() {
-        _taboos.add(text);
-        kCurrentUser.taboos = List.from(_taboos);
-        _textController.clear();
-      });
-      _saveTaboos();
-    }
-  }
-
-  void _removeTaboo(int index) {
-    setState(() {
-      _taboos.removeAt(index);
-      kCurrentUser.taboos = List.from(_taboos);
-    });
-    _saveTaboos();
-  }
-
-  @override
-  void dispose() {
-    _textController.dispose();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Taboos')),
+        appBar: AppBar(title: const Text('Dietary Restrictions')),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Taboos')),
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: _taboos.length,
-              itemBuilder: (context, index) {
-                return Dismissible(
-                  key: Key('${_taboos[index]}-$index'),
-                  direction: DismissDirection.endToStart,
-                  background: Container(
-                    alignment: Alignment.centerRight,
-                    padding: const EdgeInsets.only(right: 20),
-                    color: Colors.red,
-                    child: const Icon(Icons.delete, color: Colors.white),
-                  ),
-                  onDismissed: (direction) {
-                    _removeTaboo(index);
-                  },
-                  child: Card(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    child: ListTile(title: Text(_taboos[index])),
-                  ),
-                );
+      appBar: AppBar(
+        title: const Text('Dietary Restrictions'),
+        actions: [
+          if (!_isEditing)
+            IconButton(
+              icon: const Icon(Icons.edit),
+              onPressed: () {
+                setState(() {
+                  _isEditing = true;
+                });
               },
+            )
+          else
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  _isEditing = false;
+                });
+                _loadTaboos(); // 取消编辑，重新加载
+              },
+              child: const Text('Cancel'),
             ),
-          ),
-          // 底部输入框
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 4,
-                  offset: const Offset(0, -2),
-                ),
-              ],
+          if (_isEditing)
+            TextButton(
+              onPressed: _saveTaboos,
+              child: const Text('Save'),
             ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _textController,
-                    decoration: const InputDecoration(
-                      hintText: 'Add taboo',
-                      border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                    ),
-                    onSubmitted: (_) => _addTaboo(),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                IconButton(
-                  onPressed: _addTaboo,
-                  icon: const Icon(Icons.add_circle),
-                  iconSize: 40,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-              ],
-            ),
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          _buildSectionTitle('Dietary Restrictions'),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _tabooOptions.map((option) {
+              final value = option['value']!;
+              final label = option['label']!;
+              final selected = _selectedTaboos.contains(value);
+              return FilterChip(
+                label: Text(label),
+                selected: selected,
+                onSelected: _isEditing
+                    ? (val) {
+                        setState(() {
+                          if (val) {
+                            _selectedTaboos.add(value);
+                          } else {
+                            _selectedTaboos.remove(value);
+                          }
+                        });
+                      }
+                    : null,
+              );
+            }).toList(),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String text) {
+    return Text(
+      text,
+      style: const TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w700,
       ),
     );
   }

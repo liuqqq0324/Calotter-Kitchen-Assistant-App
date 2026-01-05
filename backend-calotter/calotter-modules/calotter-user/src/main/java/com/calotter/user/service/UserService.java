@@ -147,6 +147,23 @@ public class UserService {
         @SuppressWarnings("unchecked")
         Map<String, Object> profile = (Map<String, Object>) settings.getOrDefault("profile", new HashMap<>());
         
+        // 同步 User 实体字段到 profile（优先使用实体字段）
+        if (user.getBirthdate() != null) {
+            profile.put("birthdate", user.getBirthdate().toString()); // ISO格式: YYYY-MM-DD
+            // 计算年龄
+            int age = calculateAge(user.getBirthdate());
+            profile.put("age", age);
+        }
+        if (user.getGender() != null) {
+            profile.put("gender", user.getGender().toString());
+        }
+        if (user.getCurrentHeight() != null) {
+            profile.put("height", user.getCurrentHeight());
+        }
+        if (user.getCurrentWeight() != null) {
+            profile.put("weight", user.getCurrentWeight().intValue());
+        }
+        
         return UserResponse.builder()
                 .userId(user.getId())
                 .userName(user.getUsername())
@@ -169,17 +186,91 @@ public class UserService {
             settings = new HashMap<>();
         }
         
-        // 更新 profile 信息
+        // 更新 profile 信息并同步到 User 实体字段
         if (request.getProfile() != null) {
-            settings.put("profile", request.getProfile());
+            Map<String, Object> profile = request.getProfile();
+            
+            // 同步 birthdate 到 User.birthdate
+            Object birthdateObj = profile.get("birthdate");
+            if (birthdateObj != null && !birthdateObj.toString().trim().isEmpty()) {
+                try {
+                    java.time.LocalDate birthdate = java.time.LocalDate.parse(birthdateObj.toString());
+                    user.setBirthdate(birthdate);
+                    // 计算并更新 age
+                    int age = calculateAge(birthdate);
+                    profile.put("age", age);
+                } catch (Exception e) {
+                    // 如果解析失败，忽略（不更新 birthdate）
+                }
+            } else {
+                // 如果 birthdate 为空，清空 User.birthdate
+                user.setBirthdate(null);
+            }
+            
+            // 同步 gender 到 User.gender
+            Object genderObj = profile.get("gender");
+            if (genderObj != null && !genderObj.toString().trim().isEmpty()) {
+                try {
+                    Integer gender = parseGender(genderObj.toString());
+                    user.setGender(gender);
+                } catch (Exception e) {
+                    // 如果解析失败，忽略
+                }
+            } else {
+                user.setGender(null);
+            }
+            
+            // 同步 height 到 User.currentHeight
+            Object heightObj = profile.get("height");
+            if (heightObj != null) {
+                try {
+                    Integer height = Integer.parseInt(heightObj.toString());
+                    user.setCurrentHeight(height);
+                } catch (NumberFormatException e) {
+                    // 如果解析失败，忽略
+                }
+            } else {
+                user.setCurrentHeight(null);
+            }
+            
+            // 同步 weight 到 User.currentWeight
+            Object weightObj = profile.get("weight");
+            if (weightObj != null) {
+                try {
+                    java.math.BigDecimal weight = new java.math.BigDecimal(weightObj.toString());
+                    user.setCurrentWeight(weight);
+                } catch (NumberFormatException e) {
+                    // 如果解析失败，忽略
+                }
+            } else {
+                user.setCurrentWeight(null);
+            }
+            
+            // 保存 profile 到 settings（用于向后兼容）
+            settings.put("profile", profile);
         }
         
         user.setSettings(settings);
         user = userRepository.save(user);
         
-        // 返回更新后的用户信息
+        // 返回更新后的用户信息（从实体字段构建）
         @SuppressWarnings("unchecked")
         Map<String, Object> profile = (Map<String, Object>) user.getSettings().getOrDefault("profile", new HashMap<>());
+        
+        // 同步实体字段到 profile（确保返回最新数据）
+        if (user.getBirthdate() != null) {
+            profile.put("birthdate", user.getBirthdate().toString());
+            profile.put("age", calculateAge(user.getBirthdate()));
+        }
+        if (user.getGender() != null) {
+            profile.put("gender", user.getGender().toString());
+        }
+        if (user.getCurrentHeight() != null) {
+            profile.put("height", user.getCurrentHeight());
+        }
+        if (user.getCurrentWeight() != null) {
+            profile.put("weight", user.getCurrentWeight().intValue());
+        }
         
         return UserResponse.builder()
                 .userId(user.getId())
@@ -188,6 +279,34 @@ public class UserService {
                 .role(user.getRole())
                 .profile(profile)
                 .build();
+    }
+    
+    /**
+     * 计算年龄（基于出生日期）
+     */
+    private int calculateAge(java.time.LocalDate birthdate) {
+        if (birthdate == null) {
+            return 0;
+        }
+        return (int) java.time.temporal.ChronoUnit.YEARS.between(birthdate, java.time.LocalDate.now());
+    }
+    
+    /**
+     * 解析性别字符串为 Integer
+     * 0: 未知, 1: 男, 2: 女
+     */
+    private Integer parseGender(String genderStr) {
+        if (genderStr == null || genderStr.trim().isEmpty()) {
+            return null;
+        }
+        String lower = genderStr.trim().toLowerCase();
+        if (lower.equals("male") || lower.equals("男") || lower.equals("1") || lower.equals("m")) {
+            return 1;
+        } else if (lower.equals("female") || lower.equals("女") || lower.equals("2") || lower.equals("f")) {
+            return 2;
+        } else {
+            return 0; // 未知
+        }
     }
     
     /**
@@ -278,20 +397,22 @@ public class UserService {
     
     /**
      * 获取用户禁忌
+     * 从 dietaryStyles Map 的 TABOO 键中获取
      */
     public TaboosResponse getUserTaboos(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("用户不存在"));
         
-        Map<String, Object> settings = user.getSettings();
-        if (settings == null) {
-            return TaboosResponse.builder()
-                    .taboos(new ArrayList<>())
-                    .build();
-        }
+        // 从 dietaryStyles Map 中获取 TABOO 列表
+        Map<String, List<String>> dietaryStyles = user.getDietaryStyles();
+        List<String> taboos = new ArrayList<>();
         
-        @SuppressWarnings("unchecked")
-        List<String> taboos = (List<String>) settings.getOrDefault("taboos", new ArrayList<>());
+        if (dietaryStyles != null && dietaryStyles.containsKey(PreferenceStandardLibrary.PREF_KEY_TABOO)) {
+            taboos = dietaryStyles.get(PreferenceStandardLibrary.PREF_KEY_TABOO);
+            if (taboos == null) {
+                taboos = new ArrayList<>();
+            }
+        }
         
         return TaboosResponse.builder()
                 .taboos(taboos)
@@ -300,26 +421,45 @@ public class UserService {
     
     /**
      * 更新用户禁忌
+     * 更新到 dietaryStyles Map 的 TABOO 键中
      */
     @Transactional
     public TaboosResponse updateUserTaboos(Long userId, TaboosRequest request) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("用户不存在"));
         
-        Map<String, Object> settings = user.getSettings();
-        if (settings == null) {
-            settings = new HashMap<>();
+        // 获取或创建 dietaryStyles Map
+        Map<String, List<String>> dietaryStyles = user.getDietaryStyles();
+        if (dietaryStyles == null) {
+            dietaryStyles = DietaryStylesValidator.createEmptyMap();
         }
         
-        settings.put("taboos", request.getTaboos() != null ? request.getTaboos() : new ArrayList<>());
-        user.setSettings(settings);
+        // 验证并清理 taboos（确保值都是英文）
+        List<String> taboos = request.getTaboos() != null ? request.getTaboos() : new ArrayList<>();
+        List<String> cleanedTaboos = new ArrayList<>();
+        for (String taboo : taboos) {
+            if (taboo != null && !taboo.trim().isEmpty()) {
+                // 检查是否包含中文字符
+                if (!taboo.matches(".*[\\u4e00-\\u9fa5].*")) {
+                    cleanedTaboos.add(taboo.trim().toLowerCase());
+                }
+            }
+        }
+        
+        // 更新 dietaryStyles Map
+        dietaryStyles.put(PreferenceStandardLibrary.PREF_KEY_TABOO, cleanedTaboos);
+        user.setDietaryStyles(dietaryStyles);
+        
+        // 保存用户（会触发 @PreUpdate 钩子进行最终验证）
         user = userRepository.save(user);
         
-        @SuppressWarnings("unchecked")
-        List<String> taboos = (List<String>) user.getSettings().get("taboos");
+        // 返回更新后的 taboos
+        List<String> result = user.getDietaryStyles() != null 
+                ? user.getDietaryStyles().getOrDefault(PreferenceStandardLibrary.PREF_KEY_TABOO, new ArrayList<>())
+                : new ArrayList<>();
         
         return TaboosResponse.builder()
-                .taboos(taboos != null ? taboos : new ArrayList<>())
+                .taboos(result)
                 .build();
     }
     

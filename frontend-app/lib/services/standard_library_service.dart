@@ -19,8 +19,17 @@ class StandardLibraryService {
   static const Duration _cacheExpiry = Duration(hours: 24);
 
   /// 登录时预加载（后台异步，不阻塞登录流程）
+  /// 预加载所有需要从后端获取的标准库：
+  /// - 标准食材库（ingredients）
+  /// - 标准过敏原库（allergens）
+  /// - 标准厨具库（utensils）
+  /// - 标准调料库（spices）
+  /// 
+  /// 注意：以下标准库是硬编码的，不需要预加载：
+  /// - 标准禁忌库（taboos）- 硬编码在 PreferenceStandardLibrary.TABOO_OPTIONS
+  /// - 标准偏好库（preferences）- 硬编码在 preferences_list_page.dart
   static Future<void> preloadOnLogin() async {
-    // 不等待完成，后台静默加载所有标准库
+    // 不等待完成，后台静默加载所有需要从后端获取的标准库
     _loadAndCacheIngredients();
     _loadAndCacheAllergens();
     _loadAndCacheUtensils();
@@ -73,6 +82,25 @@ class StandardLibraryService {
 
     // 2. 缓存过期或不存在，请求最新数据
     return await _loadAndCacheSpices();
+  }
+
+  /// 获取标准禁忌库（Taboos）
+  /// 注意：这是硬编码的常量，与后端 PreferenceStandardLibrary.TABOO_OPTIONS 保持一致
+  /// 不需要从后端获取，也不使用缓存
+  static List<Map<String, String>> getStandardTaboos() {
+    return const [
+      {'value': 'low_sodium', 'label': 'Low Sodium'},
+      {'value': 'low_sugar', 'label': 'Low Sugar'},
+      {'value': 'low_fat', 'label': 'Low Fat'},
+      {'value': 'low_calorie', 'label': 'Low Calorie'},
+      {'value': 'halal', 'label': 'Halal'},
+      {'value': 'vegetarian', 'label': 'Vegetarian'},
+      {'value': 'vegan', 'label': 'Vegan'},
+      {'value': 'gluten_free', 'label': 'Gluten Free'},
+      {'value': 'lactose_free', 'label': 'Lactose Free'},
+      {'value': 'soy_free', 'label': 'Soy Free'},
+      {'value': 'nut_free', 'label': 'Nut Free'},
+    ];
   }
 
   /// 检查缓存是否过期
@@ -275,6 +303,36 @@ class StandardLibraryService {
       }
       rethrow;
     }
+  }
+
+  /// 获取标准偏好选项（Preferences）
+  /// 注意：这是硬编码的常量，与后端 PreferenceStandardLibrary 保持一致
+  /// 不需要从后端获取，也不使用缓存
+  static Map<String, List<String>> getStandardPreferences() {
+    return {
+      'cuisines': const [
+        "chinese",
+        "japanese",
+        "korean",
+        "south_east_asian",
+        "indian",
+        "western",
+        "italian",
+        "mediterranean",
+        "mexican",
+        "middle_eastern",
+        "fusion",
+      ],
+      'tastes': const [
+        "light",
+        "rich",
+        "spicy",
+        "sweet",
+        "sour",
+        "salty",
+        "umami",
+      ],
+    };
   }
 
   /// 清除缓存（用于手动刷新）

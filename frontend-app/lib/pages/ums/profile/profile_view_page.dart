@@ -126,12 +126,33 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
         ? UserProfile(
             username: _userData!['userName'] ?? 'Unknown',
             email: _userData!['email'] ?? '',
-            age: _userData!['profile']?['age']?.toString() ?? '',
+            age: _userData!['profile']?['birthdate']?.toString() ?? 
+                 _userData!['profile']?['age']?.toString() ?? '', // Fallback to age if birthdate not available
             gender: _userData!['profile']?['gender'] ?? '',
             height: _userData!['profile']?['height']?.toString() ?? '',
             weight: _userData!['profile']?['weight']?.toString() ?? '',
           )
         : kCurrentUser;
+    
+    // Calculate age from birthdate if available
+    String displayAge = '';
+    String displayBirthdate = '';
+    if (user.age.isNotEmpty) {
+      try {
+        final birthdate = DateTime.parse(user.age);
+        final now = DateTime.now();
+        final age = now.year - birthdate.year;
+        final monthDiff = now.month - birthdate.month;
+        final dayDiff = now.day - birthdate.day;
+        final actualAge = (monthDiff < 0 || (monthDiff == 0 && dayDiff < 0)) ? age - 1 : age;
+        displayAge = actualAge.toString();
+        displayBirthdate = '${birthdate.year}-${birthdate.month.toString().padLeft(2, '0')}-${birthdate.day.toString().padLeft(2, '0')}';
+      } catch (e) {
+        // If parsing fails, treat as age number
+        displayAge = user.age;
+        displayBirthdate = '';
+      }
+    }
 
     if (_isLoading) {
       return Scaffold(
@@ -242,7 +263,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'AGE',
+                    'Birthdate',
                     style: GoogleFonts.kalam(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
@@ -250,7 +271,23 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Text(user.age, style: GoogleFonts.kalam(fontSize: 16)),
+                  Text(
+                    displayBirthdate.isNotEmpty ? displayBirthdate : 'Not set',
+                    style: GoogleFonts.kalam(fontSize: 16),
+                  ),
+                  if (displayAge.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      'Age',
+                      style: GoogleFonts.kalam(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey[700],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text('$displayAge years old', style: GoogleFonts.kalam(fontSize: 16)),
+                  ],
                   const SizedBox(height: 20),
                   Text(
                     'Gender',

@@ -96,12 +96,14 @@ public class CookingContextBuilderService {
 
         // --- 1. 处理家人 (Users) ---
         for (User u : users) {
-            // 1.1 收集硬性限制 (过敏 + 饮食风格)
+            // 1.1 收集硬性限制 (过敏 + 饮食风格中的 taboos)
             if (u.getAllergies() != null) {
                 u.getAllergies().forEach(a -> globalAvoidance.add(a.getName()));
             }
+            // 从 dietaryStyles Map 中提取硬性饮食禁忌（TABOO）
             if (u.getDietaryStyles() != null) {
-                globalAvoidance.addAll(u.getDietaryStyles());
+                List<String> taboos = u.getDietaryStyles().getOrDefault(PreferenceStandardLibrary.PREF_KEY_TABOO, new ArrayList<>());
+                globalAvoidance.addAll(taboos);
             }
 
             // 1.2 收集软性偏好并计数
@@ -110,8 +112,12 @@ public class CookingContextBuilderService {
                 countPreferences(u.getPreferences(), PreferenceStandardLibrary.PREF_KEY_CUISINE, cuisineCounter);
             }
 
-            // 1.3 提取个人忌口 (用于 Roster) - 从 taboos 获取（如果有的话）
-            List<String> personalDislikes = new ArrayList<>(); // TODO: 从 User.taboos 或其他来源获取
+            // 1.3 提取个人忌口 (用于 Roster) - 从 dietaryStyles.AVOID_INGREDIENT 获取
+            List<String> personalDislikes = new ArrayList<>();
+            if (u.getDietaryStyles() != null) {
+                List<String> avoidIngs = u.getDietaryStyles().getOrDefault(PreferenceStandardLibrary.PREF_KEY_AVOID_INGREDIENT, new ArrayList<>());
+                personalDislikes.addAll(avoidIngs);
+            }
 
             // 1.4 计算单人营养目标
             HealthGoal g = healthGoalRepo.findByUserAndStatus(u, 1); // 1=Active

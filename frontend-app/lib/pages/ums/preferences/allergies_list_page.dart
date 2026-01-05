@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:personal_sous_chef/theme/fallback_google_fonts.dart';
-// Modified by Chase: Import user static data and user service / 由 Chase 修改：导入用户静态数据和服务
-import '../../../data/user_static_data.dart';
 import '../../../services/user_service.dart';
 import '../../../services/standard_library_service.dart';
 
@@ -13,12 +11,11 @@ class AllergiesListPage extends StatefulWidget {
 }
 
 class _AllergiesListPageState extends State<AllergiesListPage> {
-  final TextEditingController _textController = TextEditingController();
   bool _isLoading = true;
-  List<String> _allergies = [];
+  bool _isEditing = false; // 编辑模式标志
   
-  // ✅ 标准过敏源库数据（包含 id 和 name）
-  List<Map<String, dynamic>> _standardAllergens = [];
+  Set<String> _selectedAllergies = {}; // 使用 Set 存储选中的过敏原
+  List<Map<String, dynamic>> _standardAllergens = []; // 标准库
   bool _isLoadingAllergens = true;
 
   @override
@@ -36,54 +33,22 @@ class _AllergiesListPageState extends State<AllergiesListPage> {
     final result = await UserService.getUserAllergies();
     if (result['success'] == true && mounted) {
       setState(() {
-        _allergies = List<String>.from(result['data']['allergies'] ?? []);
-        // Also update local static data for compatibility
-        kCurrentUser.allergies = List.from(_allergies);
+        _selectedAllergies = Set<String>.from(result['data']['allergies'] ?? []);
         _isLoading = false;
       });
     } else {
-      // Fallback to static data if API fails
       if (mounted) {
         setState(() {
-          _allergies = List.from(kCurrentUser.allergies);
+          _selectedAllergies = {};
           _isLoading = false;
         });
       }
     }
   }
 
-  Future<void> _saveAllergies() async {
-    final result = await UserService.updateUserAllergies(allergies: _allergies);
-    if (result['success'] == true) {
-      // Also update local static data for compatibility
-      kCurrentUser.allergies = List.from(_allergies);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Allergies saved', style: GoogleFonts.kalam()),
-            backgroundColor: Colors.green.shade300,
-          ),
-        );
-      }
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              result['error'] ?? 'Failed to save allergies',
-              style: GoogleFonts.kalam(),
-            ),
-            backgroundColor: Colors.red.shade300,
-          ),
-        );
-      }
-    }
-  }
-
-  /// 加载标准过敏源库（使用缓存服务）
   Future<void> _loadStandardAllergens() async {
     try {
-      // ✅ 使用 StandardLibraryService，优先使用缓存
+      // ✅ 使用 StandardLibraryService，优先使用缓存（登录时已预加载）
       final allergens = await StandardLibraryService.getStandardAllergens();
       if (mounted) {
         setState(() {
@@ -106,71 +71,40 @@ class _AllergiesListPageState extends State<AllergiesListPage> {
     }
   }
 
-  void _addAllergy() {
-    final text = _textController.text.trim();
-    if (text.isEmpty) return;
-    
-    // ✅ 检查是否在标准过敏源库中
-    final matched = _standardAllergens.firstWhere(
-      (allergen) => allergen['name'] == text,
-      orElse: () => {},
+  Future<void> _saveAllergies() async {
+    final result = await UserService.updateUserAllergies(
+      allergies: _selectedAllergies.toList(),
     );
-    
-    if (matched.isEmpty) {
-      // 不在标准库中，提示用户
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Please select from standard allergen library',
-            style: GoogleFonts.kalam(),
+    if (result['success'] == true) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Allergies saved', style: GoogleFonts.kalam()),
+            backgroundColor: Colors.green.shade300,
           ),
-          backgroundColor: Colors.orange.shade300,
-          duration: const Duration(seconds: 2),
-        ),
-      );
-      return;
-    }
-    
-    // 检查是否已添加
-    if (_allergies.contains(text)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Allergy already added',
-            style: GoogleFonts.kalam(),
+        );
+        setState(() {
+          _isEditing = false;
+        });
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              result['error'] ?? 'Failed to save allergies',
+              style: GoogleFonts.kalam(),
+            ),
+            backgroundColor: Colors.red.shade300,
           ),
-          backgroundColor: Colors.orange.shade300,
-          duration: const Duration(seconds: 2),
-        ),
-      );
-      return;
+        );
+      }
     }
-    
-    setState(() {
-      _allergies.add(text);
-      kCurrentUser.allergies = List.from(_allergies);
-      _textController.clear();
-    });
-    _saveAllergies();
-  }
-
-  void _removeAllergy(int index) {
-    setState(() {
-      _allergies.removeAt(index);
-      kCurrentUser.allergies = List.from(_allergies);
-    });
-    _saveAllergies();
-  }
-
-  @override
-  void dispose() {
-    _textController.dispose();
-    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
+    if (_isLoading || _isLoadingAllergens) {
       return Scaffold(
         appBar: AppBar(title: const Text('Allergies')),
         body: const Center(child: CircularProgressIndicator()),
@@ -178,106 +112,74 @@ class _AllergiesListPageState extends State<AllergiesListPage> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Allergies')),
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: _allergies.length,
-              itemBuilder: (context, index) {
-                return Dismissible(
-                  key: Key('${_allergies[index]}-$index'),
-                  direction: DismissDirection.endToStart,
-                  background: Container(
-                    alignment: Alignment.centerRight,
-                    padding: const EdgeInsets.only(right: 20),
-                    color: Colors.red,
-                    child: const Icon(Icons.delete, color: Colors.white),
-                  ),
-                  onDismissed: (direction) {
-                    _removeAllergy(index);
-                  },
-                  child: Card(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    child: ListTile(title: Text(_allergies[index])),
-                  ),
-                );
+      appBar: AppBar(
+        title: const Text('Allergies'),
+        actions: [
+          if (!_isEditing)
+            IconButton(
+              icon: const Icon(Icons.edit),
+              onPressed: () {
+                setState(() {
+                  _isEditing = true;
+                });
               },
+            )
+          else
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  _isEditing = false;
+                });
+                _loadAllergies(); // 取消编辑，重新加载
+              },
+              child: const Text('Cancel'),
             ),
-          ),
-          // 底部输入框
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 4,
-                  offset: const Offset(0, -2),
-                ),
-              ],
+          if (_isEditing)
+            TextButton(
+              onPressed: _saveAllergies,
+              child: const Text('Save'),
             ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: _isLoadingAllergens
-                      ? const Center(child: CircularProgressIndicator())
-                      : Autocomplete<String>(
-                          optionsBuilder: (TextEditingValue textEditingValue) {
-                            if (textEditingValue.text == '') {
-                              return const Iterable<String>.empty();
-                            }
-                            return _standardAllergens
-                                .where((allergen) {
-                                  final name = allergen['name'] as String? ?? '';
-                                  return name.toLowerCase().contains(
-                                        textEditingValue.text.toLowerCase(),
-                                      );
-                                })
-                                .map((allergen) => allergen['name'] as String);
-                          },
-                          onSelected: (String selection) {
-                            _textController.text = selection;
-                            _addAllergy();
-                          },
-                          fieldViewBuilder:
-                              (context, controller, focusNode, onEditingComplete) {
-                            // 使用Autocomplete提供的controller
-                            return TextField(
-                              controller: controller,
-                              focusNode: focusNode,
-                              onEditingComplete: onEditingComplete,
-                              decoration: InputDecoration(
-                                hintText: 'Search and select allergy',
-                                border: const OutlineInputBorder(),
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 12,
-                                ),
-                                suffixIcon: const Icon(Icons.search),
-                              ),
-                              onSubmitted: (_) {
-                                // 手动同步到_textController并添加
-                                _textController.text = controller.text;
-                                _addAllergy();
-                              },
-                            );
-                          },
-                        ),
-                ),
-                const SizedBox(width: 8),
-                IconButton(
-                  onPressed: _addAllergy,
-                  icon: const Icon(Icons.add_circle),
-                  iconSize: 40,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-              ],
-            ),
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          _buildSectionTitle('Allergies'),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _standardAllergens.map((allergen) {
+              final name = allergen['name'] as String;
+              final selected = _selectedAllergies.contains(name);
+              return FilterChip(
+                label: Text(name),
+                selected: selected,
+                onSelected: _isEditing
+                    ? (val) {
+                        setState(() {
+                          if (val) {
+                            _selectedAllergies.add(name);
+                          } else {
+                            _selectedAllergies.remove(name);
+                          }
+                        });
+                      }
+                    : null,
+              );
+            }).toList(),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String text) {
+    return Text(
+      text,
+      style: const TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w700,
       ),
     );
   }
