@@ -26,6 +26,21 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
   late List<String> taboos;
   late List<String> allergies;
 
+  // 标准库菜系选项（与后端 PreferenceStandardLibrary 保持一致）
+  static const List<String> _cuisineOptions = [
+    "chinese",
+    "japanese",
+    "korean",
+    "south_east_asian",
+    "indian",
+    "western",
+    "italian",
+    "mediterranean",
+    "mexican",
+    "middle_eastern",
+    "fusion",
+  ];
+
   // 输入框控制器
   final TextEditingController preferenceInputController =
       TextEditingController();
@@ -99,7 +114,11 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
     final prefsResult = await UserService.getUserPreferences();
     if (prefsResult['success'] == true) {
       final prefs = prefsResult['data']['preferences'] ?? {};
-      kCurrentUser.preferences = List<String>.from(prefs['cuisineTypes'] ?? []);
+      final cuisineList = List<String>.from(prefs['cuisineTypes'] ?? []);
+      // 只保留标准库中的值
+      kCurrentUser.preferences = cuisineList
+          .where((c) => _cuisineOptions.contains(c.toLowerCase()))
+          .toList();
     }
 
     // Load taboos
@@ -127,11 +146,38 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
   void _addPreference() {
     final text = preferenceInputController.text.trim();
     if (text.isNotEmpty) {
-      setState(() {
-        // Modified by Chase: Directly modify global kCurrentUser.preferences / 由 Chase 修改：直接修改全局 kCurrentUser.preferences
-        kCurrentUser.preferences.add(text);
-        preferenceInputController.clear();
-      });
+      // 验证是否在标准库中
+      if (!_cuisineOptions.contains(text.toLowerCase())) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Invalid cuisine type. Please use standard options: ${_cuisineOptions.join(", ")}',
+              style: GoogleFonts.kalam(),
+            ),
+            backgroundColor: Colors.orange.shade300,
+          ),
+        );
+        return;
+      }
+      
+      final normalizedText = text.toLowerCase();
+      if (!kCurrentUser.preferences.contains(normalizedText)) {
+        setState(() {
+          // Modified by Chase: Directly modify global kCurrentUser.preferences / 由 Chase 修改：直接修改全局 kCurrentUser.preferences
+          kCurrentUser.preferences.add(normalizedText);
+          preferenceInputController.clear();
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'This cuisine is already in your preferences',
+              style: GoogleFonts.kalam(),
+            ),
+            backgroundColor: Colors.orange.shade300,
+          ),
+        );
+      }
     }
   }
 

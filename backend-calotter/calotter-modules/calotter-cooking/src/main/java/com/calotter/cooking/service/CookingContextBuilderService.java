@@ -1,5 +1,6 @@
 package com.calotter.cooking.service;
 
+import com.calotter.common.core.domain.PreferenceStandardLibrary;
 import com.calotter.cooking.controller.dto.CookingGenerationRequest;
 import com.calotter.cooking.service.dto.*;
 import com.calotter.inventory.domain.entity.Ingredient;
@@ -31,11 +32,6 @@ public class CookingContextBuilderService {
     private final HealthGoalRepository healthGoalRepo;
     private final HouseholdUtensilRepository utensilRepo;
     private final HouseholdSpiceRepository spiceRepo;
-
-    // 常量定义：User.preferences JSON 中的 Key
-    private static final String PREF_KEY_DISLIKE = "DISLIKE";
-    private static final String PREF_KEY_TASTE = "TASTE";
-    private static final String PREF_KEY_CUISINE = "CUISINE";
 
     /**
      * 主入口：构建 AI 请求上下文
@@ -89,7 +85,6 @@ public class CookingContextBuilderService {
         Set<String> globalAvoidance = new HashSet<>();
 
         // 统计器：用于计算共同偏好和冲突
-        Map<String, Integer> dislikeCounter = new HashMap<>();
         Map<String, Integer> tasteCounter = new HashMap<>();
         Map<String, Integer> cuisineCounter = new HashMap<>();
 
@@ -111,14 +106,12 @@ public class CookingContextBuilderService {
 
             // 1.2 收集软性偏好并计数
             if (u.getPreferences() != null) {
-                countPreferences(u.getPreferences(), PREF_KEY_DISLIKE, dislikeCounter);
-                countPreferences(u.getPreferences(), PREF_KEY_TASTE, tasteCounter);
-                countPreferences(u.getPreferences(), PREF_KEY_CUISINE, cuisineCounter);
+                countPreferences(u.getPreferences(), PreferenceStandardLibrary.PREF_KEY_TASTE, tasteCounter);
+                countPreferences(u.getPreferences(), PreferenceStandardLibrary.PREF_KEY_CUISINE, cuisineCounter);
             }
 
-            // 1.3 提取个人忌口 (用于 Roster)
-            List<String> personalDislikes = u.getPreferences() != null ?
-                    u.getPreferences().getOrDefault(PREF_KEY_DISLIKE, new ArrayList<>()) : new ArrayList<>();
+            // 1.3 提取个人忌口 (用于 Roster) - 从 taboos 获取（如果有的话）
+            List<String> personalDislikes = new ArrayList<>(); // TODO: 从 User.taboos 或其他来源获取
 
             // 1.4 计算单人营养目标
             HealthGoal g = healthGoalRepo.findByUserAndStatus(u, 1); // 1=Active
@@ -161,13 +154,11 @@ public class CookingContextBuilderService {
 
                 // 2.2 收集软性偏好 (客人偏好也参与投票)
                 if (g.getPreferences() != null) {
-                    countPreferences(g.getPreferences(), PREF_KEY_DISLIKE, dislikeCounter);
-                    countPreferences(g.getPreferences(), PREF_KEY_TASTE, tasteCounter);
-                    countPreferences(g.getPreferences(), PREF_KEY_CUISINE, cuisineCounter);
+                    countPreferences(g.getPreferences(), PreferenceStandardLibrary.PREF_KEY_TASTE, tasteCounter);
+                    countPreferences(g.getPreferences(), PreferenceStandardLibrary.PREF_KEY_CUISINE, cuisineCounter);
                 }
 
-                List<String> gDislikes = g.getPreferences() != null ?
-                        g.getPreferences().getOrDefault(PREF_KEY_DISLIKE, new ArrayList<>()) : new ArrayList<>();
+                List<String> gDislikes = new ArrayList<>(); // TODO: 从客人信息中获取 taboos 或其他来源
 
                 // 2.3 估算客人营养 (默认值)
                 int gCal = 700;
@@ -187,20 +178,12 @@ public class CookingContextBuilderService {
 
         // --- 3. 生成冲突报告 ---
         int totalHeadCount = roster.size();
-        List<String> universalDislikes = new ArrayList<>();
+        List<String> universalDislikes = new ArrayList<>(); // TODO: 从 taboos 或其他来源获取
         Map<String, String> conflictDetails = new HashMap<>();
         List<String> commonLikedCuisines = new ArrayList<>();
 
-        // 分析忌口 (Dislikes)
-        dislikeCounter.forEach((item, count) -> {
-            if (count == totalHeadCount) {
-                // 所有人都不吃 -> 全局屏蔽
-                universalDislikes.add(item);
-            } else {
-                // 部分人不吃 -> 记录冲突
-                conflictDetails.put(item, "PARTIAL_DISLIKE: " + count + "/" + totalHeadCount + " people dislike this.");
-            }
-        });
+        // 分析忌口 (Dislikes) - 暂时移除，需要从 taboos 或其他来源获取
+        // TODO: 重新实现基于 taboos 的冲突分析
 
         // 分析菜系 (Cuisines)
         if (overrideCuisines == null || overrideCuisines.isEmpty()) {
