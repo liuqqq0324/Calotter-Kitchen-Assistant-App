@@ -35,89 +35,84 @@ public class MockAiMenuGenerationService implements AiMenuGenerationService {
         
         List<MenuDTO.RecipeDTO> recipes = new ArrayList<>();
         
+        // 获取 dishCount，默认为 1
+        int dishCount = 1;
+        if (filter.getGenerationSettings() != null && 
+            filter.getGenerationSettings().getDishCount() != null) {
+            dishCount = filter.getGenerationSettings().getDishCount();
+        }
+        
+        // 根据 dishCount 生成多道菜
+        String[] mockDishes = {
+            "Tomato and Egg Stir-fry",
+            "Steamed Fish with Ginger",
+            "Bok Choy with Garlic",
+            "Miso Soup",
+            "White Rice"
+        };
+        
         // 根据 filter 中的信息调整菜单
-        String mainDish = "Tomato and Egg Stir-fry";
+        String mainDish = mockDishes[0];
         if (filter.getDietPreferences() != null && 
             filter.getDietPreferences().getCuisinePreferences() != null &&
             !filter.getDietPreferences().getCuisinePreferences().isEmpty()) {
             String cuisine = filter.getDietPreferences().getCuisinePreferences().get(0);
             if (cuisine.toLowerCase().contains("chinese")) {
                 mainDish = "番茄炒蛋";
+                mockDishes = new String[]{"番茄炒蛋", "清蒸鱼", "蒜蓉油菜", "紫菜汤", "白米饭"};
             }
         }
         
-        MenuDTO.RecipeDTO recipe = new MenuDTO.RecipeDTO();
-        recipe.setTitle(mainDish);
-        recipe.setShortDescription("Classic home-style dish with tomatoes and eggs");
-        recipe.setServings(filter.getServings() != null ? filter.getServings() : 2);
-        recipe.setCookingTimeMin(15);
-        recipe.setDifficulty("easy");
-        
-        // 营养估算
-        MenuDTO.NutritionEstimate nutrition = new MenuDTO.NutritionEstimate();
-        Double targetCalories = filter.getCalorieTarget() != null ? 
-            filter.getCalorieTarget().getMaxTotalKcal() : 600.0;
-        if (filter.getServings() != null && filter.getServings() > 0) {
-            targetCalories = targetCalories * filter.getServings();
+        // 根据 dishCount 生成对应数量的菜品
+        for (int i = 0; i < Math.min(dishCount, mockDishes.length); i++) {
+            MenuDTO.RecipeDTO recipe = new MenuDTO.RecipeDTO();
+            recipe.setTitle(mockDishes[i]);
+            recipe.setShortDescription("A delicious " + mockDishes[i].toLowerCase());
+            recipe.setServings(filter.getServings() != null ? filter.getServings() : 2);
+            recipe.setCookingTimeMin(15 + i * 5);
+            recipe.setDifficulty("easy");
+            
+            // 营养估算 - 按照 dishCount 平分总卡路里
+            MenuDTO.NutritionEstimate nutrition = new MenuDTO.NutritionEstimate();
+            Double targetCalories = filter.getCalorieTarget() != null ? 
+                filter.getCalorieTarget().getMaxTotalKcal() : 600.0;
+            if (filter.getServings() != null && filter.getServings() > 0) {
+                targetCalories = targetCalories * filter.getServings();
+            }
+            // 将总卡路里分配给每道菜
+            Double dishCalories = targetCalories / dishCount;
+            nutrition.setCalories(dishCalories);
+            nutrition.setProteinG(dishCalories * 0.15); // 15% 蛋白质
+            nutrition.setFatG(dishCalories * 0.25 / 9); // 25% 脂肪
+            nutrition.setCarbsG(dishCalories * 0.60 / 4); // 60% 碳水
+            recipe.setNutritionEstimate(nutrition);
+            
+            // 食材列表（简化版）
+            List<MenuDTO.IngredientDTO> ingredients = new ArrayList<>();
+            
+            MenuDTO.IngredientDTO mainIngredient = new MenuDTO.IngredientDTO();
+            mainIngredient.setName(mockDishes[i].split(" ")[0]); // 取第一个词作为主食材
+            mainIngredient.setAmountValue(200.0 + i * 50);
+            mainIngredient.setAmountUnit("g");
+            mainIngredient.setIsOptional(false);
+            mainIngredient.setSourceType("INVENTORY");
+            ingredients.add(mainIngredient);
+            
+            recipe.setIngredients(ingredients);
+            
+            // 步骤（简化版）
+            List<MenuDTO.StepDTO> steps = new ArrayList<>();
+            
+            MenuDTO.StepDTO step = new MenuDTO.StepDTO();
+            step.setStepNumber(1);
+            step.setInstruction("Prepare and cook " + mockDishes[i].toLowerCase());
+            step.setStepTimeMin(recipe.getCookingTimeMin());
+            steps.add(step);
+            
+            recipe.setSteps(steps);
+            recipes.add(recipe);
         }
-        nutrition.setCalories(targetCalories);
-        nutrition.setProteinG(targetCalories * 0.15); // 15% 蛋白质
-        nutrition.setFatG(targetCalories * 0.25 / 9); // 25% 脂肪
-        nutrition.setCarbsG(targetCalories * 0.60 / 4); // 60% 碳水
-        recipe.setNutritionEstimate(nutrition);
         
-        // 食材列表
-        List<MenuDTO.IngredientDTO> ingredients = new ArrayList<>();
-        
-        MenuDTO.IngredientDTO tomato = new MenuDTO.IngredientDTO();
-        tomato.setName("Tomato");
-        tomato.setAmountValue(2.0);
-        tomato.setAmountUnit("pieces");
-        tomato.setIsOptional(false);
-        tomato.setSourceType("INVENTORY");
-        ingredients.add(tomato);
-        
-        MenuDTO.IngredientDTO egg = new MenuDTO.IngredientDTO();
-        egg.setName("Egg");
-        egg.setAmountValue(3.0);
-        egg.setAmountUnit("pieces");
-        egg.setIsOptional(false);
-        egg.setSourceType("INVENTORY");
-        ingredients.add(egg);
-        
-        MenuDTO.IngredientDTO oil = new MenuDTO.IngredientDTO();
-        oil.setName("Cooking Oil");
-        oil.setAmountValue(15.0);
-        oil.setAmountUnit("ml");
-        oil.setIsOptional(false);
-        oil.setSourceType("MANUAL_ADD");
-        ingredients.add(oil);
-        
-        recipe.setIngredients(ingredients);
-        
-        // 步骤
-        List<MenuDTO.StepDTO> steps = new ArrayList<>();
-        
-        MenuDTO.StepDTO step1 = new MenuDTO.StepDTO();
-        step1.setStepNumber(1);
-        step1.setInstruction("Wash and cut tomatoes into wedges");
-        step1.setStepTimeMin(3);
-        steps.add(step1);
-        
-        MenuDTO.StepDTO step2 = new MenuDTO.StepDTO();
-        step2.setStepNumber(2);
-        step2.setInstruction("Beat eggs in a bowl");
-        step2.setStepTimeMin(2);
-        steps.add(step2);
-        
-        MenuDTO.StepDTO step3 = new MenuDTO.StepDTO();
-        step3.setStepNumber(3);
-        step3.setInstruction("Heat oil in a pan, scramble eggs, then add tomatoes");
-        step3.setStepTimeMin(10);
-        steps.add(step3);
-        
-        recipe.setSteps(steps);
-        recipes.add(recipe);
         menu.setRecipes(recipes);
         
         return menu;

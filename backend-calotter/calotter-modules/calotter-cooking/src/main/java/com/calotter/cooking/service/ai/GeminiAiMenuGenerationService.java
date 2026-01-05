@@ -109,7 +109,16 @@ public class GeminiAiMenuGenerationService implements AiMenuGenerationService {
     private String buildSimplifiedPrompt(RecipeGenerationFilter filter) {
         StringBuilder prompt = new StringBuilder();
         
-        prompt.append("Generate 5 menu options. Return JSON: {\"menus\":[...]}.\n\n");
+        // 获取 dishCount
+        int dishCount = 1; // 默认值
+        if (filter.getGenerationSettings() != null && 
+            filter.getGenerationSettings().getDishCount() != null) {
+            dishCount = filter.getGenerationSettings().getDishCount();
+        }
+        
+        prompt.append("Generate 5 menu options. Each menu must contain EXACTLY ")
+              .append(dishCount)
+              .append(" recipe(s). Return JSON: {\"menus\":[...]}.\n\n");
         
         // 1. 食材（简化格式：只保留名称和数量）
         if (filter.getInventory() != null && !filter.getInventory().isEmpty()) {

@@ -3,17 +3,20 @@ import 'package:flutter/material.dart';
 import 'package:personal_sous_chef/data/consumption_history_store.dart';
 import 'package:personal_sous_chef/models/recipe_models.dart';
 import 'package:personal_sous_chef/services/cooking_api_service.dart';
+import 'package:personal_sous_chef/main.dart';
 
 class RecipeMealSummaryPage extends StatefulWidget {
   final RecipeMenuModel menu;
   final Map<String, dynamic>? filter;
   final int? sessionId;
+  final Set<int>? completedDishIndexes; // 已完成的菜品索引
 
   const RecipeMealSummaryPage({
     super.key,
     required this.menu,
     this.filter,
     this.sessionId,
+    this.completedDishIndexes,
   });
 
   @override
@@ -23,7 +26,17 @@ class RecipeMealSummaryPage extends StatefulWidget {
 class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
   late final Map<String, double> _percentEaten; // recipeId -> percent
   late final Map<String, Map<String, TextEditingController>>
-      _ingredientControllers; // recipeId -> ingredient name -> controller
+  _ingredientControllers; // recipeId -> ingredient name -> controller
+
+  List<RecipeModel> get _completedRecipes {
+    final recipes = widget.menu.recipes;
+    final idx = widget.completedDishIndexes;
+    if (idx == null || idx.isEmpty) return recipes;
+    return idx
+        .where((i) => i >= 0 && i < recipes.length)
+        .map((i) => recipes[i])
+        .toList();
+  }
 
   @override
   void initState() {
@@ -31,15 +44,22 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
     _percentEaten = {};
     _ingredientControllers = {};
 
-    for (final recipe in widget.menu.recipes) {
-      _percentEaten[recipe.id] = 100;
+    // 只为已完成的菜品初始化
+    for (int i = 0; i < widget.menu.recipes.length; i++) {
+      final recipe = widget.menu.recipes[i];
+      // 如果提供了 completedDishIndexes，只初始化已完成的；否则初始化所有
+      if (widget.completedDishIndexes == null ||
+          widget.completedDishIndexes!.contains(i)) {
+        _percentEaten[recipe.id] = 100;
 
-      final controllers = <String, TextEditingController>{};
-      for (final ing in recipe.ingredients) {
-        controllers[ing.name] =
-            TextEditingController(text: ing.amountValue.toString());
+        final controllers = <String, TextEditingController>{};
+        for (final ing in recipe.ingredients) {
+          controllers[ing.name] = TextEditingController(
+            text: ing.amountValue.toString(),
+          );
+        }
+        _ingredientControllers[recipe.id] = controllers;
       }
-      _ingredientControllers[recipe.id] = controllers;
     }
   }
 
@@ -72,66 +92,128 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
     return int.tryParse(raw.toString());
   }
 
+  /// 判断是否为调料（基于后端标准调料库和标准食材库）
+  /// 排除青椒/红椒等蔬菜类，只匹配明确的调料关键词
+  bool _isSeasoning(String ingredientName) {
+    final lowerName = ingredientName.toLowerCase();
+
+    // 明确排除的食材（青椒/红椒等蔬菜类）
+    final vegetablePeppers = [
+      'green pepper',
+      'green-pepper',
+      'red pepper',
+      'red-pepper',
+      'bell pepper',
+      'sweet pepper',
+      'capsicum',
+    ];
+
+    // 检查是否是青椒类食材（优先判断，避免误判）
+    for (final veg in vegetablePeppers) {
+      if (lowerName.contains(veg)) {
+        return false; // 是青椒类食材，不是调料
+      }
+    }
+
+    // 明确的调料关键词（基于标准调料库，仅英文）
+    final seasoningKeywords = [
+      'salt',
+      'black pepper',
+      'white pepper',
+      'sichuan pepper',
+      'chili powder',
+      'pepper powder',
+      'paprika',
+      'soy sauce',
+      'light soy sauce',
+      'dark soy sauce',
+      'oyster sauce',
+      'bean paste',
+      'vinegar',
+      'cooking wine',
+      'five spice powder',
+      'star anise',
+      'cinnamon',
+      'bay leaf',
+      'garlic powder',
+      'ginger powder',
+      'curry powder',
+      'turmeric',
+      'cumin',
+      'coriander',
+      'basil',
+      'oregano',
+      'thyme',
+      'rosemary',
+      'sesame oil',
+      'olive oil',
+      'vegetable oil',
+      'oil',
+      'sugar',
+    ];
+
+    for (final keyword in seasoningKeywords) {
+      if (lowerName.contains(keyword)) {
+        return true;
+      }
+    }
+
+    // 如果只包含 "pepper" 但不匹配任何已知模式，默认视为食材（更安全）
+    // 因为青椒类食材更常见，且标准食材库中有Green-Pepper和Red-Pepper
+    return false;
+  }
+
   Future<void> _saveConsumption(BuildContext context) async {
     // 如果有sessionId，调用后端API完成烹饪
     if (widget.sessionId != null) {
       try {
         // 收集已完成的菜品 ID（如果 percentEaten > 0，认为已完成）
         final completedDishIds = <int>[];
+        final completedRecipes = _completedRecipes;
+        final int completedDishCount = completedRecipes.length;
         final finalIngredients = <Map<String, dynamic>>[];
         double totalCalories = 0;
         double totalProtein = 0;
         double totalFat = 0;
         double totalCarbs = 0;
-        
-        // 检查是否有任何菜品被标记为已吃（percentEaten > 0）
-        bool hasAnyCompletedDish = false;
 
-        for (final recipe in widget.menu.recipes) {
-          final percentEaten = _percentEaten[recipe.id] ?? 0;
-          
-          // 如果吃了 > 0%，认为这道菜已完成
-          if (percentEaten > 0) {
-            hasAnyCompletedDish = true; // 标记有已完成的菜品
-            
-            // 尝试解析 recipe.id 为 int（如果是后端返回的 Dish ID）
-            // 注意：如果 recipe.id 不是数字格式，completedDishIds 可能为空
-            // 这种情况下，后端会完成所有菜品（如果 completedDishIds 为空）
-            final dishId = int.tryParse(recipe.id);
-            if (dishId != null && dishId > 0) {
-              completedDishIds.add(dishId);
-            }
-            
-            final ingControllers = _ingredientControllers[recipe.id] ?? {};
-            
-            // 只收集已完成的菜品用到的食材
-            for (final ing in recipe.ingredients) {
-              final controller = ingControllers[ing.name];
-              final parsed = double.tryParse(controller?.text.trim() ?? '');
-              final amount = parsed ?? ing.amountValue;
-              
-              finalIngredients.add({
-                'name': ing.name,
-                'amountValue': amount,
-                'amountUnit': ing.amountUnit,
-                'sourceType': ing.name.toLowerCase().contains('salt') || 
-                             ing.name.toLowerCase().contains('oil') ||
-                             ing.name.toLowerCase().contains('pepper')
-                    ? 'MANUAL_ADD' : 'INVENTORY', // 简化判断，实际应该从recipe中获取
-              });
-            }
-
-            // 累加营养信息（按比例计算）
-            totalCalories += (recipe.totalCaloriesEstimate * percentEaten / 100);
-            totalProtein += (recipe.totalProtein ?? 0) * percentEaten / 100;
-            totalFat += (recipe.totalFat ?? 0) * percentEaten / 100;
-            totalCarbs += (recipe.totalCarb ?? 0) * percentEaten / 100;
+        // Summary 只处理"已标记 dish done"的菜品；不再显示/编辑 percent eaten，按 100% 处理
+        for (final recipe in completedRecipes) {
+          final percentEaten = 100.0;
+          // 尝试解析 recipe.id 为 int（如果是后端返回的 Dish ID）
+          // 注意：如果 recipe.id 不是数字格式，completedDishIds 可能为空
+          // 这种情况下，后端会完成所有菜品（如果 completedDishIds 为空）
+          final dishId = int.tryParse(recipe.id);
+          if (dishId != null && dishId > 0) {
+            completedDishIds.add(dishId);
           }
+
+          final ingControllers = _ingredientControllers[recipe.id] ?? {};
+
+          // 只收集已完成的菜品用到的食材
+          for (final ing in recipe.ingredients) {
+            final controller = ingControllers[ing.name];
+            final parsed = double.tryParse(controller?.text.trim() ?? '');
+            final amount = parsed ?? ing.amountValue;
+
+            finalIngredients.add({
+              'name': ing.name,
+              'amountValue': amount,
+              'amountUnit': ing.amountUnit,
+              'sourceType': _isSeasoning(ing.name) ? 'MANUAL_ADD' : 'INVENTORY',
+            });
+          }
+
+          // 累加营养信息（按比例计算）
+          totalCalories += (recipe.totalCaloriesEstimate * percentEaten / 100);
+          totalProtein += (recipe.totalProtein ?? 0) * percentEaten / 100;
+          totalFat += (recipe.totalFat ?? 0) * percentEaten / 100;
+          totalCarbs += (recipe.totalCarb ?? 0) * percentEaten / 100;
         }
 
-        // 修改：检查是否有任何已完成的菜品，而不是检查 completedDishIds 是否为空
-        // 因为后端支持 completedDishIds 为空（表示完成所有菜品）
-        if (!hasAnyCompletedDish) {
+        // 这里要按"是否至少有一道菜被吃了/完成了"来校验，而不是按"是否能解析出数字 dishId"来校验。
+        // 对于 AI/本地菜单，recipe.id 可能是 'm1_r1' 这种非数字，解析会失败，但仍应允许保存。
+        if (completedDishCount == 0) {
           ScaffoldMessenger.of(context)
             ..hideCurrentSnackBar()
             ..showSnackBar(
@@ -147,6 +229,7 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
         // 注意：completedDishIds 可以为空，后端会自动完成所有菜品
         await CookingApiService.finishCooking(
           sessionId: widget.sessionId!,
+          // 只有当能解析出真实后端 Dish ID 时才传；否则省略，让后端按"未指定=全部完成"处理。
           completedDishIds: completedDishIds.isEmpty ? null : completedDishIds,
           finalIngredients: finalIngredients,
           totalNutrition: {
@@ -185,8 +268,8 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
     // 同时保存到本地（用于历史记录）
     final dishes = <DishConsumptionRecord>[];
 
-    for (final recipe in widget.menu.recipes) {
-      final percent = _percentEaten[recipe.id] ?? 0;
+    for (final recipe in _completedRecipes) {
+      final percent = 100.0;
       final ingControllers = _ingredientControllers[recipe.id] ?? {};
 
       final ingredientUsage = recipe.ingredients.map((ing) {
@@ -219,36 +302,27 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
     ConsumptionHistoryStore.add(record);
 
     if (!mounted) return;
-    
-    // 返回到 RecipesHomePage，而不是 LandingPage
-    // 路由栈结构：MainScaffold -> RecipeInstructionPage -> MealSummaryPage
-    // 注意：RecipesHomePage 是 MainScaffold 的一个 tab，不是独立路由
-    // MainScaffold 是登录后 pushReplacement 的，所以它应该是第一个路由（isFirst = true）
-    // 从 MealSummaryPage 返回到 MainScaffold，需要 pop 两次
-    
-    // 方案：直接 pop 两次，返回到 MainScaffold
-    // 由于 MainScaffold 是登录后 pushReplacement 的，所以它应该是第一个路由
-    // MainScaffold 会自动显示 RecipesHomePage（因为它是 MainScaffold 的一个 tab）
-    
-    // 返回到 RecipeInstructionPage
-    if (Navigator.canPop(context)) {
-      Navigator.pop(context);
-    }
-    
-    // 再返回到 MainScaffold（RecipesHomePage 是 MainScaffold 的一个 tab）
-    if (Navigator.canPop(context)) {
-      Navigator.pop(context);
-    }
+    // 保存记录后直接回到 My Recipes（Recipes tab），而不是弹回 LandingPage 或 InstructionPage。
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const MainScaffold(initialIndex: 1)),
+      (route) => false,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    final totalCalories = widget.menu.totalCalories;
+    final completedRecipes = _completedRecipes;
+    final totalCalories = completedRecipes.fold<double>(
+      0,
+      (sum, r) => sum + r.totalCaloriesEstimate,
+    );
     final servings = _servings;
-    final caloriesPerPerson =
-        servings != null && servings > 0 ? totalCalories / servings : null;
+    final caloriesPerPerson = servings != null && servings > 0
+        ? totalCalories / servings
+        : null;
     final targetPerPerson = _targetCaloriesPerPerson;
 
     String? comparison;
@@ -261,9 +335,7 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Meal summary'),
-      ),
+      appBar: AppBar(title: const Text('Meal summary')),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(20),
@@ -356,14 +428,14 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Adjust ingredient usage and how much of each dish was eaten. Data is stored locally until backend is ready.',
+              'Adjust ingredient usage for the dishes you marked as done.',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: Colors.grey[600],
               ),
             ),
             const SizedBox(height: 12),
 
-            ...widget.menu.recipes.map((recipe) {
+            ...completedRecipes.map((recipe) {
               final ingControllers = _ingredientControllers[recipe.id] ?? {};
               return Card(
                 margin: const EdgeInsets.symmetric(vertical: 8),
@@ -383,29 +455,9 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          const Spacer(),
-                          Text(
-                            '${_percentEaten[recipe.id]?.toStringAsFixed(0) ?? 0}%',
-                            style: theme.textTheme.bodySmall
-                                ?.copyWith(fontWeight: FontWeight.w600),
-                          ),
                         ],
                       ),
-                      const SizedBox(height: 6),
-                      Slider(
-                        value: _percentEaten[recipe.id] ?? 0,
-                        min: 0,
-                        max: 100,
-                        divisions: 20,
-                        label:
-                            '${_percentEaten[recipe.id]?.toStringAsFixed(0) ?? 0}%',
-                        onChanged: (val) {
-                          setState(() {
-                            _percentEaten[recipe.id] = val;
-                          });
-                        },
-                      ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 10),
                       Text(
                         'Ingredients used',
                         style: theme.textTheme.bodySmall?.copyWith(
@@ -416,16 +468,18 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
                       if (recipe.ingredients.isEmpty)
                         Text(
                           'No ingredients listed.',
-                          style: theme.textTheme.bodySmall
-                              ?.copyWith(color: Colors.grey[600]),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: Colors.grey[600],
+                          ),
                         )
                       else
                         Column(
                           children: recipe.ingredients.map((ing) {
                             final controller = ingControllers[ing.name];
                             return Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 6.0),
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 6.0,
+                              ),
                               child: Row(
                                 children: [
                                   Expanded(
@@ -440,8 +494,8 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
                                       controller: controller,
                                       keyboardType:
                                           const TextInputType.numberWithOptions(
-                                        decimal: true,
-                                      ),
+                                            decimal: true,
+                                          ),
                                       decoration: InputDecoration(
                                         labelText: 'Used',
                                         suffixText: ing.amountUnit,

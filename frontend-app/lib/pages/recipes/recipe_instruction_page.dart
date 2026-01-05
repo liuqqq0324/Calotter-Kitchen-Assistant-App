@@ -26,12 +26,16 @@ class RecipeInstructionPage extends StatefulWidget {
 class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
   late int _currentIndex;
   late Set<int> _completedDishes;
-  final Map<int, int> _remainingSeconds = {};
-  final Map<int, Timer> _runningTimers = {};
-  final Map<int, bool> _pausedSteps = {};
-  final Set<int> _completedSteps = {};
+  // Timers/steps must be keyed per dish + per step.
+  // Otherwise stepNumber=1 in dish A collides with stepNumber=1 in dish B/C and all appear to start together.
+  final Map<String, int> _remainingSeconds = {};
+  final Map<String, Timer> _runningTimers = {};
+  final Map<String, bool> _pausedSteps = {};
+  final Set<String> _completedSteps = {};
   int? _sessionId;
   bool _sessionCreated = false;
+
+  String _stepKey(int dishIndex, int stepNumber) => '$dishIndex:$stepNumber';
 
   @override
   void initState() {
@@ -202,56 +206,61 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
           menu: widget.menu,
           filter: widget.filter,
           sessionId: _sessionId,
+          completedDishIndexes: _completedDishes, // 传递已完成的菜品索引
         ),
       ),
     );
   }
 
-  void _startTimerForStep(int stepNumber, int minutes) {
+  void _startTimerForStep(int dishIndex, int stepNumber, int minutes) {
+    final key = _stepKey(dishIndex, stepNumber);
     final totalSeconds = (minutes <= 0 ? 1 : minutes) * 60;
-    final startFrom = _remainingSeconds[stepNumber] ?? totalSeconds;
-    _pausedSteps[stepNumber] = false;
-    _completedSteps.remove(stepNumber);
-    _runningTimers[stepNumber]?.cancel();
-    _remainingSeconds[stepNumber] = startFrom;
-    _runningTimers[stepNumber] =
+    final startFrom = _remainingSeconds[key] ?? totalSeconds;
+    _pausedSteps[key] = false;
+    _completedSteps.remove(key);
+    _runningTimers[key]?.cancel();
+    _remainingSeconds[key] = startFrom;
+    _runningTimers[key] =
         Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) {
         timer.cancel();
         return;
       }
       setState(() {
-        final next = (_remainingSeconds[stepNumber] ?? startFrom) - 1;
-        _remainingSeconds[stepNumber] = next;
+        final next = (_remainingSeconds[key] ?? startFrom) - 1;
+        _remainingSeconds[key] = next;
         if (next <= -totalSeconds) {
           // auto stop after超时同长度
           timer.cancel();
-          _runningTimers.remove(stepNumber);
+          _runningTimers.remove(key);
         }
       });
     });
   }
 
-  void _stopTimerForStep(int stepNumber) {
-    _runningTimers[stepNumber]?.cancel();
-    _runningTimers.remove(stepNumber);
+  void _stopTimerForStep(int dishIndex, int stepNumber) {
+    final key = _stepKey(dishIndex, stepNumber);
+    _runningTimers[key]?.cancel();
+    _runningTimers.remove(key);
     setState(() {
-      _remainingSeconds.remove(stepNumber);
-      _pausedSteps.remove(stepNumber);
+      _remainingSeconds.remove(key);
+      _pausedSteps.remove(key);
     });
   }
 
-  void _pauseTimer(int stepNumber) {
-    _runningTimers[stepNumber]?.cancel();
-    _runningTimers.remove(stepNumber);
-    _pausedSteps[stepNumber] = true;
+  void _pauseTimer(int dishIndex, int stepNumber) {
+    final key = _stepKey(dishIndex, stepNumber);
+    _runningTimers[key]?.cancel();
+    _runningTimers.remove(key);
+    _pausedSteps[key] = true;
     setState(() {});
   }
 
-  void _stopAndCompleteStep(int stepNumber) {
-    _stopTimerForStep(stepNumber);
+  void _stopAndCompleteStep(int dishIndex, int stepNumber) {
+    final key = _stepKey(dishIndex, stepNumber);
+    _stopTimerForStep(dishIndex, stepNumber);
     setState(() {
-      _completedSteps.add(stepNumber);
+      _completedSteps.add(key);
     });
   }
 
@@ -460,11 +469,12 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
     required RecipeStepModel step,
   }) {
     final theme = Theme.of(context);
-    final remaining = _remainingSeconds[step.stepNumber];
-    final isRunning = _runningTimers.containsKey(step.stepNumber);
+    final key = _stepKey(_currentIndex, step.stepNumber);
+    final remaining = _remainingSeconds[key];
+    final isRunning = _runningTimers.containsKey(key);
     final isOvertime = remaining != null && remaining < 0;
-    final isPaused = _pausedSteps[step.stepNumber] == true;
-    final isCompleted = _completedSteps.contains(step.stepNumber);
+    final isPaused = _pausedSteps[key] == true;
+    final isCompleted = _completedSteps.contains(key);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -528,9 +538,9 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
                     children: [
                       OutlinedButton.icon(
                         onPressed: isRunning
-                            ? () => _pauseTimer(step.stepNumber)
+                            ? () => _pauseTimer(_currentIndex, step.stepNumber)
                             : () => _startTimerForStep(
-                                step.stepNumber, step.stepTimeMin),
+                                _currentIndex, step.stepNumber, step.stepTimeMin),
                         icon: Icon(
                           isRunning
                               ? Icons.pause_circle
@@ -554,7 +564,8 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
                         ),
                       ),
                       OutlinedButton.icon(
-                        onPressed: () => _stopAndCompleteStep(step.stepNumber),
+                        onPressed: () =>
+                            _stopAndCompleteStep(_currentIndex, step.stepNumber),
                         icon: Icon(
                           Icons.check_circle,
                           size: 16,

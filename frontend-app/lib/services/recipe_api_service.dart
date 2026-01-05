@@ -211,6 +211,43 @@ class RecipeApiService {
 
     final genSettings =
         f['generationSettings'] ?? f['generation_settings'] ?? {};
+    // 兼容前端当前存储格式：dish_count / max_cooking_time_min / difficulty_target 在顶层
+    // 也兼容后端/未来格式：都放在 generationSettings 里（驼峰或 snake_case）
+    int _coerceInt(dynamic v, int fallback) {
+      if (v == null) return fallback;
+      if (v is int) return v;
+      if (v is num) return v.toInt();
+      return int.tryParse(v.toString()) ?? fallback;
+    }
+
+    String? _coerceDifficulty(dynamic v) {
+      if (v == null) return null;
+      // Filter 页面会传 List<String>（多选）；后端是 String difficultyTarget
+      if (v is List) {
+        if (v.isEmpty) return null;
+        return v.first?.toString();
+      }
+      return v.toString();
+    }
+
+    final resolvedDishCount = _coerceInt(
+      genSettings['dish_count'] ??
+          genSettings['dishCount'] ??
+          f['dish_count'] ??
+          f['dishCount'],
+      1,
+    );
+    final resolvedMaxCookingTimeMin =
+        genSettings['max_cooking_time_min'] ??
+        genSettings['maxCookingTimeMin'] ??
+        f['max_cooking_time_min'] ??
+        f['maxCookingTimeMin'];
+    final resolvedDifficultyTarget = _coerceDifficulty(
+      genSettings['difficulty_target'] ??
+          genSettings['difficultyTarget'] ??
+          f['difficulty_target'] ??
+          f['difficultyTarget'],
+    );
     return {
       'inventory': f['inventory'] ?? [],
       'servings': f['servings'] ?? 1,
@@ -221,13 +258,9 @@ class RecipeApiService {
         'tastePreferences': tastes,
       },
       'generationSettings': {
-        'dishCount': genSettings['dish_count'] ?? genSettings['dishCount'] ?? 1,
-        'maxCookingTimeMin':
-            genSettings['max_cooking_time_min'] ??
-            genSettings['maxCookingTimeMin'],
-        'difficultyTarget':
-            genSettings['difficulty_target'] ??
-            genSettings['difficultyTarget'], // now can be list for multi-select
+        'dishCount': resolvedDishCount,
+        'maxCookingTimeMin': resolvedMaxCookingTimeMin,
+        'difficultyTarget': resolvedDifficultyTarget, // now can be list for multi-select
       },
       'calorieTarget': calorieTarget,
       'cookers': f['cookers'] ?? [],
