@@ -1,6 +1,7 @@
 package com.calotter.cooking.service;
 
 import com.calotter.cooking.controller.dto.RecipeGenerationFilter;
+import com.calotter.cooking.service.ai.AiMenuGenerationService;
 import com.calotter.cooking.service.dto.MenuDTO;
 import com.calotter.inventory.domain.entity.Ingredient;
 import com.calotter.inventory.domain.entity.HouseholdSpice;
@@ -14,19 +15,12 @@ import com.calotter.user.domain.entity.HealthGoal;
 import com.calotter.user.repository.HouseholdRepository;
 import com.calotter.user.repository.UserRepository;
 import com.calotter.user.repository.HealthGoalRepository;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
-import org.springframework.test.util.ReflectionTestUtils;
-import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -45,10 +39,7 @@ import static org.mockito.Mockito.*;
 class AiMenuServiceTest {
 
     @Mock
-    private ObjectMapper objectMapper;
-
-    @Mock
-    private RestTemplate restTemplate;
+    private AiMenuGenerationService aiMenuGenerationService;
 
     @Mock
     private IngredientRepository ingredientRepository;
@@ -78,11 +69,6 @@ class AiMenuServiceTest {
 
     @BeforeEach
     void setUp() {
-        // 使用反射设置私有字段
-        ReflectionTestUtils.setField(aiMenuService, "restTemplate", restTemplate);
-        ReflectionTestUtils.setField(aiMenuService, "apiKey", "test-api-key");
-        ReflectionTestUtils.setField(aiMenuService, "apiUrl", "https://api.groq.com/openai/v1/chat/completions");
-        ReflectionTestUtils.setField(aiMenuService, "model", "llama-3.3-70b-versatile");
 
         household = new Household();
         household.setId(1L);
@@ -225,21 +211,8 @@ class AiMenuServiceTest {
     // ==================== generateMenus 测试 ====================
 
     @Test
-    void testGenerateMenus_ApiKeyNotConfigured() {
-        // Given
-        ReflectionTestUtils.setField(aiMenuService, "apiKey", "");
-
-        // When & Then
-        assertThatThrownBy(() -> aiMenuService.generateMenus(filter, null))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("AI API key 未配置");
-    }
-
-    @Test
     void testGenerateMenus_WithHouseholdId_FillsFilter() {
         // Given
-        ReflectionTestUtils.setField(aiMenuService, "apiKey", "test-api-key");
-
         Ingredient ingredient = new Ingredient();
         ingredient.setId(1L);
         ingredient.setQuantity(500.0);
@@ -248,7 +221,6 @@ class AiMenuServiceTest {
         standardIngredient.setName("chicken");
         ingredient.setMetadata(standardIngredient);
 
-        when(householdRepository.findById(1L)).thenReturn(Optional.of(household));
         when(ingredientRepository.findByHouseholdIdAndQuantityGreaterThan(1L, 0.0))
                 .thenReturn(Arrays.asList(ingredient));
         when(spiceRepository.findByHouseholdIdAndIsAvailableTrue(1L))
@@ -256,54 +228,34 @@ class AiMenuServiceTest {
         when(utensilRepository.findByHouseholdIdAndIsAvailableTrue(1L))
                 .thenReturn(new ArrayList<>());
 
-        // Mock AI API response
-        String mockResponse = "{\"choices\":[{\"message\":{\"content\":\"{\\\"menus\\\":[]}\"}}]}";
-        ResponseEntity<String> responseEntity = ResponseEntity.ok(mockResponse);
-        when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), any(HttpEntity.class), eq(String.class)))
-                .thenReturn(responseEntity);
-
-        try {
-            JsonNode jsonNode = mock(JsonNode.class);
-            JsonNode contentNode = mock(JsonNode.class);
-            JsonNode menusNode = mock(JsonNode.class);
-            
-            when(objectMapper.readTree(anyString())).thenReturn(jsonNode);
-            when(jsonNode.at("/choices/0/message/content")).thenReturn(contentNode);
-            when(contentNode.asText()).thenReturn("{\"menus\":[]}");
-            when(objectMapper.readTree("{\"menus\":[]}")).thenReturn(jsonNode);
-            when(jsonNode.get("menus")).thenReturn(menusNode);
-            when(menusNode.isArray()).thenReturn(true);
-            when(objectMapper.readerForListOf(MenuDTO.class)).thenReturn(mock(com.fasterxml.jackson.databind.ObjectReader.class));
-        } catch (Exception e) {
-            // Mock setup failed, skip this test
-        }
+        List<MenuDTO> mockMenus = new ArrayList<>();
+        when(aiMenuGenerationService.generateMenus(any(RecipeGenerationFilter.class)))
+                .thenReturn(mockMenus);
 
         // When
-        // 注意：由于AI API调用复杂，这里主要测试householdId填充逻辑
-        // 实际AI调用测试需要更复杂的mock设置
+        List<MenuDTO> result = aiMenuService.generateMenus(filter, 1L);
 
         // Then
-        verify(householdRepository, times(1)).findById(1L);
+        assertThat(result).isNotNull();
         verify(ingredientRepository, times(1)).findByHouseholdIdAndQuantityGreaterThan(1L, 0.0);
+        verify(aiMenuGenerationService, times(1)).generateMenus(any(RecipeGenerationFilter.class));
     }
 
     @Test
     void testGenerateMenus_WithoutHouseholdId() {
         // Given
-        ReflectionTestUtils.setField(aiMenuService, "apiKey", "test-api-key");
-
-        // Mock AI API response
-        String mockResponse = "{\"choices\":[{\"message\":{\"content\":\"{\\\"menus\\\":[]}\"}}]}";
-        ResponseEntity<String> responseEntity = ResponseEntity.ok(mockResponse);
-        when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), any(HttpEntity.class), eq(String.class)))
-                .thenReturn(responseEntity);
+        List<MenuDTO> mockMenus = new ArrayList<>();
+        when(aiMenuGenerationService.generateMenus(any(RecipeGenerationFilter.class)))
+                .thenReturn(mockMenus);
 
         // When
-        // 由于AI API调用复杂，这里主要验证不会调用household相关的方法
-        // 实际测试需要更完整的mock设置
+        List<MenuDTO> result = aiMenuService.generateMenus(filter, null);
 
         // Then
+        assertThat(result).isNotNull();
         verify(householdRepository, never()).findById(any());
+        verify(ingredientRepository, never()).findByHouseholdIdAndQuantityGreaterThan(any(), any());
+        verify(aiMenuGenerationService, times(1)).generateMenus(any(RecipeGenerationFilter.class));
     }
 }
 

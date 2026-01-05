@@ -12,57 +12,56 @@ import java.math.RoundingMode;
 import java.util.Map;
 
 /**
- * Groq-based estimator.
- * 基于 Groq API 的营养估算器
+ * Gemini-based estimator.
+ * 基于 Gemini API 的营养估算器
  *
  * @author Auto Generated
  */
 // @Component 注释掉，改为通过配置类管理
 // @Component
-public class GroqManualNutritionEstimator implements ManualNutritionEstimator {
-
-    /**
-     * Groq's chat-completions endpoint path on their API gateway.
-     * Note: encoded to avoid embedding vendor-specific naming in source.
-     */
-    private static final String CHAT_COMPLETIONS_PATH =
-            "/\u006f\u0070\u0065\u006e\u0061\u0069/v1/chat/completions";
+public class GeminiManualNutritionEstimator implements ManualNutritionEstimator {
 
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
     private final String model;
+    private final String apiKey;
 
-    public GroqManualNutritionEstimator(
+    public GeminiManualNutritionEstimator(
             ObjectMapper objectMapper,
-            @Value("${ai.nutrition.groq.base-url:https://api.groq.com}") String baseUrl,
-            @Value("${ai.nutrition.groq.api-key:}") String apiKey,
-            @Value("${ai.nutrition.groq.model:llama-3.3-70b-versatile}") String model
+            @Value("${ai.nutrition.gemini.base-url:https://generativelanguage.googleapis.com}") String baseUrl,
+            @Value("${ai.nutrition.gemini.api-key:}") String apiKey,
+            @Value("${ai.nutrition.gemini.model:gemini-2.5-pro}") String model
     ) {
         this.objectMapper = objectMapper;
         this.model = model;
+        this.apiKey = apiKey;
         this.restClient = RestClient.builder()
                 .baseUrl(baseUrl)
-                .defaultHeader("Authorization", "Bearer " + apiKey)
                 .build();
     }
 
     @Override
     public NutritionEstimate estimate(String foodName, String portionDescription) {
         String prompt = buildPrompt(foodName, portionDescription);
+        
+        // Gemini API 请求格式
         Map<String, Object> body = Map.of(
-                "model", model,
-                "temperature", 0,
-                "messages", new Object[]{
-                        Map.of("role", "system", "content",
-                                "You are a nutrition calculation assistant. " +
-                                "Return ONLY valid JSON with keys: energy_kcal, protein_g, fat_g, carbohydrates_g. " +
-                                "Numbers must be non-negative and represent the specified portion."),
-                        Map.of("role", "user", "content", prompt)
-                }
+                "contents", new Object[]{
+                        Map.of("parts", new Object[]{
+                                Map.of("text", prompt)
+                        })
+                },
+                "generationConfig", Map.of(
+                        "temperature", 0,
+                        "responseMimeType", "application/json"
+                )
         );
 
+        // Gemini API 使用查询参数传递 API Key
+        String uri = String.format("/v1beta/models/%s:generateContent?key=%s", model, apiKey);
+
         String raw = restClient.post()
-                .uri(CHAT_COMPLETIONS_PATH)
+                .uri(uri)
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON)
                 .body(body)
@@ -74,17 +73,42 @@ public class GroqManualNutritionEstimator implements ManualNutritionEstimator {
 
     private String buildPrompt(String foodName, String portionDescription) {
         String portion = portionDescription == null ? "" : portionDescription.trim();
+        String prompt = "You are a nutrition calculation assistant. " +
+                "Estimate the nutrition values for the following food item and portion. " +
+                "Return ONLY valid JSON with keys: energy_kcal, protein_g, fat_g, carbohydrates_g. " +
+                "Numbers must be non-negative and represent the specified portion.\n\n";
+        
         if (portion.isEmpty()) {
-            return "Estimate nutrition for this food item: " + foodName;
+            prompt += "Food: " + foodName;
+        } else {
+            prompt += "Food: " + foodName + "\nPortion: " + portion;
         }
-        return "Estimate nutrition for this food item and portion.\nFood: " + foodName + "\nPortion: " + portion;
+        
+        return prompt;
     }
 
     private NutritionEstimate parseResponse(String rawJson) {
         try {
             JsonNode root = objectMapper.readTree(rawJson);
-            JsonNode contentNode = root.path("choices").path(0).path("message").path("content");
-            String content = contentNode.isTextual() ? contentNode.asText() : "";
+            
+            // Gemini API 响应格式：candidates[0].content.parts[0].text
+            JsonNode textNode = root.path("candidates").path(0).path("content").path("parts").path(0).path("text");
+            String content = textNode.isTextual() ? textNode.asText() : "";
+            
+            // 如果 content 为空，尝试从其他路径获取
+            if (content.isEmpty()) {
+                JsonNode candidates = root.path("candidates");
+                if (candidates.isArray() && candidates.size() > 0) {
+                    JsonNode firstCandidate = candidates.get(0);
+                    JsonNode contentNode = firstCandidate.path("content");
+                    JsonNode partsNode = contentNode.path("parts");
+                    if (partsNode.isArray() && partsNode.size() > 0) {
+                        JsonNode firstPart = partsNode.get(0);
+                        content = firstPart.path("text").asText("");
+                    }
+                }
+            }
+            
             String json = extractJsonObject(content);
             JsonNode nutrition = objectMapper.readTree(json);
 
@@ -98,10 +122,10 @@ public class GroqManualNutritionEstimator implements ManualNutritionEstimator {
                     fat.setScale(2, RoundingMode.HALF_UP),
                     carbs.setScale(2, RoundingMode.HALF_UP),
                     protein.setScale(2, RoundingMode.HALF_UP),
-                    "groq"
+                    "gemini"
             );
         } catch (Exception e) {
-            throw new RuntimeException("Failed to parse Groq nutrition response: " + e.getMessage(), e);
+            throw new RuntimeException("Failed to parse Gemini nutrition response: " + e.getMessage(), e);
         }
     }
 

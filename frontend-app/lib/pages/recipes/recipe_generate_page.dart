@@ -516,34 +516,67 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
   }
 
   Widget _buildErrorState(ThemeData theme) {
+    // 解析错误信息，提取关键信息
+    String errorMessage = _error ?? 'Unknown error';
+    String displayMessage = errorMessage;
+    bool isQuotaError = errorMessage.contains('429') || 
+                        errorMessage.contains('quota') || 
+                        errorMessage.contains('配额') ||
+                        errorMessage.contains('Quota exceeded');
+    
+    if (isQuotaError) {
+      displayMessage = 'API 配额已用完\n\n请稍后再试，或检查您的 API 配额限制。';
+    } else if (errorMessage.length > 200) {
+      // 如果错误信息太长，截取前200个字符
+      displayMessage = errorMessage.substring(0, 200) + '...';
+    }
+    
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.error_outline, size: 48, color: Colors.redAccent),
-            const SizedBox(height: 8),
-            Text(
-              'Failed to load recipes.',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w600,
+      child: SingleChildScrollView(  // 添加滚动支持
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                isQuotaError ? Icons.hourglass_empty : Icons.error_outline,
+                size: 48,
+                color: isQuotaError ? Colors.orange : Colors.redAccent,
               ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              _error ?? '',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: Colors.grey[600],
+              const SizedBox(height: 8),
+              Text(
+                isQuotaError ? 'API 配额已用完' : 'Failed to load recipes.',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+                textAlign: TextAlign.center,
               ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 12),
-            ElevatedButton(
-              onPressed: _fetchMenus,
-              child: const Text('Retry'),
-            ),
-          ],
+              const SizedBox(height: 4),
+              Text(
+                displayMessage,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: Colors.grey[600],
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 10,  // 限制最大行数
+                overflow: TextOverflow.ellipsis,  // 超出部分显示省略号
+              ),
+              const SizedBox(height: 12),
+              ElevatedButton(
+                onPressed: _fetchMenus,
+                child: const Text('Retry'),
+              ),
+              if (isQuotaError) ...[
+                const SizedBox(height: 8),
+                TextButton(
+                  onPressed: () {
+                    // 可以添加跳转到设置页面或显示更多信息的逻辑
+                  },
+                  child: const Text('查看配额信息'),
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );

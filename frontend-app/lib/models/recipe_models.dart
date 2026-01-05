@@ -120,6 +120,20 @@ class RecipeModel {
       return double.tryParse(value.toString());
     }
 
+    // 解析 nutritionEstimate（后端返回的嵌套对象）
+    final nutritionEstimate = json['nutritionEstimate'] ?? json['nutrition_estimate'];
+    double caloriesFromEstimate = 0.0;
+    double? proteinFromEstimate;
+    double? fatFromEstimate;
+    double? carbsFromEstimate;
+    
+    if (nutritionEstimate is Map) {
+      caloriesFromEstimate = parseDouble(nutritionEstimate['calories']) ?? 0.0;
+      proteinFromEstimate = parseDouble(nutritionEstimate['proteinG'] ?? nutritionEstimate['protein_g']);
+      fatFromEstimate = parseDouble(nutritionEstimate['fatG'] ?? nutritionEstimate['fat_g']);
+      carbsFromEstimate = parseDouble(nutritionEstimate['carbsG'] ?? nutritionEstimate['carbs_g']);
+    }
+
     return RecipeModel(
       id: resolvedId,
       title: json['title']?.toString() ?? 'Untitled recipe',
@@ -133,23 +147,23 @@ class RecipeModel {
           ? (json['cooking_time_min'] ?? json['cookingTimeMin']).toInt()
           : 0,
       difficulty: json['difficulty']?.toString() ?? 'easy',
-      totalCaloriesEstimate:
-          (json['total_calories_estimate'] ?? json['totalCaloriesEstimate'] ?? 0)
-                  is num
-              ? (json['total_calories_estimate'] ??
-                      json['totalCaloriesEstimate'])
-                  .toDouble()
-              : 0,
+      // 优先使用 nutritionEstimate.calories，如果没有则使用其他字段
+      totalCaloriesEstimate: caloriesFromEstimate > 0
+          ? caloriesFromEstimate
+          : ((json['total_calories_estimate'] ?? json['totalCaloriesEstimate'] ?? 0) is num
+              ? (json['total_calories_estimate'] ?? json['totalCaloriesEstimate']).toDouble()
+              : 0),
       ingredients:
           ingredientsJson.map((e) => RecipeIngredientModel.fromJson(e)).toList(),
       steps: recipesSteps.map((e) => RecipeStepModel.fromJson(e)).toList(),
       emoji: json['emoji']?.toString() ?? '🍽️',
-      // 营养字段（跟着后端）
+      // 营养字段（优先使用 nutritionEstimate，如果没有则使用其他字段）
       totalWeightGram: parseInt(json['total_weight_gram'] ?? json['totalWeightGram']),
-      totalCalories: parseInt(json['total_calories'] ?? json['totalCalories']),
-      totalProtein: parseDouble(json['total_protein'] ?? json['totalProtein']),
-      totalFat: parseDouble(json['total_fat'] ?? json['totalFat']),
-      totalCarb: parseDouble(json['total_carb'] ?? json['totalCarb']),
+      totalCalories: parseInt(json['total_calories'] ?? json['totalCalories']) ?? 
+                     (caloriesFromEstimate > 0 ? caloriesFromEstimate.toInt() : null),
+      totalProtein: parseDouble(json['total_protein'] ?? json['totalProtein']) ?? proteinFromEstimate,
+      totalFat: parseDouble(json['total_fat'] ?? json['totalFat']) ?? fatFromEstimate,
+      totalCarb: parseDouble(json['total_carb'] ?? json['totalCarb']) ?? carbsFromEstimate,
       totalFiber: parseDouble(json['total_fiber'] ?? json['totalFiber']),
     );
   }

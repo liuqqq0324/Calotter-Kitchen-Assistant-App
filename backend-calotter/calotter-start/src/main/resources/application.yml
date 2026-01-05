@@ -33,3 +33,32 @@ jwt:
   issuer: CalotterBackend
   audience: CalotterFrontend
   expiration: 3000 # seconds (50 minutes)
+
+# AI API 配置
+# 模式选择：mock（开发测试，默认）/ gemini（优化版，简化 Prompt）/ groq（完整 Prompt）
+ai:
+  api:
+    mode: groq  # mock / gemini / groq（当前使用 groq 进行测试）
+    # Gemini 配置（优化版 - 简化 Prompt 减少 Token）
+    gemini:
+      api-key: ${GEMINI_API_KEY:}   # 从环境变量读取，如果不存在则为空
+      base-url: https://generativelanguage.googleapis.com
+      model: gemini-2.5-pro
+    # Groq 配置（完整 Prompt 版本）
+    groq:
+      api-key: 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  # Groq API Key
+      url: https://api.groq.com/openai/v1/chat/completions
+      model: llama-3.3-70b-versatile
+  # 营养估算器配置
+  nutrition:
+    provider: gemini  # gemini 或 groq（默认 gemini）
+    # Gemini 配置
+    gemini:
+      base-url: https://generativelanguage.googleapis.com
+      api-key: ${GEMINI_API_KEY:}  # 复用同一个 API Key
+      model: gemini-2.5-pro
+    # Groq 配置（保留）
+    groq:
+      base-url: https://api.groq.com
+      api-key: ${GROQ_API_KEY:}
+      model: llama-3.3-70b-versatile
