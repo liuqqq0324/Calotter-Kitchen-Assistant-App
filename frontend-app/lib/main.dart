@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:personal_sous_chef/theme/fallback_google_fonts.dart';
+import 'package:flutter/services.dart'; // 添加 SystemNavigator 导入
 import 'package:personal_sous_chef/pages/home/home_page.dart';
 import 'package:personal_sous_chef/pages/inventory/inventory_page.dart';
 import 'package:personal_sous_chef/pages/add_item/add_item_page.dart';
@@ -7,12 +7,15 @@ import 'package:personal_sous_chef/pages/recipes/recipes_home_page.dart';
 // Modified by Chase: Import authentication and profile pages / 由 Chase 修改：导入认证和用户资料页面
 import 'package:personal_sous_chef/pages/ums/auth/landing_page.dart';
 import 'package:personal_sous_chef/pages/ums/profile/profile_view_page.dart';
-// import 'package:personal_sous_chef/data/static_data.dart'; // 如果 main.dart 没直接用到这个，可以注释掉
-// import 'package:personal_sous_chef/models/ingredient.dart'; // 同上
 
 // 1. 定义全局 Key
 final GlobalKey<MainScaffoldState> mainScaffoldKey =
     GlobalKey<MainScaffoldState>();
+
+// 🔥 定义 InventoryPage 的 GlobalKey，用于在切换 tab 时刷新数据
+// 注意：使用 State<InventoryPage> 类型，因为 _InventoryPageState 是私有类
+final GlobalKey<State<InventoryPage>> inventoryPageKey =
+    GlobalKey<State<InventoryPage>>();
 
 // 2. 定义全局 RouteObserver 用于监听路由变化
 final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
@@ -62,10 +65,8 @@ class MainScaffoldState extends State<MainScaffold> {
     RecipesHomePage(),
     AddItemPage(),
 
-    // 🔥 关键：去掉 const！
-    // 这样每次 _pages 被读取时，都会创建一个新的 InventoryPage 引用
-    // Flutter 比较时发现引用变了，就会去触发它的 build()
-    InventoryPage(), // 👈 其实如果不去掉 const，只要 _pages 是 getter 也能生效，但建议去掉 const 保持动态性
+    // 🔥 使用 GlobalKey 来访问 InventoryPage 的 State，以便在切换 tab 时刷新数据
+    InventoryPage(key: inventoryPageKey),
     // Modified by Chase: Replaced BackendTestPage with ProfileViewPage / 由 Chase 修改：将测试页面替换为用户资料页面
     // This matches the "Me" navigation label / 这符合导航栏的 "Me" 标签
     const ProfileViewPage(),
@@ -76,6 +77,10 @@ class MainScaffoldState extends State<MainScaffold> {
     setState(() {
       _selectedIndex = index;
     });
+    // 🔥 如果切换到 InventoryPage（index 3），刷新数据
+    if (index == 3) {
+      _refreshInventoryPage();
+    }
   }
 
   void _onItemTapped(int index) async {
@@ -89,6 +94,8 @@ class MainScaffoldState extends State<MainScaffold> {
         setState(() {
           if (result == 'kitchen') {
             _selectedIndex = 3;
+            // 🔥 切换到 InventoryPage 时刷新数据
+            _refreshInventoryPage();
           } else if (result == 'recipe') {
             _selectedIndex = 1;
           }
@@ -100,65 +107,113 @@ class MainScaffoldState extends State<MainScaffold> {
     setState(() {
       _selectedIndex = index;
     });
+    // 🔥 如果切换到 InventoryPage（index 3），刷新数据
+    if (index == 3) {
+      _refreshInventoryPage();
+    }
+  }
+
+  // 🔥 刷新 InventoryPage 数据的方法
+  void _refreshInventoryPage() {
+    final inventoryState = inventoryPageKey.currentState;
+    if (inventoryState != null) {
+      // 使用 dynamic 调用 refreshData 方法（因为 _InventoryPageState 是私有类）
+      (inventoryState as dynamic).refreshData();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false, // 去掉返回箭头
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // 海獭emoji作为图标
-            const Text('🦦', style: TextStyle(fontSize: 28)),
-            const SizedBox(width: 8),
-            const Text(
-              'CalOtter',
-              style: TextStyle(
-                fontFamily: 'Caveat',
-                fontSize: 24,
-                fontWeight: FontWeight.w700,
+    return PopScope(
+      // 拦截返回键，防止返回到 LandingPage
+      canPop: false, // 不允许返回到上一页
+      onPopInvoked: (didPop) async {
+        if (didPop) {
+          // 如果已经 pop 了，不做任何操作
+          return;
+        }
+        // 显示确认退出对话框
+        final shouldExit = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('退出应用'),
+            content: const Text('确定要退出应用吗？'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('取消'),
               ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('退出'),
+              ),
+            ],
+          ),
+        );
+
+        if (shouldExit == true && mounted) {
+          // 退出应用
+          SystemNavigator.pop();
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          automaticallyImplyLeading: false, // 去掉返回箭头
+          title: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 海獭emoji作为图标
+              const Text('🦦', style: TextStyle(fontSize: 28)),
+              const SizedBox(width: 8),
+              const Text(
+                'CalOtter',
+                style: TextStyle(
+                  fontFamily: 'Caveat',
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+          elevation: 0,
+        ),
+        // 安全检查：防止索引越界
+        body: _selectedIndex < _pages.length
+            ? _pages[_selectedIndex]
+            : _pages[0],
+
+        bottomNavigationBar: NavigationBar(
+          onDestinationSelected: _onItemTapped,
+          selectedIndex: _selectedIndex,
+          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+          destinations: const <Widget>[
+            NavigationDestination(
+              icon: Icon(Icons.home_outlined),
+              selectedIcon: Icon(Icons.home),
+              label: 'Home',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.menu_book_outlined),
+              selectedIcon: Icon(Icons.menu_book),
+              label: 'Recipes',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.add_circle, size: 40, color: Colors.orange),
+              label: 'Add',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.kitchen_outlined),
+              selectedIcon: Icon(Icons.kitchen),
+              label: 'Kitchen',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.person_outline),
+              selectedIcon: Icon(Icons.person),
+              label: 'Me',
             ),
           ],
         ),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        elevation: 0,
-      ),
-      // 安全检查：防止索引越界
-      body: _selectedIndex < _pages.length ? _pages[_selectedIndex] : _pages[0],
-
-      bottomNavigationBar: NavigationBar(
-        onDestinationSelected: _onItemTapped,
-        selectedIndex: _selectedIndex,
-        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-        destinations: const <Widget>[
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.menu_book_outlined),
-            selectedIcon: Icon(Icons.menu_book),
-            label: 'Recipes',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.add_circle, size: 40, color: Colors.orange),
-            label: 'Add',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.kitchen_outlined),
-            selectedIcon: Icon(Icons.kitchen),
-            label: 'Kitchen',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: 'Me',
-          ),
-        ],
       ),
     );
   }

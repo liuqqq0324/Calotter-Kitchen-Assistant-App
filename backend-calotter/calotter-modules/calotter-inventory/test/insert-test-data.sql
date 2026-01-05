@@ -320,12 +320,25 @@ ON CONFLICT DO NOTHING;
 -- ============================================
 -- 10. 可选：插入一些测试剩菜（用于测试）
 -- ============================================
-INSERT INTO household_leftovers (household_id, name, cover_image, quantity_gram, produced_time, create_time, update_time)
+-- 注意：household_leftovers 表已迁移，包含 dish_name, cover_image, calories_per_100g 字段
+INSERT INTO household_leftovers (
+  household_id, 
+  original_dish_id,
+  dish_name, 
+  cover_image, 
+  current_quantity_gram, 
+  calories_per_100g,
+  produced_time, 
+  create_time, 
+  update_time
+)
 SELECT 
   h.id,
+  1, -- 假设的 dish_id
   'Test Leftover - Braised Pork',
   'https://example.com/image.jpg',
-  500.0,
+  500,
+  250, -- 每100克250卡路里
   NOW() - INTERVAL '1 day',
   NOW(),
   NOW()

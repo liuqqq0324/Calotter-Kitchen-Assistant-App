@@ -295,7 +295,7 @@ class YoloService {
         Ingredient(
           name: name.replaceAll('-', ' '),
           expiryDate: DateTime.now().add(const Duration(days: 7)),
-          quantity: count, // 现在这是去重后的准确数量
+          quantity: count.toDouble(), // 🔥 转换为 double
           unit: 'pcs',
           imagePlaceholder: _getEmojiForLabel(name),
         ),

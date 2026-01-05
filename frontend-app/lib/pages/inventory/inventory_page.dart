@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:personal_sous_chef/models/ingredient.dart';
 import 'package:personal_sous_chef/pages/inventory/edit_ingredient_page.dart';
 import 'package:personal_sous_chef/widgets/ingredient_card.dart';
-import 'package:personal_sous_chef/data/static_data.dart'; // 引入全局数据
 import 'package:personal_sous_chef/pages/add_item/add_item_page.dart';
 import 'package:personal_sous_chef/widgets/generate_recipe_button.dart'; // 引入复用按钮
 import 'package:personal_sous_chef/main.dart'; // 🔥 引入 main.dart 以访问 MainScaffoldState
@@ -10,6 +9,8 @@ import 'package:personal_sous_chef/models/cookware.dart';
 import 'package:personal_sous_chef/widgets/item_toggle_grid.dart';
 import 'package:personal_sous_chef/services/inventory_api_service.dart';
 import 'package:personal_sous_chef/services/standard_library_service.dart';
+import 'package:personal_sous_chef/models/leftover.dart';
+import 'package:personal_sous_chef/widgets/leftover_card.dart';
 
 class InventoryPage extends StatefulWidget {
   const InventoryPage({super.key});
@@ -23,6 +24,7 @@ class _InventoryPageState extends State<InventoryPage>
   List<Ingredient> _ingredients = [];
   List<Cookware> _seasonings = [];
   List<Cookware> _cookwares = [];
+  List<Leftover> _leftovers = [];
 
   late AnimationController _animationController;
   late Animation<double> _expandAnimation;
@@ -30,6 +32,7 @@ class _InventoryPageState extends State<InventoryPage>
   bool _isLoading = true;
   bool _isLoadingCookware = true;
   bool _isLoadingSeasonings = true;
+  bool _isLoadingLeftovers = true;
   String? _error;
 
   @override
@@ -50,6 +53,17 @@ class _InventoryPageState extends State<InventoryPage>
     _loadInventory();
     _loadCookware();
     _loadSeasonings();
+    _loadLeftovers();
+  }
+
+  // 🔥 公开的刷新方法，供外部调用
+  Future<void> refreshData() async {
+    await Future.wait([
+      _loadInventory(),
+      _loadCookware(),
+      _loadSeasonings(),
+      _loadLeftovers(),
+    ]);
   }
 
   Future<void> _loadInventory() async {
@@ -75,7 +89,10 @@ class _InventoryPageState extends State<InventoryPage>
             // ✅ 使用 standardIngredientName（后端返回的字段）
             name: item['standardIngredientName'] ?? item['name'] ?? 'Unknown',
             expiryDate: expiryDate,
-            quantity: (item['quantity'] ?? 0).toInt(),
+            quantity: (item['quantity'] ?? 0) is int
+                ? (item['quantity'] ?? 0).toDouble()
+                : (item['quantity'] ?? 0.0)
+                      .toDouble(), // 🔥 安全的类型转换，支持 int 和 double
             unit: item['unit'] ?? 'pcs',
             imagePlaceholder: item['image_url'] != null ? '🖼️' : '📦',
             // ✅ 使用 id（后端返回的字段）
@@ -90,8 +107,8 @@ class _InventoryPageState extends State<InventoryPage>
       setState(() {
         _error = e.toString();
         _isLoading = false;
-        // Fallback to static data on error
-        _ingredients = kInitialIngredients;
+        // Fallback to empty list on error
+        _ingredients = [];
         _sortItems();
       });
     }
@@ -223,8 +240,8 @@ class _InventoryPageState extends State<InventoryPage>
       if (mounted) {
         setState(() {
           _isLoadingCookware = false;
-          // 如果加载失败，使用静态数据作为fallback
-          _cookwares = kBasicCookware;
+          // 如果加载失败，使用空列表作为fallback
+          _cookwares = [];
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -290,12 +307,92 @@ class _InventoryPageState extends State<InventoryPage>
       if (mounted) {
         setState(() {
           _isLoadingSeasonings = false;
-          // 如果加载失败，使用静态数据作为fallback
-          _seasonings = kBasicSeasonings;
+          // 如果加载失败，使用空列表作为fallback
+          _seasonings = [];
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to load seasonings: $e'),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
+  /// 加载剩菜列表
+  Future<void> _loadLeftovers() async {
+    setState(() {
+      _isLoadingLeftovers = true;
+      _error = null;
+    });
+
+    try {
+      final data = await InventoryApiService.getLeftovers();
+      if (mounted) {
+        setState(() {
+          _leftovers = data.map((item) {
+            DateTime producedTime = DateTime.now();
+            if (item['producedTime'] != null) {
+              try {
+                producedTime = DateTime.parse(item['producedTime']);
+              } catch (e) {
+                // Keep default if parsing fails
+              }
+            }
+
+            return Leftover(
+              id: item['id']?.toString() ?? '',
+              dishId: item['originalDishId']?.toString() ?? '',
+              dishName: item['dishName']?.toString(), // ✅ 从后端获取
+              quantityGram: item['currentQuantityGram'] ?? 0,
+              producedTime: producedTime,
+              coverImage: item['coverImage']?.toString(), // ✅ 从后端获取
+              caloriesPer100g: item['caloriesPer100g'] != null
+                  ? (item['caloriesPer100g'] as num).toInt()
+                  : null, // ✅ 从后端获取
+              imagePlaceholder: '🍽️',
+            );
+          }).toList();
+          _isLoadingLeftovers = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _isLoadingLeftovers = false;
+          _leftovers = [];
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load leftovers: $e'),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
+  /// 删除剩菜
+  Future<void> _deleteLeftover(Leftover leftover) async {
+    try {
+      await InventoryApiService.deleteLeftover(leftoverId: leftover.id);
+      if (mounted) {
+        // 重新加载剩菜列表
+        _loadLeftovers();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Leftover deleted'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to delete: $e'),
             duration: const Duration(seconds: 3),
           ),
         );
@@ -442,7 +539,7 @@ class _InventoryPageState extends State<InventoryPage>
     // Data is loaded from API in initState and _loadInventory
 
     return DefaultTabController(
-      length: 3,
+      length: 4,
       child: Scaffold(
         appBar: AppBar(
           automaticallyImplyLeading: false, // 去掉返回箭头
@@ -452,6 +549,7 @@ class _InventoryPageState extends State<InventoryPage>
               Tab(icon: Icon(Icons.egg_alt), text: 'Ingredients'),
               Tab(icon: Icon(Icons.local_dining), text: 'Seasonings'), // 新增调料
               Tab(icon: Icon(Icons.soup_kitchen), text: 'Cookware'),
+              Tab(icon: Icon(Icons.restaurant), text: 'Leftovers'), // 新增剩菜
             ],
           ),
         ),
@@ -473,6 +571,9 @@ class _InventoryPageState extends State<InventoryPage>
                     items: _cookwares,
                     onToggle: _handleItemToggle,
                   ),
+
+            // ✅ 剩菜页面（从API加载）
+            _buildLeftoversPage(),
           ],
         ),
       ),
@@ -613,6 +714,139 @@ class _InventoryPageState extends State<InventoryPage>
     );
   }
 
+  Widget _buildLeftoversPage() {
+    if (_isLoadingLeftovers) {
+      return const Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_error != null && _leftovers.isEmpty) {
+      return Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('Error: $_error'),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _loadLeftovers,
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_leftovers.isEmpty) {
+      return Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.restaurant_menu, size: 64, color: Colors.grey[400]),
+              const SizedBox(height: 16),
+              Text(
+                'No Leftovers',
+                style: TextStyle(
+                  fontSize: 18,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Leftovers will be automatically added here after completing cooking',
+                style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: ListView.builder(
+        padding: const EdgeInsets.only(bottom: 20, top: 5),
+        itemCount: _leftovers.length,
+        itemBuilder: (context, index) {
+          final leftover = _leftovers[index];
+          return Dismissible(
+            key: ValueKey(leftover.id),
+            direction: DismissDirection.endToStart,
+            background: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.red.shade100,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              alignment: Alignment.centerRight,
+              padding: const EdgeInsets.only(right: 20),
+              child: const Icon(Icons.delete, color: Colors.red, size: 30),
+            ),
+            onDismissed: (direction) async {
+              final deletedLeftover = leftover;
+              try {
+                await _deleteLeftover(deletedLeftover);
+              } catch (e) {
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text("Failed to delete: $e"),
+                    action: SnackBarAction(
+                      label: "UNDO",
+                      onPressed: () {
+                        _loadLeftovers();
+                      },
+                    ),
+                  ),
+                );
+              }
+            },
+            child: LeftoverCard(
+              item: leftover,
+              onDelete: () async {
+                // Show confirmation dialog
+                final confirmed = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Delete Leftover'),
+                    content: Text(
+                      'Are you sure you want to delete "${leftover.dishName ?? 'Unknown Dish'}"?',
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: const Text('Cancel'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.red,
+                        ),
+                        child: const Text('Delete'),
+                      ),
+                    ],
+                  ),
+                );
+
+                if (confirmed == true && mounted) {
+                  await _deleteLeftover(leftover);
+                }
+              },
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   Widget _buildIngredientCard(Ingredient item) {
     return IngredientCard(
       item: item,
@@ -651,7 +885,7 @@ class _InventoryPageState extends State<InventoryPage>
                           expiryDate: DateTime.now().add(
                             const Duration(days: 7),
                           ),
-                          quantity: 1,
+                          quantity: 1.0,
                           unit: 'pcs',
                           imagePlaceholder: '📝',
                         ),

@@ -8,7 +8,7 @@ class IngredientCard extends StatelessWidget {
 
   // --- 交互回调 ---
   final VoidCallback? onTap; // 点击卡片本身 (用于跳转详情)
-  final Function(int) onQuantityChanged; // 数量变化
+  final Function(double) onQuantityChanged; // 🔥 数量变化（支持小数）
   final Function(String)? onUnitChanged; // 单位变化 (如果为 null，说明单位不可改)
   final VoidCallback? onExpiryTap; // 点击过期时间 (如果为 null，说明不可改)
 

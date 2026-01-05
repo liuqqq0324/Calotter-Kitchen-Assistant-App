@@ -83,12 +83,17 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
         double totalProtein = 0;
         double totalFat = 0;
         double totalCarbs = 0;
+        
+        // 检查是否有任何菜品被标记为已吃（percentEaten > 0）
+        bool hasAnyCompletedDish = false;
 
         for (final recipe in widget.menu.recipes) {
           final percentEaten = _percentEaten[recipe.id] ?? 0;
           
           // 如果吃了 > 0%，认为这道菜已完成
           if (percentEaten > 0) {
+            hasAnyCompletedDish = true; // 标记有已完成的菜品
+            
             // 尝试解析 recipe.id 为 int（如果是后端返回的 Dish ID）
             // 注意：如果 recipe.id 不是数字格式，completedDishIds 可能为空
             // 这种情况下，后端会完成所有菜品（如果 completedDishIds 为空）
@@ -124,7 +129,9 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
           }
         }
 
-        if (completedDishIds.isEmpty) {
+        // 修改：检查是否有任何已完成的菜品，而不是检查 completedDishIds 是否为空
+        // 因为后端支持 completedDishIds 为空（表示完成所有菜品）
+        if (!hasAnyCompletedDish) {
           ScaffoldMessenger.of(context)
             ..hideCurrentSnackBar()
             ..showSnackBar(
@@ -137,9 +144,10 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
         }
 
         // 调用finish cooking API
+        // 注意：completedDishIds 可以为空，后端会自动完成所有菜品
         await CookingApiService.finishCooking(
           sessionId: widget.sessionId!,
-          completedDishIds: completedDishIds, // 传入已完成的菜品 ID
+          completedDishIds: completedDishIds.isEmpty ? null : completedDishIds,
           finalIngredients: finalIngredients,
           totalNutrition: {
             'calories': totalCalories,
@@ -211,7 +219,26 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
     ConsumptionHistoryStore.add(record);
 
     if (!mounted) return;
-    Navigator.popUntil(context, (route) => route.isFirst);
+    
+    // 返回到 RecipesHomePage，而不是 LandingPage
+    // 路由栈结构：MainScaffold -> RecipeInstructionPage -> MealSummaryPage
+    // 注意：RecipesHomePage 是 MainScaffold 的一个 tab，不是独立路由
+    // MainScaffold 是登录后 pushReplacement 的，所以它应该是第一个路由（isFirst = true）
+    // 从 MealSummaryPage 返回到 MainScaffold，需要 pop 两次
+    
+    // 方案：直接 pop 两次，返回到 MainScaffold
+    // 由于 MainScaffold 是登录后 pushReplacement 的，所以它应该是第一个路由
+    // MainScaffold 会自动显示 RecipesHomePage（因为它是 MainScaffold 的一个 tab）
+    
+    // 返回到 RecipeInstructionPage
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context);
+    }
+    
+    // 再返回到 MainScaffold（RecipesHomePage 是 MainScaffold 的一个 tab）
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context);
+    }
   }
 
   @override

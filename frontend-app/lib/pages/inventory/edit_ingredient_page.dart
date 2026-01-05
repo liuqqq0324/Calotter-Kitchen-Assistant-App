@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:personal_sous_chef/models/ingredient.dart';
 import 'package:personal_sous_chef/widgets/quantity_selector.dart';
-import 'package:personal_sous_chef/data/static_data.dart';
 import 'package:personal_sous_chef/services/inventory_api_service.dart';
 import 'package:personal_sous_chef/services/household_service.dart';
 import 'package:personal_sous_chef/services/standard_library_service.dart';
@@ -23,7 +22,7 @@ class EditIngredientPage extends StatefulWidget {
 class _EditIngredientPageState extends State<EditIngredientPage> {
   late TextEditingController _nameController;
   late TextEditingController _quantityController;
-  late int _quantity;
+  late double _quantity; // 🔥 改为 double 支持小数
   late String _unit;
   late DateTime _expiryDate;
 
@@ -270,7 +269,7 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
                   totalWidth: 95,
 
                   // 🔥 传入数据源：启用下拉功能
-                  unitOptions: kUnitOptions,
+                  unitOptions: const ['pcs', 'g', 'kg', 'ml', 'L', 'blocks', 'box', 'bag'],
 
                   // 🔥 传入回调：当用户选了新单位时做什么
                   onUnitChanged: (newUnit) {
@@ -348,7 +347,7 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
               height: 50,
               child: ElevatedButton(
                 onPressed: () async {
-                  if (_quantity < 1) _quantity = 1;
+                  if (_quantity <= 0) _quantity = 1.0; // 🔥 改为 <= 0，并设置为 1.0
 
                   widget.ingredient.quantity = _quantity;
                   widget.ingredient.unit = _unit;

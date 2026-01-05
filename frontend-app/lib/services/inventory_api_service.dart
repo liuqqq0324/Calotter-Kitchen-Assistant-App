@@ -538,4 +538,65 @@ class InventoryApiService {
       throw Exception('Network error: $e');
     }
   }
+
+  // ==================== 剩菜管理 ====================
+
+  /// Get all leftovers for a household
+  /// 获取家庭的所有剩菜
+  /// GET /api/inventory/leftovers?householdId={householdId}
+  static Future<List<Map<String, dynamic>>> getLeftovers({
+    String? householdId,
+  }) async {
+    try {
+      final householdIdParam =
+          householdId ?? await AuthService.getHouseholdId();
+      if (householdIdParam == null) {
+        throw Exception('Household not found. Please register or login first.');
+      }
+
+      final url = Uri.parse(
+        '${ApiConfig.inventoryBaseUrl}/api/inventory/leftovers?householdId=$householdIdParam',
+      );
+      final response = await http.get(url, headers: await _getHeaders());
+
+      // ✅ 适配后端返回的 Result<T> 格式
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200 && data['code'] == 200) {
+        final responseData = data['data'];
+        if (responseData is List) {
+          return List<Map<String, dynamic>>.from(responseData);
+        }
+        return [];
+      } else {
+        throw Exception(
+          'Failed to get leftovers: ${data['message'] ?? 'Unknown error'}',
+        );
+      }
+    } catch (e) {
+      throw Exception('Network error: $e');
+    }
+  }
+
+  /// Delete a leftover
+  /// 删除剩菜
+  /// DELETE /api/inventory/leftovers/{id}
+  static Future<void> deleteLeftover({required String leftoverId}) async {
+    try {
+      final url = Uri.parse(
+        '${ApiConfig.inventoryBaseUrl}/api/inventory/leftovers/$leftoverId',
+      );
+
+      final response = await http.delete(url, headers: await _getHeaders());
+
+      // ✅ 适配后端返回的 Result<T> 格式
+      final data = jsonDecode(response.body);
+      if (response.statusCode != 200 || data['code'] != 200) {
+        throw Exception(
+          'Failed to delete leftover: ${data['message'] ?? 'Unknown error'}',
+        );
+      }
+    } catch (e) {
+      throw Exception('Network error: $e');
+    }
+  }
 }

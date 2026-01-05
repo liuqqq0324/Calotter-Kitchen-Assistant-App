@@ -62,9 +62,11 @@ class _LoginPageState extends State<LoginPage> {
 
       if (result['success'] == true) {
         // Login successful, navigate to main app
-        Navigator.pushReplacement(
+        // 使用 pushAndRemoveUntil 完全移除 LandingPage，确保返回键不会回到 LandingPage
+        Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (context) => const MainScaffold()),
+          (route) => false, // 移除所有之前的路由（包括 LandingPage）
         );
       } else {
         // Show error message

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
 class QuantitySelector extends StatefulWidget {
-  final int initialValue;
+  final double initialValue; // 🔥 改为 double 支持小数
   final String unit;
-  final Function(int) onChanged;
+  final Function(double) onChanged; // 🔥 改为 double
 
   // 🔥 新增参数：单位选择相关
   final List<String>? unitOptions; // 如果为 null，就是不可选模式
@@ -28,7 +28,7 @@ class QuantitySelector extends StatefulWidget {
 
 class _QuantitySelectorState extends State<QuantitySelector> {
   late TextEditingController _controller;
-  late int _currentValue;
+  late double _currentValue; // 🔥 改为 double
   bool _isTyping = false;
 
   @override
@@ -41,7 +41,7 @@ class _QuantitySelectorState extends State<QuantitySelector> {
   @override
   void didUpdateWidget(QuantitySelector oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.initialValue != widget.initialValue) {
+    if ((oldWidget.initialValue - widget.initialValue).abs() > 0.001) { // 🔥 使用小数比较
       _currentValue = widget.initialValue;
       if (!_isTyping && _controller.text != _formatNumber(_currentValue)) {
         _controller.text = _formatNumber(_currentValue);
@@ -55,16 +55,27 @@ class _QuantitySelectorState extends State<QuantitySelector> {
     super.dispose();
   }
 
-  String _formatNumber(int number) {
-    if (number >= 1000000)
-      return '${(number / 1000000).toStringAsFixed(1).replaceAll(RegExp(r'\.0$'), '')}M';
-    if (number >= 1000)
-      return '${(number / 1000).toStringAsFixed(1).replaceAll(RegExp(r'\.0$'), '')}k';
-    return number.toString();
+  String _formatNumber(double number) {
+    // 🔥 特殊处理：0 < number < 1 时显示 "< 1"
+    if (number > 0 && number < 1) {
+      return '< 1';
+    }
+    
+    // 整数部分
+    int intPart = number.floor();
+    
+    if (intPart >= 1000000)
+      return '${(intPart / 1000000).toStringAsFixed(1).replaceAll(RegExp(r'\.0$'), '')}M';
+    if (intPart >= 1000)
+      return '${(intPart / 1000).toStringAsFixed(1).replaceAll(RegExp(r'\.0$'), '')}k';
+    return intPart.toString();
   }
+  
+  // 🔥 判断是否需要显示指示器（0 < quantity < 1）
+  bool get _showIndicator => _currentValue > 0 && _currentValue < 1;
 
-  void _updateValue(int newValue) {
-    if (newValue < 1) return;
+  void _updateValue(double newValue) {
+    if (newValue < 0) return; // 🔥 允许小数，但不允许负数
     _isTyping = false;
     setState(() {
       _currentValue = newValue;
@@ -75,8 +86,8 @@ class _QuantitySelectorState extends State<QuantitySelector> {
 
   void _handleInput(String val) {
     _isTyping = false;
-    int? newValue = int.tryParse(val);
-    if (newValue != null && newValue >= 1) {
+    double? newValue = double.tryParse(val); // 🔥 改为 double
+    if (newValue != null && newValue >= 0) { // 🔥 允许小数和0
       _updateValue(newValue);
     } else {
       _controller.text = _formatNumber(_currentValue);
@@ -85,7 +96,7 @@ class _QuantitySelectorState extends State<QuantitySelector> {
 
   @override
   Widget build(BuildContext context) {
-    bool isMin = _currentValue <= 1;
+    bool isMin = _currentValue <= 0; // 🔥 改为 <= 0
 
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -94,7 +105,7 @@ class _QuantitySelectorState extends State<QuantitySelector> {
         _buildBtn(
           icon: Icons.remove,
           color: isMin ? Colors.grey.shade300 : Colors.orange,
-          onTap: isMin ? () {} : () => _updateValue(_currentValue - 1),
+          onTap: isMin ? () {} : () => _updateValue((_currentValue - 1).clamp(0.0, double.infinity)), // 🔥 支持小数
         ),
 
         const SizedBox(width: 6),
@@ -110,40 +121,60 @@ class _QuantitySelectorState extends State<QuantitySelector> {
           ),
           child: Row(
             children: [
-              // 数字输入框
+              // 数字输入框 + 指示器
               Expanded(
-                child: TextField(
-                  controller: _controller,
-                  keyboardType: TextInputType.number,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  decoration: const InputDecoration(
-                    border: InputBorder.none,
-                    isDense: true,
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                  onTap: () {
-                    _isTyping = true;
-                    _controller.text = _currentValue.toString();
-                  },
-                  onSubmitted: (val) => _handleInput(val),
-                  onTapOutside: (_) {
-                    if (_isTyping) {
-                      _handleInput(_controller.text);
-                      FocusScope.of(context).unfocus();
-                    }
-                  },
-                  onChanged: (val) {
-                    _isTyping = true;
-                    int? valInt = int.tryParse(val);
-                    if (valInt != null) {
-                      _currentValue = valInt;
-                      widget.onChanged(valInt);
-                    }
-                  },
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Flexible(
+                      child: TextField(
+                        controller: _controller,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true), // 🔥 允许小数输入
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        decoration: const InputDecoration(
+                          border: InputBorder.none,
+                          isDense: true,
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                        onTap: () {
+                          _isTyping = true;
+                          _controller.text = _currentValue.toString();
+                        },
+                        onSubmitted: (val) => _handleInput(val),
+                        onTapOutside: (_) {
+                          if (_isTyping) {
+                            _handleInput(_controller.text);
+                            FocusScope.of(context).unfocus();
+                          }
+                        },
+                        onChanged: (val) {
+                          _isTyping = true;
+                          double? valDouble = double.tryParse(val); // 🔥 改为 double
+                          if (valDouble != null && valDouble >= 0) {
+                            _currentValue = valDouble;
+                            widget.onChanged(valDouble);
+                          }
+                        },
+                      ),
+                    ),
+                    // 🔥 指示器：当 0 < quantity < 1 时显示小红点
+                    if (_showIndicator)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 2),
+                        child: Container(
+                          width: 6,
+                          height: 6,
+                          decoration: const BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
 

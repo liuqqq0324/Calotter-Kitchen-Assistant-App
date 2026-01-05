@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:personal_sous_chef/models/ingredient.dart';
 import 'package:personal_sous_chef/widgets/ingredient_card.dart';
-import 'package:personal_sous_chef/data/static_data.dart'; // 🔥 必须引入，用于更新全局数据
 import 'package:personal_sous_chef/pages/inventory/edit_ingredient_page.dart'; // 🔥 引入编辑页
+import 'package:personal_sous_chef/services/inventory_api_service.dart'; // 🔥 引入 API 服务
 
 class ReviewIngredientsPage extends StatefulWidget {
   // 🔥 新增：定义一个变量来接收外部传入的数据
@@ -37,21 +37,21 @@ class _ReviewIngredientsPageState extends State<ReviewIngredientsPage> {
         Ingredient(
           name: "Tomatoes",
           expiryDate: DateTime.now().add(const Duration(days: 5)),
-          quantity: 3,
+          quantity: 3.0,
           unit: 'pcs',
           imagePlaceholder: '🍅',
         ),
         Ingredient(
           name: "Eggs",
           expiryDate: DateTime.now().add(const Duration(days: 14)),
-          quantity: 6,
+          quantity: 6.0,
           unit: 'pcs',
           imagePlaceholder: '🥚',
         ),
         Ingredient(
           name: "Potatoes",
           expiryDate: DateTime.now().add(const Duration(days: 10)),
-          quantity: 2,
+          quantity: 2.0,
           unit: 'kg',
           imagePlaceholder: '🥔',
         ),
@@ -62,6 +62,120 @@ class _ReviewIngredientsPageState extends State<ReviewIngredientsPage> {
 
   // 🔥 状态控制：是否已完成添加
   bool _isAdded = false;
+  // 🔥 保存状态：是否正在保存到数据库
+  bool _isSaving = false;
+
+  // 🔥 保存食材到数据库
+  Future<void> _saveIngredientsToDatabase() async {
+    if (_detectedItems.isEmpty) return;
+
+    setState(() {
+      _isSaving = true;
+    });
+
+    int successCount = 0;
+    int failCount = 0;
+    List<String> failedItems = [];
+    List<Ingredient> successfullySavedItems = []; // 成功保存的食材列表
+
+    try {
+      // 遍历所有识别的食材，逐个保存
+      for (final ingredient in _detectedItems) {
+        try {
+          // 1. 通过名称查找标准食材 ID
+          final standardIngredientId =
+              await InventoryApiService.findStandardIngredientIdByName(
+            ingredient.name,
+          );
+
+          if (standardIngredientId == null) {
+            // 找不到标准食材，跳过并记录
+            failCount++;
+            failedItems.add(ingredient.name);
+            continue;
+          }
+
+          // 2. 格式化过期日期为 ISO 8601 格式
+          final expiryDateStr =
+              ingredient.expiryDate.toIso8601String().split('T')[0];
+
+          // 3. 调用 API 保存到数据库
+          await InventoryApiService.addInventory(
+            name: ingredient.name,
+            quantity: ingredient.quantity, // 🔥 quantity 已经是 double，无需转换
+            unit: ingredient.unit,
+            expiryDate: expiryDateStr,
+            standardIngredientId: standardIngredientId,
+          );
+
+          successCount++;
+          successfullySavedItems.add(ingredient); // 记录成功保存的食材
+        } catch (e) {
+          // 单个食材保存失败，记录但继续处理其他食材
+          failCount++;
+          failedItems.add(ingredient.name);
+          // 可选：记录详细错误日志
+          debugPrint('Failed to save ${ingredient.name}: $e');
+        }
+      }
+
+      // 4. 成功保存的食材已保存到数据库，无需更新全局数据
+
+      // 5. 显示结果提示
+      if (!mounted) return;
+
+      String message;
+      if (successCount == _detectedItems.length) {
+        // 全部成功
+        message = "Successfully added $successCount ingredient(s) to inventory!";
+      } else if (successCount > 0) {
+        // 部分成功
+        message =
+            "Added $successCount ingredient(s) successfully. ${failCount > 0 ? '$failCount item(s) failed: ${failedItems.join(", ")}' : ''}";
+      } else {
+        // 全部失败
+        message =
+            "Failed to add ingredients. Please check if ingredient names match the standard library.";
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          duration: Duration(seconds: failCount > 0 ? 5 : 3),
+          backgroundColor: successCount == _detectedItems.length
+              ? Colors.green
+              : (successCount > 0 ? Colors.orange : Colors.red),
+        ),
+      );
+
+      // 6. 如果有成功的，切换到成功视图
+      if (successCount > 0) {
+        setState(() {
+          _isAdded = true;
+          _isSaving = false;
+        });
+      } else {
+        // 全部失败，保持当前视图，允许用户重试
+        setState(() {
+          _isSaving = false;
+        });
+      }
+    } catch (e) {
+      // 整体错误处理
+      if (!mounted) return;
+      setState(() {
+        _isSaving = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Error saving ingredients: $e"),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    }
+  }
 
   // 日期选择逻辑 (保持不变)
   Future<void> _selectDate(Ingredient item) async {
@@ -179,7 +293,7 @@ class _ReviewIngredientsPageState extends State<ReviewIngredientsPage> {
               child: IngredientCard(
                 item: item,
                 useStatusColors: false,
-                unitOptions: kUnitOptions,
+                unitOptions: const ['pcs', 'g', 'kg', 'ml', 'L', 'blocks', 'box', 'bag'],
                 onUnitChanged: (val) => setState(() => item.unit = val),
                 onQuantityChanged: (val) => setState(() => item.quantity = val),
                 onExpiryTap: () => _selectDate(item),
@@ -259,30 +373,31 @@ class _ReviewIngredientsPageState extends State<ReviewIngredientsPage> {
                 width: double.infinity,
                 height: 55,
                 child: ElevatedButton(
-                  onPressed: () {
-                    if (_detectedItems.isEmpty) return;
-
-                    // 1. 更新全局数据
-                    setState(() {
-                      kInitialIngredients.addAll(_detectedItems);
-                      // 2. 切换到成功视图
-                      _isAdded = true;
-                    });
-                  },
+                  onPressed: _isSaving ? null : _saveIngredientsToDatabase,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.orange,
+                    disabledBackgroundColor: Colors.grey,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(15),
                     ),
                   ),
-                  child: const Text(
-                    "Add ingredients to inventory",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
+                  child: _isSaving
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : const Text(
+                          "Add ingredients to inventory",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
                 ),
               ),
               const SizedBox(height: 16),

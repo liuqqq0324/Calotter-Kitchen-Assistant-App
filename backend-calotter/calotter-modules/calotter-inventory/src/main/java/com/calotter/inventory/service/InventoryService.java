@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -372,7 +373,17 @@ public class InventoryService {
     public LeftoverResponse getLeftover(Long id) {
         LeftoverDish leftover = leftoverRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("剩菜不存在"));
-        return toLeftoverResponse(leftover);
+        
+        return LeftoverResponse.builder()
+                .id(leftover.getId())
+                .householdId(leftover.getHousehold().getId())
+                .originalDishId(leftover.getOriginalDishId())
+                .dishName(leftover.getDishName()) // ✅ 从快照获取
+                .coverImage(leftover.getCoverImage()) // ✅ 从快照获取
+                .currentQuantityGram(leftover.getCurrentQuantityGram())
+                .producedTime(leftover.getProducedTime())
+                .caloriesPer100g(leftover.getCaloriesPer100g()) // ✅ 从快照获取
+                .build();
     }
 
     /**
@@ -381,7 +392,16 @@ public class InventoryService {
     public List<LeftoverResponse> getLeftoversByHousehold(Long householdId) {
         List<LeftoverDish> leftovers = leftoverRepository.findByHouseholdId(householdId);
         return leftovers.stream()
-                .map(this::toLeftoverResponse)
+                .map(leftover -> LeftoverResponse.builder()
+                        .id(leftover.getId())
+                        .householdId(leftover.getHousehold().getId())
+                        .originalDishId(leftover.getOriginalDishId())
+                        .dishName(leftover.getDishName()) // ✅ 从快照获取
+                        .coverImage(leftover.getCoverImage()) // ✅ 从快照获取
+                        .currentQuantityGram(leftover.getCurrentQuantityGram())
+                        .producedTime(leftover.getProducedTime())
+                        .caloriesPer100g(leftover.getCaloriesPer100g()) // ✅ 从快照获取
+                        .build())
                 .collect(Collectors.toList());
     }
 
@@ -434,13 +454,22 @@ public class InventoryService {
                 .build();
     }
 
+    /**
+     * 转换 LeftoverDish 为 LeftoverResponse（已废弃，使用 getLeftover 或 getLeftoversByHousehold）
+     * 
+     * @deprecated 此方法不包含菜品信息，请使用通过 Service 层获取的方法
+     */
+    @Deprecated
     private LeftoverResponse toLeftoverResponse(LeftoverDish leftover) {
         return LeftoverResponse.builder()
                 .id(leftover.getId())
                 .householdId(leftover.getHousehold().getId())
                 .originalDishId(leftover.getOriginalDishId())
+                .dishName(null) // 需要通过 Service 获取
+                .coverImage(null) // 需要通过 Service 获取
                 .currentQuantityGram(leftover.getCurrentQuantityGram())
                 .producedTime(leftover.getProducedTime())
+                .caloriesPer100g(null) // 需要通过 Service 获取
                 .build();
     }
 

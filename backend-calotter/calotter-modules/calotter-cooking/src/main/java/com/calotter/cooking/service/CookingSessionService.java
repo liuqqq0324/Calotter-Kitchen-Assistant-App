@@ -76,9 +76,12 @@ public class CookingSessionService {
             LeftoverDish leftover = new LeftoverDish();
             leftover.setHousehold(household);
             leftover.setOriginalDishId(dish.getId()); // ✅ 关联Dish（弱引用）
+            // ✅ 保存菜品信息快照（避免查询时 JOIN 和循环依赖）
+            leftover.setDishName(dish.getName());
+            leftover.setCoverImage(dish.getCoverImage());
+            leftover.setCaloriesPer100g(dish.getCaloriesPer100g());
             leftover.setCurrentQuantityGram((int)(dish.getTotalWeightGram() * remainingPercentage));
             leftover.setProducedTime(req.getConsumedAt());
-            // 无需存储name和coverImage，通过LeftoverDishService查询Dish获取
             
             leftoverDishRepository.save(leftover);
             leftoverCreated = true;

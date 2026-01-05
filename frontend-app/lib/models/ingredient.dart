@@ -1,7 +1,7 @@
 class Ingredient {
   String name; // 食材名称
   DateTime expiryDate; // 过期时间
-  int quantity; // 数量 (整数)
+  double quantity; // 数量 (支持小数)
   String unit; // 单位 (如 'g', 'pcs')
   String imagePlaceholder; // 用Emoji代替图片占位
   String? inventoryId; // 后端 inventory_id (用于 API 操作)
@@ -10,7 +10,7 @@ class Ingredient {
   Ingredient({
     required this.name,
     required this.expiryDate,
-    this.quantity = 1,
+    this.quantity = 1.0,
     this.unit = 'pcs',
     this.imagePlaceholder = '📦',
     this.inventoryId,

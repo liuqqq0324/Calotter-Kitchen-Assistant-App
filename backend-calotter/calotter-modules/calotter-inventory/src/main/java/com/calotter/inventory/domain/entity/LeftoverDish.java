@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
  * 剩菜实体
  * 
  * 注意：使用弱引用 originalDishId 关联 Dish，避免模块间的循环依赖。
- * 获取 Dish 相关属性（name, coverImage, caloriesPer100g等）需要在 Service 层通过 DishRepository 查询。
+ * 菜品信息（dishName, coverImage, caloriesPer100g）在创建时保存快照，避免查询时 JOIN。
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
@@ -40,6 +40,16 @@ public class LeftoverDish extends BaseEntity {
     @Column(name = "original_dish_id", nullable = false)
     private Long originalDishId;
 
+    // ✅ 菜品信息快照（创建时保存，避免查询时 JOIN 和循环依赖）
+    @Column(name = "dish_name", length = 200)
+    private String dishName; // 菜品名称快照
+    
+    @Column(name = "cover_image", length = 500)
+    private String coverImage; // 封面图快照（可选）
+    
+    @Column(name = "calories_per_100g")
+    private Integer caloriesPer100g; // 每100克的卡路里快照
+
     // 重命名：quantityGram -> currentQuantityGram（更清晰）
     @Column(nullable = false)
     private Integer currentQuantityGram; // 当前剩余重量（克）
@@ -47,13 +57,4 @@ public class LeftoverDish extends BaseEntity {
     // 保留：记录制作时间（用于判断新鲜度）
     @Column(nullable = false)
     private LocalDateTime producedTime;
-
-    // 移除：name 和 coverImage（需要在 Service 层通过 DishRepository 查询 Dish 获取）
-    // 移除：caloriesPer100g（需要在 Service 层通过 DishRepository 查询 Dish 计算）
-    
-    // 注意：以下辅助方法需要在 Service 层实现：
-    // - getName() - 通过 DishRepository.findById(originalDishId) 获取
-    // - getCoverImage() - 通过 DishRepository.findById(originalDishId) 获取
-    // - getCurrentCalories() - 通过 DishRepository 查询 Dish 后计算
-    // - getCaloriesPer100g() - 通过 DishRepository 查询 Dish 后计算
 }
