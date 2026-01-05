@@ -253,6 +253,47 @@ public class UserController {
     }
     
     /**
+     * 获取用户偏好（操作 User.preferences Map，包含两个大类：TASTE, CUISINE）
+     * GET /api/user/preferences-map
+     */
+    @GetMapping("/preferences-map")
+    public Result<com.calotter.user.controller.dto.UserPreferencesResponse> getPreferencesMap(
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @RequestParam(value = "id", required = false) Long userId) {
+        try {
+            Long targetUserId = getUserId(authHeader, userId);
+            com.calotter.user.controller.dto.UserPreferencesResponse response = 
+                    userService.getUserPreferencesMap(targetUserId);
+            return Result.success(response);
+        } catch (IllegalArgumentException e) {
+            return Result.error(400, e.getMessage());
+        } catch (Exception e) {
+            return Result.error("获取用户偏好失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 更新用户偏好（操作 User.preferences Map，包含两个大类：TASTE, CUISINE）
+     * PUT /api/user/preferences-map
+     */
+    @PutMapping("/preferences-map")
+    public Result<com.calotter.user.controller.dto.UserPreferencesResponse> updatePreferencesMap(
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @RequestParam(value = "id", required = false) Long userId,
+            @Valid @RequestBody com.calotter.user.controller.dto.UserPreferencesRequest request) {
+        try {
+            Long targetUserId = getUserId(authHeader, userId);
+            com.calotter.user.controller.dto.UserPreferencesResponse response = 
+                    userService.updateUserPreferencesMap(targetUserId, request);
+            return Result.success(response);
+        } catch (IllegalArgumentException e) {
+            return Result.error(400, e.getMessage());
+        } catch (Exception e) {
+            return Result.error("更新用户偏好失败: " + e.getMessage());
+        }
+    }
+    
+    /**
      * 从 Authorization header 或请求参数中获取用户ID
      */
     private Long getUserId(String authHeader, Long userId) {

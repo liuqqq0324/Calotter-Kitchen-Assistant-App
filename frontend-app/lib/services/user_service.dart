@@ -269,4 +269,66 @@ class UserService {
       return {'success': false, 'error': 'Network error: $e'};
     }
   }
+
+  // Get user preferences map (TASTE, CUISINE, DISLIKE)
+  static Future<Map<String, dynamic>> getUserPreferencesMap({
+    String? userId,
+  }) async {
+    try {
+      final userIdParam = userId ?? await AuthService.getUserId();
+      final url = Uri.parse(
+        '${ApiConfig.baseUrl}/api/user/preferences-map?id=$userIdParam',
+      );
+      final response = await http.get(url, headers: await _getHeaders());
+
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        // 后端返回的是 Result<UserPreferencesResponse> 格式: {code, message, data: {tastes: [], cuisines: [], dislikes: []}}
+        final responseData = data['data'] ?? data;
+        return {'success': true, 'data': responseData};
+      } else {
+        return {
+          'success': false,
+          'error': data['message'] ?? 'Failed to get preferences',
+        };
+      }
+    } catch (e) {
+      return {'success': false, 'error': 'Network error: $e'};
+    }
+  }
+
+  // Update user preferences map (TASTE, CUISINE)
+  static Future<Map<String, dynamic>> updateUserPreferencesMap({
+    String? userId,
+    List<String>? tastes,
+    List<String>? cuisines,
+  }) async {
+    try {
+      final userIdParam = userId ?? await AuthService.getUserId();
+      final url = Uri.parse(
+        '${ApiConfig.baseUrl}/api/user/preferences-map?id=$userIdParam',
+      );
+      final response = await http.put(
+        url,
+        headers: await _getHeaders(),
+        body: jsonEncode({
+          'tastes': tastes ?? [],
+          'cuisines': cuisines ?? [],
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        final responseData = data['data'] ?? data;
+        return {'success': true, 'data': responseData};
+      } else {
+        return {
+          'success': false,
+          'error': data['message'] ?? 'Failed to update preferences',
+        };
+      }
+    } catch (e) {
+      return {'success': false, 'error': 'Network error: $e'};
+    }
+  }
 }

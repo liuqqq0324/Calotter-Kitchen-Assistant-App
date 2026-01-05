@@ -56,12 +56,19 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
     await _loadListsData();
   }
 
+  // 偏好数据（用于显示）
+  List<String> _tastes = [];
+  List<String> _cuisines = [];
+
   Future<void> _loadListsData() async {
-    // Load preferences
-    final prefsResult = await UserService.getUserPreferences();
+    // Load preferences map (TASTE, CUISINE, DISLIKE)
+    final prefsResult = await UserService.getUserPreferencesMap();
     if (prefsResult['success'] == true) {
-      final prefs = prefsResult['data']['preferences'] ?? {};
-      kCurrentUser.preferences = List<String>.from(prefs['cuisineTypes'] ?? []);
+      final data = prefsResult['data'] ?? {};
+      setState(() {
+        _tastes = List<String>.from(data['tastes'] ?? []);
+        _cuisines = List<String>.from(data['cuisines'] ?? []);
+      });
     }
 
     // Load taboos
@@ -79,6 +86,37 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
         allergiesResult['data']['allergies'] ?? [],
       );
     }
+  }
+
+  Widget _buildPreferencesSummary() {
+    if (_tastes.isEmpty && _cuisines.isEmpty) {
+      return Text(
+        'No preferences set. Tap "Edit" to add preferences.',
+        style: GoogleFonts.kalam(
+          fontSize: 14,
+          color: Colors.grey[600],
+        ).copyWith(fontStyle: FontStyle.italic),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (_tastes.isNotEmpty) ...[
+          Text(
+            'Tastes: ${_tastes.join(", ")}',
+            style: GoogleFonts.kalam(fontSize: 14),
+          ),
+          const SizedBox(height: 8),
+        ],
+        if (_cuisines.isNotEmpty) ...[
+          Text(
+            'Cuisines: ${_cuisines.join(", ")}',
+            style: GoogleFonts.kalam(fontSize: 14),
+          ),
+        ],
+      ],
+    );
   }
 
   @override
@@ -250,32 +288,52 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
               ),
             ),
             const SizedBox(height: 40),
-            // 设置项 - 手绘风格卡片
+            // 偏好显示 - 手绘风格卡片（只读）
             SketchyCard(
               backgroundColor: Colors.white,
               borderColor: Colors.black87,
               borderWidth: 2.0,
-              padding: EdgeInsets.zero,
-              onTap: () async {
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const PreferencesListPage(),
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Preferences',
+                        style: GoogleFonts.kalam(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () async {
+                          // 跳转到编辑页面
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const PreferencesListPage(),
+                            ),
+                          );
+                          // Reload lists data after returning from list page
+                          await _loadListsData();
+                          setState(() {});
+                        },
+                        child: Text(
+                          'Edit',
+                          style: GoogleFonts.kalam(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                );
-                // Reload lists data after returning from list page
-                await _loadListsData();
-                setState(() {});
-              },
-              child: ListTile(
-                title: Text(
-                  'Preferences',
-                  style: GoogleFonts.kalam(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                  const SizedBox(height: 12),
+                  // 显示偏好摘要（只读）
+                  _buildPreferencesSummary(),
+                ],
               ),
             ),
             const SizedBox(height: 12),

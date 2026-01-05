@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:personal_sous_chef/theme/fallback_google_fonts.dart';
-// Modified by Chase: Import user static data and user service / 由 Chase 修改：导入用户静态数据和服务
-import '../../../data/user_static_data.dart';
 import '../../../services/user_service.dart';
 
 class PreferencesListPage extends StatefulWidget {
@@ -12,12 +10,37 @@ class PreferencesListPage extends StatefulWidget {
 }
 
 class _PreferencesListPageState extends State<PreferencesListPage> {
-  final TextEditingController _textController = TextEditingController();
   bool _isLoading = true;
-  List<String> _cuisineTypes = [];
-  String _dietaryType = '';
-  String _spiceLevel = '';
-  String _cookingTimePreference = '';
+  bool _isEditing = false; // 编辑模式标志
+  
+  // 两个大类的偏好
+  Set<String> _selectedTastes = {}; // 口味偏好
+  Set<String> _selectedCuisines = {}; // 菜系偏好
+
+  // 标准库选项（与后端 PreferenceStandardLibrary 保持一致）
+  static const List<String> _cuisineOptions = [
+    "chinese",
+    "japanese",
+    "korean",
+    "south_east_asian",
+    "indian",
+    "western",
+    "italian",
+    "mediterranean",
+    "mexican",
+    "middle_eastern",
+    "fusion",
+  ];
+
+  static const List<String> _tasteOptions = [
+    "light",
+    "rich",
+    "spicy",
+    "sweet",
+    "sour",
+    "salty",
+    "umami",
+  ];
 
   @override
   void initState() {
@@ -30,23 +53,20 @@ class _PreferencesListPageState extends State<PreferencesListPage> {
       _isLoading = true;
     });
 
-    final result = await UserService.getUserPreferences();
+    final result = await UserService.getUserPreferencesMap();
     if (result['success'] == true && mounted) {
-      final prefs = result['data']['preferences'] ?? {};
+      final data = result['data'] ?? {};
       setState(() {
-        _cuisineTypes = List<String>.from(prefs['cuisineTypes'] ?? []);
-        _dietaryType = prefs['dietaryType'] ?? '';
-        _spiceLevel = prefs['spiceLevel'] ?? '';
-        _cookingTimePreference = prefs['cookingTimePreference'] ?? '';
-        // Also update local static data for compatibility (only cuisineTypes)
-        kCurrentUser.preferences = List.from(_cuisineTypes);
+        _selectedTastes = Set<String>.from(data['tastes'] ?? []);
+        _selectedCuisines = Set<String>.from(data['cuisines'] ?? []);
         _isLoading = false;
       });
     } else {
-      // Fallback to static data if API fails
+      // Fallback to empty if API fails
       if (mounted) {
         setState(() {
-          _cuisineTypes = List.from(kCurrentUser.preferences);
+          _selectedTastes = {};
+          _selectedCuisines = {};
           _isLoading = false;
         });
       }
@@ -54,17 +74,11 @@ class _PreferencesListPageState extends State<PreferencesListPage> {
   }
 
   Future<void> _savePreferences() async {
-    final result = await UserService.updateUserPreferences(
-      cuisineTypes: _cuisineTypes,
-      dietaryType: _dietaryType.isEmpty ? null : _dietaryType,
-      spiceLevel: _spiceLevel.isEmpty ? null : _spiceLevel,
-      cookingTimePreference: _cookingTimePreference.isEmpty
-          ? null
-          : _cookingTimePreference,
+    final result = await UserService.updateUserPreferencesMap(
+      tastes: _selectedTastes.toList(),
+      cuisines: _selectedCuisines.toList(),
     );
     if (result['success'] == true) {
-      // Also update local static data for compatibility
-      kCurrentUser.preferences = List.from(_cuisineTypes);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -72,6 +86,9 @@ class _PreferencesListPageState extends State<PreferencesListPage> {
             backgroundColor: Colors.green.shade300,
           ),
         );
+        setState(() {
+          _isEditing = false;
+        });
       }
     } else {
       if (mounted) {
@@ -88,31 +105,6 @@ class _PreferencesListPageState extends State<PreferencesListPage> {
     }
   }
 
-  void _addPreference() {
-    final text = _textController.text.trim();
-    if (text.isNotEmpty) {
-      setState(() {
-        _cuisineTypes.add(text);
-        kCurrentUser.preferences = List.from(_cuisineTypes);
-        _textController.clear();
-      });
-      _savePreferences();
-    }
-  }
-
-  void _removePreference(int index) {
-    setState(() {
-      _cuisineTypes.removeAt(index);
-      kCurrentUser.preferences = List.from(_cuisineTypes);
-    });
-    _savePreferences();
-  }
-
-  @override
-  void dispose() {
-    _textController.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -124,74 +116,101 @@ class _PreferencesListPageState extends State<PreferencesListPage> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Cuisine Preferences')),
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: _cuisineTypes.length,
-              itemBuilder: (context, index) {
-                return Dismissible(
-                  key: Key('${_cuisineTypes[index]}-$index'),
-                  direction: DismissDirection.endToStart,
-                  background: Container(
-                    alignment: Alignment.centerRight,
-                    padding: const EdgeInsets.only(right: 20),
-                    color: Colors.red,
-                    child: const Icon(Icons.delete, color: Colors.white),
-                  ),
-                  onDismissed: (direction) {
-                    _removePreference(index);
-                  },
-                  child: Card(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    child: ListTile(title: Text(_cuisineTypes[index])),
-                  ),
-                );
+      appBar: AppBar(
+        title: const Text('Preferences'),
+        actions: [
+          if (!_isEditing)
+            IconButton(
+              icon: const Icon(Icons.edit),
+              onPressed: () {
+                setState(() {
+                  _isEditing = true;
+                });
               },
+            )
+          else
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  _isEditing = false;
+                });
+                _loadPreferences(); // 取消编辑，重新加载
+              },
+              child: const Text('Cancel'),
             ),
+          if (_isEditing)
+            TextButton(
+              onPressed: _savePreferences,
+              child: const Text('Save'),
+            ),
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          // 1. 口味偏好 (Taste Preferences)
+          _buildSectionTitle('Taste Preferences'),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _tasteOptions.map((taste) {
+              final selected = _selectedTastes.contains(taste);
+              return FilterChip(
+                label: Text(taste),
+                selected: selected,
+                onSelected: _isEditing
+                    ? (val) {
+                        setState(() {
+                          if (val) {
+                            _selectedTastes.add(taste);
+                          } else {
+                            _selectedTastes.remove(taste);
+                          }
+                        });
+                      }
+                    : null,
+              );
+            }).toList(),
           ),
-          // 底部输入框
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 4,
-                  offset: const Offset(0, -2),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _textController,
-                    decoration: const InputDecoration(
-                      hintText: 'Add cuisine type',
-                      border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                    ),
-                    onSubmitted: (_) => _addPreference(),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                IconButton(
-                  onPressed: _addPreference,
-                  icon: const Icon(Icons.add_circle),
-                  iconSize: 40,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-              ],
-            ),
+          const SizedBox(height: 24),
+
+          // 2. 菜系偏好 (Cuisine Preferences)
+          _buildSectionTitle('Cuisine Preferences'),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _cuisineOptions.map((cuisine) {
+              final selected = _selectedCuisines.contains(cuisine);
+              return FilterChip(
+                label: Text(cuisine),
+                selected: selected,
+                onSelected: _isEditing
+                    ? (val) {
+                        setState(() {
+                          if (val) {
+                            _selectedCuisines.add(cuisine);
+                          } else {
+                            _selectedCuisines.remove(cuisine);
+                          }
+                        });
+                      }
+                    : null,
+              );
+            }).toList(),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String text) {
+    return Text(
+      text,
+      style: const TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w700,
       ),
     );
   }

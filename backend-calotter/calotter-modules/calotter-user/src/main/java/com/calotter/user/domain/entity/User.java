@@ -71,11 +71,24 @@ public class User extends BaseEntity {
     private Map<String, List<String>> preferences;
 
     /**
-     * 需要在代码层面约定好 Key 的名字即可，不需要改数据库结构。
-     * 我们约定以下三个 Key：
-     * 1. "TASTE"：口味 (e.g., "Sour", "Spicy", "Light")
-     * 2. "CUISINE"：菜系 (e.g., "Sichuan", "Italian")
-     * 3. "DISLIKE"：不喜欢的食材 (e.g., "Cilantro", "Carrot", "Lamb")
+     * 饮食偏好 Map
+     * 
+     * <p>Key 使用 {@link com.calotter.common.core.domain.PreferenceStandardLibrary} 中定义的常量：
+     * <ul>
+     *   <li>{@link com.calotter.common.core.domain.PreferenceStandardLibrary#PREF_KEY_TASTE PREF_KEY_TASTE} - 口味偏好</li>
+     *   <li>{@link com.calotter.common.core.domain.PreferenceStandardLibrary#PREF_KEY_CUISINE PREF_KEY_CUISINE} - 菜系偏好</li>
+     * </ul>
+     * 
+     * <p>注意：厨具（cookers/equipment）不是用户偏好，应该从家庭厨具表（HouseholdUtensil）获取。
+     * 
+     * <p>预设值请参考 {@link com.calotter.common.core.domain.PreferenceStandardLibrary} 中的常量列表：
+     * <ul>
+     *   <li>口味选项：{@link com.calotter.common.core.domain.PreferenceStandardLibrary#TASTE_OPTIONS TASTE_OPTIONS}</li>
+     *   <li>菜系选项：{@link com.calotter.common.core.domain.PreferenceStandardLibrary#CUISINE_OPTIONS CUISINE_OPTIONS}</li>
+     * </ul>
+     * 
+     * <p>与 RecipeGenerationFilter.DietPreferences 的转换请使用 
+     * {@link com.calotter.cooking.service.PreferenceConverter PreferenceConverter} 工具类。
      */
 
     @ManyToMany(fetch = FetchType.LAZY)

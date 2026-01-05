@@ -1,7 +1,10 @@
 package com.calotter.user.service;
 
+import com.calotter.common.core.domain.PreferenceStandardLibrary;
 import com.calotter.common.core.domain.entity.RefAllergen;
 import com.calotter.user.controller.dto.*;
+import com.calotter.user.controller.dto.UserPreferencesRequest;
+import com.calotter.user.controller.dto.UserPreferencesResponse;
 import com.calotter.user.domain.entity.User;
 import com.calotter.user.repository.RefAllergenRepository;
 import com.calotter.user.repository.UserRepository;
@@ -226,9 +229,36 @@ public class UserService {
         if (request.getDietaryType() != null) {
             preferences.put("dietaryType", request.getDietaryType());
         }
+        
+        // 验证并过滤 cuisineTypes（只保留标准库中的值）
         if (request.getCuisineTypes() != null) {
-            preferences.put("cuisineTypes", request.getCuisineTypes());
+            List<String> validCuisines = request.getCuisineTypes().stream()
+                    .filter(cuisine -> PreferenceStandardLibrary.isValidCuisine(cuisine))
+                    .collect(java.util.stream.Collectors.toList());
+            
+            // 如果有无效值，抛出异常
+            List<String> invalidCuisines = request.getCuisineTypes().stream()
+                    .filter(cuisine -> !PreferenceStandardLibrary.isValidCuisine(cuisine))
+                    .collect(java.util.stream.Collectors.toList());
+            
+            if (!invalidCuisines.isEmpty()) {
+                throw new IllegalArgumentException(
+                    "无效的菜系偏好值: " + String.join(", ", invalidCuisines) + 
+                    ". 请使用标准库中的值: " + String.join(", ", PreferenceStandardLibrary.CUISINE_OPTIONS)
+                );
+            }
+            
+            preferences.put("cuisineTypes", validCuisines);
+            
+            // 同步到 User.preferences["CUISINE"]（供 Cooking 模块使用）
+            Map<String, List<String>> userPreferences = user.getPreferences();
+            if (userPreferences == null) {
+                userPreferences = new HashMap<>();
+            }
+            userPreferences.put(PreferenceStandardLibrary.PREF_KEY_CUISINE, validCuisines);
+            user.setPreferences(userPreferences);
         }
+        
         if (request.getSpiceLevel() != null) {
             preferences.put("spiceLevel", request.getSpiceLevel());
         }
@@ -349,5 +379,75 @@ public class UserService {
      */
     public List<RefAllergen> getAllStandardAllergens() {
         return refAllergenRepository.findAll();
+    }
+    
+    /**
+     * 获取用户偏好（操作 User.preferences Map，包含两个大类：TASTE, CUISINE）
+     */
+    public UserPreferencesResponse getUserPreferencesMap(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("用户不存在"));
+        
+        Map<String, List<String>> preferences = user.getPreferences();
+        return UserPreferencesResponse.fromMap(preferences);
+    }
+    
+    /**
+     * 更新用户偏好（操作 User.preferences Map，包含两个大类：TASTE, CUISINE）
+     */
+    @Transactional
+    public UserPreferencesResponse updateUserPreferencesMap(Long userId, UserPreferencesRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("用户不存在"));
+        
+        Map<String, List<String>> preferences = user.getPreferences();
+        if (preferences == null) {
+            preferences = new HashMap<>();
+        }
+        
+        // 更新 TASTE（验证标准库）
+        if (request.getTastes() != null) {
+            List<String> validTastes = request.getTastes().stream()
+                    .filter(taste -> PreferenceStandardLibrary.isValidTaste(taste))
+                    .collect(java.util.stream.Collectors.toList());
+            
+            List<String> invalidTastes = request.getTastes().stream()
+                    .filter(taste -> !PreferenceStandardLibrary.isValidTaste(taste))
+                    .collect(java.util.stream.Collectors.toList());
+            
+            if (!invalidTastes.isEmpty()) {
+                throw new IllegalArgumentException(
+                    "无效的口味偏好值: " + String.join(", ", invalidTastes) + 
+                    ". 请使用标准库中的值: " + String.join(", ", PreferenceStandardLibrary.TASTE_OPTIONS)
+                );
+            }
+            
+            preferences.put(PreferenceStandardLibrary.PREF_KEY_TASTE, validTastes);
+        }
+        
+        // 更新 CUISINE（验证标准库）
+        if (request.getCuisines() != null) {
+            List<String> validCuisines = request.getCuisines().stream()
+                    .filter(cuisine -> PreferenceStandardLibrary.isValidCuisine(cuisine))
+                    .collect(java.util.stream.Collectors.toList());
+            
+            List<String> invalidCuisines = request.getCuisines().stream()
+                    .filter(cuisine -> !PreferenceStandardLibrary.isValidCuisine(cuisine))
+                    .collect(java.util.stream.Collectors.toList());
+            
+            if (!invalidCuisines.isEmpty()) {
+                throw new IllegalArgumentException(
+                    "无效的菜系偏好值: " + String.join(", ", invalidCuisines) + 
+                    ". 请使用标准库中的值: " + String.join(", ", PreferenceStandardLibrary.CUISINE_OPTIONS)
+                );
+            }
+            
+            preferences.put(PreferenceStandardLibrary.PREF_KEY_CUISINE, validCuisines);
+        }
+        
+        user.setPreferences(preferences);
+        user = userRepository.save(user);
+        
+        return UserPreferencesResponse.fromMap(user.getPreferences());
     }
 }

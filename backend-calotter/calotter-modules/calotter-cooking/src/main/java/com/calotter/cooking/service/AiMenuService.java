@@ -1,5 +1,6 @@
 package com.calotter.cooking.service;
 
+import com.calotter.common.core.domain.PreferenceStandardLibrary;
 import com.calotter.cooking.controller.dto.RecipeGenerationFilter;
 import com.calotter.cooking.service.dto.MenuDTO;
 import com.calotter.inventory.domain.entity.Ingredient;
@@ -165,15 +166,14 @@ public class AiMenuService {
             
             // 收集偏好（User.preferences是Map<String, List<String>>）
             if (member.getPreferences() != null) {
-                List<String> dislikes = member.getPreferences().getOrDefault("DISLIKE", new ArrayList<>());
-                avoidIngredients.addAll(dislikes);
-                
-                List<String> cuisines = member.getPreferences().getOrDefault("CUISINE", new ArrayList<>());
+                List<String> cuisines = member.getPreferences().getOrDefault(PreferenceStandardLibrary.PREF_KEY_CUISINE, new ArrayList<>());
                 cuisinePreferences.addAll(cuisines);
                 
-                List<String> tastes = member.getPreferences().getOrDefault("TASTE", new ArrayList<>());
+                List<String> tastes = member.getPreferences().getOrDefault(PreferenceStandardLibrary.PREF_KEY_TASTE, new ArrayList<>());
                 tastePreferences.addAll(tastes);
             }
+            
+            // TODO: avoidIngredients 应该从 User.taboos 或其他来源获取，而不是从 preferences
             
             // 计算卡路里目标（使用User而不是FamilyMember）
             HealthGoal goal = healthGoalRepository.findByUserAndStatus(member, 1); // 1=Active
