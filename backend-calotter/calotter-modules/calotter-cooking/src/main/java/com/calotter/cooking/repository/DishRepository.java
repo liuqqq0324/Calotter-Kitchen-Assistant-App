@@ -28,6 +28,12 @@ public interface DishRepository extends JpaRepository<Dish, Long> {
      * 收藏列表
      */
     List<Dish> findByHouseholdIdAndFavoriteTrueOrderByUpdateTimeDesc(Long householdId);
+
+    /**
+     * 查找“模板 Dish”（收藏应当指向模板）
+     */
+    Optional<Dish> findFirstByHouseholdIdAndNameIgnoreCaseAndDishType(Long householdId, String name, Dish.DishType dishType);
+    List<Dish> findByHouseholdIdAndDishType(Long householdId, Dish.DishType dishType);
     
     /**
      * 根据ID和家庭查询Dish（用于权限验证）

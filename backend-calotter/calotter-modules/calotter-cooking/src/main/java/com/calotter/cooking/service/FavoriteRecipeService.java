@@ -35,15 +35,16 @@ public class FavoriteRecipeService {
         Household household = householdRepository.findById(householdId)
                 .orElseThrow(() -> new IllegalArgumentException("家庭不存在"));
 
-        // 收藏场景：简化为按名称匹配已存在的 Dish（避免重复创建）
-        Dish dish = dishRepository.findByHouseholdId(householdId).stream()
-                .filter(d -> d.getName().equalsIgnoreCase(recipeDto.getTitle()))
-                .findFirst()
-                .orElse(null);
-        if (dish == null) {
-            dish = mapToDish(recipeDto, household);
-            dish = dishRepository.save(dish);
-        }
+        // 收藏永远指向“模板 Dish”
+        Dish dish = dishRepository
+                .findFirstByHouseholdIdAndNameIgnoreCaseAndDishType(
+                        householdId, recipeDto.getTitle(), Dish.DishType.TEMPLATE)
+                .orElseGet(() -> {
+                    Dish d = mapToDish(recipeDto, household);
+                    d.setDishType(Dish.DishType.TEMPLATE);
+                    d.setTemplateDishId(null);
+                    return dishRepository.save(d);
+                });
 
         // 使用独立关系表保存收藏状态
         boolean exists = favoriteDishRepository.existsByHouseholdIdAndDishId(householdId, dish.getId());
@@ -71,6 +72,8 @@ public class FavoriteRecipeService {
         Household household = householdRepository.findById(householdId)
                 .orElseThrow(() -> new IllegalArgumentException("家庭不存在"));
         Dish dish = mapToDish(recipeDto, household);
+        dish.setDishType(Dish.DishType.INSTANCE);
+        dish.setTemplateDishId(null);
         return dishRepository.save(dish);
     }
 
@@ -106,8 +109,13 @@ public class FavoriteRecipeService {
         dish.setTags(base.getTags() == null ? null : new ArrayList<>(base.getTags()));
         dish.setIngredientSnapshots(base.getIngredientSnapshots() == null ? null : new ArrayList<>(base.getIngredientSnapshots()));
 
-        // Favorites is a relationship table; snapshots are not favorited by default.
-        dish.setFavorite(false);
+        // 标记为 INSTANCE，并记录来源模板（若 base 已是 INSTANCE，则沿用其 templateDishId；否则用 base.id）
+        dish.setDishType(Dish.DishType.INSTANCE);
+        if (base.getDishType() == Dish.DishType.TEMPLATE) {
+            dish.setTemplateDishId(base.getId());
+        } else {
+            dish.setTemplateDishId(base.getTemplateDishId() != null ? base.getTemplateDishId() : base.getId());
+        }
 
         return dishRepository.save(dish);
     }
@@ -151,10 +159,40 @@ public class FavoriteRecipeService {
         List<Dish> legacyFavs = dishRepository.findByHouseholdIdAndFavoriteTrueOrderByUpdateTimeDesc(householdId);
         for (Dish d : legacyFavs) {
             if (d.getId() == null) continue;
-            if (!favoriteDishRepository.existsByHouseholdIdAndDishId(householdId, d.getId())) {
+            // Legacy versions may have favorite=true on INSTANCE rows; we must migrate favorites to TEMPLATE dishes.
+            Long templateId;
+            if (d.getDishType() == Dish.DishType.TEMPLATE) {
+                templateId = d.getId();
+            } else if (d.getTemplateDishId() != null) {
+                templateId = d.getTemplateDishId();
+            } else {
+                // No template link available (very old data). Create a TEMPLATE dish by copying this row.
+                Dish template = new Dish();
+                template.setHousehold(d.getHousehold());
+                template.setName(d.getName());
+                template.setCoverImage(d.getCoverImage());
+                template.setDescription(d.getDescription());
+                template.setTotalWeightGram(d.getTotalWeightGram());
+                template.setTotalCalories(d.getTotalCalories());
+                template.setTotalProtein(d.getTotalProtein());
+                template.setTotalFat(d.getTotalFat());
+                template.setTotalCarb(d.getTotalCarb());
+                template.setTotalFiber(d.getTotalFiber());
+                template.setCookingTimeMinutes(d.getCookingTimeMinutes());
+                template.setDifficulty(d.getDifficulty());
+                template.setSteps(d.getSteps());
+                template.setTags(d.getTags());
+                template.setIngredientSnapshots(d.getIngredientSnapshots());
+                template.setDishType(Dish.DishType.TEMPLATE);
+                template.setTemplateDishId(null);
+                template = dishRepository.save(template);
+                templateId = template.getId();
+            }
+
+            if (!favoriteDishRepository.existsByHouseholdIdAndDishId(householdId, templateId)) {
                 HouseholdFavoriteDish fav = new HouseholdFavoriteDish();
                 fav.setHouseholdId(householdId);
-                fav.setDishId(d.getId());
+                fav.setDishId(templateId);
                 favoriteDishRepository.save(fav);
             }
         }

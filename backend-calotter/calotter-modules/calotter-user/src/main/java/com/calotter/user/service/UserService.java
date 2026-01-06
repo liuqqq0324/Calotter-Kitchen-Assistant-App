@@ -2,11 +2,13 @@ package com.calotter.user.service;
 
 import com.calotter.common.core.domain.PreferenceStandardLibrary;
 import com.calotter.common.core.domain.entity.RefAllergen;
+import com.calotter.common.core.domain.entity.StandardIngredient;
 import com.calotter.user.controller.dto.*;
 import com.calotter.user.controller.dto.UserPreferencesRequest;
 import com.calotter.user.controller.dto.UserPreferencesResponse;
 import com.calotter.user.domain.entity.User;
 import com.calotter.user.repository.RefAllergenRepository;
+import com.calotter.user.repository.StandardIngredientRepository;
 import com.calotter.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -28,6 +30,7 @@ public class UserService {
     private final JwtService jwtService;
     private final HouseholdService householdService;
     private final RefAllergenRepository refAllergenRepository;
+    private final StandardIngredientRepository standardIngredientRepository;
     private final com.calotter.user.repository.HouseholdRepository householdRepository;
     
     /**
@@ -434,16 +437,22 @@ public class UserService {
             dietaryStyles = DietaryStylesValidator.createEmptyMap();
         }
         
-        // 验证并清理 taboos（确保值都是英文）
+        // ✅ 严格校验：taboos 必须来自标准库（并且是英文）
         List<String> taboos = request.getTaboos() != null ? request.getTaboos() : new ArrayList<>();
-        List<String> cleanedTaboos = new ArrayList<>();
-        for (String taboo : taboos) {
-            if (taboo != null && !taboo.trim().isEmpty()) {
-                // 检查是否包含中文字符
-                if (!taboo.matches(".*[\\u4e00-\\u9fa5].*")) {
-                    cleanedTaboos.add(taboo.trim().toLowerCase());
-                }
-            }
+        List<String> cleanedTaboos = taboos.stream()
+                .filter(t -> t != null && !t.trim().isEmpty())
+                .map(t -> t.trim().toLowerCase())
+                .toList();
+
+        List<String> invalidTaboos = cleanedTaboos.stream()
+                .filter(t -> t.matches(".*[\\u4e00-\\u9fa5].*") || !PreferenceStandardLibrary.isValidTaboo(t))
+                .toList();
+
+        if (!invalidTaboos.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "无效的 taboos: " + String.join(", ", invalidTaboos) +
+                            ". 只能使用标准库中的值: " + String.join(", ", PreferenceStandardLibrary.TABOO_OPTIONS)
+            );
         }
         
         // 更新 dietaryStyles Map
@@ -496,9 +505,21 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("用户不存在"));
         
-        // 根据名称查找过敏原
+        // ✅ 严格校验：allergies 必须来自标准过敏源库
         List<String> allergyNames = request.getAllergies() != null ? request.getAllergies() : new ArrayList<>();
         List<RefAllergen> allergens = refAllergenRepository.findByNameIn(allergyNames);
+
+        List<String> foundNames = allergens.stream().map(RefAllergen::getName).toList();
+        List<String> invalid = allergyNames.stream()
+                .filter(n -> n != null && !n.trim().isEmpty())
+                .filter(n -> !foundNames.contains(n))
+                .toList();
+
+        if (!invalid.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "无效的 allergies（不在标准库中）: " + String.join(", ", invalid)
+            );
+        }
         
         // 更新过敏列表
         user.setAllergies(allergens);
@@ -519,6 +540,46 @@ public class UserService {
      */
     public List<RefAllergen> getAllStandardAllergens() {
         return refAllergenRepository.findAll();
+    }
+
+    public List<RefAllergen> searchStandardAllergens(String name, boolean fuzzy) {
+        if (name == null || name.trim().isEmpty()) {
+            return refAllergenRepository.findAll();
+        }
+        String q = name.trim();
+        if (fuzzy) {
+            return refAllergenRepository.findByNameContainingIgnoreCase(q);
+        }
+        return refAllergenRepository.findByName(q)
+                .map(List::of)
+                .orElse(List.of());
+    }
+
+    public List<String> getAllStandardTaboos() {
+        return PreferenceStandardLibrary.TABOO_OPTIONS;
+    }
+
+    public List<String> searchStandardTaboos(String query) {
+        if (query == null || query.trim().isEmpty()) {
+            return PreferenceStandardLibrary.TABOO_OPTIONS;
+        }
+        String q = query.trim().toLowerCase();
+        return PreferenceStandardLibrary.TABOO_OPTIONS.stream()
+                .filter(t -> t.contains(q))
+                .toList();
+    }
+
+    public List<StandardIngredient> searchStandardAvoidIngredients(String name, boolean fuzzy) {
+        if (name == null || name.trim().isEmpty()) {
+            return List.of();
+        }
+        String q = name.trim();
+        if (fuzzy) {
+            return standardIngredientRepository.findByNameContainingIgnoreCase(q);
+        }
+        return standardIngredientRepository.findFirstByNameIgnoreCase(q)
+                .map(List::of)
+                .orElse(List.of());
     }
     
     /**

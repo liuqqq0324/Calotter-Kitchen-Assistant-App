@@ -16,6 +16,11 @@ public interface StandardIngredientRepository extends JpaRepository<StandardIngr
      * 通过名称精确查找标准食材
      */
     Optional<StandardIngredient> findByName(String name);
+
+    /**
+     * 通过名称精确查找（不区分大小写）
+     */
+    Optional<StandardIngredient> findFirstByNameIgnoreCase(String name);
     
     /**
      * 通过名称模糊查找标准食材（不区分大小写）

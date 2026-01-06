@@ -92,6 +92,7 @@ class RecipeApiService {
             dietPrefs['avoidIngredients'] ??
             dietPrefs['avoid_ingredients'] ??
             [],
+        'taboos': dietPrefs['taboos'] ?? [],
         'cuisine_preferences':
             dietPrefs['cuisinePreferences'] ??
             dietPrefs['cuisine_preferences'] ??
@@ -192,6 +193,7 @@ class RecipeApiService {
     final allergies = (diet['allergies'] as List?) ?? [];
     final avoid =
         (diet['avoidIngredients'] ?? diet['avoid_ingredients'] as List?) ?? [];
+    final taboos = (diet['taboos'] as List?) ?? [];
     final cuisines =
         (diet['cuisinePreferences'] ?? diet['cuisine_preferences'] as List?) ??
         [];
@@ -254,6 +256,7 @@ class RecipeApiService {
       'dietPreferences': {
         'allergies': allergies,
         'avoidIngredients': avoid,
+        'taboos': taboos,
         'cuisinePreferences': cuisines,
         'tastePreferences': tastes,
       },

@@ -14,7 +14,6 @@ class RecipeFilterPage extends StatefulWidget {
 class _RecipeFilterPageState extends State<RecipeFilterPage> {
   // ------------ 文本输入控制器 ------------
   TextEditingController _allergyController = TextEditingController();
-  final _tabooController = TextEditingController();
   final _servingsController = TextEditingController(text: '1');
   final _dishCountController = TextEditingController(text: '1');
   final _calorieController = TextEditingController();
@@ -26,10 +25,16 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> {
   Set<String> _selectedCookers = {};
   Set<String> _selectedDifficulties = {}; // 支持多选
   Set<String> _selectedAllergies = {}; // ✅ 已选择的过敏原列表
+  Set<String> _selectedTaboos = {}; // ✅ 已选择的禁忌标签（标准库）
+  Set<String> _selectedAvoidIngredients = {}; // ✅ 已选择的避免食材（标准库）
 
   // ✅ 标准过敏源库数据（包含 id 和 name）
   List<Map<String, dynamic>> _standardAllergens = [];
   bool _isLoadingAllergens = true;
+
+  // ✅ 标准食材库（用于 avoid ingredients）
+  List<Map<String, dynamic>> _standardIngredients = [];
+  bool _isLoadingIngredients = true;
 
   // 可选值列表（和你 prompt 里面保持一致）
   static const List<String> _cuisineOptions = [
@@ -78,6 +83,7 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> {
     _allergyController = TextEditingController();
     _loadDefaultFilter();
     _loadStandardAllergens(); // ✅ 加载标准过敏源库
+    _loadStandardIngredients(); // ✅ 加载标准食材库（avoid ingredients）
   }
 
   /// ✅ 加载标准过敏源库（使用缓存服务）
@@ -97,6 +103,26 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> {
         });
         print('[FilterPage] Failed to load standard allergens: $e');
         // 不阻止用户使用，只是记录错误
+      }
+    }
+  }
+
+  /// ✅ 加载标准食材库（使用缓存服务）
+  Future<void> _loadStandardIngredients() async {
+    try {
+      final ingredients = await StandardLibraryService.getStandardIngredients();
+      if (mounted) {
+        setState(() {
+          _standardIngredients = ingredients;
+          _isLoadingIngredients = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingIngredients = false;
+        });
+        print('[FilterPage] Failed to load standard ingredients: $e');
       }
     }
   }
@@ -161,7 +187,12 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> {
           final avoidIngredients =
               (dietPrefs['avoid_ingredients'] as List?) ?? [];
           if (avoidIngredients.isNotEmpty) {
-            _tabooController.text = avoidIngredients.join(', ');
+            _selectedAvoidIngredients = Set<String>.from(avoidIngredients);
+          }
+
+          final taboos = (dietPrefs['taboos'] as List?) ?? [];
+          if (taboos.isNotEmpty) {
+            _selectedTaboos = Set<String>.from(taboos);
           }
 
           final cuisines = (dietPrefs['cuisine_preferences'] as List?) ?? [];
@@ -198,7 +229,6 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> {
   @override
   void dispose() {
     _allergyController.dispose();
-    _tabooController.dispose();
     _servingsController.dispose();
     _dishCountController.dispose();
     _calorieController.dispose();
@@ -302,11 +332,8 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> {
       "max_cooking_time_min": maxTime,
       "diet_preferences": {
         "allergies": allergyList, // ✅ 使用验证后的过敏原列表
-        "avoid_ingredients": _tabooController.text
-            .split(',')
-            .map((e) => e.trim())
-            .where((e) => e.isNotEmpty)
-            .toList(),
+        "avoid_ingredients": _selectedAvoidIngredients.toList(),
+        "taboos": _selectedTaboos.toList(),
         "cuisine_preferences": _selectedCuisines.toList(),
         "taste_preferences": _selectedTastes.toList(),
       },
@@ -354,7 +381,7 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> {
                   const SizedBox(height: 24),
 
                   // ---- Allergies & Taboo ----
-                  _buildSectionTitle("Allergies & Taboo ingredients"),
+                  _buildSectionTitle("Allergies, taboos & avoid ingredients"),
                   const SizedBox(height: 8),
                   // ✅ 显示已选择的过敏原Chip
                   if (_selectedAllergies.isNotEmpty)
@@ -473,11 +500,122 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> {
                           },
                         ),
                   const SizedBox(height: 12),
-                  _buildTextField(
-                    controller: _tabooController,
-                    label: "Taboo / avoid ingredients (optional)",
-                    hint: "e.g. coriander, lamb",
+                  // ✅ Taboos (standard library)
+                  _buildSubTitle("Taboos (standard tags, optional)"),
+                  const SizedBox(height: 6),
+                  if (_selectedTaboos.isNotEmpty)
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      children: _selectedTaboos.map((t) {
+                        return Chip(
+                          label: Text(t),
+                          onDeleted: () {
+                            setState(() {
+                              _selectedTaboos.remove(t);
+                            });
+                          },
+                          deleteIcon: const Icon(Icons.close, size: 18),
+                        );
+                      }).toList(),
+                    ),
+                  if (_selectedTaboos.isNotEmpty) const SizedBox(height: 8),
+                  Autocomplete<String>(
+                    optionsBuilder: (TextEditingValue tev) {
+                      final q = tev.text.trim().toLowerCase();
+                      if (q.isEmpty) return const Iterable<String>.empty();
+                      // Use standard taboos list (value field)
+                      return StandardLibraryService.getStandardTaboos()
+                          .map((e) => e['value'] ?? '')
+                          .where((v) => v.isNotEmpty)
+                          .where((v) => v.toLowerCase().contains(q))
+                          .take(20);
+                    },
+                    onSelected: (String selection) {
+                      setState(() {
+                        _selectedTaboos.add(selection);
+                      });
+                    },
+                    fieldViewBuilder: (context, controller, focusNode, onEditingComplete) {
+                      return TextField(
+                        controller: controller,
+                        focusNode: focusNode,
+                        onEditingComplete: onEditingComplete,
+                        decoration: InputDecoration(
+                          labelText: "Add taboo tag",
+                          hintText: "Type e.g. veg → vegetarian",
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
+                          suffixIcon: const Icon(Icons.search),
+                        ),
+                      );
+                    },
                   ),
+
+                  const SizedBox(height: 12),
+                  // ✅ Avoid ingredients (standard ingredient library)
+                  _buildSubTitle("Avoid ingredients (standard library, optional)"),
+                  const SizedBox(height: 6),
+                  if (_selectedAvoidIngredients.isNotEmpty)
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      children: _selectedAvoidIngredients.map((ing) {
+                        return Chip(
+                          label: Text(ing),
+                          onDeleted: () {
+                            setState(() {
+                              _selectedAvoidIngredients.remove(ing);
+                            });
+                          },
+                          deleteIcon: const Icon(Icons.close, size: 18),
+                        );
+                      }).toList(),
+                    ),
+                  if (_selectedAvoidIngredients.isNotEmpty) const SizedBox(height: 8),
+                  _isLoadingIngredients
+                      ? const Center(child: CircularProgressIndicator())
+                      : Autocomplete<String>(
+                          optionsBuilder: (TextEditingValue tev) {
+                            final q = tev.text.trim().toLowerCase();
+                            if (q.isEmpty) return const Iterable<String>.empty();
+                            return _standardIngredients
+                                .map((e) => e['name']?.toString() ?? '')
+                                .where((name) => name.isNotEmpty)
+                                .where((name) => name.toLowerCase().contains(q))
+                                .take(30);
+                          },
+                          onSelected: (String selection) {
+                            setState(() {
+                              _selectedAvoidIngredients.add(selection);
+                            });
+                          },
+                          fieldViewBuilder:
+                              (context, controller, focusNode, onEditingComplete) {
+                            return TextField(
+                              controller: controller,
+                              focusNode: focusNode,
+                              onEditingComplete: onEditingComplete,
+                              decoration: InputDecoration(
+                                labelText: "Add avoid ingredient",
+                                hintText: "Type e.g. beef / broccoli",
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 10,
+                                ),
+                                suffixIcon: const Icon(Icons.search),
+                              ),
+                            );
+                          },
+                        ),
 
                   const SizedBox(height: 24),
 

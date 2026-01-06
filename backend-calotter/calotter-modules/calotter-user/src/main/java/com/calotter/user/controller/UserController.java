@@ -251,6 +251,63 @@ public class UserController {
             return Result.error("获取标准过敏源库失败: " + e.getMessage());
         }
     }
+
+    /**
+     * 搜索标准过敏源库（模糊查询）
+     * GET /api/user/standard-allergens/search?name=pea&fuzzy=true
+     */
+    @GetMapping("/standard-allergens/search")
+    public Result<java.util.List<com.calotter.common.core.domain.entity.RefAllergen>> searchStandardAllergens(
+            @RequestParam("name") String name,
+            @RequestParam(value = "fuzzy", defaultValue = "true") boolean fuzzy) {
+        try {
+            return Result.success(userService.searchStandardAllergens(name, fuzzy));
+        } catch (Exception e) {
+            return Result.error("搜索标准过敏源库失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 获取标准禁忌库（taboos）
+     * GET /api/user/standard-taboos
+     */
+    @GetMapping("/standard-taboos")
+    public Result<java.util.List<String>> getAllStandardTaboos() {
+        try {
+            return Result.success(userService.getAllStandardTaboos());
+        } catch (Exception e) {
+            return Result.error("获取标准禁忌库失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 搜索标准禁忌库（taboos）模糊查询
+     * GET /api/user/standard-taboos/search?q=veg
+     */
+    @GetMapping("/standard-taboos/search")
+    public Result<java.util.List<String>> searchStandardTaboos(@RequestParam("q") String q) {
+        try {
+            return Result.success(userService.searchStandardTaboos(q));
+        } catch (Exception e) {
+            return Result.error("搜索标准禁忌库失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 搜索标准避免食材库（avoid ingredients）模糊查询
+     * 这里复用标准食材库（StandardIngredient），用于限制用户只能选择标准值。
+     * GET /api/user/standard-avoid-ingredients/search?name=veg&fuzzy=true
+     */
+    @GetMapping("/standard-avoid-ingredients/search")
+    public Result<java.util.List<com.calotter.common.core.domain.entity.StandardIngredient>> searchStandardAvoidIngredients(
+            @RequestParam("name") String name,
+            @RequestParam(value = "fuzzy", defaultValue = "true") boolean fuzzy) {
+        try {
+            return Result.success(userService.searchStandardAvoidIngredients(name, fuzzy));
+        } catch (Exception e) {
+            return Result.error("搜索标准避免食材库失败: " + e.getMessage());
+        }
+    }
     
     /**
      * 获取用户偏好（操作 User.preferences Map，包含两个大类：TASTE, CUISINE）
