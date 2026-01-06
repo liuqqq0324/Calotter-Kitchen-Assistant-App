@@ -206,17 +206,29 @@ public class IntakeServiceImpl implements IIntakeService {
             log.setFoodName(leftover.getDishName() != null ? leftover.getDishName() : ("Leftover " + leftover.getId()));
             log.setUnit("g");
             Integer grams = leftover.getCurrentQuantityGram() != null ? leftover.getCurrentQuantityGram() : 0;
-            log.setQuantity((double) grams); // 记录“当时选择的剩菜重量”，用于后续百分比同步
+            log.setQuantity((double) grams); // 记录"当时选择的剩菜重量"，用于后续百分比同步
 
+            // 从 LeftoverDish 快照字段获取每100g的营养素值
             int kcalPer100g = leftover.getCaloriesPer100g() != null ? leftover.getCaloriesPer100g() : 0;
-            int baseEnergy = grams > 0 ? (int) Math.round(kcalPer100g * grams / 100.0) : 0;
-            log.setBaseEnergy(baseEnergy);
-            log.setBaseProtein(0.0);
-            log.setBaseFat(0.0);
-            log.setBaseCarbohydrates(0.0);
-            log.setBaseFiber(0.0);
+            Double proteinPer100g = leftover.getProteinPer100g();
+            Double fatPer100g = leftover.getFatPer100g();
+            Double carbPer100g = leftover.getCarbPer100g();
+            Double fiberPer100g = leftover.getFiberPer100g();
 
-            // 计算实际摄入值（effective）
+            // 计算基础营养值（100%时的值）
+            int baseEnergy = grams > 0 ? (int) Math.round(kcalPer100g * grams / 100.0) : 0;
+            Double baseProtein = (grams > 0 && proteinPer100g != null) ? proteinPer100g * grams / 100.0 : 0.0;
+            Double baseFat = (grams > 0 && fatPer100g != null) ? fatPer100g * grams / 100.0 : 0.0;
+            Double baseCarbohydrates = (grams > 0 && carbPer100g != null) ? carbPer100g * grams / 100.0 : 0.0;
+            Double baseFiber = (grams > 0 && fiberPer100g != null) ? fiberPer100g * grams / 100.0 : 0.0;
+
+            log.setBaseEnergy(baseEnergy);
+            log.setBaseProtein(baseProtein);
+            log.setBaseFat(baseFat);
+            log.setBaseCarbohydrates(baseCarbohydrates);
+            log.setBaseFiber(baseFiber);
+
+            // 计算实际摄入值（effective，基于 consumedPercentage）
             BigDecimal ratio = consumedPct.divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP);
             log.setEnergy((int) Math.round((log.getBaseEnergy() != null ? log.getBaseEnergy() : 0) * ratio.doubleValue()));
             log.setProtein((log.getBaseProtein() != null ? log.getBaseProtein() : 0.0) * ratio.doubleValue());

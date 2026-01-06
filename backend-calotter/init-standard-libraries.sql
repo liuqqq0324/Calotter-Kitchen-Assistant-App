@@ -159,8 +159,8 @@ ON CONFLICT (id) DO UPDATE SET
   shelf_life_freezer = EXCLUDED.shelf_life_freezer,
   default_location = EXCLUDED.default_location;
 
--- 重置序列（如果需要）
-SELECT setval('ref_standard_ingredients_id_seq', (SELECT MAX(id) FROM ref_standard_ingredients));
+-- 重置序列（如果需要）- 注意：StandardIngredient使用手动ID，无序列
+-- SELECT setval('ref_standard_ingredients_id_seq', (SELECT MAX(id) FROM ref_standard_ingredients));
 
 -- ============================================
 -- 4. 插入标准调料库（StandardSpice）
@@ -200,8 +200,8 @@ VALUES
   (3030, 'Sugar')
 ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name;
 
--- 重置序列（如果需要）
-SELECT setval('ref_standard_spices_id_seq', (SELECT MAX(id) FROM ref_standard_spices));
+-- 重置序列（如果需要）- 注意：StandardSpice使用手动ID，无序列
+-- SELECT setval('ref_standard_spices_id_seq', (SELECT MAX(id) FROM ref_standard_spices));
 
 -- ============================================
 -- 5. 插入标准厨具库（StandardUtensil）
@@ -238,8 +238,8 @@ ON CONFLICT (id) DO UPDATE SET
   name = EXCLUDED.name,
   icon_url = EXCLUDED.icon_url;
 
--- 重置序列（如果需要）
-SELECT setval('ref_standard_utensils_id_seq', (SELECT MAX(id) FROM ref_standard_utensils));
+-- 重置序列（如果需要）- 注意：StandardUtensil使用手动ID，无序列
+-- SELECT setval('ref_standard_utensils_id_seq', (SELECT MAX(id) FROM ref_standard_utensils));
 
 -- ============================================
 -- 6. 关联食材与过敏原（示例）
@@ -329,6 +329,66 @@ WHERE NOT EXISTS (
 -- 如果需要迁移现有数据，请参考：
 -- If you need to migrate existing data, please refer to:
 --   backend-calotter/calotter-modules/calotter-user/migration/migrate-dietary-styles-to-map.sql
+
+-- ============================================
+-- 9. 剩菜表字段说明（参考）
+-- LeftoverDish Table Field Notes (Reference)
+-- ============================================
+-- 
+-- 表名：household_leftovers
+-- Table Name: household_leftovers
+-- 
+-- 注意：此表由 JPA 的 ddl-auto: update 自动创建，无需手动执行 CREATE TABLE
+-- Note: This table is automatically created by JPA's ddl-auto: update, no manual CREATE TABLE needed
+--
+-- 字段列表（共 18 个字段）：
+-- Field List (18 fields total):
+--
+-- 1. 主键字段 (Primary Key):
+--    - id (bigint, NOT NULL, AUTO_INCREMENT) - 主键
+--
+-- 2. 关联字段 (Relationships):
+--    - household_id (bigint, NOT NULL) - 关联的家庭 ID（外键，级联删除）
+--    - original_dish_id (bigint, NOT NULL) - 原始 Dish ID（弱引用，避免循环依赖）
+--
+-- 3. 菜品信息快照 (Dish Info Snapshots):
+--    - dish_name (varchar(200), nullable) - 菜品名称快照
+--    - cover_image (varchar(500), nullable) - 封面图快照（可选）
+--
+-- 4. 营养素快照（每100g的值）(Nutrition Snapshots per 100g):
+--    - calories_per_100g (integer, nullable) - 每100克的卡路里（kcal）
+--    - protein_per_100g (double precision, nullable) - 每100克的蛋白质（克）
+--    - fat_per_100g (double precision, nullable) - 每100克的脂肪（克）
+--    - carb_per_100g (double precision, nullable) - 每100克的碳水化合物（克）
+--    - fiber_per_100g (double precision, nullable) - 每100克的纤维（克，可选）
+--
+-- 5. 重量信息 (Weight Information):
+--    - current_quantity_gram (integer, NOT NULL) - 当前剩余重量（克）
+--    - initial_quantity_gram (integer, nullable) - 初始重量快照（克），用于计算百分比
+--
+-- 6. 时间信息 (Time Information):
+--    - produced_time (timestamp, NOT NULL) - 制作时间（用于判断新鲜度）
+--
+-- 7. 审计字段（继承自 BaseEntity）(Audit Fields from BaseEntity):
+--    - create_time (timestamp, nullable) - 创建时间（自动填充，不可更新）
+--    - update_time (timestamp, nullable) - 更新时间（自动填充）
+--    - create_by (bigint, nullable) - 创建者 ID（自动填充，不可更新）
+--    - update_by (bigint, nullable) - 更新者 ID（自动填充）
+--
+-- 设计说明：
+-- Design Notes:
+--   1. 快照模式：菜品信息和营养素在创建时保存快照，避免查询时 JOIN
+--      Snapshot Pattern: Dish info and nutrition are saved as snapshots at creation time to avoid JOINs
+--   2. 弱引用：使用 original_dish_id 而非 JPA 关联，避免模块循环依赖
+--      Weak Reference: Uses original_dish_id instead of JPA relationship to avoid circular dependencies
+--   3. 每100g标准化：所有营养素基于每100g的值，便于计算任意重量的营养
+--      Per 100g Standardization: All nutrition values are per 100g for easy calculation of any weight
+--   4. 审计字段：继承自 BaseEntity，自动记录创建和更新时间
+--      Audit Fields: Inherited from BaseEntity, automatically records create and update times
+--
+-- 相关实体类：
+-- Related Entity Class:
+--   backend-calotter/calotter-modules/calotter-inventory/src/main/java/com/calotter/inventory/domain/entity/LeftoverDish.java
 
 -- ============================================
 -- 完成提示

@@ -12,7 +12,8 @@ import java.time.LocalDateTime;
  * 剩菜实体
  * 
  * 注意：使用弱引用 originalDishId 关联 Dish，避免模块间的循环依赖。
- * 菜品信息（dishName, coverImage, caloriesPer100g）在创建时保存快照，避免查询时 JOIN。
+ * 菜品信息（dishName, coverImage, 每100g的营养素）在创建时保存快照，避免查询时 JOIN。
+ * 所有营养素快照都基于每100g的值，便于直接计算任意重量的营养信息。
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
@@ -49,6 +50,18 @@ public class LeftoverDish extends BaseEntity {
     
     @Column(name = "calories_per_100g")
     private Integer caloriesPer100g; // 每100克的卡路里快照
+    
+    @Column(name = "protein_per_100g")
+    private Double proteinPer100g; // 每100克的蛋白质快照（克）
+    
+    @Column(name = "fat_per_100g")
+    private Double fatPer100g; // 每100克的脂肪快照（克）
+    
+    @Column(name = "carb_per_100g")
+    private Double carbPer100g; // 每100克的碳水化合物快照（克）
+    
+    @Column(name = "fiber_per_100g")
+    private Double fiberPer100g; // 每100克的纤维快照（克，可选）
 
     // 重命名：quantityGram -> currentQuantityGram（更清晰）
     @Column(nullable = false)
