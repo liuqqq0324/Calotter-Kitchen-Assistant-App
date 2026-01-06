@@ -45,28 +45,31 @@ public class LeftoverDishService {
         LeftoverDish leftover = leftoverDishRepository.findById(leftoverId)
                 .orElseThrow(() -> new IllegalArgumentException("剩菜不存在: " + leftoverId));
         
-        // 2. 查询关联的 Dish
-        Dish dish = dishRepository.findById(leftover.getOriginalDishId())
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "关联的菜品不存在，ID: " + leftover.getOriginalDishId()));
+        // 2. 查询关联的 Dish（用于获取 description 等额外信息）
+        // 注意：如果 Dish 不存在，仍然可以返回基本信息（使用快照数据）
+        Dish dish = dishRepository.findById(leftover.getOriginalDishId()).orElse(null);
         
-        // 3. 计算当前剩菜的营养信息
-        NutritionInfo currentNutrition = calculateNutritionByRatio(
-                dish, leftover.getCurrentQuantityGram());
+        // 3. 使用快照数据计算当前剩菜的营养信息（无需依赖 Dish）
+        NutritionInfo currentNutrition = calculateNutritionFromSnapshot(
+                leftover, leftover.getCurrentQuantityGram());
         
         // 4. 构建并返回 DTO
         return LeftoverDishDetailDTO.builder()
                 .id(leftover.getId())
                 .originalDishId(leftover.getOriginalDishId())
-                .name(dish.getName())
-                .description(dish.getDescription())
-                .coverImage(dish.getCoverImage())
+                .name(leftover.getDishName() != null ? leftover.getDishName() : 
+                        (dish != null ? dish.getName() : "未知菜品"))
+                .description(dish != null ? dish.getDescription() : null)
+                .coverImage(leftover.getCoverImage() != null ? leftover.getCoverImage() : 
+                        (dish != null ? dish.getCoverImage() : null))
                 .currentQuantityGram(leftover.getCurrentQuantityGram())
                 .producedTime(leftover.getProducedTime())
                 .createTime(leftover.getCreateTime())
                 .updateTime(leftover.getUpdateTime())
                 .currentCalories(currentNutrition.getCalories())
-                .caloriesPer100g(dish.getCaloriesPer100g())
+                .caloriesPer100g(leftover.getCaloriesPer100g() != null ? 
+                        leftover.getCaloriesPer100g() : 
+                        (dish != null ? dish.getCaloriesPer100g() : null))
                 .currentNutrition(currentNutrition)
                 .build();
     }
@@ -148,13 +151,8 @@ public class LeftoverDishService {
                             consumedGram, leftover.getCurrentQuantityGram()));
         }
         
-        // 4. 查询关联的 Dish
-        Dish dish = dishRepository.findById(leftover.getOriginalDishId())
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "关联的菜品不存在，ID: " + leftover.getOriginalDishId()));
-        
-        // 5. 计算营养信息
-        return calculateNutritionByRatio(dish, consumedGram);
+        // 4. 使用快照数据计算营养信息（无需查询 Dish）
+        return calculateNutritionFromSnapshot(leftover, consumedGram);
     }
     
     /**
@@ -194,9 +192,37 @@ public class LeftoverDishService {
     }
     
     /**
-     * 根据比例计算营养信息
+     * 从 LeftoverDish 快照数据计算营养信息
+     * 
+     * 公式：营养 = (consumedGram / 100.0) * per100gValue
+     * 
+     * @param leftover 剩菜实体（包含每100g的营养素快照）
+     * @param consumedGram 食用重量（克）
+     * @return 营养信息
+     */
+    private NutritionInfo calculateNutritionFromSnapshot(LeftoverDish leftover, Integer consumedGram) {
+        double ratio = consumedGram / 100.0;
+        
+        return NutritionInfo.builder()
+                .calories(leftover.getCaloriesPer100g() != null ? 
+                        (int) (leftover.getCaloriesPer100g() * ratio) : 0)
+                .protein(leftover.getProteinPer100g() != null ? 
+                        leftover.getProteinPer100g() * ratio : 0.0)
+                .fat(leftover.getFatPer100g() != null ? 
+                        leftover.getFatPer100g() * ratio : 0.0)
+                .carb(leftover.getCarbPer100g() != null ? 
+                        leftover.getCarbPer100g() * ratio : 0.0)
+                .fiber(leftover.getFiberPer100g() != null ? 
+                        leftover.getFiberPer100g() * ratio : 0.0)
+                .build();
+    }
+    
+    /**
+     * 根据比例计算营养信息（从 Dish 实体）
      * 
      * 公式：营养 = (quantityGram / dish.totalWeightGram) * dish.totalNutrient
+     * 
+     * 注意：此方法保留用于向后兼容，但推荐使用 calculateNutritionFromSnapshot
      * 
      * @param dish 菜品实体
      * @param quantityGram 重量（克）

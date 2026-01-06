@@ -67,8 +67,17 @@ class LeftoverDishServiceTest {
         leftoverDish.setId(1L);
         leftoverDish.setHousehold(household);
         leftoverDish.setOriginalDishId(100L);
+        leftoverDish.setDishName("红烧肉");
+        leftoverDish.setCoverImage("http://example.com/image.jpg");
         leftoverDish.setCurrentQuantityGram(300); // 剩余300g
+        leftoverDish.setInitialQuantityGram(1000); // 初始1000g
         leftoverDish.setProducedTime(LocalDateTime.now());
+        // 设置每100g的营养素快照（基于 dish 的数据计算）
+        leftoverDish.setCaloriesPer100g(200); // 2000 / 1000 * 100
+        leftoverDish.setProteinPer100g(10.0); // 100 / 1000 * 100
+        leftoverDish.setFatPer100g(15.0); // 150 / 1000 * 100
+        leftoverDish.setCarbPer100g(5.0); // 50 / 1000 * 100
+        leftoverDish.setFiberPer100g(0.5); // 5 / 1000 * 100
     }
 
     @Test
@@ -89,12 +98,12 @@ class LeftoverDishServiceTest {
         assertThat(result.getCoverImage()).isEqualTo("http://example.com/image.jpg");
         assertThat(result.getCurrentQuantityGram()).isEqualTo(300);
         
-        // 验证营养计算：300g / 1000g = 0.3，所以应该是 2000 * 0.3 = 600卡
+        // 验证营养计算：使用快照数据，300g = 3 * 100g，所以应该是 200 * 3 = 600卡
         assertThat(result.getCurrentCalories()).isEqualTo(600);
-        assertThat(result.getCaloriesPer100g()).isEqualTo(200); // 2000 / 1000 * 100
+        assertThat(result.getCaloriesPer100g()).isEqualTo(200); // 从快照获取
         assertThat(result.getCurrentNutrition()).isNotNull();
         assertThat(result.getCurrentNutrition().getCalories()).isEqualTo(600);
-        assertThat(result.getCurrentNutrition().getProtein()).isEqualTo(30.0); // 100 * 0.3
+        assertThat(result.getCurrentNutrition().getProtein()).isEqualTo(30.0); // 10.0 * 3
     }
 
     @Test
@@ -110,14 +119,18 @@ class LeftoverDishServiceTest {
 
     @Test
     void testGetLeftoverDishDetail_DishNotFound() {
-        // Given
+        // Given: Dish 不存在，但可以使用快照数据
         when(leftoverDishRepository.findById(1L)).thenReturn(Optional.of(leftoverDish));
         when(dishRepository.findById(100L)).thenReturn(Optional.empty());
 
-        // When & Then
-        assertThatThrownBy(() -> leftoverDishService.getLeftoverDishDetail(1L))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("关联的菜品不存在");
+        // When: 应该能正常返回，使用快照数据
+        LeftoverDishDetailDTO result = leftoverDishService.getLeftoverDishDetail(1L);
+
+        // Then: 应该使用快照数据
+        assertThat(result).isNotNull();
+        assertThat(result.getName()).isEqualTo("红烧肉"); // 从快照获取
+        assertThat(result.getDescription()).isNull(); // Dish 不存在，description 为 null
+        assertThat(result.getCurrentCalories()).isEqualTo(600); // 使用快照数据计算
     }
 
     @Test
@@ -171,19 +184,21 @@ class LeftoverDishServiceTest {
 
     @Test
     void testCalculateNutritionForConsumption_Success() {
-        // Given: 剩菜300g，吃100g
+        // Given: 剩菜300g，吃100g（使用快照数据，无需查询 Dish）
         when(leftoverDishRepository.findById(1L)).thenReturn(Optional.of(leftoverDish));
-        when(dishRepository.findById(100L)).thenReturn(Optional.of(dish));
 
         // When
         NutritionInfo result = leftoverDishService.calculateNutritionForConsumption(1L, 100);
 
-        // Then: 100g / 1000g = 0.1，所以应该是 2000 * 0.1 = 200卡
+        // Then: 100g = 1 * 100g，所以应该是 200 * 1 = 200卡（使用快照数据）
         assertThat(result.getCalories()).isEqualTo(200);
-        assertThat(result.getProtein()).isEqualTo(10.0); // 100 * 0.1
-        assertThat(result.getFat()).isEqualTo(15.0); // 150 * 0.1
-        assertThat(result.getCarb()).isEqualTo(5.0); // 50 * 0.1
-        assertThat(result.getFiber()).isEqualTo(0.5); // 5 * 0.1
+        assertThat(result.getProtein()).isEqualTo(10.0); // 10.0 * 1
+        assertThat(result.getFat()).isEqualTo(15.0); // 15.0 * 1
+        assertThat(result.getCarb()).isEqualTo(5.0); // 5.0 * 1
+        assertThat(result.getFiber()).isEqualTo(0.5); // 0.5 * 1
+        
+        // 验证没有查询 Dish
+        verify(dishRepository, never()).findById(any());
     }
 
     @Test
@@ -211,17 +226,26 @@ class LeftoverDishServiceTest {
 
     @Test
     void testCalculateNutritionForConsumption_ZeroWeight() {
-        // Given: Dish的总重量为0
-        dish.setTotalWeightGram(0);
+        // Given: 快照数据为 null 或 0
+        leftoverDish.setCaloriesPer100g(null);
+        leftoverDish.setProteinPer100g(null);
+        leftoverDish.setFatPer100g(null);
+        leftoverDish.setCarbPer100g(null);
+        leftoverDish.setFiberPer100g(null);
         when(leftoverDishRepository.findById(1L)).thenReturn(Optional.of(leftoverDish));
-        when(dishRepository.findById(100L)).thenReturn(Optional.of(dish));
 
         // When
         NutritionInfo result = leftoverDishService.calculateNutritionForConsumption(1L, 100);
 
-        // Then: 应该返回0营养
+        // Then: 应该返回0营养（null 值处理为 0）
         assertThat(result.getCalories()).isEqualTo(0);
         assertThat(result.getProtein()).isEqualTo(0.0);
+        assertThat(result.getFat()).isEqualTo(0.0);
+        assertThat(result.getCarb()).isEqualTo(0.0);
+        assertThat(result.getFiber()).isEqualTo(0.0);
+        
+        // 验证没有查询 Dish
+        verify(dishRepository, never()).findById(any());
     }
 
     @Test

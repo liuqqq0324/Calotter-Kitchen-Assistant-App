@@ -157,6 +157,20 @@ public class CookingWorkflowService {
                 leftover.setDishName(dish.getName());
                 leftover.setCoverImage(dish.getCoverImage());
                 leftover.setCaloriesPer100g(dish.getCaloriesPer100g());
+                
+                // ✅ 计算并保存每100g的营养素快照
+                Integer totalWeight = dish.getTotalWeightGram();
+                if (totalWeight > 0) {
+                    leftover.setProteinPer100g(dish.getTotalProtein() != null ? 
+                        (dish.getTotalProtein() * 100.0 / totalWeight) : null);
+                    leftover.setFatPer100g(dish.getTotalFat() != null ? 
+                        (dish.getTotalFat() * 100.0 / totalWeight) : null);
+                    leftover.setCarbPer100g(dish.getTotalCarb() != null ? 
+                        (dish.getTotalCarb() * 100.0 / totalWeight) : null);
+                    leftover.setFiberPer100g(dish.getTotalFiber() != null ? 
+                        (dish.getTotalFiber() * 100.0 / totalWeight) : null);
+                }
+                
                 leftover.setCurrentQuantityGram(dish.getTotalWeightGram());
                 leftover.setInitialQuantityGram(dish.getTotalWeightGram()); // 保存初始重量快照
                 leftover.setProducedTime(req.getConsumedAt() != null ? req.getConsumedAt() : LocalDateTime.now());
