@@ -29,7 +29,7 @@ public class CookingController {
 
     /**
      * 完成烹饪：保存快照，扣减库存，创建剩菜记录
-     * 合并了原 /complete 的功能，支持部分完成和用餐者信息
+     * 取代旧版 /complete（已移除）：支持部分完成和用餐者信息
      */
     @PostMapping("/finish")
     public Result<CookingSession> finishCooking(@Valid @RequestBody FinishCookingRequest request) {

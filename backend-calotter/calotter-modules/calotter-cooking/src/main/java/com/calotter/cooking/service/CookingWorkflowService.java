@@ -56,8 +56,9 @@ public class CookingWorkflowService {
         if (req.getRecipes() != null && !req.getRecipes().isEmpty()) {
             // 为每道菜创建 Dish
             for (MenuDTO.RecipeDTO recipeDto : req.getRecipes()) {
-                Dish dish = favoriteRecipeService.ensureDish(
-                    req.getHouseholdId(), recipeDto, false);
+                // ✅ 每次开始烹饪都创建新的 Dish 快照（保证每次都有独立 dishId）
+                Dish dish = favoriteRecipeService.createDishSnapshot(
+                    req.getHouseholdId(), recipeDto);
                 dishes.add(dish);
             }
             session.setDishes(dishes);
@@ -68,15 +69,16 @@ public class CookingWorkflowService {
         }
         // 支持单道菜（向后兼容）
         else if (req.getDishId() != null) {
-            Dish dish = dishRepository.findById(req.getDishId())
-                    .orElseThrow(() -> new IllegalArgumentException("菜品不存在: " + req.getDishId()));
+            // ✅ 重要：即使从收藏/历史（dishId）开始烹饪，也要克隆成新的 Dish 快照
+            // 这样才能保证“每次吃的菜都有独立 dishId”，避免同名/同ID复用导致营养归因错误。
+            Dish dish = favoriteRecipeService.cloneDishSnapshot(req.getHouseholdId(), req.getDishId());
             dishes.add(dish);
             session.setDishes(dishes);
             session.setFinalDish(dish);
         }
         else if (req.getRecipe() != null) {
-            Dish dish = favoriteRecipeService.ensureDish(
-                req.getHouseholdId(), req.getRecipe(), false);
+            Dish dish = favoriteRecipeService.createDishSnapshot(
+                req.getHouseholdId(), req.getRecipe());
             dishes.add(dish);
             session.setDishes(dishes);
             session.setFinalDish(dish);
