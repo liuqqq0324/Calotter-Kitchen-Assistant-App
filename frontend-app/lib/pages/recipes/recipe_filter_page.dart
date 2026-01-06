@@ -14,6 +14,8 @@ class RecipeFilterPage extends StatefulWidget {
 class _RecipeFilterPageState extends State<RecipeFilterPage> {
   // ------------ 文本输入控制器 ------------
   TextEditingController _allergyController = TextEditingController();
+  // Autocomplete 的 controller 由 Autocomplete 管理生命周期；我们自己创建的才需要 dispose。
+  bool _ownsAllergyController = true;
   final _servingsController = TextEditingController(text: '1');
   final _dishCountController = TextEditingController(text: '1');
   final _calorieController = TextEditingController();
@@ -81,6 +83,7 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> {
   void initState() {
     super.initState();
     _allergyController = TextEditingController();
+    _ownsAllergyController = true;
     _loadDefaultFilter();
     _loadStandardAllergens(); // ✅ 加载标准过敏源库
     _loadStandardIngredients(); // ✅ 加载标准食材库（avoid ingredients）
@@ -228,7 +231,10 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> {
 
   @override
   void dispose() {
+    // ✅ 如果 controller 来自 Autocomplete，则它会自行 dispose；这里不要重复 dispose
+    if (_ownsAllergyController) {
     _allergyController.dispose();
+    }
     _servingsController.dispose();
     _dishCountController.dispose();
     _calorieController.dispose();
@@ -440,10 +446,17 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> {
                               (context, controller, focusNode, onEditingComplete) {
                             // ✅ 使用Autocomplete提供的controller，同步到_allergyController
                             // 注意：这里需要同步controller的状态
-                            if (_allergyController.text != controller.text) {
-                              controller.text = _allergyController.text;
+                            final previousText = _allergyController.text;
+                            // 如果之前是我们自己创建的 controller，这里切换到 Autocomplete 的 controller 时先释放旧的
+                            if (_ownsAllergyController &&
+                                !identical(_allergyController, controller)) {
+                              _allergyController.dispose();
+                            }
+                            if (controller.text != previousText) {
+                              controller.text = previousText;
                             }
                             _allergyController = controller;
+                            _ownsAllergyController = false;
                             return TextField(
                               controller: controller,
                               focusNode: focusNode,
