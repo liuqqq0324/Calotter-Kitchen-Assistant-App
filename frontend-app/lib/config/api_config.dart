@@ -10,8 +10,8 @@ class ApiConfig {
   // 如果用模拟器，请填 "10.0.2.2"
   // 如果用真机，请填你电脑的局域网 IP (如 "192.168.1.100")
 
-  static const String serverIp = "10.0.2.2"; // Android 模拟器使用此 IP
-  //static const String serverIp = "172.24.14.108"; // 真机调试时使用此 IP
+  //static const String serverIp = "10.0.2.2"; // Android 模拟器使用此 IP
+  static const String serverIp = "172.24.14.108"; // 真机调试时使用此 IP
 
   // ⚠️ 后端是单体应用，所有服务都在 8080 端口
   // Java 后端端口 (查看 Java 项目终端显示的 http://0.0.0.0:xxxx)
