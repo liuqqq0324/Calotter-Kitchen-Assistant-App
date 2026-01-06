@@ -117,3 +117,202 @@ Cooking 结束后：
 
 ### 5.2 后端对齐点
 
+#### 5.2.1 Filter DTO 增强：DietPreferences 新增 `taboos`
+- `RecipeGenerationFilter.DietPreferences` 新增字段：`taboos`
+- 与原有字段分工：
+  - `allergies`：过敏（RefAllergen 标准库）
+  - `taboos`：硬性禁忌（PreferenceStandardLibrary.TABOO_OPTIONS）
+  - `avoidIngredients`：软性避免食材（标准食材库 StandardIngredient）
+
+#### 5.2.2 Default filter：从 User 默认值导入
+`AiMenuService.getDefaultFilter(householdId)` 现在会分别导入：
+- `User.allergies` → `dietPreferences.allergies`
+- `User.dietaryStyles[TABOO]` → `dietPreferences.taboos`
+- `User.dietaryStyles[AVOID_INGREDIENT]` → `dietPreferences.avoidIngredients`
+- `User.preferences[TASTE/CUISINE]` → taste/cuisine preferences
+
+#### 5.2.3 标准库严格校验（防止用户乱填导致 AI/后端数据污染）
+新增 `RecipeFilterValidationService`，在 `AiMenuService.generateMenus()` 中强制校验：
+- cuisine/taste 必须在 `PreferenceStandardLibrary` 里
+- taboos 必须在 `PreferenceStandardLibrary.TABOO_OPTIONS`
+- allergies 必须存在于 `ref_standard_allergens`
+- avoidIngredients 必须存在于标准食材库（StandardIngredient）
+
+校验失败会直接抛 `IllegalArgumentException`（返回 400），前端必须通过标准库选择来避免失败。
+
+#### 5.2.4 AI Prompt 兼容策略
+由于现有 AI prompt 明确处理的是 `allergies` + `avoidIngredients`：
+- 发送给 AI 前，后端会把 `taboos` 合并进 `avoidIngredients`（仅用于 AI 输入兼容）
+- 前端/UI 仍保持三类分开展示和提交
+
+### 5.3 User 模块增强：标准库搜索接口（支持模糊查询）
+
+为了前端输入框支持“模糊搜索”，新增/增强以下接口：
+
+- **Allergens（标准过敏源）**
+  - `GET /api/user/standard-allergens`
+  - `GET /api/user/standard-allergens/search?name=pea&fuzzy=true`
+
+- **Taboos（标准禁忌标签）**
+  - `GET /api/user/standard-taboos`
+  - `GET /api/user/standard-taboos/search?q=veg`
+
+- **Avoid ingredients（标准避免食材）**
+  - `GET /api/user/standard-avoid-ingredients/search?name=veg&fuzzy=true`
+  - 注意：这里复用标准食材库（StandardIngredient），只提供“查找/选择”，不允许自由输入
+
+同时收紧了 User 写接口校验：
+- `PUT /api/user/taboos`：taboos 必须在标准库中，否则 400
+- `PUT /api/user/allergies`：allergies 必须在标准过敏源库中，否则 400
+
+---
+
+## 6) 前端 Filter 页面改造（只能选标准值 + 模糊查询）
+
+### 6.1 背景
+原 Filter 页：
+- allergies 已用标准库 Autocomplete（✅）
+- taboo/avoid 使用一个 TextField 逗号分隔输入（❌ 用户可以乱填，后端会 400）
+
+### 6.2 变更
+`RecipeFilterPage` 现在拆成 3 块，并且都支持模糊查询 + Chip 列表：
+
+1) **Allergies**
+- 继续使用标准过敏源库 + Autocomplete + Chip
+
+2) **Taboos（标准标签）**
+- 使用标准 taboo 列表（前端 `StandardLibraryService.getStandardTaboos()`）
+- 输入 `veg` 可提示 `vegetarian/vegan` 等
+
+3) **Avoid ingredients（标准食材库）**
+- 使用标准食材库（`StandardLibraryService.getStandardIngredients()`）
+- 用户只能从标准食材名中选择
+
+提交给后端时，payload 变为：
+- `diet_preferences.allergies`
+- `diet_preferences.taboos`
+- `diet_preferences.avoid_ingredients`
+
+并更新了 `RecipeApiService`：
+- default-filter 解析增加 `taboos`
+- generate-menus 请求体增加 `dietPreferences.taboos`
+
+---
+
+## 7) 文件改动清单（按模块，方便 merge）
+
+### 7.1 后端（backend-calotter）
+
+#### Cooking 模块
+- **删除（弃用旧 complete 链路）**
+  - `backend-calotter/calotter-modules/calotter-cooking/src/main/java/com/calotter/cooking/service/CookingSessionService.java`
+  - `backend-calotter/calotter-modules/calotter-cooking/src/main/java/com/calotter/cooking/controller/dto/CookingCompletionRequest.java`
+  - `backend-calotter/calotter-modules/calotter-cooking/src/main/java/com/calotter/cooking/controller/dto/CookingCompletionResponse.java`
+  - `backend-calotter/calotter-modules/calotter-cooking/src/main/java/com/calotter/cooking/controller/dto/LeftoverAction.java`
+
+- **修改**
+  - `backend-calotter/calotter-modules/calotter-cooking/src/main/java/com/calotter/cooking/controller/CookingController.java`
+    - 注释明确 `/finish` 取代旧 `/complete`
+  - `backend-calotter/calotter-modules/calotter-cooking/src/main/java/com/calotter/cooking/controller/dto/FinishCookingRequest.java`
+    - 注释明确取代旧 `CookingCompletionRequest`
+  - `backend-calotter/calotter-modules/calotter-cooking/src/main/java/com/calotter/cooking/service/CookingWorkflowService.java`
+    - startCooking：recipe(s) → 实例 Dish；dishId → clone 实例 Dish
+  - `backend-calotter/calotter-modules/calotter-cooking/src/main/java/com/calotter/cooking/domain/entity/Dish.java`
+    - 新增 `dish_type` / `template_dish_id`
+  - `backend-calotter/calotter-modules/calotter-cooking/src/main/java/com/calotter/cooking/repository/DishRepository.java`
+    - 新增按模板查询方法
+  - `backend-calotter/calotter-modules/calotter-cooking/src/main/java/com/calotter/cooking/controller/FavoriteController.java`
+    - 返回 `DishDTO`（favorite 派生）
+  - `backend-calotter/calotter-modules/calotter-cooking/src/main/java/com/calotter/cooking/controller/dto/DishDTO.java`
+    - 新增：用于 favorites 返回（避免 Dish.favorite 持久化漂移）
+  - `backend-calotter/calotter-modules/calotter-cooking/src/main/java/com/calotter/cooking/domain/entity/HouseholdFavoriteDish.java`
+    - 新增：收藏关系表实体
+  - `backend-calotter/calotter-modules/calotter-cooking/src/main/java/com/calotter/cooking/repository/HouseholdFavoriteDishRepository.java`
+    - 新增：收藏关系 repo
+  - `backend-calotter/calotter-modules/calotter-cooking/src/main/java/com/calotter/cooking/service/FavoriteRecipeService.java`
+    - 收藏永远指向 TEMPLATE
+    - cooking clone 生成 INSTANCE 并填 templateDishId
+    - legacy favorite backfill
+  - `backend-calotter/calotter-modules/calotter-cooking/src/main/java/com/calotter/cooking/controller/dto/RecipeGenerationFilter.java`
+    - dietPreferences 新增 `taboos`
+  - `backend-calotter/calotter-modules/calotter-cooking/src/main/java/com/calotter/cooking/service/RecipeFilterValidationService.java`
+    - 新增：filter 标准库校验
+  - `backend-calotter/calotter-modules/calotter-cooking/src/main/java/com/calotter/cooking/service/AiMenuService.java`
+    - default filter 分离 taboos/avoid
+    - generateMenus 入口做校验 + AI 输入兼容合并
+
+#### User 模块
+- `backend-calotter/calotter-modules/calotter-user/src/main/java/com/calotter/user/repository/RefAllergenRepository.java`
+  - 新增 `findByNameContainingIgnoreCase`（模糊搜索）
+- `backend-calotter/calotter-modules/calotter-user/src/main/java/com/calotter/user/repository/StandardIngredientRepository.java`
+  - 新增：避免 user 模块依赖 inventory 模块（用于 avoid ingredients 搜索）
+- `backend-calotter/calotter-modules/calotter-user/src/main/java/com/calotter/user/service/UserService.java`
+  - taboos/allergies update 改为严格标准库校验
+  - 新增标准库 search 方法（allergens/taboos/avoid ingredients）
+- `backend-calotter/calotter-modules/calotter-user/src/main/java/com/calotter/user/controller/UserController.java`
+  - 新增标准库搜索 API：
+    - `/standard-allergens/search`
+    - `/standard-taboos`, `/standard-taboos/search`
+    - `/standard-avoid-ingredients/search`
+
+#### Test 变更
+- 删除旧 API test：
+  - `backend-calotter/calotter-start/src/test/java/com/calotter/controller/CookingControllerApiTest.java`
+- 删除旧 service test：
+  - `backend-calotter/calotter-modules/calotter-cooking/src/test/java/com/calotter/cooking/service/CookingSessionServiceTest.java`
+- 更新：
+  - `backend-calotter/calotter-modules/calotter-cooking/src/test/java/com/calotter/cooking/service/CookingWorkflowServiceTest.java`
+    - 适配 `createDishSnapshot/cloneDishSnapshot`
+
+### 7.2 前端（frontend-app）
+- `frontend-app/lib/pages/recipes/recipe_filter_page.dart`
+  - taboos/avoid ingredients 改成标准库选择 + Autocomplete + Chip
+  - payload 增加 `diet_preferences.taboos`
+- `frontend-app/lib/services/recipe_api_service.dart`
+  - default-filter 解析增加 `taboos`
+  - generate-menus 请求体增加 `dietPreferences.taboos`
+
+---
+
+## 8) 数据库/迁移注意事项（给 merge 的人看）
+
+### 8.1 新增表/字段（ddl-auto: update 会自动创建）
+- 新表：`household_favorite_dishes`
+- dishes 表新增列：`dish_type`, `template_dish_id`
+
+### 8.2 旧数据兼容
+- 若历史数据存在 `Dish.favorite=true`，favorites 列表会 backfill 到新关系表（必要时会生成 TEMPLATE）
+
+---
+
+## 9) 回归测试建议（快速验证）
+
+1) **AI 默认 filter**
+- 打开 Filter 页，确认能加载默认 allergies/taboos/avoid
+
+2) **Filter 标准库选择**
+- 输入 `veg`，taboos 自动提示 `vegetarian/vegan`
+- 输入标准食材名片段，avoid ingredients 能提示并添加 Chip
+
+3) **生成菜单**
+- 使用 Filter 生成菜单，后端不应 400（若 400，通常是值不在标准库）
+
+4) **收藏（模板）**
+- 点击收藏，favorites 列表应可见
+- 再次点击应取消收藏
+
+5) **从收藏开始 cooking**
+- 选择收藏菜谱开始做饭：startCooking 应生成新的 INSTANCE dishId（不复用模板 id）
+
+6) **finish → leftovers**
+- finish 后，inventory leftovers 应出现新记录：
+  - `originalDishId` 对应本次 INSTANCE dishId
+  - `currentQuantityGram` 默认等于 `Dish.totalWeightGram`
+
+---
+
+**文档创建时间**：2026.01.06  
+**修改人员**：Emma  
+**审核状态**：待审核
+
+
