@@ -10,7 +10,7 @@ import java.util.List;
 
 /**
  * 完成烹饪请求（带最终用料、营养快照）
- * 合并了原 CookingCompletionRequest 的功能，支持部分完成和用餐者信息
+ * 取代旧版 CookingCompletionRequest（已弃用并移除）：支持部分完成和用餐者信息
  */
 @Data
 public class FinishCookingRequest {

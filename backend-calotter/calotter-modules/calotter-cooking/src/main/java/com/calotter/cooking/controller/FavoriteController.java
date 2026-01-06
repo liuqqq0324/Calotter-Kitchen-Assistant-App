@@ -1,7 +1,7 @@
 package com.calotter.cooking.controller;
 
 import com.calotter.common.core.Result;
-import com.calotter.cooking.domain.entity.Dish;
+import com.calotter.cooking.controller.dto.DishDTO;
 import com.calotter.cooking.controller.dto.RecipeGenerationFilter;
 import com.calotter.cooking.service.AiMenuService;
 import com.calotter.cooking.service.FavoriteRecipeService;
@@ -27,8 +27,8 @@ public class FavoriteController {
      * 收藏/取消收藏
      */
     @PostMapping("/favorite")
-    public Result<Dish> toggleFavorite(@RequestParam("householdId") Long householdId,
-                                       @RequestBody MenuDTO.RecipeDTO recipe) {
+    public Result<DishDTO> toggleFavorite(@RequestParam("householdId") Long householdId,
+                                          @RequestBody MenuDTO.RecipeDTO recipe) {
         return Result.success(favoriteRecipeService.toggleFavorite(householdId, recipe));
     }
 
@@ -36,7 +36,7 @@ public class FavoriteController {
      * 收藏列表
      */
     @GetMapping("/favorites")
-    public Result<List<Dish>> listFavorites(@RequestParam("householdId") @NotNull Long householdId) {
+    public Result<List<DishDTO>> listFavorites(@RequestParam("householdId") @NotNull Long householdId) {
         return Result.success(favoriteRecipeService.listFavorites(householdId));
     }
 

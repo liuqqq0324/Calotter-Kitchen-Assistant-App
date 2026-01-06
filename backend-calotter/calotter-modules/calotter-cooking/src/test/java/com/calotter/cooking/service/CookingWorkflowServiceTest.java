@@ -105,7 +105,7 @@ class CookingWorkflowServiceTest {
         request.setRecipes(Arrays.asList(recipeDto));
 
         when(householdRepository.findById(1L)).thenReturn(Optional.of(household));
-        when(favoriteRecipeService.ensureDish(eq(1L), any(MenuDTO.RecipeDTO.class), eq(false)))
+        when(favoriteRecipeService.createDishSnapshot(eq(1L), any(MenuDTO.RecipeDTO.class)))
                 .thenReturn(dish);
         when(sessionRepository.save(any(CookingSession.class))).thenAnswer(invocation -> {
             CookingSession saved = invocation.getArgument(0);
@@ -119,7 +119,7 @@ class CookingWorkflowServiceTest {
         // Then
         assertThat(sessionId).isEqualTo(200L);
         verify(householdRepository, times(1)).findById(1L);
-        verify(favoriteRecipeService, times(1)).ensureDish(eq(1L), any(MenuDTO.RecipeDTO.class), eq(false));
+        verify(favoriteRecipeService, times(1)).createDishSnapshot(eq(1L), any(MenuDTO.RecipeDTO.class));
         verify(sessionRepository, times(1)).save(any(CookingSession.class));
     }
 
@@ -132,7 +132,7 @@ class CookingWorkflowServiceTest {
         request.setDishId(100L);
 
         when(householdRepository.findById(1L)).thenReturn(Optional.of(household));
-        when(dishRepository.findById(100L)).thenReturn(Optional.of(dish));
+        when(favoriteRecipeService.cloneDishSnapshot(eq(1L), eq(100L))).thenReturn(dish);
         when(sessionRepository.save(any(CookingSession.class))).thenAnswer(invocation -> {
             CookingSession saved = invocation.getArgument(0);
             saved.setId(200L);
@@ -144,7 +144,7 @@ class CookingWorkflowServiceTest {
 
         // Then
         assertThat(sessionId).isEqualTo(200L);
-        verify(dishRepository, times(1)).findById(100L);
+        verify(favoriteRecipeService, times(1)).cloneDishSnapshot(eq(1L), eq(100L));
         verify(sessionRepository, times(1)).save(any(CookingSession.class));
     }
 
