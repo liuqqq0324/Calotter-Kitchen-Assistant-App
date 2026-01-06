@@ -58,6 +58,25 @@ public interface IIntakeService {
     DeleteIntakeResponse deleteIntake(Long userId, Long intakeId);
 
     /**
+     * Get selectable leftover dishes for "Today's Dish Intake"
+     * 获取可选的剩菜列表（仅 leftover）
+     *
+     * @param userId Family Member ID
+     * @return dish options response
+     */
+    DishOptionsResponse getDishOptions(Long userId);
+
+    /**
+     * Add a leftover dish intake record
+     * 添加剩菜摄入（仅 leftover）
+     *
+     * @param userId Family Member ID
+     * @param request add request
+     * @return add response
+     */
+    AddDishIntakeResponse addDishIntake(Long userId, AddDishIntakeRequest request);
+
+    /**
      * Today Intakes Response
      * 今日摄入响应
      */
@@ -76,8 +95,8 @@ public interface IIntakeService {
     class IntakeItem {
         private Long intakeId;
         private String sourceType; // recipe | manual
-        private Long recipeId;
-        private String recipeTitle;
+        private Long leftoverId;
+        private String leftoverTitle;
         private String manualFoodName;
         private String portionDescription;
         private BigDecimal consumedPercentage;
@@ -115,8 +134,8 @@ public interface IIntakeService {
     class UpdateIntakeItem {
         private Long intakeId;
         private String sourceType;
-        private Long recipeId;
-        private String recipeTitle;
+        private Long leftoverId;
+        private String leftoverTitle;
         private LocalDate date;
         private BigDecimal consumedPercentage;
         private Nutrition baseNutrition;
@@ -176,6 +195,75 @@ public interface IIntakeService {
         private Long deletedIntakeId;
         private LocalDate date;
         private List<ManualFoodItem> todayManualFoods;
+        private WeeklySummary weeklySummary;
+    }
+
+    /**
+     * Dish Options Response (leftovers only)
+     */
+    @Data
+    class DishOptionsResponse {
+        private List<DishOption> options;
+    }
+
+    /**
+     * Dish Option (leftover only)
+     */
+    @Data
+    class DishOption {
+        /**
+         * Always "leftover"
+         */
+        private String type;
+        /**
+         * LeftoverDish ID
+         */
+        private Long id;
+        private String title;
+        private String subtitle;
+    }
+
+    /**
+     * Add Dish Intake Request (leftover only)
+     */
+    @Data
+    class AddDishIntakeRequest {
+        /**
+         * Optional. Must be "leftover" if provided.
+         */
+        private String type;
+        /**
+         * LeftoverDish ID
+         */
+        private Long id;
+        /**
+         * Batch: LeftoverDish IDs
+         */
+        private List<Long> ids;
+        /**
+         * 0-100
+         */
+        private BigDecimal consumedPercentage;
+    }
+
+    /**
+     * Add Dish Intake Response (leftover only)
+     */
+    @Data
+    class AddDishIntakeResponse {
+        /**
+         * Backward compatible: single intake created (when request.id is used).
+         * If batch is used, this may be the first created item.
+         */
+        private IntakeItem intake;
+        /**
+         * Batch: the intakes created in this request.
+         */
+        private List<IntakeItem> addedIntakes;
+        /**
+         * All leftover dish intakes of today after insertion (for quick UI refresh)
+         */
+        private List<IntakeItem> todayDishIntakes;
         private WeeklySummary weeklySummary;
     }
 

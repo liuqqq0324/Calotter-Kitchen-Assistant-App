@@ -152,5 +152,53 @@ public class IntakeController {
         public String foodName;
         public String portionDescription;
     }
+
+    /**
+     * Get Dish Options (leftovers only)
+     * GET /api/intake/dish/options?userId={userId}
+     */
+    @GetMapping("/dish/options")
+    public Result<IIntakeService.DishOptionsResponse> getDishOptions(
+            @RequestParam("userId") Long userId) {
+        try {
+            IIntakeService.DishOptionsResponse response = intakeService.getDishOptions(userId);
+            return Result.success(response);
+        } catch (Exception e) {
+            return Result.error("Failed to get dish options: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Add Dish Intake (leftover only)
+     * POST /api/intake/dish?userId={userId}
+     */
+    @PostMapping("/dish")
+    public Result<IIntakeService.AddDishIntakeResponse> addDishIntake(
+            @RequestParam("userId") Long userId,
+            @RequestBody IIntakeService.AddDishIntakeRequest request) {
+        try {
+            boolean hasSingleId = request.getId() != null;
+            boolean hasIds = request.getIds() != null && !request.getIds().isEmpty();
+            if (!hasSingleId && !hasIds) {
+                return Result.error("id or ids is required");
+            }
+            if (request.getConsumedPercentage() != null) {
+                if (request.getConsumedPercentage().compareTo(BigDecimal.ZERO) < 0 ||
+                        request.getConsumedPercentage().compareTo(BigDecimal.valueOf(100)) > 0) {
+                    return Result.error("consumed_percentage must be between 0 and 100");
+                }
+            }
+            if (request.getType() != null && !request.getType().isBlank()) {
+                if (!"leftover".equalsIgnoreCase(request.getType())) {
+                    return Result.error("Invalid type. Only 'leftover' is supported");
+                }
+            }
+
+            IIntakeService.AddDishIntakeResponse response = intakeService.addDishIntake(userId, request);
+            return Result.success(response);
+        } catch (Exception e) {
+            return Result.error("Failed to add dish intake: " + e.getMessage());
+        }
+    }
 }
 

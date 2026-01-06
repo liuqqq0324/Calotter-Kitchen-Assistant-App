@@ -7,6 +7,71 @@ import 'package:personal_sous_chef/services/auth_service.dart';
 /// Homepage API Service
 /// 处理营养和摄入相关的API调用
 class HomepageApiService {
+  /// 启用前端假数据（不依赖后端），用于 UI 验证：
+  /// flutter run --dart-define=MOCK_HOMEPAGE_API=true
+  static const bool _useMockApi =
+      bool.fromEnvironment('MOCK_HOMEPAGE_API', defaultValue: false);
+
+  // ===== Mock in-memory store (仅用于开发验证) =====
+  static int _mockNextIntakeId = 900000;
+
+  static final List<Map<String, dynamic>> _mockLeftoverOptions = [
+    {
+      'type': 'leftover',
+      'id': 101,
+      'title': 'Braised Pork (Leftover)',
+      'subtitle': '250g leftover',
+    },
+    {
+      'type': 'leftover',
+      'id': 102,
+      'title': 'Tomato Egg Stir-fry (Leftover)',
+      'subtitle': '180g leftover',
+    },
+    {
+      'type': 'leftover',
+      'id': 103,
+      'title': 'Chicken Soup (Leftover)',
+      'subtitle': '300g leftover',
+    },
+  ];
+
+  static final List<Map<String, dynamic>> _mockTodayDishIntakes = [
+    {
+      'intakeId': 1001,
+      'leftoverTitle': 'Braised Pork (Leftover)',
+      'consumedPercentage': 60.0, // 0-100
+    },
+    {
+      'intakeId': 1002,
+      'leftoverTitle': 'Tomato Egg Stir-fry (Leftover)',
+      'consumedPercentage': 30.0,
+    },
+  ];
+
+  static final List<Map<String, dynamic>> _mockTodayManualFoods = [
+    {
+      'intakeId': 2001,
+      'manualFoodName': 'Banana',
+      'effectiveNutrition': {
+        'energy': 105,
+        'protein': 1.3,
+        'fat': 0.4,
+        'carbohydrates': 27.0,
+      },
+    },
+    {
+      'intakeId': 2002,
+      'manualFoodName': 'Greek Yogurt',
+      'effectiveNutrition': {
+        'energy': 120,
+        'protein': 15.0,
+        'fat': 3.5,
+        'carbohydrates': 8.0,
+      },
+    },
+  ];
+
   /// 获取基础headers（仅Content-Type，不包含Authorization）
   /// 注意：后端 controller 使用 userId 作为 URL 参数
   static Map<String, String> _getHeaders() {
@@ -211,6 +276,29 @@ class HomepageApiService {
     String? userId,
   }) async {
     try {
+      if (_useMockApi) {
+        if (source == 'manual') {
+          return {
+            'success': true,
+            'data': {'items': List<Map<String, dynamic>>.from(_mockTodayManualFoods)},
+            'code': 200,
+          };
+        }
+        if (source == 'recipe') {
+          return {
+            'success': true,
+            'data': {'items': List<Map<String, dynamic>>.from(_mockTodayDishIntakes)},
+            'code': 200,
+          };
+        }
+        // 默认返回空，避免影响其它页面
+        return {
+          'success': true,
+          'data': {'items': const []},
+          'code': 200,
+        };
+      }
+
       final userIdParam = userId ?? await AuthService.getUserId();
       if (userIdParam == null) {
         return {'success': false, 'error': 'User not logged in', 'code': 401};
@@ -278,6 +366,18 @@ class HomepageApiService {
     String? userId,
   }) async {
     try {
+      if (_useMockApi) {
+        final idx =
+            _mockTodayDishIntakes.indexWhere((e) => (e['intakeId'] as int?) == intakeId);
+        if (idx >= 0) {
+          _mockTodayDishIntakes[idx] = {
+            ..._mockTodayDishIntakes[idx],
+            'consumedPercentage': consumedPercentage,
+          };
+        }
+        return {'success': true, 'data': const {}, 'code': 200};
+      }
+
       final userIdParam = userId ?? await AuthService.getUserId();
       if (userIdParam == null) {
         return {'success': false, 'error': 'User not logged in', 'code': 401};
@@ -349,6 +449,27 @@ class HomepageApiService {
     String? userId,
   }) async {
     try {
+      if (_useMockApi) {
+        final newId = _mockNextIntakeId++;
+        _mockTodayManualFoods.insert(0, {
+          'intakeId': newId,
+          'manualFoodName': foodName,
+          'effectiveNutrition': {
+            'energy': 180,
+            'protein': 8.0,
+            'fat': 6.0,
+            'carbohydrates': 22.0,
+          },
+        });
+        return {
+          'success': true,
+          'data': {
+            'todayManualFoods': List<Map<String, dynamic>>.from(_mockTodayManualFoods),
+          },
+          'code': 200,
+        };
+      }
+
       final userIdParam = userId ?? await AuthService.getUserId();
       if (userIdParam == null) {
         return {'success': false, 'error': 'User not logged in', 'code': 401};
@@ -427,6 +548,12 @@ class HomepageApiService {
     String? userId,
   }) async {
     try {
+      if (_useMockApi) {
+        _mockTodayDishIntakes.removeWhere((e) => (e['intakeId'] as int?) == intakeId);
+        _mockTodayManualFoods.removeWhere((e) => (e['intakeId'] as int?) == intakeId);
+        return {'success': true, 'data': const {}, 'code': 200};
+      }
+
       final userIdParam = userId ?? await AuthService.getUserId();
       if (userIdParam == null) {
         return {'success': false, 'error': 'User not logged in', 'code': 401};
@@ -484,6 +611,196 @@ class HomepageApiService {
       }
       return handled;
     } on http.ClientException catch (e) {
+      return {
+        'success': false,
+        'error':
+            'Network connection failed. Please check your internet connection.',
+        'code': 0,
+      };
+    } on Exception catch (e) {
+      String errorMsg = 'Network error';
+      if (e.toString().contains('timeout')) {
+        errorMsg = 'Request timeout. Please try again.';
+      } else if (e.toString().contains('Failed host lookup') ||
+          e.toString().contains('Connection refused')) {
+        errorMsg =
+            'Cannot connect to server. Please check:\n'
+            '1. Backend service is running on port ${ApiConfig.homepagePort}\n'
+            '2. IP address is correct (${ApiConfig.serverIp})\n'
+            '3. Network connection is available';
+      } else {
+        errorMsg = 'Network error: ${e.toString()}';
+      }
+      return {'success': false, 'error': errorMsg, 'code': 0};
+    } catch (e) {
+      return {
+        'success': false,
+        'error': 'Unexpected error: ${e.toString()}',
+        'code': 0,
+      };
+    }
+  }
+
+  /// 7. 获取可选菜品（包含 leftovers）
+  /// GET /api/intake/dish/options?userId={userId}
+  static Future<Map<String, dynamic>> getDishOptions({String? userId}) async {
+    try {
+      if (_useMockApi) {
+        return {
+          'success': true,
+          'data': {'options': List<Map<String, dynamic>>.from(_mockLeftoverOptions)},
+          'code': 200,
+        };
+      }
+
+      final userIdParam = userId ?? await AuthService.getUserId();
+      if (userIdParam == null) {
+        return {'success': false, 'error': 'User not logged in', 'code': 401};
+      }
+
+      final url = Uri.parse(
+        '${ApiConfig.homepageBaseUrl}/api/intake/dish/options?userId=$userIdParam',
+      );
+      final headers = _getHeaders();
+
+      print('[HomepageApi] GET $url');
+
+      final response = await http
+          .get(url, headers: headers)
+          .timeout(const Duration(seconds: 10), onTimeout: () {
+        throw Exception('Request timeout: Server did not respond in time');
+      });
+
+      print(
+        '[HomepageApi] Response ${response.statusCode}: ${response.body.substring(0, response.body.length > 200 ? 200 : response.body.length)}',
+      );
+
+      return _handleResponse(response);
+    } on http.ClientException catch (_) {
+      return {
+        'success': false,
+        'error':
+            'Network connection failed. Please check your internet connection.',
+        'code': 0,
+      };
+    } on Exception catch (e) {
+      String errorMsg = 'Network error';
+      if (e.toString().contains('timeout')) {
+        errorMsg = 'Request timeout. Please try again.';
+      } else if (e.toString().contains('Failed host lookup') ||
+          e.toString().contains('Connection refused')) {
+        errorMsg =
+            'Cannot connect to server. Please check:\n'
+            '1. Backend service is running on port ${ApiConfig.homepagePort}\n'
+            '2. IP address is correct (${ApiConfig.serverIp})\n'
+            '3. Network connection is available';
+      } else {
+        errorMsg = 'Network error: ${e.toString()}';
+      }
+      return {'success': false, 'error': errorMsg, 'code': 0};
+    } catch (e) {
+      return {
+        'success': false,
+        'error': 'Unexpected error: ${e.toString()}',
+        'code': 0,
+      };
+    }
+  }
+
+  /// 8. 添加今日菜品摄入（仅 leftover）
+  /// POST /api/intake/dish?userId={userId}
+  static Future<Map<String, dynamic>> addDishIntake({
+    int? id,
+    List<int>? ids,
+    double? consumedPercentage, // 0-100, optional
+    String? userId,
+  }) async {
+    try {
+      final hasSingle = id != null;
+      final hasBatch = ids != null && ids.isNotEmpty;
+      if (!hasSingle && !hasBatch) {
+        return {
+          'success': false,
+          'error': 'id or ids is required',
+          'code': 400,
+        };
+      }
+
+      if (_useMockApi) {
+        final pct = consumedPercentage ?? 100.0;
+
+        final List<int> targetIds;
+        if (hasBatch) {
+          targetIds = ids;
+        } else {
+          targetIds = [id!];
+        }
+        final created = <Map<String, dynamic>>[];
+        for (final oneId in targetIds.toSet()) {
+          if (oneId <= 0) continue;
+          final opt = _mockLeftoverOptions
+              .cast<Map<String, dynamic>>()
+              .firstWhere(
+                (e) => (e['id'] as int?) == oneId,
+                orElse: () => {
+                  'type': 'leftover',
+                  'id': oneId,
+                  'title': 'Leftover $oneId',
+                  'subtitle': 'mock',
+                },
+              );
+          final newItem = {
+            'intakeId': _mockNextIntakeId++,
+            'leftoverTitle': (opt['title'] as String?) ?? 'Leftover $oneId',
+            'consumedPercentage': pct,
+          };
+          _mockTodayDishIntakes.insert(0, newItem);
+          created.add(newItem);
+        }
+
+        return {
+          'success': true,
+          'data': {
+            'intake': created.isNotEmpty ? created.first : null,
+            'addedIntakes': created,
+            'todayDishIntakes': List<Map<String, dynamic>>.from(_mockTodayDishIntakes),
+          },
+          'code': 200,
+        };
+      }
+
+      final userIdParam = userId ?? await AuthService.getUserId();
+      if (userIdParam == null) {
+        return {'success': false, 'error': 'User not logged in', 'code': 401};
+      }
+
+      final url = Uri.parse(
+        '${ApiConfig.homepageBaseUrl}/api/intake/dish?userId=$userIdParam',
+      );
+      final headers = _getHeaders();
+
+      final body = jsonEncode({
+        'type': 'leftover',
+        if (hasBatch) 'ids': ids,
+        if (hasSingle) 'id': id,
+        if (consumedPercentage != null) 'consumedPercentage': consumedPercentage,
+      });
+
+      print('[HomepageApi] POST $url');
+      print('[HomepageApi] Body: $body');
+
+      final response = await http
+          .post(url, headers: headers, body: body)
+          .timeout(const Duration(seconds: 10), onTimeout: () {
+        throw Exception('Request timeout: Server did not respond in time');
+      });
+
+      print(
+        '[HomepageApi] Response ${response.statusCode}: ${response.body.substring(0, response.body.length > 200 ? 200 : response.body.length)}',
+      );
+
+      return _handleResponse(response);
+    } on http.ClientException catch (_) {
       return {
         'success': false,
         'error':

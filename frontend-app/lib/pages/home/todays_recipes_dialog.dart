@@ -28,6 +28,7 @@ class TodaysRecipesDialog extends StatefulWidget {
 class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
   bool _isLoading = true;
   bool _isSaving = false;
+  bool _isAdding = false;
   List<TodayRecipe> _todaysRecipes = [];
 
   @override
@@ -52,7 +53,7 @@ class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
                 (item['consumedPercentage'] as num?)?.toDouble() ?? 0.0;
             return TodayRecipe(
               intakeId: item['intakeId'] as int?,
-              name: item['recipeTitle'] as String? ?? 'Unknown Recipe',
+              name: item['leftoverTitle'] as String? ?? 'Unknown Leftover',
               imageIcon: "🍽️", // 默认图标，可以根据recipe_id获取真实图标
               consumedPercentage: consumedPercentage / 100.0, // 转换为0-1范围
             );
@@ -191,6 +192,215 @@ class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
     }
   }
 
+  Future<void> _showAddDishSheet() async {
+    if (_isAdding) return;
+    setState(() => _isAdding = true);
+
+    try {
+      final result = await HomepageApiService.getDishOptions();
+      setState(() => _isAdding = false);
+
+      if (!mounted) return;
+
+      if (result['success'] == true && result['data'] != null) {
+        final data = result['data'] as Map<String, dynamic>;
+        final rawOptions = data['options'] as List<dynamic>? ?? [];
+        // 只允许 leftover
+        final options = rawOptions.where((o) {
+          final opt = o as Map<String, dynamic>;
+          return (opt['type'] as String?) == 'leftover';
+        }).toList();
+
+        await showModalBottomSheet<void>(
+          context: context,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          builder: (context) {
+            final selectedIds = <int>{};
+            return StatefulBuilder(
+              builder: (context, setSheetState) {
+                return SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Select leftovers',
+                              style: GoogleFonts.kalam(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: () => Navigator.of(context).pop(),
+                              icon: Icon(Icons.close, color: Colors.grey[600]),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Flexible(
+                          child: ListView.separated(
+                            shrinkWrap: true,
+                            itemCount: options.length,
+                            separatorBuilder: (_, __) => const Divider(height: 1),
+                            itemBuilder: (context, index) {
+                              final opt = options[index] as Map<String, dynamic>;
+                              final id = (opt['id'] as num?)?.toInt();
+                              final title = (opt['title'] as String?) ?? 'Unknown';
+                              final subtitle = (opt['subtitle'] as String?) ?? '';
+
+                              final selected = id != null && selectedIds.contains(id);
+                              return ListTile(
+                                leading: const Text('🥡', style: TextStyle(fontSize: 22)),
+                                title: Text(title, style: GoogleFonts.kalam()),
+                                subtitle: subtitle.isNotEmpty
+                                    ? Text(subtitle, style: GoogleFonts.kalam(fontSize: 12))
+                                    : null,
+                                trailing: Checkbox(
+                                  value: selected,
+                                  onChanged: id == null
+                                      ? null
+                                      : (checked) {
+                                          setSheetState(() {
+                                            if (checked == true) {
+                                              selectedIds.add(id);
+                                            } else {
+                                              selectedIds.remove(id);
+                                            }
+                                          });
+                                        },
+                                ),
+                                onTap: id == null
+                                    ? null
+                                    : () {
+                                        setSheetState(() {
+                                          if (selected) {
+                                            selectedIds.remove(id);
+                                          } else {
+                                            selectedIds.add(id);
+                                          }
+                                        });
+                                      },
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: selectedIds.isEmpty
+                                ? null
+                                : () async {
+                                    Navigator.of(context).pop();
+                                    await _addDishes(ids: selectedIds.toList());
+                                  },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.deepOrange.shade600,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: Text(
+                              'Confirm (${selectedIds.length})',
+                              style: GoogleFonts.kalam(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            );
+          },
+        );
+      } else {
+        final errorMsg = result['error'] as String? ?? 'Unknown error';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load dish options: $errorMsg'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() => _isAdding = false);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Unexpected error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _addDishes({required List<int> ids}) async {
+    setState(() => _isAdding = true);
+    try {
+      final result = await HomepageApiService.addDishIntake(ids: ids);
+      setState(() => _isAdding = false);
+
+      if (!mounted) return;
+
+      if (result['success'] == true && result['data'] != null) {
+        // Prefer backend-provided list to refresh UI immediately
+        final data = result['data'] as Map<String, dynamic>;
+        final todayItems = data['todayDishIntakes'] as List<dynamic>? ?? [];
+
+        setState(() {
+          _todaysRecipes = todayItems.map((item) {
+            final consumedPercentage =
+                (item['consumedPercentage'] as num?)?.toDouble() ?? 0.0;
+            return TodayRecipe(
+              intakeId: item['intakeId'] as int?,
+              name: item['leftoverTitle'] as String? ?? 'Unknown Leftover',
+              imageIcon: "🥡",
+              consumedPercentage: consumedPercentage / 100.0,
+            );
+          }).toList();
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Added'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      } else {
+        final errorMsg = result['error'] as String? ?? 'Unknown error';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to add: $errorMsg'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() => _isAdding = false);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Unexpected error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Dialog(
@@ -215,7 +425,7 @@ class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
                     ),
                     const SizedBox(width: 10),
                     Text(
-                      "Today's Recipes",
+                      "Today's Dish Intake",
                       style: GoogleFonts.caveat(
                         fontSize: 26,
                         fontWeight: FontWeight.bold,
@@ -224,15 +434,30 @@ class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
                     ),
                   ],
                 ),
-                IconButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  icon: Icon(Icons.close, color: Colors.grey[600]),
+                Row(
+                  children: [
+                    IconButton(
+                      onPressed: _isLoading || _isSaving || _isAdding ? null : _showAddDishSheet,
+                      icon: _isAdding
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : Icon(Icons.add, color: Colors.deepOrange.shade600),
+                      tooltip: 'Add leftover',
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: Icon(Icons.close, color: Colors.grey[600]),
+                    ),
+                  ],
                 ),
               ],
             ),
             const SizedBox(height: 8),
             Text(
-              "Adjust how much you ate of each dish",
+              "Add dishes and adjust how much you ate",
               style: GoogleFonts.kalam(fontSize: 14, color: Colors.grey[600]),
             ),
             const SizedBox(height: 20),
@@ -305,8 +530,13 @@ class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
           Icon(Icons.no_meals, size: 60, color: Colors.grey[400]),
           const SizedBox(height: 12),
           Text(
-            "No recipes cooked today",
+            "No dish intake yet",
             style: GoogleFonts.kalam(fontSize: 16, color: Colors.grey[500]),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            "Tap + to add a leftover dish",
+            style: GoogleFonts.kalam(fontSize: 12, color: Colors.grey[500]),
           ),
         ],
       ),

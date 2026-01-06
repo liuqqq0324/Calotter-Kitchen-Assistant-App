@@ -57,13 +57,14 @@ public class NutritionLog extends BaseEntity {
 
     // ✅ 使用弱引用关联Dish（避免模块循环依赖）
     /**
-     * 关联的Dish ID（弱引用）
-     * - 当 sourceType = APP_COOKING 时，关联烹饪产生的 Dish ID
-     * - 当 sourceType = LEFTOVER 时，关联 LeftoverDish.originalDishId 对应的 Dish ID
-     * - 当 sourceType = MANUAL 或 EXTERNAL 时，为 null
-     * 
-     * 注意：使用弱引用避免 calotter-health 和 calotter-cooking 之间的循环依赖
-     * Dish 信息通过Service层查询获取（如需要）
+     * 关联ID（弱引用）
+     * - 当 sourceType = APP_COOKING 时：存 Dish ID（来自 cooking 模块）
+     * - 当 sourceType = LEFTOVER 时：存 LeftoverDish ID（来自 inventory 模块）
+     * - 当 sourceType = MANUAL 或 EXTERNAL 时：为 null
+     *
+     * 说明：
+     * - 这里复用一个字段承载不同来源的关联ID，避免跨模块强依赖与额外表结构。
+     * - 前端“Today's Dish Intake（leftover）”场景会把它当作 LeftoverDish ID 使用。
      */
     @Column(name = "dish_id") // 可空
     private Long dishId;
