@@ -39,6 +39,7 @@ public class AiMenuService {
     
     // 注入 AI 菜单生成服务（根据配置自动选择 Mock/Gemini/Groq）
     private final AiMenuGenerationService aiMenuGenerationService;
+    private final RecipeFilterValidationService recipeFilterValidationService;
 
     /**
      * 调用 AI 生成 5 套菜单
@@ -47,6 +48,21 @@ public class AiMenuService {
         // 如果提供了householdId，自动填充inventory、cookers、seasonings
         if (householdId != null) {
             enrichFilterFromHousehold(filter, householdId);
+        }
+
+        // ✅ 校验：限制 allergies/avoid/taboos 必须来自标准库
+        recipeFilterValidationService.validate(filter);
+
+        // ✅ AI 侧兼容：目前 prompt 只明确要求 allergies + avoidIngredients，
+        // 这里把 taboos 合并进 avoidIngredients 一起发给 AI（不影响前端分开展示）。
+        if (filter != null && filter.getDietPreferences() != null) {
+            RecipeGenerationFilter.DietPreferences dp = filter.getDietPreferences();
+            List<String> mergedAvoid = new ArrayList<>();
+            if (dp.getAvoidIngredients() != null) mergedAvoid.addAll(dp.getAvoidIngredients());
+            if (dp.getTaboos() != null) mergedAvoid.addAll(dp.getTaboos());
+            if (!mergedAvoid.isEmpty()) {
+                dp.setAvoidIngredients(mergedAvoid.stream().filter(s -> s != null && !s.isBlank()).distinct().toList());
+            }
         }
         
         // 使用注入的服务（Mock/Gemini/Groq）
@@ -82,6 +98,7 @@ public class AiMenuService {
         // 3. 收集过敏信息
         List<String> allergies = new ArrayList<>();
         List<String> avoidIngredients = new ArrayList<>();
+        List<String> taboos = new ArrayList<>();
         List<String> cuisinePreferences = new ArrayList<>();
         List<String> tastePreferences = new ArrayList<>();
         
@@ -108,8 +125,9 @@ public class AiMenuService {
             // 收集硬性饮食禁忌和避免食材（从 dietaryStyles Map）
             if (member.getDietaryStyles() != null) {
                 // 提取硬性饮食禁忌（TABOO）
-                List<String> taboos = member.getDietaryStyles().getOrDefault(PreferenceStandardLibrary.PREF_KEY_TABOO, new ArrayList<>());
-                avoidIngredients.addAll(taboos);
+                List<String> memberTaboos = member.getDietaryStyles()
+                        .getOrDefault(PreferenceStandardLibrary.PREF_KEY_TABOO, new ArrayList<>());
+                taboos.addAll(memberTaboos);
                 
                 // 提取不喜欢吃的食材（AVOID_INGREDIENT）
                 List<String> avoidIngs = member.getDietaryStyles().getOrDefault(PreferenceStandardLibrary.PREF_KEY_AVOID_INGREDIENT, new ArrayList<>());
@@ -136,6 +154,7 @@ public class AiMenuService {
         RecipeGenerationFilter.DietPreferences dietPrefs = new RecipeGenerationFilter.DietPreferences();
         dietPrefs.setAllergies(allergies.stream().distinct().collect(Collectors.toList()));
         dietPrefs.setAvoidIngredients(avoidIngredients.stream().distinct().collect(Collectors.toList()));
+        dietPrefs.setTaboos(taboos.stream().distinct().collect(Collectors.toList()));
         dietPrefs.setCuisinePreferences(cuisinePreferences.stream().distinct().collect(Collectors.toList()));
         dietPrefs.setTastePreferences(tastePreferences.stream().distinct().collect(Collectors.toList()));
         filter.setDietPreferences(dietPrefs);

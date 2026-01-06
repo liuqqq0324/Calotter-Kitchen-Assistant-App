@@ -32,7 +32,15 @@ public class RecipeGenerationFilter {
     public static class DietPreferences {
         private List<String> cuisinePreferences;
         private List<String> tastePreferences;
+        /**
+         * 软性“避免食材”（不喜欢吃的具体食材），应当来自标准食材库（StandardIngredient）。
+         */
         private List<String> avoidIngredients;
+        /**
+         * 硬性饮食禁忌（如 vegetarian / halal / low_sodium 等），应当来自 PreferenceStandardLibrary.TABOO_OPTIONS。
+         * 与 avoidIngredients 分开存储，便于前端展示与校验。
+         */
+        private List<String> taboos;
         private List<String> allergies;
     }
 

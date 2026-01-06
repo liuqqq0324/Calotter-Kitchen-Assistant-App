@@ -43,6 +43,22 @@ public class Dish extends BaseEntity {
     @Column(length = 1000)
     private String description; // 短描述
 
+    /**
+     * Dish 类型：
+     * - TEMPLATE: “菜谱模板”（用于收藏/复用，不会随着每次烹饪变化）
+     * - INSTANCE: “本次烹饪快照”（每次开始烹饪生成一条，保证每次有独立 dishId）
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "dish_type", nullable = false)
+    private DishType dishType = DishType.INSTANCE;
+
+    /**
+     * 如果该 Dish 是 INSTANCE，则指向它来源的 TEMPLATE dishId（可选但推荐）。
+     * 如果该 Dish 本身就是 TEMPLATE，则为空。
+     */
+    @Column(name = "template_dish_id")
+    private Long templateDishId;
+
     // --- 核心物理属性 (Snapshot Metrics) ---
     /**
      * 总重量 (克)。
@@ -96,6 +112,11 @@ public class Dish extends BaseEntity {
      */
     @Column(nullable = false)
     private boolean favorite = false;
+
+    public enum DishType {
+        TEMPLATE,
+        INSTANCE
+    }
 
     // --- 辅助计算方法 (Domain Logic) ---
     

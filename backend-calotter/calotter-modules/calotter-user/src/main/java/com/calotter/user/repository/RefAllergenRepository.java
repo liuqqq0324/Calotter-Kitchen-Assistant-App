@@ -11,4 +11,5 @@ import java.util.Optional;
 public interface RefAllergenRepository extends JpaRepository<RefAllergen, Long> {
     Optional<RefAllergen> findByName(String name);
     List<RefAllergen> findByNameIn(List<String> names);
+    List<RefAllergen> findByNameContainingIgnoreCase(String name);
 }
