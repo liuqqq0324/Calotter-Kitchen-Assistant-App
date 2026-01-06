@@ -342,4 +342,85 @@ class UserService {
       return {'success': false, 'error': 'Network error: $e'};
     }
   }
+
+  // Get user health info (BMI and nutrition goals)
+  static Future<Map<String, dynamic>> getUserHealthInfo({
+    String? userId,
+  }) async {
+    try {
+      final userIdParam = userId ?? await AuthService.getUserId();
+      final url = Uri.parse(
+        '${ApiConfig.baseUrl}/api/user/health-info?id=$userIdParam',
+      );
+      final response = await http.get(url, headers: await _getHeaders());
+
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        // 后端返回的是 Result<UserHealthInfoResponse> 格式: {code, message, data: {bmi, goalType, ...}}
+        final responseData = data['data'] ?? data;
+        return {'success': true, 'data': responseData};
+      } else {
+        return {
+          'success': false,
+          'error': data['message'] ?? 'Failed to get health info',
+        };
+      }
+    } catch (e) {
+      return {'success': false, 'error': 'Network error: $e'};
+    }
+  }
+
+  // Create or update health goal
+  static Future<Map<String, dynamic>> createOrUpdateHealthGoal({
+    String? userId,
+    required String goalType, // "MAINTENANCE", "LOSE_FAT", "MUSCLE_GAIN"
+  }) async {
+    try {
+      final userIdParam = userId ?? await AuthService.getUserId();
+      final url = Uri.parse(
+        '${ApiConfig.baseUrl}/api/user/health-goal?id=$userIdParam',
+      );
+      
+      print('📤 Creating/updating health goal:');
+      print('   URL: $url');
+      print('   Goal Type: $goalType');
+      
+      final headers = await _getHeaders();
+      final body = jsonEncode({
+        'goalType': goalType,
+      });
+      
+      print('   Headers: $headers');
+      print('   Body: $body');
+      
+      final response = await http.post(
+        url,
+        headers: headers,
+        body: body,
+      );
+
+      print('📥 Response status: ${response.statusCode}');
+      print('📥 Response body: ${response.body}');
+
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        // 后端返回的是 Result<HealthGoalResponse> 格式: {code, message, data: {id, goalType, ...}}
+        final responseData = data['data'] ?? data;
+        return {'success': true, 'data': responseData};
+      } else {
+        final errorMsg = data['message'] ?? 
+                        data['error'] ?? 
+                        'Failed to create or update health goal (Status: ${response.statusCode})';
+        print('❌ Error: $errorMsg');
+        return {
+          'success': false,
+          'error': errorMsg,
+        };
+      }
+    } catch (e, stackTrace) {
+      print('❌ Exception: $e');
+      print('Stack trace: $stackTrace');
+      return {'success': false, 'error': 'Network error: $e'};
+    }
+  }
 }

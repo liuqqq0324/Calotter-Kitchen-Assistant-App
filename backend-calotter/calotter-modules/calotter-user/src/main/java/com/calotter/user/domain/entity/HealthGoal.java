@@ -39,8 +39,7 @@ public class HealthGoal extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private GoalType goalType; // LOSE_FAT, MUSCLE_GAIN
 
-    @Column(nullable = false)
-    private Double activityLevel;
+    private Double activityLevel; // 可以为空
 
     // 计算结果
     private Integer dailyCalories;

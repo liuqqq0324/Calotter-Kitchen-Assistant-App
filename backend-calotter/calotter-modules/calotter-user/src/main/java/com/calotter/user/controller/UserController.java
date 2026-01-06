@@ -2,6 +2,8 @@ package com.calotter.user.controller;
 
 import com.calotter.common.core.Result;
 import com.calotter.user.controller.dto.*;
+import com.calotter.user.domain.entity.HealthGoal;
+import com.calotter.user.service.UserHealthService;
 import com.calotter.user.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +23,7 @@ public class UserController {
     
     private final UserService userService;
     private final JwtService jwtService;
+    private final UserHealthService userHealthService;
     /**
      * 用户注册
      * POST /api/user/register
@@ -290,6 +293,104 @@ public class UserController {
             return Result.error(400, e.getMessage());
         } catch (Exception e) {
             return Result.error("更新用户偏好失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 创建或更新健康目标
+     * POST /api/user/health-goal
+     */
+    @PostMapping("/health-goal")
+    public Result<HealthGoalResponse> createOrUpdateHealthGoal(
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @RequestParam(value = "id", required = false) Long userId,
+            @Valid @RequestBody HealthGoalRequest request) {
+        try {
+            // 添加日志以便调试
+            System.out.println("📥 Received health goal request:");
+            System.out.println("   User ID: " + userId);
+            System.out.println("   Goal Type: " + (request.getGoalType() != null ? request.getGoalType().name() : "null"));
+            System.out.println("   Activity Level: " + request.getActivityLevel());
+            
+            Long targetUserId = getUserId(authHeader, userId);
+            
+            System.out.println("🔄 开始创建/更新健康目标");
+            System.out.println("   用户ID: " + targetUserId);
+            System.out.println("   目标类型: " + (request.getGoalType() != null ? request.getGoalType().name() : "null"));
+            System.out.println("   活动水平: " + request.getActivityLevel());
+            
+            HealthGoal goal = userHealthService.createOrUpdateHealthGoal(
+                    targetUserId,
+                    request.getGoalType(),
+                    request.getActivityLevel()
+            );
+            
+            System.out.println("✅ 健康目标保存成功");
+            System.out.println("   目标ID: " + goal.getId());
+            System.out.println("   目标类型: " + (goal.getGoalType() != null ? goal.getGoalType().name() : "null"));
+            System.out.println("   营养数据:");
+            System.out.println("     卡路里: " + goal.getDailyCalories());
+            System.out.println("     蛋白质: " + goal.getProtein() + "g");
+            System.out.println("     脂肪: " + goal.getFat() + "g");
+            System.out.println("     碳水: " + goal.getCarb() + "g");
+            System.out.println("     纤维: " + goal.getFiber() + "g");
+            
+            // 转换为响应DTO
+            HealthGoalResponse response = new HealthGoalResponse();
+            response.setId(goal.getId());
+            response.setGoalType(goal.getGoalType());
+            response.setActivityLevel(goal.getActivityLevel());
+            response.setStartWeight(goal.getStartWeight());
+            response.setHeight(goal.getHeight());
+            response.setAge(goal.getAge());
+            response.setDailyCalories(goal.getDailyCalories());
+            response.setProtein(goal.getProtein());
+            response.setFat(goal.getFat());
+            response.setCarb(goal.getCarb());
+            response.setFiber(goal.getFiber());
+            
+            System.out.println("📤 返回给前端的响应数据:");
+            System.out.println("   卡路里: " + response.getDailyCalories());
+            System.out.println("   蛋白质: " + response.getProtein() + "g");
+            System.out.println("   脂肪: " + response.getFat() + "g");
+            System.out.println("   碳水: " + response.getCarb() + "g");
+            System.out.println("   纤维: " + response.getFiber() + "g");
+            
+            return Result.success(response);
+        } catch (IllegalArgumentException e) {
+            return Result.error(400, e.getMessage());
+        } catch (Exception e) {
+            return Result.error("创建或更新健康目标失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 获取用户健康信息（含BMI）
+     * GET /api/user/health-info
+     */
+    @GetMapping("/health-info")
+    public Result<UserHealthInfoResponse> getHealthInfo(
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @RequestParam(value = "id", required = false) Long userId) {
+        try {
+            Long targetUserId = getUserId(authHeader, userId);
+            UserHealthService.UserHealthInfo healthInfo = userHealthService.getUserHealthInfo(targetUserId);
+            
+            // 转换为响应DTO
+            UserHealthInfoResponse response = new UserHealthInfoResponse();
+            response.setBmi(healthInfo.getBmi());
+            response.setGoalType(healthInfo.getGoalType());
+            response.setDailyEnergy(healthInfo.getDailyEnergy());
+            response.setDailyProtein(healthInfo.getDailyProtein());
+            response.setDailyFat(healthInfo.getDailyFat());
+            response.setDailyCarbohydrates(healthInfo.getDailyCarbohydrates());
+            response.setDailyFiber(healthInfo.getDailyFiber());
+            
+            return Result.success(response);
+        } catch (IllegalArgumentException e) {
+            return Result.error(400, e.getMessage());
+        } catch (Exception e) {
+            return Result.error("获取健康信息失败: " + e.getMessage());
         }
     }
     
