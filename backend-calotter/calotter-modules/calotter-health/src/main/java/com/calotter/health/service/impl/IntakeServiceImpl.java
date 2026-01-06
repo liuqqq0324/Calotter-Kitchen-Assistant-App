@@ -93,30 +93,57 @@ public class IntakeServiceImpl implements IIntakeService {
     @Override
     @Transactional(readOnly = true)
     public DishOptionsResponse getDishOptions(Long userId) {
+        log.info("[getDishOptions] 开始获取菜品选项，userId={}", userId);
+        
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("用户不存在: " + userId));
+        log.debug("[getDishOptions] 用户信息: id={}, username={}, currentHouseholdId={}", 
+                user.getId(), user.getUsername(), user.getCurrentHouseholdId());
 
         Household household = resolveHousehold(user);
+        log.info("[getDishOptions] resolveHousehold 结果: householdId={}, householdName={}", 
+                household != null ? household.getId() : null, 
+                household != null ? household.getName() : null);
+        
         DishOptionsResponse resp = new DishOptionsResponse();
         if (household == null) {
+            log.warn("[getDishOptions] 用户没有关联的 household，返回空列表。userId={}, currentHouseholdId={}, joinedHouseholds={}", 
+                    userId, user.getCurrentHouseholdId(), 
+                    user.getJoinedHouseholds() != null ? user.getJoinedHouseholds().size() : 0);
             resp.setOptions(List.of());
             return resp;
         }
 
-        List<LeftoverDish> leftovers = leftoverDishRepository.findByHouseholdId(household.getId())
-                .stream()
-                .filter(l -> l.getCurrentQuantityGram() != null && l.getCurrentQuantityGram() > 0)
+        List<LeftoverDish> allLeftovers = leftoverDishRepository.findByHouseholdId(household.getId());
+        log.info("[getDishOptions] 查询到 leftovers 总数: {}, householdId={}", allLeftovers.size(), household.getId());
+        
+        List<LeftoverDish> leftovers = allLeftovers.stream()
+                .filter(l -> {
+                    boolean isValid = l.getCurrentQuantityGram() != null && l.getCurrentQuantityGram() > 0;
+                    if (!isValid) {
+                        log.debug("[getDishOptions] 过滤掉 leftover: id={}, dishName={}, currentQuantityGram={}", 
+                                l.getId(), l.getDishName(), l.getCurrentQuantityGram());
+                    }
+                    return isValid;
+                })
                 .collect(Collectors.toList());
+        
+        log.info("[getDishOptions] 过滤后可用 leftovers 数量: {}", leftovers.size());
+        
         List<DishOption> options = leftovers.stream().map(l -> {
             DishOption opt = new DishOption();
             opt.setType("leftover");
             opt.setId(l.getId());
             opt.setTitle(l.getDishName() != null ? l.getDishName() : ("Leftover " + l.getId()));
             opt.setSubtitle(l.getCurrentQuantityGram() != null ? (l.getCurrentQuantityGram() + "g leftover") : "Leftover");
+            log.debug("[getDishOptions] 创建选项: id={}, title={}, subtitle={}", 
+                    opt.getId(), opt.getTitle(), opt.getSubtitle());
             return opt;
         }).collect(Collectors.toList());
 
         resp.setOptions(options);
+        log.info("[getDishOptions] 返回选项数量: {}, userId={}, householdId={}", 
+                options.size(), userId, household.getId());
         return resp;
     }
 
@@ -256,17 +283,56 @@ public class IntakeServiceImpl implements IIntakeService {
     }
 
     private Household resolveHousehold(User user) {
+        log.debug("[resolveHousehold] 开始解析用户的 household，userId={}, currentHouseholdId={}", 
+                user.getId(), user.getCurrentHouseholdId());
+        
         Household household = null;
+        
+        // 1. 优先使用 currentHouseholdId
         if (user.getCurrentHouseholdId() != null) {
             household = householdRepository.findById(user.getCurrentHouseholdId()).orElse(null);
+            if (household != null) {
+                log.debug("[resolveHousehold] 从 currentHouseholdId 获取到 household: id={}, name={}", 
+                        household.getId(), household.getName());
+            } else {
+                log.warn("[resolveHousehold] currentHouseholdId={} 对应的 household 不存在", 
+                        user.getCurrentHouseholdId());
+            }
+        } else {
+            log.debug("[resolveHousehold] 用户没有设置 currentHouseholdId");
         }
+        
+        // 2. 如果没有，尝试从 joinedHouseholds 获取
         if (household == null) {
             User loadedUser = userRepository.findById(user.getId())
                     .orElseThrow(() -> new IllegalArgumentException("用户不存在: " + user.getId()));
+            
             if (loadedUser.getJoinedHouseholds() != null && !loadedUser.getJoinedHouseholds().isEmpty()) {
                 household = loadedUser.getJoinedHouseholds().get(0);
+                log.debug("[resolveHousehold] 从 joinedHouseholds 获取到第一个 household: id={}, name={}, totalJoined={}", 
+                        household.getId(), household.getName(), loadedUser.getJoinedHouseholds().size());
+            } else {
+                log.debug("[resolveHousehold] 用户没有加入任何 household，尝试查找用户拥有的 household，userId={}", user.getId());
             }
         }
+        
+        // 3. 如果还没有，尝试查找用户作为 owner 的 household
+        if (household == null) {
+            List<Household> ownedHouseholds = householdRepository.findByOwnerId(user.getId());
+            if (ownedHouseholds != null && !ownedHouseholds.isEmpty()) {
+                household = ownedHouseholds.get(0);
+                log.info("[resolveHousehold] 从 owner 关系获取到 household: id={}, name={}, totalOwned={}", 
+                        household.getId(), household.getName(), ownedHouseholds.size());
+            } else {
+                log.warn("[resolveHousehold] 用户既没有 currentHouseholdId，也没有加入任何 household，也不是任何 household 的 owner，userId={}", user.getId());
+            }
+        }
+        
+        log.info("[resolveHousehold] 最终结果: userId={}, householdId={}, householdName={}", 
+                user.getId(), 
+                household != null ? household.getId() : null,
+                household != null ? household.getName() : null);
+        
         return household;
     }
 

@@ -158,6 +158,7 @@ public class CookingWorkflowService {
                 leftover.setCoverImage(dish.getCoverImage());
                 leftover.setCaloriesPer100g(dish.getCaloriesPer100g());
                 leftover.setCurrentQuantityGram(dish.getTotalWeightGram());
+                leftover.setInitialQuantityGram(dish.getTotalWeightGram()); // 保存初始重量快照
                 leftover.setProducedTime(req.getConsumedAt() != null ? req.getConsumedAt() : LocalDateTime.now());
                 leftoverDishRepository.save(leftover);
             }

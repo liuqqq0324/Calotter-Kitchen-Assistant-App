@@ -83,21 +83,11 @@ public class NutritionServiceImpl implements INutritionService {
         // 获取实际摄入（从 NutritionLog 汇总）
         Object[] consumedArray = nutritionLogRepository.sumNutritionByDateRange(user, weekStart, weekEnd);
         
-        BigDecimal consumedEnergy = consumedArray != null && consumedArray[0] != null
-                ? BigDecimal.valueOf(((Number) consumedArray[0]).doubleValue()).setScale(2, RoundingMode.HALF_UP)
-                : BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
-        
-        BigDecimal consumedFat = consumedArray != null && consumedArray[1] != null
-                ? BigDecimal.valueOf(((Number) consumedArray[1]).doubleValue()).setScale(2, RoundingMode.HALF_UP)
-                : BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
-        
-        BigDecimal consumedCarbs = consumedArray != null && consumedArray[2] != null
-                ? BigDecimal.valueOf(((Number) consumedArray[2]).doubleValue()).setScale(2, RoundingMode.HALF_UP)
-                : BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
-        
-        BigDecimal consumedProtein = consumedArray != null && consumedArray[3] != null
-                ? BigDecimal.valueOf(((Number) consumedArray[3]).doubleValue()).setScale(2, RoundingMode.HALF_UP)
-                : BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        // 安全地将 Object 转换为 BigDecimal
+        BigDecimal consumedEnergy = convertToBigDecimal(consumedArray != null && consumedArray.length > 0 ? consumedArray[0] : null);
+        BigDecimal consumedFat = convertToBigDecimal(consumedArray != null && consumedArray.length > 1 ? consumedArray[1] : null);
+        BigDecimal consumedCarbs = convertToBigDecimal(consumedArray != null && consumedArray.length > 2 ? consumedArray[2] : null);
+        BigDecimal consumedProtein = convertToBigDecimal(consumedArray != null && consumedArray.length > 3 ? consumedArray[3] : null);
 
         // 计算剩余
         BigDecimal remainingEnergy = weeklyTarget.getEnergy() != null
@@ -193,5 +183,35 @@ public class NutritionServiceImpl implements INutritionService {
         DayOfWeek dayOfWeek = date.getDayOfWeek();
         int daysToAdd = 7 - dayOfWeek.getValue();
         return date.plusDays(daysToAdd);
+    }
+
+    /**
+     * 安全地将 Object 转换为 BigDecimal
+     * 支持 Number、BigDecimal、Integer、Double、Long 等类型
+     */
+    private BigDecimal convertToBigDecimal(Object value) {
+        if (value == null) {
+            return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        }
+        
+        if (value instanceof BigDecimal) {
+            return ((BigDecimal) value).setScale(2, RoundingMode.HALF_UP);
+        } else if (value instanceof Number) {
+            return BigDecimal.valueOf(((Number) value).doubleValue()).setScale(2, RoundingMode.HALF_UP);
+        } else if (value instanceof String) {
+            try {
+                return new BigDecimal((String) value).setScale(2, RoundingMode.HALF_UP);
+            } catch (NumberFormatException e) {
+                return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+            }
+        } else {
+            // 如果类型不匹配，尝试转换为字符串再解析
+            try {
+                return new BigDecimal(value.toString()).setScale(2, RoundingMode.HALF_UP);
+            } catch (NumberFormatException e) {
+                log.warn("无法将值转换为 BigDecimal: {}, 类型: {}", value, value.getClass().getName());
+                return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+            }
+        }
     }
 }

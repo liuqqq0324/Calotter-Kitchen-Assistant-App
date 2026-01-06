@@ -3,6 +3,7 @@ package com.calotter.health.controller;
 import com.calotter.common.core.Result;
 import com.calotter.health.service.IIntakeService;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 /**
  * Intake Controller
@@ -154,6 +156,43 @@ public class IntakeController {
     }
 
     /**
+     * Add Dish Intake Request (leftover only)
+     * Controller 层 DTO，用于接收前端请求
+     * 使用独立的 DTO 类确保 Jackson 能正确反序列化 List<Long>
+     */
+    @Data
+    public static class AddDishIntakeRequest {
+        /**
+         * Optional. Must be "leftover" if provided.
+         */
+        private String type;
+        /**
+         * LeftoverDish ID (single)
+         */
+        private Long id;
+        /**
+         * Batch: LeftoverDish IDs
+         */
+        private List<Long> ids;
+        /**
+         * 0-100
+         */
+        private BigDecimal consumedPercentage;
+
+        /**
+         * 转换为 Service 层的 AddDishIntakeRequest
+         */
+        public IIntakeService.AddDishIntakeRequest toServiceRequest() {
+            IIntakeService.AddDishIntakeRequest serviceRequest = new IIntakeService.AddDishIntakeRequest();
+            serviceRequest.setType(this.type);
+            serviceRequest.setId(this.id);
+            serviceRequest.setIds(this.ids);
+            serviceRequest.setConsumedPercentage(this.consumedPercentage);
+            return serviceRequest;
+        }
+    }
+
+    /**
      * Get Dish Options (leftovers only)
      * GET /api/intake/dish/options?userId={userId}
      */
@@ -175,7 +214,7 @@ public class IntakeController {
     @PostMapping("/dish")
     public Result<IIntakeService.AddDishIntakeResponse> addDishIntake(
             @RequestParam("userId") Long userId,
-            @RequestBody IIntakeService.AddDishIntakeRequest request) {
+            @RequestBody AddDishIntakeRequest request) {
         try {
             boolean hasSingleId = request.getId() != null;
             boolean hasIds = request.getIds() != null && !request.getIds().isEmpty();
@@ -194,7 +233,9 @@ public class IntakeController {
                 }
             }
 
-            IIntakeService.AddDishIntakeResponse response = intakeService.addDishIntake(userId, request);
+            // 转换为 Service 层的请求对象
+            IIntakeService.AddDishIntakeResponse response = intakeService.addDishIntake(
+                    userId, request.toServiceRequest());
             return Result.success(response);
         } catch (Exception e) {
             return Result.error("Failed to add dish intake: " + e.getMessage());

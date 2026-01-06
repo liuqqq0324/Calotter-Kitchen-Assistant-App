@@ -416,25 +416,31 @@ class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    Icon(
-                      Icons.restaurant_menu,
-                      color: Colors.deepOrange.shade600,
-                      size: 28,
-                    ),
-                    const SizedBox(width: 10),
-                    Text(
-                      "Today's Dish Intake",
-                      style: GoogleFonts.caveat(
-                        fontSize: 26,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.deepOrange.shade800,
+                Expanded(
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.restaurant_menu,
+                        color: Colors.deepOrange.shade600,
+                        size: 28,
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 10),
+                      Flexible(
+                        child: Text(
+                          "Today's Dish Intake",
+                          style: GoogleFonts.caveat(
+                            fontSize: 26,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.deepOrange.shade800,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
                       onPressed: _isLoading || _isSaving || _isAdding ? null : _showAddDishSheet,
@@ -567,6 +573,8 @@ class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
                     fontWeight: FontWeight.bold,
                     color: Colors.grey[800],
                   ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 2,
                 ),
               ),
               // 百分比显示

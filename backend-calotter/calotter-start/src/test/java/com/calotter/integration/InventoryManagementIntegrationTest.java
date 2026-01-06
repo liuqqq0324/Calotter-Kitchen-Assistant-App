@@ -9,7 +9,7 @@ import com.calotter.inventory.domain.entity.HouseholdUtensil;
 import com.calotter.inventory.repository.IngredientRepository;
 import com.calotter.inventory.repository.HouseholdSpiceRepository;
 import com.calotter.inventory.repository.HouseholdUtensilRepository;
-import com.calotter.inventory.repository.StandardIngredientRepository;
+import com.calotter.common.core.repository.StandardIngredientRepository;
 import com.calotter.inventory.repository.StandardSpiceRepository;
 import com.calotter.inventory.repository.StandardUtensilRepository;
 import com.calotter.user.domain.entity.Household;

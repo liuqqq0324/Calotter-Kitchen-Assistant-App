@@ -8,8 +8,9 @@ import com.calotter.user.controller.dto.UserPreferencesRequest;
 import com.calotter.user.controller.dto.UserPreferencesResponse;
 import com.calotter.user.domain.entity.User;
 import com.calotter.user.repository.RefAllergenRepository;
-import com.calotter.user.repository.StandardIngredientRepository;
+import com.calotter.common.core.repository.StandardIngredientRepository;
 import com.calotter.user.repository.UserRepository;
+import com.calotter.user.domain.entity.Household;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -68,6 +69,26 @@ public class UserService {
             householdRequest.setOwnerId(user.getId());
             HouseholdResponse household = householdService.createHousehold(householdRequest);
             householdId = household.getId();
+            
+            // 设置 currentHouseholdId
+            final Long finalHouseholdId = householdId; // 声明为 final 供 lambda 使用
+            user.setCurrentHouseholdId(finalHouseholdId);
+            
+            // 将用户添加到 joinedHouseholds（保持数据一致性）
+            // 需要重新加载 user 以获取 joinedHouseholds 集合（因为之前是新建的 user）
+            user = userRepository.findById(user.getId()).orElse(user);
+            Household householdEntity = householdRepository.findById(finalHouseholdId).orElse(null);
+            if (householdEntity != null && user.getJoinedHouseholds() != null) {
+                // 检查是否已经存在，避免重复添加
+                boolean alreadyJoined = user.getJoinedHouseholds().stream()
+                        .anyMatch(h -> h.getId().equals(finalHouseholdId));
+                if (!alreadyJoined) {
+                    user.getJoinedHouseholds().add(householdEntity);
+                }
+            }
+            
+            // 保存更新后的用户
+            user = userRepository.save(user);
         } catch (Exception e) {
             // 如果创建家庭失败，记录日志但不影响注册流程
             // log.warn("Failed to create default household for user: " + user.getId(), e);
@@ -115,9 +136,38 @@ public class UserService {
         // 获取用户的第一个家庭（如果有）
         Long householdId = null;
         try {
-            List<HouseholdResponse> households = householdService.getHouseholdsByOwner(user.getId());
-            if (!households.isEmpty()) {
-                householdId = households.get(0).getId(); // 使用第一个家庭
+            // 如果 currentHouseholdId 为 NULL，尝试自动设置
+            if (user.getCurrentHouseholdId() == null) {
+                // 优先使用拥有的家庭
+                List<HouseholdResponse> ownedHouseholds = householdService.getHouseholdsByOwner(user.getId());
+                if (!ownedHouseholds.isEmpty()) {
+                    householdId = ownedHouseholds.get(0).getId();
+                    final Long finalHouseholdId = householdId; // 声明为 final 供 lambda 使用
+                    // 设置 currentHouseholdId
+                    user.setCurrentHouseholdId(finalHouseholdId);
+                    // 确保用户也在 joinedHouseholds 中
+                    user = userRepository.findById(user.getId()).orElse(user);
+                    Household householdEntity = householdRepository.findById(finalHouseholdId).orElse(null);
+                    if (householdEntity != null && user.getJoinedHouseholds() != null) {
+                        boolean alreadyJoined = user.getJoinedHouseholds().stream()
+                                .anyMatch(h -> h.getId().equals(finalHouseholdId));
+                        if (!alreadyJoined) {
+                            user.getJoinedHouseholds().add(householdEntity);
+                        }
+                    }
+                    user = userRepository.save(user);
+                } else {
+                    // 如果没有拥有的家庭，尝试从 joinedHouseholds 获取
+                    user = userRepository.findById(user.getId()).orElse(user);
+                    if (user.getJoinedHouseholds() != null && !user.getJoinedHouseholds().isEmpty()) {
+                        householdId = user.getJoinedHouseholds().get(0).getId();
+                        user.setCurrentHouseholdId(householdId);
+                        user = userRepository.save(user);
+                    }
+                }
+            } else {
+                // 如果已有 currentHouseholdId，直接使用
+                householdId = user.getCurrentHouseholdId();
             }
         } catch (Exception e) {
             // 如果获取家庭失败，householdId 保持为 null

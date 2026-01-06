@@ -432,4 +432,34 @@ public class InventoryController {
             return Result.error(e.getMessage());
         }
     }
+
+    /**
+     * 部分更新剩菜（根据消费百分比更新数量）
+     * PATCH /api/inventory/leftovers/{id}
+     */
+    @PatchMapping("/leftovers/{id}")
+    public Result<LeftoverResponse> patchLeftover(
+            @PathVariable Long id,
+            @RequestBody PatchLeftoverRequest request) {
+        try {
+            if (request.consumedPercentage == null) {
+                return Result.error("consumed_percentage is required");
+            }
+            LeftoverResponse response = inventoryService.patchLeftover(id, request.consumedPercentage);
+            return Result.success(response);
+        } catch (IllegalArgumentException e) {
+            return Result.error(e.getMessage());
+        }
+    }
+
+    /**
+     * Patch Leftover Request (只更新数量)
+     */
+    public static class PatchLeftoverRequest {
+        /**
+         * 消费百分比（0.0-100.0）
+         * 例如：30.0 表示消费了 30%
+         */
+        public java.math.BigDecimal consumedPercentage;
+    }
 }

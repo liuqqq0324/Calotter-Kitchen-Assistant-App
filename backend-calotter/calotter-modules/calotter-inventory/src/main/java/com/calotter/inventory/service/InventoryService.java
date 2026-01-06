@@ -9,6 +9,7 @@ import com.calotter.inventory.domain.entity.HouseholdUtensil;
 import com.calotter.inventory.domain.entity.Ingredient;
 import com.calotter.inventory.domain.entity.LeftoverDish;
 import com.calotter.inventory.repository.*;
+import com.calotter.common.core.repository.StandardIngredientRepository;
 import com.calotter.user.domain.entity.Household;
 import com.calotter.user.repository.HouseholdRepository;
 import lombok.RequiredArgsConstructor;
@@ -339,6 +340,8 @@ public class InventoryService {
         leftover.setHousehold(household);
         leftover.setOriginalDishId(request.getOriginalDishId());
         leftover.setCurrentQuantityGram(request.getCurrentQuantityGram());
+        // 设置初始重量（手动创建时，初始重量等于当前重量）
+        leftover.setInitialQuantityGram(request.getCurrentQuantityGram());
         leftover.setProducedTime(request.getProducedTime());
 
         leftover = leftoverRepository.save(leftover);
@@ -414,6 +417,52 @@ public class InventoryService {
             throw new IllegalArgumentException("剩菜不存在");
         }
         leftoverRepository.deleteById(id);
+    }
+
+    /**
+     * 部分更新剩菜（根据消费百分比更新数量）
+     * 
+     * @param id LeftoverDish ID
+     * @param consumedPercentage 消费百分比（0-100），例如：30.0 表示消费了 30%
+     * @return 更新后的 LeftoverResponse
+     */
+    @Transactional
+    public LeftoverResponse patchLeftover(Long id, java.math.BigDecimal consumedPercentage) {
+        LeftoverDish leftover = leftoverRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("剩菜不存在"));
+        
+        // 验证初始重量是否存在
+        if (leftover.getInitialQuantityGram() == null || leftover.getInitialQuantityGram() <= 0) {
+            throw new IllegalArgumentException("初始重量无效，无法计算消费量");
+        }
+        
+        // 验证消费百分比范围
+        if (consumedPercentage.compareTo(java.math.BigDecimal.ZERO) < 0 ||
+                consumedPercentage.compareTo(java.math.BigDecimal.valueOf(100)) > 0) {
+            throw new IllegalArgumentException("消费百分比必须在 0-100 之间");
+        }
+        
+        Integer totalWeightGram = leftover.getInitialQuantityGram();
+        
+        // 计算消费的重量
+        // consumedPercentage 是百分比（如 30.0 表示 30%）
+        java.math.BigDecimal consumedGrams = java.math.BigDecimal.valueOf(totalWeightGram)
+                .multiply(consumedPercentage)
+                .divide(java.math.BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
+        
+        // 更新剩余重量：currentQuantityGram = currentQuantityGram - 消费的重量
+        int newQuantity = leftover.getCurrentQuantityGram() - consumedGrams.intValue();
+        
+        if (newQuantity < 0) {
+            throw new IllegalArgumentException(
+                String.format("消费后剩余重量不能小于0。当前剩余：%dg，尝试消费：%dg", 
+                    leftover.getCurrentQuantityGram(), consumedGrams.intValue()));
+        }
+        
+        leftover.setCurrentQuantityGram(newQuantity);
+        leftover = leftoverRepository.save(leftover);
+        
+        return getLeftover(id);
     }
 
     // ==================== 转换方法 ====================

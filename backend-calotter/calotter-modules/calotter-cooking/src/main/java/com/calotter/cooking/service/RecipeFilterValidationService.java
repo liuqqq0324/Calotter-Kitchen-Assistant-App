@@ -3,7 +3,7 @@ package com.calotter.cooking.service;
 import com.calotter.common.core.domain.PreferenceStandardLibrary;
 import com.calotter.common.core.domain.entity.RefAllergen;
 import com.calotter.cooking.controller.dto.RecipeGenerationFilter;
-import com.calotter.inventory.repository.StandardIngredientRepository;
+import com.calotter.common.core.repository.StandardIngredientRepository;
 import com.calotter.user.repository.RefAllergenRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

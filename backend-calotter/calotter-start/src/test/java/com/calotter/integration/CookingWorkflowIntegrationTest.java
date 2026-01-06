@@ -12,7 +12,7 @@ import com.calotter.inventory.domain.entity.Ingredient;
 import com.calotter.inventory.domain.entity.LeftoverDish;
 import com.calotter.inventory.repository.IngredientRepository;
 import com.calotter.inventory.repository.LeftoverDishRepository;
-import com.calotter.inventory.repository.StandardIngredientRepository;
+import com.calotter.common.core.repository.StandardIngredientRepository;
 import com.calotter.user.domain.entity.Household;
 import com.calotter.user.domain.entity.User;
 import com.calotter.user.repository.HouseholdRepository;

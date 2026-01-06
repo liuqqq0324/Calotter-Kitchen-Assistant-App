@@ -1,5 +1,6 @@
 package com.calotter.health.service;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -239,6 +240,7 @@ public interface IIntakeService {
         /**
          * Batch: LeftoverDish IDs
          */
+        @JsonDeserialize(contentAs = Long.class)
         private List<Long> ids;
         /**
          * 0-100

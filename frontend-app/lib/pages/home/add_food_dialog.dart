@@ -290,23 +290,28 @@ class _AddFoodDialogState extends State<AddFoodDialog> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    Icon(
-                      Icons.add_circle,
-                      color: Colors.teal.shade600,
-                      size: 28,
-                    ),
-                    const SizedBox(width: 10),
-                    Text(
-                      "What Else Did You Eat?",
-                      style: GoogleFonts.caveat(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.teal.shade800,
+                Expanded(
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.add_circle,
+                        color: Colors.teal.shade600,
+                        size: 28,
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 10),
+                      Flexible(
+                        child: Text(
+                          "What Else Did You Eat?",
+                          style: GoogleFonts.caveat(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.teal.shade800,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 IconButton(
                   onPressed: () => Navigator.of(context).pop(),

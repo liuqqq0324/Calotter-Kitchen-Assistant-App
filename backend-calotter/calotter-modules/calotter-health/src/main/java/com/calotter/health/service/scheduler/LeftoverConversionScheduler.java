@@ -1,5 +1,7 @@
 package com.calotter.health.service.scheduler;
 
+import com.calotter.cooking.domain.entity.Dish;
+import com.calotter.cooking.repository.DishRepository;
 import com.calotter.health.domain.entity.NutritionLog;
 import com.calotter.health.domain.enums.LogSourceType;
 import com.calotter.health.repository.NutritionLogRepository;
@@ -9,7 +11,6 @@ import com.calotter.user.domain.entity.Household;
 import com.calotter.user.domain.entity.User;
 import com.calotter.user.repository.HouseholdRepository;
 import com.calotter.user.repository.UserRepository;
-import com.calotter.user.repository.HouseholdRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -35,6 +36,7 @@ public class LeftoverConversionScheduler {
     private final LeftoverDishRepository leftoverDishRepository;
     private final HouseholdRepository householdRepository;
     private final UserRepository userRepository;
+    private final DishRepository dishRepository;
     
     /**
      * 每天凌晨2点执行，处理前一天的未完全消费的菜品
@@ -114,11 +116,26 @@ public class LeftoverConversionScheduler {
                     continue;
                 }
                 
-                // 4. 创建 LeftoverDish
+                // 4. 查询 Dish 获取总重量（用于设置 initialQuantityGram）
+                Integer totalWeightGram = null;
+                if (nutritionLog.getDishId() != null) {
+                    Dish dish = dishRepository.findById(nutritionLog.getDishId()).orElse(null);
+                    if (dish != null && dish.getTotalWeightGram() != null) {
+                        totalWeightGram = dish.getTotalWeightGram();
+                    }
+                }
+                
+                // 如果无法从 Dish 获取，使用计算出的 baseQuantity 作为初始重量
+                if (totalWeightGram == null && baseQuantity != null) {
+                    totalWeightGram = baseQuantity.intValue();
+                }
+                
+                // 5. 创建 LeftoverDish
                 LeftoverDish leftover = new LeftoverDish();
                 leftover.setHousehold(household);
                 leftover.setOriginalDishId(nutritionLog.getDishId());
                 leftover.setCurrentQuantityGram(remainingGram);
+                leftover.setInitialQuantityGram(totalWeightGram != null ? totalWeightGram : remainingGram);
                 leftover.setProducedTime(nutritionLog.getEatenAt());
                 leftoverDishRepository.save(leftover);
                 

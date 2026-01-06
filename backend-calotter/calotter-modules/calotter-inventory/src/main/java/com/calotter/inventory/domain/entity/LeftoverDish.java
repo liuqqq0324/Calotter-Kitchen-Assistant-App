@@ -54,6 +54,13 @@ public class LeftoverDish extends BaseEntity {
     @Column(nullable = false)
     private Integer currentQuantityGram; // 当前剩余重量（克）
     
+    /**
+     * 初始重量（克），创建时保存快照
+     * 用于计算百分比，避免查询 Dish
+     */
+    @Column(name = "initial_quantity_gram")
+    private Integer initialQuantityGram; // 初始重量（克）
+    
     // 保留：记录制作时间（用于判断新鲜度）
     @Column(nullable = false)
     private LocalDateTime producedTime;
