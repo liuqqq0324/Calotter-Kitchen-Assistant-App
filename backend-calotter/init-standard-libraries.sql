@@ -159,8 +159,8 @@ ON CONFLICT (id) DO UPDATE SET
   shelf_life_freezer = EXCLUDED.shelf_life_freezer,
   default_location = EXCLUDED.default_location;
 
--- 重置序列（如果需要）
-SELECT setval('ref_standard_ingredients_id_seq', (SELECT MAX(id) FROM ref_standard_ingredients));
+-- 重置序列（如果需要）- 注意：StandardIngredient使用手动ID，无序列
+-- SELECT setval('ref_standard_ingredients_id_seq', (SELECT MAX(id) FROM ref_standard_ingredients));
 
 -- ============================================
 -- 4. 插入标准调料库（StandardSpice）
@@ -200,8 +200,8 @@ VALUES
   (3030, 'Sugar')
 ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name;
 
--- 重置序列（如果需要）
-SELECT setval('ref_standard_spices_id_seq', (SELECT MAX(id) FROM ref_standard_spices));
+-- 重置序列（如果需要）- 注意：StandardSpice使用手动ID，无序列
+-- SELECT setval('ref_standard_spices_id_seq', (SELECT MAX(id) FROM ref_standard_spices));
 
 -- ============================================
 -- 5. 插入标准厨具库（StandardUtensil）
@@ -238,8 +238,8 @@ ON CONFLICT (id) DO UPDATE SET
   name = EXCLUDED.name,
   icon_url = EXCLUDED.icon_url;
 
--- 重置序列（如果需要）
-SELECT setval('ref_standard_utensils_id_seq', (SELECT MAX(id) FROM ref_standard_utensils));
+-- 重置序列（如果需要）- 注意：StandardUtensil使用手动ID，无序列
+-- SELECT setval('ref_standard_utensils_id_seq', (SELECT MAX(id) FROM ref_standard_utensils));
 
 -- ============================================
 -- 6. 关联食材与过敏原（示例）
