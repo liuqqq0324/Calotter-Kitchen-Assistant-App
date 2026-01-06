@@ -4,25 +4,11 @@ import com.calotter.health.domain.entity.NutritionLog;
 import com.calotter.health.domain.enums.LogSourceType;
 import com.calotter.health.repository.NutritionLogRepository;
 import com.calotter.health.service.IIntakeService;
-import com.calotter.health.service.IIntakeService.AddManualIntakeResponse;
-import com.calotter.health.service.IIntakeService.DeleteIntakeResponse;
-import com.calotter.health.service.IIntakeService.IntakeItem;
-import com.calotter.health.service.IIntakeService.ManualFoodItem;
-import com.calotter.health.service.IIntakeService.ManualIntakeItem;
-import com.calotter.health.service.IIntakeService.Nutrition;
-import com.calotter.health.service.IIntakeService.TodayIntakesResponse;
-import com.calotter.health.service.IIntakeService.UpdateIntakeItem;
-import com.calotter.health.service.IIntakeService.UpdateIntakeResponse;
-import com.calotter.health.service.IIntakeService.WeeklySummary;
 import com.calotter.health.service.INutritionService;
 import com.calotter.health.service.NutritionAggregateService;
 import com.calotter.health.service.NutritionLogService;
 import com.calotter.health.service.ai.ManualNutritionEstimator;
 import com.calotter.health.service.ai.NutritionEstimate;
-import com.calotter.cooking.domain.entity.CookingSession;
-import com.calotter.cooking.domain.entity.Dish;
-import com.calotter.cooking.repository.CookingSessionRepository;
-import com.calotter.cooking.repository.DishRepository;
 import com.calotter.inventory.domain.entity.LeftoverDish;
 import com.calotter.inventory.repository.LeftoverDishRepository;
 import com.calotter.user.domain.entity.Household;
@@ -39,11 +25,8 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -62,9 +45,7 @@ public class IntakeServiceImpl implements IIntakeService {
     private final NutritionLogRepository nutritionLogRepository;
     private final UserRepository userRepository;
     private final HouseholdRepository householdRepository;
-    private final CookingSessionRepository cookingSessionRepository;
     private final LeftoverDishRepository leftoverDishRepository;
-    private final DishRepository dishRepository;
     private final NutritionLogService nutritionLogService;
     private final NutritionAggregateService nutritionAggregateService;
     private final INutritionService nutritionService;
@@ -80,8 +61,13 @@ public class IntakeServiceImpl implements IIntakeService {
         List<IntakeItem> items;
         
         if ("recipe".equals(source)) {
-            // 从 calotter-inventory 模块获取当天做好的菜信息
-            items = getTodayRecipesFromInventory(user, today);
+            // “Today's Dish Intake”：以 NutritionLog 为准（仅 LEFTOVER），确保“新增选择 + 进度条调整”可持久化
+            List<NutritionLog> logs = nutritionLogRepository.findByUserAndLogDateAndSourceTypeIn(
+                    user,
+                    today,
+                    List.of(LogSourceType.LEFTOVER)
+            );
+            items = logs.stream().map(this::convertToIntakeItem).collect(Collectors.toList());
         } else if ("manual".equals(source)) {
             // 手动输入的食物，从 NutritionLog 查询
             List<NutritionLog> logs = nutritionLogRepository.findByUserAndLogDateAndSourceType(
@@ -103,200 +89,185 @@ public class IntakeServiceImpl implements IIntakeService {
         response.setItems(items);
         return response;
     }
-    
+
+    @Override
+    @Transactional(readOnly = true)
+    public DishOptionsResponse getDishOptions(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("用户不存在: " + userId));
+
+        Household household = resolveHousehold(user);
+        DishOptionsResponse resp = new DishOptionsResponse();
+        if (household == null) {
+            resp.setOptions(List.of());
+            return resp;
+        }
+
+        List<LeftoverDish> leftovers = leftoverDishRepository.findByHouseholdId(household.getId())
+                .stream()
+                .filter(l -> l.getCurrentQuantityGram() != null && l.getCurrentQuantityGram() > 0)
+                .collect(Collectors.toList());
+        List<DishOption> options = leftovers.stream().map(l -> {
+            DishOption opt = new DishOption();
+            opt.setType("leftover");
+            opt.setId(l.getId());
+            opt.setTitle(l.getDishName() != null ? l.getDishName() : ("Leftover " + l.getId()));
+            opt.setSubtitle(l.getCurrentQuantityGram() != null ? (l.getCurrentQuantityGram() + "g leftover") : "Leftover");
+            return opt;
+        }).collect(Collectors.toList());
+
+        resp.setOptions(options);
+        return resp;
+    }
+
+    @Override
+    @Transactional
+    public AddDishIntakeResponse addDishIntake(Long userId, AddDishIntakeRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("用户不存在: " + userId));
+
+        Household household = resolveHousehold(user);
+        if (household == null) {
+            throw new IllegalStateException("用户没有关联的家庭");
+        }
+
+        if (request.getType() != null && !request.getType().isBlank()
+                && !"leftover".equalsIgnoreCase(request.getType())) {
+            throw new IllegalArgumentException("Invalid type. Only 'leftover' is supported");
+        }
+
+        boolean hasSingleId = request.getId() != null;
+        boolean hasIds = request.getIds() != null && !request.getIds().isEmpty();
+        if (!hasSingleId && !hasIds) {
+            throw new IllegalArgumentException("id or ids is required");
+        }
+
+        BigDecimal consumedPct = request.getConsumedPercentage() != null
+                ? request.getConsumedPercentage()
+                : BigDecimal.valueOf(100);
+        if (consumedPct.compareTo(BigDecimal.ZERO) < 0 || consumedPct.compareTo(BigDecimal.valueOf(100)) > 0) {
+            throw new IllegalArgumentException("consumedPercentage must be between 0 and 100");
+        }
+
+        LocalDate today = LocalDate.now();
+
+        List<Long> targetIds = hasIds
+                ? request.getIds().stream().filter(Objects::nonNull).distinct().toList()
+                : List.of(request.getId());
+
+        List<IntakeItem> createdItems = new java.util.ArrayList<>();
+        IntakeItem firstCreated = null;
+
+        for (Long leftoverId : targetIds) {
+            LeftoverDish leftover = leftoverDishRepository.findById(leftoverId)
+                    .orElseThrow(() -> new IllegalArgumentException("Leftover 不存在: " + leftoverId));
+            if (leftover.getHousehold() != null
+                    && leftover.getHousehold().getId() != null
+                    && !leftover.getHousehold().getId().equals(household.getId())) {
+                throw new IllegalArgumentException("Leftover 不属于当前家庭: " + leftoverId);
+            }
+
+            NutritionLog log = new NutritionLog();
+            log.setUser(user);
+            log.setLogDate(today);
+            log.setEatenAt(LocalDateTime.now());
+            log.setConsumedPercentage(consumedPct);
+
+            // 关键：对于 LEFTOVER，这里的 dishId 存 LeftoverDish.id（方便后续同步库存）
+            log.setSourceType(LogSourceType.LEFTOVER);
+            log.setDishId(leftover.getId());
+            log.setFoodName(leftover.getDishName() != null ? leftover.getDishName() : ("Leftover " + leftover.getId()));
+            log.setUnit("g");
+            Integer grams = leftover.getCurrentQuantityGram() != null ? leftover.getCurrentQuantityGram() : 0;
+            log.setQuantity((double) grams); // 记录“当时选择的剩菜重量”，用于后续百分比同步
+
+            int kcalPer100g = leftover.getCaloriesPer100g() != null ? leftover.getCaloriesPer100g() : 0;
+            int baseEnergy = grams > 0 ? (int) Math.round(kcalPer100g * grams / 100.0) : 0;
+            log.setBaseEnergy(baseEnergy);
+            log.setBaseProtein(0.0);
+            log.setBaseFat(0.0);
+            log.setBaseCarbohydrates(0.0);
+            log.setBaseFiber(0.0);
+
+            // 计算实际摄入值（effective）
+            BigDecimal ratio = consumedPct.divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP);
+            log.setEnergy((int) Math.round((log.getBaseEnergy() != null ? log.getBaseEnergy() : 0) * ratio.doubleValue()));
+            log.setProtein((log.getBaseProtein() != null ? log.getBaseProtein() : 0.0) * ratio.doubleValue());
+            log.setFat((log.getBaseFat() != null ? log.getBaseFat() : 0.0) * ratio.doubleValue());
+            log.setCarbohydrates((log.getBaseCarbohydrates() != null ? log.getBaseCarbohydrates() : 0.0) * ratio.doubleValue());
+            log.setFiber((log.getBaseFiber() != null ? log.getBaseFiber() : 0.0) * ratio.doubleValue());
+
+            // 同步到 inventory：根据 consumedPercentage 更新剩菜当前重量
+            syncLeftoverQuantityByConsumedPercentage(log, leftover);
+
+            NutritionLog saved = nutritionLogRepository.save(log);
+            createdItems.add(convertToIntakeItem(saved));
+            if (firstCreated == null) {
+                firstCreated = convertToIntakeItem(saved);
+            }
+        }
+
+        // 聚合：对今天重建一次即可
+        nutritionAggregateService.rebuildDailyAggregate(user, today);
+
+        AddDishIntakeResponse resp = new AddDishIntakeResponse();
+        resp.setAddedIntakes(createdItems);
+        // backward compatible field
+        resp.setIntake(firstCreated);
+
+        List<NutritionLog> todayLogs = nutritionLogRepository.findByUserAndLogDateAndSourceTypeIn(
+                user, today, List.of(LogSourceType.LEFTOVER));
+        resp.setTodayDishIntakes(todayLogs.stream().map(this::convertToIntakeItem).collect(Collectors.toList()));
+
+        INutritionService.WeeklyNutritionSummaryResponse weeklySummary = nutritionService.getWeeklyNutritionSummary(userId);
+        WeeklySummary summary = new WeeklySummary();
+        summary.setWeekStart(weeklySummary.getWeekStart());
+        summary.setWeekEnd(weeklySummary.getWeekEnd());
+        Nutrition consumed = new Nutrition();
+        consumed.setEnergy(weeklySummary.getConsumed().getEnergy());
+        consumed.setFat(weeklySummary.getConsumed().getFat());
+        consumed.setCarbohydrates(weeklySummary.getConsumed().getCarbohydrates());
+        consumed.setProtein(weeklySummary.getConsumed().getProtein());
+        summary.setConsumed(consumed);
+        resp.setWeeklySummary(summary);
+
+        return resp;
+    }
+
     /**
-     * 从 calotter-inventory 模块获取当天做好的菜信息
-     * 通过 LeftoverDish 的 producedTime 查询当天产生的剩菜，然后获取对应的 Dish 信息
-     * 注意：这里从 inventory 模块获取，但实际上 LeftoverDish 是剩菜，不是完整的菜
-     * 如果需要获取完整的菜，应该从 CookingSession 查询当天完成的烹饪会话
+     * 将 intake 的 consumedPercentage 同步到 inventory 的 LeftoverDish.currentQuantityGram
+     *
+     * 逻辑：remaining = baseGrams * (100 - consumedPct) / 100
+     * baseGrams 使用 NutritionLog.quantity（创建 intake 时记录的剩菜重量）
      */
-    private List<IntakeItem> getTodayRecipesFromInventory(User user, LocalDate today) {
-        // 1. 获取用户的 Household（优先使用 currentHouseholdId，否则使用第一个 joinedHousehold）
+    private void syncLeftoverQuantityByConsumedPercentage(NutritionLog log, LeftoverDish leftover) {
+        if (leftover == null) return;
+        BigDecimal consumedPct = log.getConsumedPercentage() != null ? log.getConsumedPercentage() : BigDecimal.valueOf(100);
+        double baseGramsDouble = log.getQuantity() != null ? log.getQuantity()
+                : (leftover.getCurrentQuantityGram() != null ? leftover.getCurrentQuantityGram() : 0);
+        int baseGrams = (int) Math.round(Math.max(0, baseGramsDouble));
+        BigDecimal remainingPct = BigDecimal.valueOf(100).subtract(consumedPct);
+        int remainingGrams = remainingPct
+                .multiply(BigDecimal.valueOf(baseGrams))
+                .divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP)
+                .intValue();
+        leftover.setCurrentQuantityGram(Math.max(0, remainingGrams));
+        leftoverDishRepository.save(leftover);
+    }
+
+    private Household resolveHousehold(User user) {
         Household household = null;
-        
-        // 优先使用 currentHouseholdId
         if (user.getCurrentHouseholdId() != null) {
             household = householdRepository.findById(user.getCurrentHouseholdId()).orElse(null);
         }
-        
-        // 如果 currentHouseholdId 不存在或无效，尝试从 joinedHouseholds 获取第一个
         if (household == null) {
-            // 重新加载用户以获取 joinedHouseholds（避免懒加载问题）
             User loadedUser = userRepository.findById(user.getId())
                     .orElseThrow(() -> new IllegalArgumentException("用户不存在: " + user.getId()));
-            
             if (loadedUser.getJoinedHouseholds() != null && !loadedUser.getJoinedHouseholds().isEmpty()) {
                 household = loadedUser.getJoinedHouseholds().get(0);
             }
         }
-        
-        if (household == null) {
-            log.warn("用户没有关联的家庭，用户 ID: {}", user.getId());
-            return Collections.emptyList();
-        }
-        
-        // 2. 查询当天完成的 CookingSession（status = COOKED，updateTime 是当天的）
-        // 注意：CookingSession 在 calotter-cooking 模块，但用户要求从 inventory 模块获取
-        // 这里我们通过 LeftoverDish 间接获取，因为 LeftoverDish 的 producedTime 记录了菜的制作时间
-        LocalDateTime startOfDay = today.atStartOfDay();
-        LocalDateTime endOfDay = today.plusDays(1).atStartOfDay();
-        
-        // 方案1：从 LeftoverDish 获取（inventory 模块）
-        List<LeftoverDish> todayLeftovers = leftoverDishRepository
-                .findByHouseholdIdAndProducedTimeBetween(household.getId(), startOfDay, endOfDay);
-        
-        // 方案2：从 CookingSession 获取（cooking 模块）- 更准确，因为这是完整的菜
-        // 查询当天完成的烹饪会话
-        List<CookingSession> todaySessions = cookingSessionRepository.findByHouseholdId(household.getId())
-                .stream()
-                .filter(session -> session.getStatus() == CookingSession.SessionStatus.COOKED)
-                .filter(session -> {
-                    LocalDateTime updateTime = session.getUpdateTime();
-                    return updateTime != null && 
-                           !updateTime.toLocalDate().isBefore(today) && 
-                           !updateTime.toLocalDate().isAfter(today);
-                })
-                .filter(session -> session.getFinalDish() != null)
-                .collect(Collectors.toList());
-        
-        if (todaySessions.isEmpty() && todayLeftovers.isEmpty()) {
-            log.debug("当天没有完成的烹饪会话或产生的剩菜，用户 ID: {}, 日期: {}", user.getId(), today);
-            return Collections.emptyList();
-        }
-        
-        // 3. 优先使用 CookingSession（完整的菜），如果没有则使用 LeftoverDish（剩菜）
-        List<IntakeItem> items = new java.util.ArrayList<>();
-        
-        if (!todaySessions.isEmpty()) {
-            // 从 CookingSession 获取完整的菜信息
-            Set<Long> dishIds = todaySessions.stream()
-                    .map(session -> session.getFinalDish().getId())
-                    .collect(Collectors.toSet());
-            
-            Map<Long, Dish> dishMap = dishRepository.findAllById(dishIds).stream()
-                    .collect(Collectors.toMap(Dish::getId, dish -> dish));
-            
-            // 查找对应的 NutritionLog 以获取 consumedPercentage
-            List<NutritionLog> todayLogs = nutritionLogRepository.findByUserAndLogDateAndSourceType(
-                    user, today, LogSourceType.APP_COOKING);
-            Map<Long, NutritionLog> logMap = todayLogs.stream()
-                    .filter(log -> log.getDishId() != null)
-                    .collect(Collectors.toMap(NutritionLog::getDishId, log -> log, (existing, replacement) -> existing));
-            
-            // 转换为 IntakeItem
-            for (CookingSession session : todaySessions) {
-                Dish dish = dishMap.get(session.getFinalDish().getId());
-                if (dish != null) {
-                    IntakeItem item = convertCookingSessionToIntakeItem(session, dish, logMap.get(dish.getId()));
-                    items.add(item);
-                }
-            }
-        } else if (!todayLeftovers.isEmpty()) {
-            // 从 LeftoverDish 获取剩菜信息（作为备选方案）
-            Set<Long> dishIds = todayLeftovers.stream()
-                    .map(LeftoverDish::getOriginalDishId)
-                    .collect(Collectors.toSet());
-            
-            Map<Long, Dish> dishMap = dishRepository.findAllById(dishIds).stream()
-                    .collect(Collectors.toMap(Dish::getId, dish -> dish));
-            
-            // 转换为 IntakeItem（去重）
-            Map<Long, IntakeItem> itemMap = todayLeftovers.stream()
-                    .filter(leftover -> dishMap.containsKey(leftover.getOriginalDishId()))
-                    .collect(Collectors.toMap(
-                            LeftoverDish::getOriginalDishId,
-                            leftover -> convertLeftoverToIntakeItem(leftover, dishMap.get(leftover.getOriginalDishId())),
-                            (existing, replacement) -> existing
-                    ));
-            
-            items.addAll(itemMap.values());
-        }
-        
-        return items;
-    }
-    
-    /**
-     * 将 CookingSession 转换为 IntakeItem
-     */
-    private IntakeItem convertCookingSessionToIntakeItem(CookingSession session, Dish dish, NutritionLog nutritionLog) {
-        IntakeItem item = new IntakeItem();
-        
-        // 如果有对应的 NutritionLog，使用其 intakeId 和 consumedPercentage
-        if (nutritionLog != null) {
-            item.setIntakeId(nutritionLog.getId());
-            item.setConsumedPercentage(nutritionLog.getConsumedPercentage() != null ? 
-                    nutritionLog.getConsumedPercentage() : BigDecimal.valueOf(100.0));
-        } else {
-            item.setIntakeId(null);
-            item.setConsumedPercentage(BigDecimal.valueOf(100.0)); // 默认100%
-        }
-        
-        item.setSourceType("recipe");
-        item.setRecipeId(dish.getId());
-        item.setRecipeTitle(dish.getName());
-        
-        // baseNutrition: Dish 的100%营养值
-        Nutrition baseNutrition = new Nutrition();
-        baseNutrition.setEnergy(BigDecimal.valueOf(dish.getTotalCalories() != null ? dish.getTotalCalories() : 0));
-        baseNutrition.setFat(BigDecimal.valueOf(dish.getTotalFat() != null ? dish.getTotalFat() : 0.0));
-        baseNutrition.setCarbohydrates(BigDecimal.valueOf(dish.getTotalCarb() != null ? dish.getTotalCarb() : 0.0));
-        baseNutrition.setProtein(BigDecimal.valueOf(dish.getTotalProtein() != null ? dish.getTotalProtein() : 0.0));
-        item.setBaseNutrition(baseNutrition);
-        
-        // effectiveNutrition: 基于 consumedPercentage 计算实际摄入值
-        BigDecimal ratio = item.getConsumedPercentage().divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP);
-        Nutrition effectiveNutrition = new Nutrition();
-        effectiveNutrition.setEnergy(baseNutrition.getEnergy().multiply(ratio).setScale(2, RoundingMode.HALF_UP));
-        effectiveNutrition.setFat(baseNutrition.getFat().multiply(ratio).setScale(2, RoundingMode.HALF_UP));
-        effectiveNutrition.setCarbohydrates(baseNutrition.getCarbohydrates().multiply(ratio).setScale(2, RoundingMode.HALF_UP));
-        effectiveNutrition.setProtein(baseNutrition.getProtein().multiply(ratio).setScale(2, RoundingMode.HALF_UP));
-        item.setEffectiveNutrition(effectiveNutrition);
-        
-        return item;
-    }
-    
-    /**
-     * 将 LeftoverDish 转换为 IntakeItem（备选方案）
-     */
-    private IntakeItem convertLeftoverToIntakeItem(LeftoverDish leftover, Dish dish) {
-        IntakeItem item = new IntakeItem();
-        
-        // 注意：LeftoverDish 没有对应的 NutritionLog，所以 intakeId 可能为 null
-        item.setIntakeId(null);
-        item.setSourceType("recipe");
-        item.setRecipeId(leftover.getOriginalDishId());
-        item.setRecipeTitle(dish.getName());
-        
-        // consumedPercentage: 基于 LeftoverDish 的 currentQuantityGram 和 Dish 的 totalWeightGram 计算
-        // 假设 LeftoverDish 的 currentQuantityGram 是剩余部分，那么消费的部分 = totalWeightGram - currentQuantityGram
-        BigDecimal consumedPercentage = BigDecimal.valueOf(100.0);
-        if (dish.getTotalWeightGram() != null && dish.getTotalWeightGram() > 0) {
-            int consumedGram = dish.getTotalWeightGram() - leftover.getCurrentQuantityGram();
-            if (consumedGram > 0) {
-                consumedPercentage = BigDecimal.valueOf(consumedGram * 100.0 / dish.getTotalWeightGram())
-                        .setScale(2, RoundingMode.HALF_UP);
-            }
-        }
-        item.setConsumedPercentage(consumedPercentage);
-        
-        // baseNutrition: Dish 的100%营养值
-        Nutrition baseNutrition = new Nutrition();
-        baseNutrition.setEnergy(BigDecimal.valueOf(dish.getTotalCalories() != null ? dish.getTotalCalories() : 0));
-        baseNutrition.setFat(BigDecimal.valueOf(dish.getTotalFat() != null ? dish.getTotalFat() : 0.0));
-        baseNutrition.setCarbohydrates(BigDecimal.valueOf(dish.getTotalCarb() != null ? dish.getTotalCarb() : 0.0));
-        baseNutrition.setProtein(BigDecimal.valueOf(dish.getTotalProtein() != null ? dish.getTotalProtein() : 0.0));
-        item.setBaseNutrition(baseNutrition);
-        
-        // effectiveNutrition: 基于 consumedPercentage 计算实际摄入值
-        BigDecimal ratio = consumedPercentage.divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP);
-        Nutrition effectiveNutrition = new Nutrition();
-        effectiveNutrition.setEnergy(baseNutrition.getEnergy().multiply(ratio).setScale(2, RoundingMode.HALF_UP));
-        effectiveNutrition.setFat(baseNutrition.getFat().multiply(ratio).setScale(2, RoundingMode.HALF_UP));
-        effectiveNutrition.setCarbohydrates(baseNutrition.getCarbohydrates().multiply(ratio).setScale(2, RoundingMode.HALF_UP));
-        effectiveNutrition.setProtein(baseNutrition.getProtein().multiply(ratio).setScale(2, RoundingMode.HALF_UP));
-        item.setEffectiveNutrition(effectiveNutrition);
-        
-        return item;
+        return household;
     }
 
     @Override
@@ -340,6 +311,13 @@ public class IntakeServiceImpl implements IIntakeService {
 
         // 保存更新
         nutritionLogRepository.save(nutritionLog);
+
+        // 如果是 leftover intake：同步 consumedPercentage 到 inventory 的剩菜重量
+        if (nutritionLog.getSourceType() == LogSourceType.LEFTOVER && nutritionLog.getDishId() != null) {
+            leftoverDishRepository.findById(nutritionLog.getDishId()).ifPresent(leftover -> {
+                syncLeftoverQuantityByConsumedPercentage(nutritionLog, leftover);
+            });
+        }
 
         // ✅ 重建当天聚合，避免聚合表与真实流水不一致
         nutritionAggregateService.rebuildDailyAggregate(user, nutritionLog.getLogDate());
@@ -484,9 +462,9 @@ public class IntakeServiceImpl implements IIntakeService {
         item.setIntakeId(log.getId());
         item.setSourceType(log.getSourceType().name().toLowerCase());
         
-        if (log.getSourceType() == LogSourceType.APP_COOKING) {
-            item.setRecipeId(log.getDishId());
-            item.setRecipeTitle(log.getFoodName());
+        if (log.getSourceType() == LogSourceType.APP_COOKING || log.getSourceType() == LogSourceType.LEFTOVER) {
+            item.setLeftoverId(log.getDishId());
+            item.setLeftoverTitle(log.getFoodName());
         } else {
             item.setManualFoodName(log.getFoodName());
         }
@@ -536,8 +514,8 @@ public class IntakeServiceImpl implements IIntakeService {
         UpdateIntakeItem item = new UpdateIntakeItem();
         item.setIntakeId(log.getId());
         item.setSourceType(log.getSourceType().name().toLowerCase());
-        item.setRecipeId(log.getDishId());
-        item.setRecipeTitle(log.getFoodName());
+        item.setLeftoverId(log.getDishId());
+        item.setLeftoverTitle(log.getFoodName());
         item.setDate(log.getLogDate());
         // 使用实际的 consumedPercentage
         BigDecimal consumedPct = log.getConsumedPercentage() != null ? 

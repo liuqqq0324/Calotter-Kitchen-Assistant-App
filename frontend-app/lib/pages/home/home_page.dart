@@ -300,8 +300,8 @@ class _HomePageState extends State<HomePage> {
                 child: _buildTrackingButton(
                   context: context,
                   icon: Icons.restaurant_menu,
-                  label: "Today's Recipes",
-                  subtitle: "Track what you cooked",
+                  label: "Today's Dish Intake",
+                  subtitle: "Track what you ate",
                   color: Colors.deepOrange,
                   onTap: () async {
                     await showTodaysRecipesDialog(context);
