@@ -56,16 +56,17 @@ class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
 
         setState(() {
           _todaysRecipes = items.map((item) {
-            // Backend: consumedPercentage is 0-100 relative to the leftover grams at intake creation.
-            // Backend: maxConsumablePercentage is 0-100 relative to the ORIGINAL leftover.
+            // Backend semantics:
+            // - consumedPercentage: 0-100, relative to the ORIGINAL leftover (initial quantity)
+            // - maxConsumablePercentage: 0-100, how much was AVAILABLE (remaining) when this intake was created,
+            //   also relative to the ORIGINAL leftover.
             final backendConsumedPct =
                 (item['consumedPercentage'] as num?)?.toDouble() ?? 0.0;
             final maxConsumablePct =
                 (item['maxConsumablePercentage'] as num?)?.toDouble() ?? 100.0;
             final maxFrac = (maxConsumablePct / 100.0).clamp(0.0, 1.0);
-            // UI value = maxFrac * (backendConsumedPct/100)
-            final uiFrac =
-                (maxFrac * (backendConsumedPct / 100.0)).clamp(0.0, maxFrac);
+            // UI value is directly relative to ORIGINAL leftover.
+            final uiFrac = (backendConsumedPct / 100.0).clamp(0.0, maxFrac);
             return TodayRecipe(
               intakeId: item['intakeId'] as int?,
               name: item['leftoverTitle'] as String? ?? 'Unknown Leftover',
@@ -135,13 +136,10 @@ class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
 
       for (final recipe in _todaysRecipes) {
         if (recipe.intakeId != null) {
-          // Convert UI percentage (0..maxConsumablePercentage) to backend percentage (0..100)
-          // relative to the grams at intake creation.
           final max = recipe.maxConsumablePercentage;
           final ui = recipe.consumedPercentage.clamp(0.0, max);
-          final percentage = (max > 0)
-              ? ((ui / max) * 100.0).clamp(0.0, 100.0)
-              : 0.0;
+          // Backend expects 0-100 relative to ORIGINAL leftover.
+          final percentage = (ui * 100.0).clamp(0.0, 100.0);
           final result = await HomepageApiService.updateIntakePercentage(
             intakeId: recipe.intakeId!,
             consumedPercentage: percentage,
@@ -389,8 +387,7 @@ class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
             final maxConsumablePct =
                 (item['maxConsumablePercentage'] as num?)?.toDouble() ?? 100.0;
             final maxFrac = (maxConsumablePct / 100.0).clamp(0.0, 1.0);
-            final uiFrac =
-                (maxFrac * (backendConsumedPct / 100.0)).clamp(0.0, maxFrac);
+            final uiFrac = (backendConsumedPct / 100.0).clamp(0.0, maxFrac);
             return TodayRecipe(
               intakeId: item['intakeId'] as int?,
               name: item['leftoverTitle'] as String? ?? 'Unknown Leftover',
