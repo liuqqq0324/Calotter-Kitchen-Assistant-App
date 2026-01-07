@@ -101,6 +101,15 @@ public interface IIntakeService {
         private String manualFoodName;
         private String portionDescription;
         private BigDecimal consumedPercentage;
+        /**
+         * For leftover intakes: the maximum consumable percentage of the ORIGINAL leftover (0-100),
+         * i.e. how much was available when this intake was created.
+         * Example: if a leftover initially had 1000g and at intake creation time it had 360g left,
+         * maxConsumablePercentage = 36.0.
+         *
+         * Frontend can clamp slider max to this value.
+         */
+        private BigDecimal maxConsumablePercentage;
         private Nutrition baseNutrition;
         private Nutrition effectiveNutrition;
     }
@@ -139,6 +148,7 @@ public interface IIntakeService {
         private String leftoverTitle;
         private LocalDate date;
         private BigDecimal consumedPercentage;
+        private BigDecimal maxConsumablePercentage;
         private Nutrition baseNutrition;
         private Nutrition effectiveNutrition;
     }
@@ -222,6 +232,10 @@ public interface IIntakeService {
         private Long id;
         private String title;
         private String subtitle;
+        /**
+         * For leftovers: current remaining percentage vs initial (0-100).
+         */
+        private BigDecimal maxConsumablePercentage;
     }
 
     /**

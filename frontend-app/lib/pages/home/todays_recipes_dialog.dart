@@ -7,13 +7,20 @@ class TodayRecipe {
   final int? intakeId;
   final String name;
   final String imageIcon;
-  double consumedPercentage; // 0.0 - 1.0
+  /// UI percentage relative to the ORIGINAL leftover (0.0 - 1.0).
+  /// Example: if a leftover has only 36% remaining, slider max is 0.36.
+  double consumedPercentage;
+
+  /// Max consumable percentage relative to the ORIGINAL leftover (0.0 - 1.0).
+  /// Typically computed as: baseGramsAtIntakeCreation / initialGrams.
+  final double maxConsumablePercentage;
 
   TodayRecipe({
     this.intakeId,
     required this.name,
     required this.imageIcon,
     this.consumedPercentage = 0.5,
+    this.maxConsumablePercentage = 1.0,
   });
 }
 
@@ -49,13 +56,22 @@ class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
 
         setState(() {
           _todaysRecipes = items.map((item) {
-            final consumedPercentage =
+            // Backend: consumedPercentage is 0-100 relative to the leftover grams at intake creation.
+            // Backend: maxConsumablePercentage is 0-100 relative to the ORIGINAL leftover.
+            final backendConsumedPct =
                 (item['consumedPercentage'] as num?)?.toDouble() ?? 0.0;
+            final maxConsumablePct =
+                (item['maxConsumablePercentage'] as num?)?.toDouble() ?? 100.0;
+            final maxFrac = (maxConsumablePct / 100.0).clamp(0.0, 1.0);
+            // UI value = maxFrac * (backendConsumedPct/100)
+            final uiFrac =
+                (maxFrac * (backendConsumedPct / 100.0)).clamp(0.0, maxFrac);
             return TodayRecipe(
               intakeId: item['intakeId'] as int?,
               name: item['leftoverTitle'] as String? ?? 'Unknown Leftover',
               imageIcon: "🍽️", // 默认图标，可以根据recipe_id获取真实图标
-              consumedPercentage: consumedPercentage / 100.0, // 转换为0-1范围
+              consumedPercentage: uiFrac,
+              maxConsumablePercentage: maxFrac,
             );
           }).toList();
           _isLoading = false;
@@ -119,7 +135,13 @@ class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
 
       for (final recipe in _todaysRecipes) {
         if (recipe.intakeId != null) {
-          final percentage = (recipe.consumedPercentage * 100).toDouble();
+          // Convert UI percentage (0..maxConsumablePercentage) to backend percentage (0..100)
+          // relative to the grams at intake creation.
+          final max = recipe.maxConsumablePercentage;
+          final ui = recipe.consumedPercentage.clamp(0.0, max);
+          final percentage = (max > 0)
+              ? ((ui / max) * 100.0).clamp(0.0, 100.0)
+              : 0.0;
           final result = await HomepageApiService.updateIntakePercentage(
             intakeId: recipe.intakeId!,
             consumedPercentage: percentage,
@@ -362,13 +384,19 @@ class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
 
         setState(() {
           _todaysRecipes = todayItems.map((item) {
-            final consumedPercentage =
+            final backendConsumedPct =
                 (item['consumedPercentage'] as num?)?.toDouble() ?? 0.0;
+            final maxConsumablePct =
+                (item['maxConsumablePercentage'] as num?)?.toDouble() ?? 100.0;
+            final maxFrac = (maxConsumablePct / 100.0).clamp(0.0, 1.0);
+            final uiFrac =
+                (maxFrac * (backendConsumedPct / 100.0)).clamp(0.0, maxFrac);
             return TodayRecipe(
               intakeId: item['intakeId'] as int?,
               name: item['leftoverTitle'] as String? ?? 'Unknown Leftover',
               imageIcon: "🥡",
-              consumedPercentage: consumedPercentage / 100.0,
+              consumedPercentage: uiFrac,
+              maxConsumablePercentage: maxFrac,
             );
           }).toList();
         });
@@ -550,6 +578,8 @@ class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
   }
 
   Widget _buildRecipeItem(TodayRecipe recipe) {
+    final max = recipe.maxConsumablePercentage.clamp(0.0, 1.0);
+    final value = recipe.consumedPercentage.clamp(0.0, max);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -588,7 +618,7 @@ class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  "${(recipe.consumedPercentage * 100).toInt()}%",
+                  "${(value * 100).toInt()}%",
                   style: GoogleFonts.caveat(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -611,14 +641,14 @@ class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
               thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 12),
             ),
             child: Slider(
-              value: recipe.consumedPercentage,
+              value: value,
               onChanged: (value) {
                 setState(() {
-                  recipe.consumedPercentage = value;
+                  recipe.consumedPercentage = value.clamp(0.0, max);
                 });
               },
               min: 0.0,
-              max: 1.0,
+              max: max > 0 ? max : 1.0,
             ),
           ),
 
