@@ -113,13 +113,17 @@ class _VideoBackgroundState extends State<VideoBackground> with RouteAware {
     return Stack(
       fit: StackFit.expand,
       children: [
-        SizedBox.expand(
-          child: FittedBox(
-            fit: BoxFit.cover,
-            child: SizedBox(
-              width: _controller!.value.size.width,
-              height: _controller!.value.size.height,
-              child: VideoPlayer(_controller!),
+        // 使用 ClipRect 和 FittedBox 确保视频完全填充屏幕，裁剪超出部分，消除黑边
+        ClipRect(
+          child: SizedBox.expand(
+            child: FittedBox(
+              fit: BoxFit.cover,
+              alignment: Alignment.center,
+              child: SizedBox(
+                width: _controller!.value.size.width,
+                height: _controller!.value.size.height,
+                child: VideoPlayer(_controller!),
+              ),
             ),
           ),
         ),
