@@ -65,24 +65,26 @@ class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
         final items = data['items'] as List<dynamic>? ?? [];
 
         setState(() {
+          // ✅ 将值对齐到最近的 10% 倍数（步长为 0.1）
+          double snapToStep(double val) {
+            return (val / 0.1).round() * 0.1;
+          }
+          
           _todaysRecipes = items.map((item) {
-            // Backend: consumedPercentage is 0-100 relative to the leftover grams at intake creation.
-            // Backend: maxConsumablePercentage is 0-100 relative to the ORIGINAL leftover.
+            // ✅ Backend: consumedPercentage 是 0-100，表示总消耗量（相对于初始质量）
             final backendConsumedPct =
                 (item['consumedPercentage'] as num?)?.toDouble() ?? 0.0;
-            final maxConsumablePct =
-                (item['maxConsumablePercentage'] as num?)?.toDouble() ?? 100.0;
-            final maxFrac = (maxConsumablePct / 100.0).clamp(0.0, 1.0);
-            // UI value = maxFrac * (backendConsumedPct/100)
-            final uiFrac =
-                (maxFrac * (backendConsumedPct / 100.0)).clamp(0.0, maxFrac);
+            // ✅ 转换为 0-1 范围（UI 值），然后对齐到 10% 倍数
+            final uiFrac = (backendConsumedPct / 100.0).clamp(0.0, 1.0);
+            final snappedFrac = snapToStep(uiFrac).clamp(0.0, 1.0);
+            
             return TodayRecipe(
               intakeId: (item['intakeId'] as num?)?.toInt(),
-              leftoverId: (item['leftoverId'] as num?)?.toInt(),  // ✅ 添加
+              leftoverId: (item['leftoverId'] as num?)?.toInt(),
               name: item['leftoverTitle'] as String? ?? 'Unknown Leftover',
               imageIcon: "🍽️", // 默认图标，可以根据recipe_id获取真实图标
-              consumedPercentage: uiFrac,
-              maxConsumablePercentage: maxFrac,
+              consumedPercentage: snappedFrac,  // ✅ 对齐到 10% 倍数
+              maxConsumablePercentage: 1.0,  // ✅ 固定为1.0（100%）
               // ✅ 解析初始质量和当前质量
               initialGrams: (item['initialGrams'] as num?)?.toDouble(),
               currentGrams: (item['currentGrams'] as num?)?.toDouble(),
@@ -154,12 +156,8 @@ class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
             continue;  // 跳过无效数据
           }
           
-          // Convert UI percentage (0..maxConsumablePercentage) to backend percentage (0..100)
-          final max = recipe.maxConsumablePercentage;
-          final ui = recipe.consumedPercentage.clamp(0.0, max);
-          final percentage = (max > 0)
-              ? ((ui / max) * 100.0).clamp(0.0, 100.0)
-              : 0.0;
+          // ✅ consumedPercentage 直接表示总消耗量（0-1范围），转换为后端百分比（0-100）
+          final percentage = (recipe.consumedPercentage * 100.0).clamp(0.0, 100.0);
           
           final result = await HomepageApiService.addDishIntake(
             ids: [recipe.leftoverId!],
@@ -182,11 +180,9 @@ class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
           }
         } else {
           // ✅ 已存在的菜品：调用 updateIntakePercentage
-          final max = recipe.maxConsumablePercentage;
-          final ui = recipe.consumedPercentage.clamp(0.0, max);
-          final percentage = (max > 0)
-              ? ((ui / max) * 100.0).clamp(0.0, 100.0)
-              : 0.0;
+          // ✅ consumedPercentage 直接表示总消耗量（0-1范围），转换为后端百分比（0-100）
+          final percentage = (recipe.consumedPercentage * 100.0).clamp(0.0, 100.0);
+          
           final result = await HomepageApiService.updateIntakePercentage(
             intakeId: recipe.intakeId!,
             consumedPercentage: percentage,
@@ -443,17 +439,21 @@ class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
         
         if (opt != null) {
           final title = opt['title'] as String? ?? 'Unknown Leftover';
-          final maxConsumablePct = (opt['maxConsumablePercentage'] as num?)?.toDouble() ?? 100.0;
-          final maxFrac = (maxConsumablePct / 100.0).clamp(0.0, 1.0);
           final initialGrams = (opt['initialGrams'] as num?)?.toDouble();
           final currentGrams = (opt['currentGrams'] as num?)?.toDouble();
           
           // ✅ 计算最低值（已消费的部分）
           double minValue = 0.0;
           if (initialGrams != null && currentGrams != null && initialGrams > 0) {
-            final minPercentage = 100 * (initialGrams - currentGrams) / initialGrams;
-            minValue = (minPercentage / 100.0).clamp(0.0, 1.0);
+            final minPercentage = (initialGrams - currentGrams) / initialGrams;
+            minValue = minPercentage.clamp(0.0, 1.0);
           }
+          
+          // ✅ 将初始值对齐到最近的 10% 倍数（步长为 0.1）
+          double snapToStep(double val) {
+            return (val / 0.1).round() * 0.1;
+          }
+          final initialConsumedPct = snapToStep(minValue).clamp(0.0, 1.0);
           
           // ✅ 创建本地对象，intakeId 为 null（表示未保存）
           _todaysRecipes.add(TodayRecipe(
@@ -461,8 +461,8 @@ class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
             leftoverId: id,
             name: title,
             imageIcon: "🥡",
-            consumedPercentage: minValue,  // ✅ 初始值设为最低值
-            maxConsumablePercentage: maxFrac,
+            consumedPercentage: initialConsumedPct,  // ✅ 初始值设为最低值（已消费的部分），对齐到 10% 倍数
+            maxConsumablePercentage: 1.0,  // ✅ 固定为1.0（100%）
             initialGrams: initialGrams,
             currentGrams: currentGrams,
           ));
@@ -629,37 +629,47 @@ class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
 
   Widget _buildRecipeItem(TodayRecipe recipe) {
     // ✅ 计算滑动条的最小值和最大值
+    // 滑动条表示总消耗量（相对于初始质量的百分比）
     double minValue = 0.0;
-    double maxValue = recipe.maxConsumablePercentage.clamp(0.0, 1.0);
+    double maxValue = 1.0;  // ✅ 上限固定为100%
     
-    // 如果有初始质量和当前质量，根据公式计算
+    // 如果有初始质量和当前质量，计算最低值（已消费的部分）
     if (recipe.initialGrams != null && 
         recipe.currentGrams != null && 
         recipe.initialGrams! > 0) {
       final initial = recipe.initialGrams!;
       final current = recipe.currentGrams!;
       
-      // 最低值：100 * (初始质量 - 当前质量) / 初始质量
-      // 转换为 0-1 范围（相对于初始质量的百分比）
-      final minPercentage = 100 * (initial - current) / initial;
-      minValue = (minPercentage / 100.0).clamp(0.0, 1.0);
+      // ✅ 最低值：已消费的部分 = (初始质量 - 当前质量) / 初始质量
+      final minPercentage = (initial - current) / initial;
+      minValue = minPercentage.clamp(0.0, 1.0);
       
-      // 最高值：100 * 当前质量 / 初始质量
-      // 转换为 0-1 范围（相对于初始质量的百分比）
-      final maxPercentage = 100 * current / initial;
-      maxValue = (maxPercentage / 100.0).clamp(0.0, 1.0);
+      // ✅ 最高值：固定为100%（最多只能消耗100%的初始质量）
+      maxValue = 1.0;
     }
     
-    // ✅ 确保 maxValue >= minValue（防止 Slider 参数错误）
+    // ✅ 确保 maxValue >= minValue
     if (maxValue < minValue) {
       maxValue = minValue;
     }
-    // ✅ 如果 maxValue 为 0，至少设置为 minValue 或 0.01（防止 Slider 参数错误）
     if (maxValue <= 0) {
       maxValue = minValue > 0 ? minValue : 0.01;
     }
     
-    final value = recipe.consumedPercentage.clamp(minValue, maxValue);
+    // ✅ 将值对齐到最近的 10% 倍数（步长为 0.1）
+    double snapToStep(double val) {
+      // 对齐到 0.1 的倍数
+      return (val / 0.1).round() * 0.1;
+    }
+    
+    final rawValue = recipe.consumedPercentage.clamp(minValue, maxValue);
+    final value = snapToStep(rawValue).clamp(minValue, maxValue);
+    
+    // ✅ 计算 divisions（步长为 10%，即 0.1）
+    // divisions = (maxValue - minValue) / 0.1，但至少为 1
+    final range = maxValue - minValue;
+    final divisions = (range / 0.1).round().clamp(1, 10);  // 最多 10 个步长（0% 到 100%）
+    
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -710,7 +720,7 @@ class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
           ),
           const SizedBox(height: 12),
 
-          // 可调节进度条
+          // ✅ 可调节进度条（阶梯式，步长 10%）
           SliderTheme(
             data: SliderTheme.of(context).copyWith(
               activeTrackColor: Colors.deepOrange.shade400,
@@ -724,11 +734,14 @@ class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
               value: value,
               onChanged: (newValue) {
                 setState(() {
-                  recipe.consumedPercentage = newValue.clamp(minValue, maxValue);
+                  // ✅ 对齐到最近的 10% 倍数，然后限制在范围内
+                  final snapped = snapToStep(newValue);
+                  recipe.consumedPercentage = snapped.clamp(minValue, maxValue);
                 });
               },
               min: minValue,
               max: maxValue,
+              divisions: divisions,  // ✅ 阶梯式，步长为 10%
             ),
           ),
 
