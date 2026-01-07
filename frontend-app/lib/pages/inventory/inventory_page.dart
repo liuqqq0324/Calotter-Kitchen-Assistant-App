@@ -9,6 +9,7 @@ import 'package:personal_sous_chef/models/cookware.dart';
 import 'package:personal_sous_chef/widgets/item_toggle_grid.dart';
 import 'package:personal_sous_chef/services/inventory_api_service.dart';
 import 'package:personal_sous_chef/services/standard_library_service.dart';
+import 'package:personal_sous_chef/services/household_service.dart';
 import 'package:personal_sous_chef/models/leftover.dart';
 import 'package:personal_sous_chef/widgets/leftover_card.dart';
 
@@ -98,6 +99,12 @@ class _InventoryPageState extends State<InventoryPage>
             // ✅ 使用 id（后端返回的字段）
             inventoryId:
                 item['id']?.toString() ?? item['inventory_id']?.toString(),
+            // ✅ 获取并保存 standardIngredientId（用于API更新）
+            standardIngredientId: item['standardIngredientId'] != null
+                ? (item['standardIngredientId'] is int
+                    ? item['standardIngredientId'] as int
+                    : int.tryParse(item['standardIngredientId'].toString()))
+                : null,
           );
         }).toList();
         _sortItems();
@@ -852,10 +859,32 @@ class _InventoryPageState extends State<InventoryPage>
       item: item,
       useStatusColors: true,
       onTap: () => _navigateToEdit(item),
-      onQuantityChanged: (val) {
-        // 更新数量
+      onQuantityChanged: (val) async {
+        // 更新本地数量
         item.quantity = val;
-        // 注意：这里没调用 setState，如果需要即时排序变化，可以加 setState(() {})
+        
+        // ✅ 如果有 inventoryId，调用API更新后端
+        if (item.inventoryId != null) {
+          try {
+            final householdId = await HouseholdService.getHouseholdId();
+            if (householdId != null && item.standardIngredientId != null) {
+              await InventoryApiService.updateInventory(
+                inventoryId: item.inventoryId!,
+                quantity: val,
+                unit: item.unit,
+                expiryDate: item.expiryDate.toIso8601String().split('T')[0],
+                householdId: householdId.toString(),
+                standardIngredientId: item.standardIngredientId,
+              );
+            }
+          } catch (e) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Failed to update quantity: $e')),
+              );
+            }
+          }
+        }
       },
     );
   }

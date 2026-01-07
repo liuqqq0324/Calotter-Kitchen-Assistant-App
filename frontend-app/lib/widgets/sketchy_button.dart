@@ -51,13 +51,17 @@ class SketchyButton extends StatelessWidget {
               mainAxisSize: isFullWidth ? MainAxisSize.max : MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  text,
-                  style: GoogleFonts.caveat(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: txtColor,
-                    letterSpacing: 1.5,
+                Flexible(
+                  child: Text(
+                    text,
+                    style: GoogleFonts.caveat(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: txtColor,
+                      letterSpacing: 1.5,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
                   ),
                 ),
                 if (icon != null) ...[

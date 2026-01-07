@@ -127,7 +127,7 @@ NOTICE:  ========================================
 
 ```bash
 # 在项目根目录执行
-mvn clean install -DskipTests
+mvn spring-boot:run
 ```
 
 ### 步骤 6：启动应用

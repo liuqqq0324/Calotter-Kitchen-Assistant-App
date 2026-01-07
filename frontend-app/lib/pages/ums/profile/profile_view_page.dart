@@ -378,7 +378,6 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
 
   String _formatBmi(dynamic bmi) {
     if (bmi == null) {
-      print('BMI is null');
       return '--';
     }
     print('BMI type: ${bmi.runtimeType}, value: $bmi');

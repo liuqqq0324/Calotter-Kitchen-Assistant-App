@@ -15,7 +15,7 @@ public class IngredientRequest {
     @NotNull(message = "家庭ID不能为空")
     private Long householdId;
     
-    @NotNull(message = "标准食材ID不能为空")
+    // 注意：standardIngredientId 在创建时必需，更新时可选
     private Long standardIngredientId;
     
     @NotNull(message = "数量不能为空")

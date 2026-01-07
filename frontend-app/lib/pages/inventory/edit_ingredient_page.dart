@@ -179,12 +179,12 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 40),
               child: _isLoadingIngredients
-                  ? const Center(
-                      child: CircularProgressIndicator(),
-                    )
+                  ? const Center(child: CircularProgressIndicator())
                   : Autocomplete<String>(
                       // 初始值
-                      initialValue: TextEditingValue(text: widget.ingredient.name),
+                      initialValue: TextEditingValue(
+                        text: widget.ingredient.name,
+                      ),
 
                       // ✅ 搜索逻辑：从标准食材库中筛选
                       optionsBuilder: (TextEditingValue textEditingValue) {
@@ -195,8 +195,8 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
                             .where((ingredient) {
                               final name = ingredient['name'] as String? ?? '';
                               return name.toLowerCase().contains(
-                                    textEditingValue.text.toLowerCase(),
-                                  );
+                                textEditingValue.text.toLowerCase(),
+                              );
                             })
                             .map((ingredient) => ingredient['name'] as String);
                       },
@@ -211,48 +211,51 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
                         );
                         if (matched.isNotEmpty && matched['id'] != null) {
                           setState(() {
-                            _selectedStandardIngredientId = matched['id'] as int;
+                            _selectedStandardIngredientId =
+                                matched['id'] as int;
                           });
                         }
-                        print('用户选择了: $selection (ID: $_selectedStandardIngredientId)');
+                        print(
+                          '用户选择了: $selection (ID: $_selectedStandardIngredientId)',
+                        );
                       },
 
-                // 自定义输入框样式 (伪装成之前的大橙色字体)
-                fieldViewBuilder:
-                    (context, controller, focusNode, onEditingComplete) {
-                      // 🔥 关键：把 Autocomplete 的控制器赋值给我们自己的变量，方便最后保存
-                      _nameController = controller;
+                      // 自定义输入框样式 (伪装成之前的大橙色字体)
+                      fieldViewBuilder:
+                          (context, controller, focusNode, onEditingComplete) {
+                            // 🔥 关键：把 Autocomplete 的控制器赋值给我们自己的变量，方便最后保存
+                            _nameController = controller;
 
-                      return TextField(
-                        controller: controller,
-                        focusNode: focusNode,
-                        onEditingComplete: onEditingComplete,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.orange,
-                        ),
-                        decoration: const InputDecoration(
-                          hintText: 'Search Food...',
-                          hintStyle: TextStyle(
-                            color: Colors.grey,
-                            fontSize: 18,
-                          ),
-                          border: InputBorder.none,
-                          suffixIcon: Icon(
-                            Icons.edit,
-                            size: 18,
-                            color: Colors.grey,
-                          ),
-                          suffixIconConstraints: BoxConstraints(
-                            minWidth: 24,
-                            maxHeight: 24,
-                          ),
-                        ),
-                      );
-                    },
-              ),
+                            return TextField(
+                              controller: controller,
+                              focusNode: focusNode,
+                              onEditingComplete: onEditingComplete,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.orange,
+                              ),
+                              decoration: const InputDecoration(
+                                hintText: 'Search Food...',
+                                hintStyle: TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 18,
+                                ),
+                                border: InputBorder.none,
+                                suffixIcon: Icon(
+                                  Icons.edit,
+                                  size: 18,
+                                  color: Colors.grey,
+                                ),
+                                suffixIconConstraints: BoxConstraints(
+                                  minWidth: 24,
+                                  maxHeight: 24,
+                                ),
+                              ),
+                            );
+                          },
+                    ),
             ),
 
             const SizedBox(height: 30),
@@ -269,7 +272,16 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
                   totalWidth: 95,
 
                   // 🔥 传入数据源：启用下拉功能
-                  unitOptions: const ['pcs', 'g', 'kg', 'ml', 'L', 'blocks', 'box', 'bag'],
+                  unitOptions: const [
+                    'pcs',
+                    'g',
+                    'kg',
+                    'ml',
+                    'L',
+                    'blocks',
+                    'box',
+                    'bag',
+                  ],
 
                   // 🔥 传入回调：当用户选了新单位时做什么
                   onUnitChanged: (newUnit) {
@@ -376,7 +388,8 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
                       }
 
                       // ✅ 获取 householdId
-                      final householdId = await HouseholdService.getHouseholdId();
+                      final householdId =
+                          await HouseholdService.getHouseholdId();
                       if (householdId == null) {
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -405,7 +418,8 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
                       widget.ingredient.inventoryId = result['id']?.toString();
                     } else if (widget.ingredient.inventoryId != null) {
                       // ✅ 更新现有食材（不需要 standardIngredientId，因为已经存在）
-                      final householdId = await HouseholdService.getHouseholdId();
+                      final householdId =
+                          await HouseholdService.getHouseholdId();
                       if (householdId == null) {
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -427,6 +441,8 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
                             .toIso8601String()
                             .split('T')[0],
                         householdId: householdId.toString(),
+                        standardIngredientId:
+                            widget.ingredient.standardIngredientId,
                       );
                     }
                     if (mounted) {

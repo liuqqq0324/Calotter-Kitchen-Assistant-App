@@ -156,6 +156,43 @@ public class GeminiAiMenuGenerationService implements AiMenuGenerationService {
                       .append(String.join(", ", filter.getDietPreferences().getAvoidIngredients()))
                       .append("\n");
             }
+            // ✅ Hard dietary taboos must be interpreted as strict rules (not just "avoid" text)
+            if (filter.getDietPreferences().getTaboos() != null &&
+                !filter.getDietPreferences().getTaboos().isEmpty()) {
+                prompt.append("Dietary taboos (STRICT): ")
+                      .append(String.join(", ", filter.getDietPreferences().getTaboos()))
+                      .append("\n");
+                // Add explicit interpretations for common taboos so the model cannot ignore them.
+                // (Models often treat words like "vegetarian" as a soft preference unless defined.)
+                List<String> t = filter.getDietPreferences().getTaboos().stream()
+                        .filter(s -> s != null && !s.isBlank())
+                        .map(String::toLowerCase)
+                        .toList();
+                if (t.contains("vegetarian")) {
+                    prompt.append("STRICT RULE: Vegetarian -> NO meat/poultry/fish/seafood (no chicken, beef, pork, shrimp, fish, etc). Eggs/dairy allowed unless vegan.\n");
+                }
+                if (t.contains("vegan")) {
+                    prompt.append("STRICT RULE: Vegan -> NO animal products (no meat/fish/seafood, no eggs, no dairy, no honey).\n");
+                }
+                if (t.contains("halal")) {
+                    prompt.append("STRICT RULE: Halal -> NO pork/alcohol; avoid non-halal meats.\n");
+                }
+                if (t.contains("kosher")) {
+                    prompt.append("STRICT RULE: Kosher -> NO pork/shellfish; do not mix meat and dairy in the same dish.\n");
+                }
+                if (t.contains("gluten_free")) {
+                    prompt.append("STRICT RULE: Gluten-free -> NO wheat/barley/rye; avoid soy sauce unless gluten-free.\n");
+                }
+                if (t.contains("low_sugar")) {
+                    prompt.append("STRICT RULE: Low sugar -> avoid added sugar and sweet sauces.\n");
+                }
+                if (t.contains("low_fat")) {
+                    prompt.append("STRICT RULE: Low fat -> avoid deep frying; keep added oils minimal.\n");
+                }
+                if (t.contains("low_sodium")) {
+                    prompt.append("STRICT RULE: Low sodium -> avoid salty sauces (soy/fish sauce) unless low-sodium; minimize added salt.\n");
+                }
+            }
         }
         
         // 4. 厨具（简化）
