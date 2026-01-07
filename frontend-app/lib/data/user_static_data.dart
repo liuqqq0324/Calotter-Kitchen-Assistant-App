@@ -1,6 +1,6 @@
 // lib/data/user_static_data.dart
 // Modified by Chase: Static data management for user-related pages / 由 Chase 修改：用户相关页面的静态数据管理
-// This file manages all user profile data including personal info, preferences, taboos, and allergies / 此文件管理所有用户资料数据，包括个人信息、偏好、禁忌和过敏
+// This file manages all user profile data including personal info, preferences, diet habits, and allergies / 此文件管理所有用户资料数据，包括个人信息、偏好、饮食习惯和过敏
 
 // User Profile Model / 用户资料模型
 class UserProfile {
@@ -14,7 +14,7 @@ class UserProfile {
 
   // Preferences and Restrictions / 偏好和限制
   List<String> preferences;
-  List<String> taboos;
+  List<String> dietHabits;
   List<String> allergies;
 
   // Constructor / 构造函数
@@ -26,10 +26,10 @@ class UserProfile {
     required this.height,
     required this.weight,
     List<String>? preferences,
-    List<String>? taboos,
+    List<String>? dietHabits,
     List<String>? allergies,
   }) : preferences = preferences ?? [],
-       taboos = taboos ?? [],
+       dietHabits = dietHabits ?? [],
        allergies = allergies ?? [];
 
   // Copy method for creating a new instance / 复制方法，用于创建新实例
@@ -41,7 +41,7 @@ class UserProfile {
     String? height,
     String? weight,
     List<String>? preferences,
-    List<String>? taboos,
+    List<String>? dietHabits,
     List<String>? allergies,
   }) {
     return UserProfile(
@@ -52,7 +52,7 @@ class UserProfile {
       height: height ?? this.height,
       weight: weight ?? this.weight,
       preferences: preferences ?? List<String>.from(this.preferences),
-      taboos: taboos ?? List<String>.from(this.taboos),
+      dietHabits: dietHabits ?? List<String>.from(this.dietHabits),
       allergies: allergies ?? List<String>.from(this.allergies),
     );
   }
@@ -71,6 +71,6 @@ final UserProfile kCurrentUser = UserProfile(
   height: '', // No default value - empty until user sets it
   weight: '', // No default value - empty until user sets it
   preferences: [], // Empty by default
-  taboos: [], // Empty by default
+  dietHabits: [], // Empty by default
   allergies: [], // Empty by default
 );

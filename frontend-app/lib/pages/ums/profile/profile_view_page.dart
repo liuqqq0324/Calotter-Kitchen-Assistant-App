@@ -5,7 +5,7 @@ import 'settings_page.dart';
 // Modified by Chase: Fixed import paths after moving preferences pages to ums/preferences/ folder / 由 Chase 修改：偏好页面移动到 ums/preferences/ 文件夹后修复导入路径
 // Need to go up to ums/ then into preferences/ folder / 需要向上到 ums/ 然后进入 preferences/ 文件夹
 import '../preferences/preferences_list_page.dart';
-import '../preferences/taboos_list_page.dart';
+import '../preferences/diet_habits_list_page.dart';
 import '../preferences/allergies_list_page.dart';
 // Modified by Chase: Import user static data / 由 Chase 修改：导入用户静态数据
 import '../../../data/user_static_data.dart';
@@ -294,11 +294,11 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
       });
     }
 
-    // Load taboos
-    final taboosResult = await UserService.getUserTaboos();
-    if (taboosResult['success'] == true) {
-      kCurrentUser.taboos = List<String>.from(
-        taboosResult['data']['taboos'] ?? [],
+    // Load diet habits
+    final dietHabitsResult = await UserService.getUserDietHabits();
+    if (dietHabitsResult['success'] == true) {
+      kCurrentUser.dietHabits = List<String>.from(
+        dietHabitsResult['data']['dietHabits'] ?? [],
       );
     }
 
@@ -487,46 +487,13 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
             crossAxisCount: 2,
             mainAxisSpacing: 12,
             crossAxisSpacing: 12,
-            // 通过调小 childAspectRatio 来提高每个 item 的高度，避免小屏/大字体时 RenderFlex overflow
-            // childAspectRatio = width / height
-            childAspectRatio: 2.2,
+            // ✅ 修复：减小 childAspectRatio 以增加每个 item 的高度，避免溢出
+            // childAspectRatio = width / height，值越小，高度越大
+            childAspectRatio: 1.8,  // 从 2.2 改为 1.8，增加高度
             children: items,
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildNutritionItem({
-    required IconData icon,
-    required String label,
-    required int value,
-    required String unit,
-    required Color color,
-  }) {
-    return Row(
-      children: [
-        Icon(icon, size: 20, color: color),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            label,
-            style: GoogleFonts.kalam(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Colors.grey[800],
-            ),
-          ),
-        ),
-        Text(
-          '$value $unit',
-          style: GoogleFonts.kalam(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-            color: color,
-          ),
-        ),
-      ],
     );
   }
 
@@ -643,7 +610,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
       backgroundColor: Colors.white,
       borderColor: Colors.black87,
       borderWidth: 2.0,
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(10),  // ✅ 修复：减小 padding 从 12 到 10
       child: Row(
         children: [
           Icon(icon, size: 20, color: accent),
@@ -652,25 +619,28 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,  // ✅ 修复：限制 Column 大小
               children: [
                 Text(
                   label,
                   style: GoogleFonts.kalam(
-                    fontSize: 12,
+                    fontSize: 11,  // ✅ 修复：减小字体从 12 到 11
                     fontWeight: FontWeight.bold,
                     color: Colors.grey[800],
                   ),
                   overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 1),  // ✅ 修复：减小间距从 2 到 1
                 Text(
                   valueText,
                   style: GoogleFonts.kalam(
-                    fontSize: 13,
+                    fontSize: 12,  // ✅ 修复：减小字体从 13 到 12
                     fontWeight: FontWeight.bold,
                     color: accent,
                   ),
                   overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
                 ),
               ],
             ),
@@ -994,7 +964,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
 
               const SizedBox(height: 24),
               _sectionTitle('Preferences'),
-              // 偏好 / taboos / allergies 合并为一个卡片，减少“卡片堆叠感”
+              // 偏好 / diet habits / allergies 合并为一个卡片，减少"卡片堆叠感"
               SketchyCard(
                 backgroundColor: Colors.white,
                 borderColor: Colors.black87,
@@ -1045,14 +1015,14 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                     ListTile(
                       contentPadding: EdgeInsets.zero,
                       title: Text(
-                        'Taboos',
+                        'Diet Habits',
                         style: GoogleFonts.kalam(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                       subtitle: Text(
-                        '${kCurrentUser.taboos.length} items',
+                        '${kCurrentUser.dietHabits.length} items',
                         style: GoogleFonts.kalam(
                           fontSize: 12,
                           color: Colors.grey[600],
@@ -1063,13 +1033,14 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                         await Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const TaboosListPage(),
+                            builder: (context) => const DietHabitsListPage(),
                           ),
                         );
                         await _loadListsData();
                         setState(() {});
                       },
                     ),
+                    const SizedBox(height: 12),
                     Divider(color: Colors.grey.shade300, height: 1),
                     ListTile(
                       contentPadding: EdgeInsets.zero,
@@ -1100,6 +1071,79 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                       },
                     ),
                   ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              SketchyCard(
+                backgroundColor: Colors.white,
+                borderColor: Colors.black87,
+                borderWidth: 2.0,
+                padding: EdgeInsets.zero,
+                onTap: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const DietHabitsListPage(),
+                    ),
+                  );
+                  // Reload lists data after returning from list page
+                  await _loadListsData();
+                  setState(() {});
+                },
+                child: ListTile(
+                  title: Text(
+                    'Diet Habits',
+                    style: GoogleFonts.kalam(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SketchyCard(
+                backgroundColor: Colors.white,
+                borderColor: Colors.black87,
+                borderWidth: 2.0,
+                padding: EdgeInsets.zero,
+                onTap: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AllergiesListPage(),
+                    ),
+                  );
+                  // Reload lists data after returning from list page
+                  await _loadListsData();
+                  setState(() {});
+                },
+                child: ListTile(
+                  title: Text(
+                    'Allergies',
+                    style: GoogleFonts.kalam(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                ),
+              ),
+              const SizedBox(height: 40),
+              // Settings 按钮 - 手绘风格
+              Center(
+                child: SketchyButton(
+                  text: 'settings',
+                  backgroundColor: Colors.grey.shade400,
+                  borderColor: Colors.grey.shade700,
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const SettingsPage(),
+                      ),
+                    );
+                  },
                 ),
               ),
             ],

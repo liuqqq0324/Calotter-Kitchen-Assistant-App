@@ -110,6 +110,14 @@ public interface IIntakeService {
          * Frontend can clamp slider max to this value.
          */
         private BigDecimal maxConsumablePercentage;
+        /**
+         * For leftover intakes: initial quantity in grams (原始质量，克)
+         */
+        private Integer initialGrams;
+        /**
+         * For leftover intakes: current quantity in grams (当前质量，克)
+         */
+        private Integer currentGrams;
         private Nutrition baseNutrition;
         private Nutrition effectiveNutrition;
     }
@@ -236,6 +244,14 @@ public interface IIntakeService {
          * For leftovers: current remaining percentage vs initial (0-100).
          */
         private BigDecimal maxConsumablePercentage;
+        /**
+         * ✅ 初始质量（克）
+         */
+        private Integer initialGrams;
+        /**
+         * ✅ 当前质量（克）
+         */
+        private Integer currentGrams;
     }
 
     /**

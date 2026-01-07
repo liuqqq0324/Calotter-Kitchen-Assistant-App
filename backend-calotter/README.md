@@ -34,7 +34,21 @@ backend-calotter/
 
 ### 启动步骤
 
-1. **配置数据库**
+1. **配置环境变量（可选）**
+
+   如果需要使用 AI API（Groq、Gemini 或 Bedrock），需要配置 API Key：
+   
+   ```bash
+   # 复制环境变量模板
+   cp env.template .env
+   
+   # 编辑 .env 文件，填入你的 API Keys
+   # .env 文件应放在 backend-calotter 目录下（项目根目录）
+   ```
+   
+   Spring Boot 启动时会自动加载 `.env` 文件，无需手动设置环境变量。
+
+2. **配置数据库**
 
    编辑 `calotter-start/src/main/resources/application.yml`，修改数据库连接信息：
 
@@ -46,20 +60,20 @@ backend-calotter/
        password: postgres
    ```
 
-2. **创建数据库**
+3. **创建数据库**
 
    ```sql
    CREATE DATABASE calotter;
    ```
 
-3. **编译项目**
+4. **编译项目**
 
    ```bash
    cd backend-calotter
    mvn clean install
    ```
 
-4. **启动应用**
+5. **启动应用**
 
    ```bash
    cd calotter-start

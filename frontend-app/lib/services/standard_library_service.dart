@@ -26,7 +26,7 @@ class StandardLibraryService {
   /// - 标准调料库（spices）
   /// 
   /// 注意：以下标准库是硬编码的，不需要预加载：
-  /// - 标准禁忌库（taboos）- 硬编码在 PreferenceStandardLibrary.TABOO_OPTIONS
+  /// - 标准饮食习惯库（diet habits）- 硬编码在 PreferenceStandardLibrary.DIET_HABITS_OPTIONS
   /// - 标准偏好库（preferences）- 硬编码在 preferences_list_page.dart
   static Future<void> preloadOnLogin() async {
     // 不等待完成，后台静默加载所有需要从后端获取的标准库
@@ -84,10 +84,10 @@ class StandardLibraryService {
     return await _loadAndCacheSpices();
   }
 
-  /// 获取标准禁忌库（Taboos）
-  /// 注意：这是硬编码的常量，与后端 PreferenceStandardLibrary.TABOO_OPTIONS 保持一致
+  /// 获取标准饮食习惯库（Diet Habits）
+  /// 注意：这是硬编码的常量，与后端 PreferenceStandardLibrary.DIET_HABITS_OPTIONS 保持一致
   /// 不需要从后端获取，也不使用缓存
-  static List<Map<String, String>> getStandardTaboos() {
+  static List<Map<String, String>> getStandardDietHabits() {
     return const [
       {'value': 'low_sodium', 'label': 'Low Sodium'},
       {'value': 'low_sugar', 'label': 'Low Sugar'},

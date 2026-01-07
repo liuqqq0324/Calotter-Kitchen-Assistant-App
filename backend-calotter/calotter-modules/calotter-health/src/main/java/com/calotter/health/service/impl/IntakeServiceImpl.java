@@ -137,8 +137,11 @@ public class IntakeServiceImpl implements IIntakeService {
             opt.setTitle(l.getDishName() != null ? l.getDishName() : ("Leftover " + l.getId()));
             opt.setSubtitle(l.getCurrentQuantityGram() != null ? (l.getCurrentQuantityGram() + "g leftover") : "Leftover");
             opt.setMaxConsumablePercentage(computeCurrentRemainingPercentage(l));
-            log.debug("[getDishOptions] 创建选项: id={}, title={}, subtitle={}", 
-                    opt.getId(), opt.getTitle(), opt.getSubtitle());
+            // ✅ 填充初始质量和当前质量
+            opt.setInitialGrams(l.getInitialQuantityGram());
+            opt.setCurrentGrams(l.getCurrentQuantityGram());
+            log.debug("[getDishOptions] 创建选项: id={}, title={}, subtitle={}, initialGrams={}, currentGrams={}", 
+                    opt.getId(), opt.getTitle(), opt.getSubtitle(), opt.getInitialGrams(), opt.getCurrentGrams());
             return opt;
         }).collect(Collectors.toList());
 
@@ -301,20 +304,22 @@ public class IntakeServiceImpl implements IIntakeService {
     /**
      * 将 intake 的 consumedPercentage 同步到 inventory 的 LeftoverDish.currentQuantityGram
      *
-     * 语义：consumedPct 是相对“初始重量（initialQuantityGram）”的百分比（0-100）。
-     * 逻辑：remaining = baseGrams - initialGrams * consumedPct / 100
-     * baseGrams 使用 NutritionLog.quantity（创建 intake 时记录的剩菜重量）
+     * ✅ 新逻辑：减少的量 = (滑动条拖动到的值 - 滑动条最低值) * 初始质量 / 100
+     * 滑动条最低值 = 100 * (初始质量 - 当前质量) / 初始质量
+     * 滑动条拖动到的值 = consumedPercentage（相对于初始质量的百分比）
      */
     private void syncLeftoverQuantityByConsumedPercentage(NutritionLog log, LeftoverDish leftover) {
         if (leftover == null) return;
-        BigDecimal consumedPct = log.getConsumedPercentage() != null ? log.getConsumedPercentage() : BigDecimal.valueOf(0);
-        double baseGramsDouble = log.getQuantity() != null ? log.getQuantity()
-                : (leftover.getCurrentQuantityGram() != null ? leftover.getCurrentQuantityGram() : 0);
-        int baseGrams = (int) Math.round(Math.max(0, baseGramsDouble));
-
-        Integer initial = leftover.getInitialQuantityGram();
-        if (initial == null || initial <= 0) {
-            // Fallback if initial snapshot is missing: behave like "relative to baseGrams".
+        
+        Integer initialGrams = leftover.getInitialQuantityGram();
+        Integer currentGrams = leftover.getCurrentQuantityGram();
+        
+        if (initialGrams == null || initialGrams <= 0) {
+            // 如果没有初始质量，使用旧逻辑作为后备
+            BigDecimal consumedPct = log.getConsumedPercentage() != null ? log.getConsumedPercentage() : BigDecimal.valueOf(100);
+            double baseGramsDouble = log.getQuantity() != null ? log.getQuantity()
+                    : (leftover.getCurrentQuantityGram() != null ? leftover.getCurrentQuantityGram() : 0);
+            int baseGrams = (int) Math.round(Math.max(0, baseGramsDouble));
             BigDecimal remainingPct = BigDecimal.valueOf(100).subtract(consumedPct);
             int remainingGrams = remainingPct
                     .multiply(BigDecimal.valueOf(baseGrams))
@@ -324,15 +329,41 @@ public class IntakeServiceImpl implements IIntakeService {
             leftoverDishRepository.save(leftover);
             return;
         }
-
-        int consumedGrams = BigDecimal.valueOf(initial)
-                .multiply(consumedPct)
-                .divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP)
-                .intValue();
-
-        int remainingGrams = baseGrams - consumedGrams;
-        remainingGrams = Math.max(0, Math.min(baseGrams, remainingGrams));
-        leftover.setCurrentQuantityGram(remainingGrams);
+        
+        // ✅ 计算滑动条最低值（相对于初始质量的百分比）
+        // 最低值 = 100 * (初始质量 - 当前质量) / 初始质量
+        BigDecimal minPercentage;
+        if (currentGrams != null && currentGrams >= 0) {
+            BigDecimal initial = BigDecimal.valueOf(initialGrams);
+            BigDecimal current = BigDecimal.valueOf(currentGrams);
+            BigDecimal diff = initial.subtract(current);
+            minPercentage = diff.multiply(BigDecimal.valueOf(100))
+                    .divide(initial, 2, RoundingMode.HALF_UP);
+        } else {
+            minPercentage = BigDecimal.ZERO;
+        }
+        
+        // ✅ 获取新的 consumedPercentage（相对于初始质量的百分比）
+        BigDecimal newConsumedPercentage = log.getConsumedPercentage() != null 
+                ? log.getConsumedPercentage() 
+                : BigDecimal.valueOf(100);
+        
+        // ✅ 计算减少的量 = (新值 - 最低值) * 初始质量 / 100
+        // 计算实际消费的增量（相对于初始质量）
+        BigDecimal consumedIncrement = newConsumedPercentage.subtract(minPercentage);
+        if (consumedIncrement.compareTo(BigDecimal.ZERO) < 0) {
+            consumedIncrement = BigDecimal.ZERO;
+        }
+        
+        // 转换为克数
+        BigDecimal initial = BigDecimal.valueOf(initialGrams);
+        BigDecimal consumedGrams = consumedIncrement
+                .multiply(initial)
+                .divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP);
+        
+        // ✅ 减少库存：当前质量 - 消费的增量
+        int newCurrentGrams = (currentGrams != null ? currentGrams : initialGrams) - consumedGrams.intValue();
+        leftover.setCurrentQuantityGram(Math.max(0, newCurrentGrams));
         leftoverDishRepository.save(leftover);
     }
 
@@ -398,6 +429,11 @@ public class IntakeServiceImpl implements IIntakeService {
 
         NutritionLog nutritionLog = nutritionLogRepository.findByIdAndUser(intakeId, user)
                 .orElseThrow(() -> new RuntimeException("Intake record not found"));
+
+        // ✅ 保存旧的 consumedPercentage（虽然新逻辑不需要，但保留以便后续扩展）
+        // BigDecimal oldConsumedPercentage = nutritionLog.getConsumedPercentage() != null 
+        //         ? nutritionLog.getConsumedPercentage() 
+        //         : BigDecimal.ZERO;
 
         // 更新消费百分比
         nutritionLog.setConsumedPercentage(consumedPercentage);
@@ -632,6 +668,9 @@ public class IntakeServiceImpl implements IIntakeService {
         if (log.getSourceType() == LogSourceType.LEFTOVER && log.getDishId() != null) {
             leftoverDishRepository.findById(log.getDishId()).ifPresent(leftover -> {
                 item.setMaxConsumablePercentage(computeMaxConsumablePercentageAtIntakeCreation(log, leftover));
+                // ✅ 设置初始质量和当前质量
+                item.setInitialGrams(leftover.getInitialQuantityGram());
+                item.setCurrentGrams(leftover.getCurrentQuantityGram());
             });
         }
 

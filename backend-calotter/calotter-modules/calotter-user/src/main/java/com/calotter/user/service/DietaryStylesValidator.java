@@ -21,7 +21,7 @@ public class DietaryStylesValidator {
      * 
      * <p>验证规则：
      * <ul>
-     *   <li>TABOO 列表中的值必须是英文，且在标准库中（可选验证）</li>
+     *   <li>DIET_HABITS 列表中的值必须是英文，且在标准库中（可选验证）</li>
      *   <li>AVOID_INGREDIENT 列表中的值必须是英文</li>
      *   <li>移除包含中文字符的值</li>
      * </ul>
@@ -36,10 +36,10 @@ public class DietaryStylesValidator {
         
         Map<String, List<String>> cleaned = new HashMap<>();
         
-        // 验证和清理 TABOO
-        List<String> taboos = dietaryStyles.getOrDefault(PreferenceStandardLibrary.PREF_KEY_TABOO, new ArrayList<>());
-        List<String> cleanedTaboos = cleanAndValidateTaboos(taboos);
-        cleaned.put(PreferenceStandardLibrary.PREF_KEY_TABOO, cleanedTaboos);
+        // 验证和清理 DIET_HABITS
+        List<String> dietHabits = dietaryStyles.getOrDefault(PreferenceStandardLibrary.PREF_KEY_DIET_HABITS, new ArrayList<>());
+        List<String> cleanedDietHabits = cleanAndValidateDietHabits(dietHabits);
+        cleaned.put(PreferenceStandardLibrary.PREF_KEY_DIET_HABITS, cleanedDietHabits);
         
         // 验证和清理 AVOID_INGREDIENT
         List<String> avoidIngredients = dietaryStyles.getOrDefault(PreferenceStandardLibrary.PREF_KEY_AVOID_INGREDIENT, new ArrayList<>());
@@ -50,33 +50,33 @@ public class DietaryStylesValidator {
     }
     
     /**
-     * 清理和验证 TABOO 列表
+     * 清理和验证 DIET_HABITS 列表
      * 移除包含中文字符的值，并验证是否在标准库中（可选）
      */
-    private static List<String> cleanAndValidateTaboos(List<String> taboos) {
-        if (taboos == null || taboos.isEmpty()) {
+    private static List<String> cleanAndValidateDietHabits(List<String> dietHabits) {
+        if (dietHabits == null || dietHabits.isEmpty()) {
             return new ArrayList<>();
         }
         
         List<String> cleaned = new ArrayList<>();
-        for (String taboo : taboos) {
-            if (taboo == null || taboo.trim().isEmpty()) {
+        for (String dietHabit : dietHabits) {
+            if (dietHabit == null || dietHabit.trim().isEmpty()) {
                 continue;
             }
             
             // 检查是否包含中文字符
-            if (containsChinese(taboo)) {
-                log.warn("发现包含中文字符的 TABOO 值，已移除: {}", taboo);
+            if (containsChinese(dietHabit)) {
+                log.warn("发现包含中文字符的 DIET_HABITS 值，已移除: {}", dietHabit);
                 continue;
             }
             
             // 可选：验证是否在标准库中
             // 如果不在标准库中，记录警告但不移除（允许扩展值）
-            if (!PreferenceStandardLibrary.isValidTaboo(taboo)) {
-                log.debug("TABOO 值不在标准库中，但保留: {}", taboo);
+            if (!PreferenceStandardLibrary.isValidDietHabit(dietHabit)) {
+                log.debug("DIET_HABITS 值不在标准库中，但保留: {}", dietHabit);
             }
             
-            cleaned.add(taboo.trim().toLowerCase()); // 统一转换为小写
+            cleaned.add(dietHabit.trim().toLowerCase()); // 统一转换为小写
         }
         
         return cleaned;
@@ -121,7 +121,7 @@ public class DietaryStylesValidator {
      */
     public static Map<String, List<String>> createEmptyMap() {
         Map<String, List<String>> map = new HashMap<>();
-        map.put(PreferenceStandardLibrary.PREF_KEY_TABOO, new ArrayList<>());
+        map.put(PreferenceStandardLibrary.PREF_KEY_DIET_HABITS, new ArrayList<>());
         map.put(PreferenceStandardLibrary.PREF_KEY_AVOID_INGREDIENT, new ArrayList<>());
         return map;
     }
@@ -138,10 +138,10 @@ public class DietaryStylesValidator {
         }
         
         // 检查是否包含必要的键
-        boolean hasTaboo = dietaryStyles.containsKey(PreferenceStandardLibrary.PREF_KEY_TABOO);
+        boolean hasDietHabits = dietaryStyles.containsKey(PreferenceStandardLibrary.PREF_KEY_DIET_HABITS);
         boolean hasAvoidIngredient = dietaryStyles.containsKey(PreferenceStandardLibrary.PREF_KEY_AVOID_INGREDIENT);
         
-        return hasTaboo && hasAvoidIngredient;
+        return hasDietHabits && hasAvoidIngredient;
     }
 }
 

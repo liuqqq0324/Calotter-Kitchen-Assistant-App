@@ -23,7 +23,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
   // Modified by Chase: Use references to global lists instead of local copies / 由 Chase 修改：使用全局列表的引用，而不是本地副本
   // These will directly modify kCurrentUser's lists / 这些将直接修改 kCurrentUser 的列表
   late List<String> preferences;
-  late List<String> taboos;
+  late List<String> dietHabits;
   late List<String> allergies;
 
   // 标准库菜系选项（与后端 PreferenceStandardLibrary 保持一致）
@@ -44,7 +44,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
   // 输入框控制器
   final TextEditingController preferenceInputController =
       TextEditingController();
-  final TextEditingController taboosInputController = TextEditingController();
+  final TextEditingController dietHabitsInputController = TextEditingController();
   final TextEditingController allergiesInputController =
       TextEditingController();
 
@@ -114,7 +114,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
       }
     }
 
-    // Load preferences, taboos, and allergies from backend
+    // Load preferences, diet habits, and allergies from backend
     await _loadListsData();
 
     if (mounted) {
@@ -136,11 +136,11 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
           .toList();
     }
 
-    // Load taboos
-    final taboosResult = await UserService.getUserTaboos();
-    if (taboosResult['success'] == true) {
-      kCurrentUser.taboos = List<String>.from(
-        taboosResult['data']['taboos'] ?? [],
+    // Load diet habits
+    final dietHabitsResult = await UserService.getUserDietHabits();
+    if (dietHabitsResult['success'] == true) {
+      kCurrentUser.dietHabits = List<String>.from(
+        dietHabitsResult['data']['dietHabits'] ?? [],
       );
     }
 
@@ -154,7 +154,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
 
     // Get references to global lists
     preferences = kCurrentUser.preferences;
-    taboos = kCurrentUser.taboos;
+    dietHabits = kCurrentUser.dietHabits;
     allergies = kCurrentUser.allergies;
   }
 
@@ -203,21 +203,21 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
     });
   }
 
-  void _addTaboo() {
-    final text = taboosInputController.text.trim();
+  void _addDietHabit() {
+    final text = dietHabitsInputController.text.trim();
     if (text.isNotEmpty) {
       setState(() {
-        // Modified by Chase: Directly modify global kCurrentUser.taboos / 由 Chase 修改：直接修改全局 kCurrentUser.taboos
-        kCurrentUser.taboos.add(text);
-        taboosInputController.clear();
+        // Modified by Chase: Directly modify global kCurrentUser.dietHabits / 由 Chase 修改：直接修改全局 kCurrentUser.dietHabits
+        kCurrentUser.dietHabits.add(text);
+        dietHabitsInputController.clear();
       });
     }
   }
 
-  void _removeTaboo(int index) {
+  void _removeDietHabit(int index) {
     setState(() {
-      // Modified by Chase: Directly modify global kCurrentUser.taboos / 由 Chase 修改：直接修改全局 kCurrentUser.taboos
-      kCurrentUser.taboos.removeAt(index);
+      // Modified by Chase: Directly modify global kCurrentUser.dietHabits / 由 Chase 修改：直接修改全局 kCurrentUser.dietHabits
+      kCurrentUser.dietHabits.removeAt(index);
     });
   }
 
@@ -249,7 +249,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
     heightController.dispose();
     weightController.dispose();
     preferenceInputController.dispose();
-    taboosInputController.dispose();
+    dietHabitsInputController.dispose();
     allergiesInputController.dispose();
     super.dispose();
   }
@@ -370,9 +370,9 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                   cuisineTypes: kCurrentUser.preferences,
                 );
 
-                // Save taboos
-                final taboosResult = await UserService.updateUserTaboos(
-                  taboos: kCurrentUser.taboos,
+                // Save diet habits
+                final dietHabitsResult = await UserService.updateUserDietHabits(
+                  dietHabits: kCurrentUser.dietHabits,
                 );
 
                 // Save allergies
@@ -383,7 +383,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                 // Check if all saves were successful
                 bool allSuccess =
                     prefsResult['success'] == true &&
-                    taboosResult['success'] == true &&
+                    dietHabitsResult['success'] == true &&
                     allergiesResult['success'] == true;
 
                 if (allSuccess) {
@@ -574,11 +574,11 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
               _removePreference,
             ),
             _buildListSection(
-              'Taboos',
-              kCurrentUser.taboos,
-              taboosInputController,
-              _addTaboo,
-              _removeTaboo,
+              'Diet Habits',
+              kCurrentUser.dietHabits,
+              dietHabitsInputController,
+              _addDietHabit,
+              _removeDietHabit,
             ),
             _buildListSection(
               'Allergies',

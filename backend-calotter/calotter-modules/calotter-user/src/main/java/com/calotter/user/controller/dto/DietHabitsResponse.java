@@ -7,13 +7,14 @@ import lombok.NoArgsConstructor;
 import java.util.List;
 
 /**
- * 用户禁忌响应 DTO
+ * 用户饮食习惯响应 DTO
  */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class TaboosResponse {
+public class DietHabitsResponse {
     
-    private List<String> taboos;
+    private List<String> dietHabits;
 }
+

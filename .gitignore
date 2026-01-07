@@ -120,3 +120,21 @@ calotter/postgres/data/
 *.iml
 
 *.rdb
+
+# YOLO Training Project - 训练相关垃圾文件
+yolo_training_project/runs/
+yolo_training_project/*.pt
+yolo_training_project/*.onnx
+yolo_training_project/*.npy
+yolo_training_project/__pycache__/
+yolo_training_project/**/__pycache__/
+yolo_training_project/*.pyc
+yolo_training_project/**/*.pyc
+yolo_training_project/._*
+yolo_training_project/**/._*
+yolo_training_project/venv/
+yolo_training_project/.venv/
+yolo_training_project/python
+yolo_training_project/problematic_files_list.txt
+yolo_training_project/.DS_Store
+yolo_training_project/**/.DS_Store

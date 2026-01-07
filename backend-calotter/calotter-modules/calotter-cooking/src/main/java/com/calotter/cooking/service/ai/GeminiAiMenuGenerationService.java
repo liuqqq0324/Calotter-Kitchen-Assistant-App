@@ -156,15 +156,15 @@ public class GeminiAiMenuGenerationService implements AiMenuGenerationService {
                       .append(String.join(", ", filter.getDietPreferences().getAvoidIngredients()))
                       .append("\n");
             }
-            // ✅ Hard dietary taboos must be interpreted as strict rules (not just "avoid" text)
-            if (filter.getDietPreferences().getTaboos() != null &&
-                !filter.getDietPreferences().getTaboos().isEmpty()) {
-                prompt.append("Dietary taboos (STRICT): ")
-                      .append(String.join(", ", filter.getDietPreferences().getTaboos()))
+            // ✅ Hard dietary habits must be interpreted as strict rules (not just "avoid" text)
+            if (filter.getDietPreferences().getDietHabits() != null &&
+                !filter.getDietPreferences().getDietHabits().isEmpty()) {
+                prompt.append("Dietary habits (STRICT): ")
+                      .append(String.join(", ", filter.getDietPreferences().getDietHabits()))
                       .append("\n");
-                // Add explicit interpretations for common taboos so the model cannot ignore them.
+                // Add explicit interpretations for common diet habits so the model cannot ignore them.
                 // (Models often treat words like "vegetarian" as a soft preference unless defined.)
-                List<String> t = filter.getDietPreferences().getTaboos().stream()
+                List<String> t = filter.getDietPreferences().getDietHabits().stream()
                         .filter(s -> s != null && !s.isBlank())
                         .map(String::toLowerCase)
                         .toList();
