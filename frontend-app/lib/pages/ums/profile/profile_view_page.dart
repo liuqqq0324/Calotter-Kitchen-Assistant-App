@@ -375,10 +375,9 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
   
   String _formatBmi(dynamic bmi) {
     if (bmi == null) {
-      print('BMI is null');
       return '--';
     }
-    print('BMI type: ${bmi.runtimeType}, value: $bmi');
+    // print('BMI type: ${bmi.runtimeType}, value: $bmi'); // 已注释：避免控制台输出过长
     
     // Handle numeric types (int, double, num)
     if (bmi is num) {
@@ -851,13 +850,19 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                                     ),
                                   ),
                                   const SizedBox(height: 4),
-                                  Text(
-                                    _formatBmi(bmiValue),
-                                    style: GoogleFonts.caveat(
-                                      fontSize: 32,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.blue[800],
-              ),
+                                  FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    alignment: Alignment.centerLeft,
+                                    child: Text(
+                                      _formatBmi(bmiValue),
+                                      style: GoogleFonts.caveat(
+                                        fontSize: 32,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.blue[800],
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                      maxLines: 1,
+                                    ),
                                   ),
                                 ],
                               ),

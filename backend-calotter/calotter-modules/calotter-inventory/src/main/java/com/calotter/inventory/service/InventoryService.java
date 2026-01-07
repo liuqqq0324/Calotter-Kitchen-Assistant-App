@@ -43,6 +43,10 @@ public class InventoryService {
      */
     @Transactional
     public IngredientResponse createIngredient(IngredientRequest request) {
+        if (request.getStandardIngredientId() == null) {
+            throw new IllegalArgumentException("标准食材ID不能为空");
+        }
+        
         Household household = householdRepository.findById(request.getHouseholdId())
                 .orElseThrow(() -> new IllegalArgumentException("家庭不存在"));
         
