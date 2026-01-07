@@ -46,7 +46,7 @@ ai:
       model: gemini-2.5-pro
     # Groq 配置（完整 Prompt 版本）
     groq:
-      api-key: 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  # Groq API Key
+      api-key: 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  # Groq API Key
       url: https://api.groq.com/openai/v1/chat/completions
       model: llama-3.3-70b-versatile
   # 营养估算器配置
