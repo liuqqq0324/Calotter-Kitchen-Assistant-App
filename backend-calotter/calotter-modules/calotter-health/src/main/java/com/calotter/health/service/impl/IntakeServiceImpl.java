@@ -136,6 +136,7 @@ public class IntakeServiceImpl implements IIntakeService {
             opt.setId(l.getId());
             opt.setTitle(l.getDishName() != null ? l.getDishName() : ("Leftover " + l.getId()));
             opt.setSubtitle(l.getCurrentQuantityGram() != null ? (l.getCurrentQuantityGram() + "g leftover") : "Leftover");
+            opt.setMaxConsumablePercentage(computeCurrentRemainingPercentage(l));
             log.debug("[getDishOptions] 创建选项: id={}, title={}, subtitle={}", 
                     opt.getId(), opt.getTitle(), opt.getSubtitle());
             return opt;
@@ -552,6 +553,14 @@ public class IntakeServiceImpl implements IIntakeService {
                 log.getConsumedPercentage() : BigDecimal.valueOf(100);
         item.setConsumedPercentage(consumedPct);
 
+        // For leftover intakes: expose the max consumable percentage (0-100) of the ORIGINAL leftover
+        // at the time this intake was created.
+        if (log.getSourceType() == LogSourceType.LEFTOVER && log.getDishId() != null) {
+            leftoverDishRepository.findById(log.getDishId()).ifPresent(leftover -> {
+                item.setMaxConsumablePercentage(computeMaxConsumablePercentageAtIntakeCreation(log, leftover));
+            });
+        }
+
         // baseNutrition: 使用基础营养值（100%时的值）
         BigDecimal baseEnergy = BigDecimal.valueOf(log.getBaseEnergy() != null ? log.getBaseEnergy() : 
                 (log.getEnergy() != null ? log.getEnergy() : 0));
@@ -600,6 +609,12 @@ public class IntakeServiceImpl implements IIntakeService {
                 log.getConsumedPercentage() : BigDecimal.valueOf(100);
         item.setConsumedPercentage(consumedPct);
 
+        if (log.getSourceType() == LogSourceType.LEFTOVER && log.getDishId() != null) {
+            leftoverDishRepository.findById(log.getDishId()).ifPresent(leftover -> {
+                item.setMaxConsumablePercentage(computeMaxConsumablePercentageAtIntakeCreation(log, leftover));
+            });
+        }
+
         // baseNutrition: 使用基础营养值（100%时的值）
         BigDecimal baseEnergy = BigDecimal.valueOf(log.getBaseEnergy() != null ? log.getBaseEnergy() : 
                 (log.getEnergy() != null ? log.getEnergy() : 0));
@@ -631,6 +646,44 @@ public class IntakeServiceImpl implements IIntakeService {
         item.setEffectiveNutrition(effectiveNutrition);
 
         return item;
+    }
+
+    /**
+     * Current remaining percentage vs initial (0-100).
+     */
+    private BigDecimal computeCurrentRemainingPercentage(LeftoverDish leftover) {
+        if (leftover == null) return BigDecimal.valueOf(0);
+        Integer initial = leftover.getInitialQuantityGram();
+        Integer current = leftover.getCurrentQuantityGram();
+        if (initial == null || initial <= 0) return BigDecimal.valueOf(0);
+        int currentSafe = current != null ? Math.max(0, current) : 0;
+        BigDecimal pct = BigDecimal.valueOf(currentSafe)
+                .multiply(BigDecimal.valueOf(100))
+                .divide(BigDecimal.valueOf(initial), 2, RoundingMode.HALF_UP);
+        return pct.max(BigDecimal.ZERO).min(BigDecimal.valueOf(100));
+    }
+
+    /**
+     * Max consumable percentage (0-100) of the ORIGINAL leftover at intake creation time.
+     *
+     * At intake creation time we snapshot the leftover grams into NutritionLog.quantity (baseGrams).
+     * We compute:
+     *   maxPct = baseGrams / initialGrams * 100
+     */
+    private BigDecimal computeMaxConsumablePercentageAtIntakeCreation(NutritionLog log, LeftoverDish leftover) {
+        if (leftover == null) return BigDecimal.valueOf(100);
+        Integer initial = leftover.getInitialQuantityGram();
+        if (initial == null || initial <= 0) return BigDecimal.valueOf(100);
+
+        double baseGramsDouble = log.getQuantity() != null
+                ? log.getQuantity()
+                : (leftover.getCurrentQuantityGram() != null ? leftover.getCurrentQuantityGram() : 0);
+        int baseGrams = (int) Math.round(Math.max(0, baseGramsDouble));
+
+        BigDecimal pct = BigDecimal.valueOf(baseGrams)
+                .multiply(BigDecimal.valueOf(100))
+                .divide(BigDecimal.valueOf(initial), 2, RoundingMode.HALF_UP);
+        return pct.max(BigDecimal.ZERO).min(BigDecimal.valueOf(100));
     }
 
     /**
