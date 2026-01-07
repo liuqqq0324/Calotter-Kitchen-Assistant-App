@@ -92,7 +92,10 @@ class RecipeApiService {
             dietPrefs['avoidIngredients'] ??
             dietPrefs['avoid_ingredients'] ??
             [],
-        'taboos': dietPrefs['taboos'] ?? [],
+        'diet_habits': 
+            dietPrefs['dietHabits'] ?? 
+            dietPrefs['diet_habits'] ?? 
+            [],
         'cuisine_preferences':
             dietPrefs['cuisinePreferences'] ??
             dietPrefs['cuisine_preferences'] ??
@@ -193,7 +196,9 @@ class RecipeApiService {
     final allergies = (diet['allergies'] as List?) ?? [];
     final avoid =
         (diet['avoidIngredients'] ?? diet['avoid_ingredients'] as List?) ?? [];
-    final taboos = (diet['taboos'] as List?) ?? [];
+    final dietHabits = 
+        (diet['dietHabits'] ?? diet['diet_habits'] as List?) ?? 
+        [];
     final cuisines =
         (diet['cuisinePreferences'] ?? diet['cuisine_preferences'] as List?) ??
         [];
@@ -256,7 +261,7 @@ class RecipeApiService {
       'dietPreferences': {
         'allergies': allergies,
         'avoidIngredients': avoid,
-        'taboos': taboos,
+        'dietHabits': dietHabits,
         'cuisinePreferences': cuisines,
         'tastePreferences': tastes,
       },
@@ -266,8 +271,9 @@ class RecipeApiService {
         'difficultyTarget': resolvedDifficultyTarget, // now can be list for multi-select
       },
       'calorieTarget': calorieTarget,
-      'cookers': f['cookers'] ?? [],
-      'seasonings': f['seasonings'] ?? [],
+      // ✅ cookers 和 seasonings 由后端从数据库自动获取，前端发送空数组
+      'cookers': [],
+      'seasonings': [],
     };
   }
 }

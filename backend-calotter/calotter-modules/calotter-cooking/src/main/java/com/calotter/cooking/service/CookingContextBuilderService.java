@@ -96,14 +96,14 @@ public class CookingContextBuilderService {
 
         // --- 1. 处理家人 (Users) ---
         for (User u : users) {
-            // 1.1 收集硬性限制 (过敏 + 饮食风格中的 taboos)
+            // 1.1 收集硬性限制 (过敏 + 饮食风格中的 dietHabits)
             if (u.getAllergies() != null) {
                 u.getAllergies().forEach(a -> globalAvoidance.add(a.getName()));
             }
-            // 从 dietaryStyles Map 中提取硬性饮食禁忌（TABOO）
+            // 从 dietaryStyles Map 中提取硬性饮食习惯（DIET_HABITS）
             if (u.getDietaryStyles() != null) {
-                List<String> taboos = u.getDietaryStyles().getOrDefault(PreferenceStandardLibrary.PREF_KEY_TABOO, new ArrayList<>());
-                globalAvoidance.addAll(taboos);
+                List<String> dietHabits = u.getDietaryStyles().getOrDefault(PreferenceStandardLibrary.PREF_KEY_DIET_HABITS, new ArrayList<>());
+                globalAvoidance.addAll(dietHabits);
             }
 
             // 1.2 收集软性偏好并计数
@@ -164,7 +164,7 @@ public class CookingContextBuilderService {
                     countPreferences(g.getPreferences(), PreferenceStandardLibrary.PREF_KEY_CUISINE, cuisineCounter);
                 }
 
-                List<String> gDislikes = new ArrayList<>(); // TODO: 从客人信息中获取 taboos 或其他来源
+                List<String> gDislikes = new ArrayList<>(); // TODO: 从客人信息中获取 dietHabits 或其他来源
 
                 // 2.3 估算客人营养 (默认值)
                 int gCal = 700;
@@ -184,12 +184,12 @@ public class CookingContextBuilderService {
 
         // --- 3. 生成冲突报告 ---
         int totalHeadCount = roster.size();
-        List<String> universalDislikes = new ArrayList<>(); // TODO: 从 taboos 或其他来源获取
+        List<String> universalDislikes = new ArrayList<>(); // TODO: 从 dietHabits 或其他来源获取
         Map<String, String> conflictDetails = new HashMap<>();
         List<String> commonLikedCuisines = new ArrayList<>();
 
-        // 分析忌口 (Dislikes) - 暂时移除，需要从 taboos 或其他来源获取
-        // TODO: 重新实现基于 taboos 的冲突分析
+        // 分析忌口 (Dislikes) - 暂时移除，需要从 dietHabits 或其他来源获取
+        // TODO: 重新实现基于 dietHabits 的冲突分析
 
         // 分析菜系 (Cuisines)
         if (overrideCuisines == null || overrideCuisines.isEmpty()) {

@@ -163,41 +163,41 @@ public class UserController {
     }
     
     /**
-     * 获取用户禁忌
-     * GET /api/user/taboos
+     * 获取用户饮食习惯
+     * GET /api/user/diet-habits
      */
-    @GetMapping("/taboos")
-    public Result<TaboosResponse> getTaboos(
+    @GetMapping("/diet-habits")
+    public Result<DietHabitsResponse> getDietHabits(
             @RequestHeader(value = "Authorization", required = false) String authHeader,
             @RequestParam(value = "id", required = false) Long userId) {
         try {
             Long targetUserId = getUserId(authHeader, userId);
-            TaboosResponse response = userService.getUserTaboos(targetUserId);
+            DietHabitsResponse response = userService.getUserDietHabits(targetUserId);
             return Result.success(response);
         } catch (IllegalArgumentException e) {
             return Result.error(400, e.getMessage());
         } catch (Exception e) {
-            return Result.error("获取用户禁忌失败: " + e.getMessage());
+            return Result.error("获取用户饮食习惯失败: " + e.getMessage());
         }
     }
     
     /**
-     * 更新用户禁忌
-     * PUT /api/user/taboos
+     * 更新用户饮食习惯
+     * PUT /api/user/diet-habits
      */
-    @PutMapping("/taboos")
-    public Result<TaboosResponse> updateTaboos(
+    @PutMapping("/diet-habits")
+    public Result<DietHabitsResponse> updateDietHabits(
             @RequestHeader(value = "Authorization", required = false) String authHeader,
             @RequestParam(value = "id", required = false) Long userId,
-            @Valid @RequestBody TaboosRequest request) {
+            @Valid @RequestBody DietHabitsRequest request) {
         try {
             Long targetUserId = getUserId(authHeader, userId);
-            TaboosResponse response = userService.updateUserTaboos(targetUserId, request);
+            DietHabitsResponse response = userService.updateUserDietHabits(targetUserId, request);
             return Result.success(response);
         } catch (IllegalArgumentException e) {
             return Result.error(400, e.getMessage());
         } catch (Exception e) {
-            return Result.error("更新用户禁忌失败: " + e.getMessage());
+            return Result.error("更新用户饮食习惯失败: " + e.getMessage());
         }
     }
     
@@ -271,28 +271,28 @@ public class UserController {
     }
 
     /**
-     * 获取标准禁忌库（taboos）
-     * GET /api/user/standard-taboos
+     * 获取标准饮食习惯库（diet habits）
+     * GET /api/user/standard-diet-habits
      */
-    @GetMapping("/standard-taboos")
-    public Result<java.util.List<String>> getAllStandardTaboos() {
+    @GetMapping("/standard-diet-habits")
+    public Result<java.util.List<String>> getAllStandardDietHabits() {
         try {
-            return Result.success(userService.getAllStandardTaboos());
+            return Result.success(userService.getAllStandardDietHabits());
         } catch (Exception e) {
-            return Result.error("获取标准禁忌库失败: " + e.getMessage());
+            return Result.error("获取标准饮食习惯库失败: " + e.getMessage());
         }
     }
 
     /**
-     * 搜索标准禁忌库（taboos）模糊查询
-     * GET /api/user/standard-taboos/search?q=veg
+     * 搜索标准饮食习惯库（diet habits）模糊查询
+     * GET /api/user/standard-diet-habits/search?q=veg
      */
-    @GetMapping("/standard-taboos/search")
-    public Result<java.util.List<String>> searchStandardTaboos(@RequestParam("q") String q) {
+    @GetMapping("/standard-diet-habits/search")
+    public Result<java.util.List<String>> searchStandardDietHabits(@RequestParam("q") String q) {
         try {
-            return Result.success(userService.searchStandardTaboos(q));
+            return Result.success(userService.searchStandardDietHabits(q));
         } catch (Exception e) {
-            return Result.error("搜索标准禁忌库失败: " + e.getMessage());
+            return Result.error("搜索标准饮食习惯库失败: " + e.getMessage());
         }
     }
 

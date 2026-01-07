@@ -163,25 +163,25 @@ class UserService {
     }
   }
 
-  // Get user taboos
-  static Future<Map<String, dynamic>> getUserTaboos({String? userId}) async {
+  // Get user diet habits
+  static Future<Map<String, dynamic>> getUserDietHabits({String? userId}) async {
     try {
       final userIdParam = userId ?? await AuthService.getUserId();
       final url = Uri.parse(
-        '${ApiConfig.baseUrl}/api/user/taboos?id=$userIdParam',
+        '${ApiConfig.baseUrl}/api/user/diet-habits?id=$userIdParam',
       );
       final response = await http.get(url, headers: await _getHeaders());
 
       final data = jsonDecode(response.body);
       if (response.statusCode == 200) {
-        // 后端返回的是 Result<TaboosResponse> 格式: {code, message, data: {taboos: [...]}}
+        // 后端返回的是 Result<DietHabitsResponse> 格式: {code, message, data: {dietHabits: [...]}}
         // 需要提取 data.data 字段
         final responseData = data['data'] ?? data;
         return {'success': true, 'data': responseData};
       } else {
         return {
           'success': false,
-          'error': data['message'] ?? 'Failed to get taboos',
+          'error': data['message'] ?? 'Failed to get diet habits',
         };
       }
     } catch (e) {
@@ -189,32 +189,32 @@ class UserService {
     }
   }
 
-  // Update user taboos
-  static Future<Map<String, dynamic>> updateUserTaboos({
+  // Update user diet habits
+  static Future<Map<String, dynamic>> updateUserDietHabits({
     String? userId,
-    required List<String> taboos,
+    required List<String> dietHabits,
   }) async {
     try {
       final userIdParam = userId ?? await AuthService.getUserId();
       final url = Uri.parse(
-        '${ApiConfig.baseUrl}/api/user/taboos?id=$userIdParam',
+        '${ApiConfig.baseUrl}/api/user/diet-habits?id=$userIdParam',
       );
       final response = await http.put(
         url,
         headers: await _getHeaders(),
-        body: jsonEncode({'taboos': taboos}),
+        body: jsonEncode({'dietHabits': dietHabits}),
       );
 
       final data = jsonDecode(response.body);
       if (response.statusCode == 200) {
-        // 后端返回的是 Result<TaboosResponse> 格式: {code, message, data: {taboos: [...]}}
+        // 后端返回的是 Result<DietHabitsResponse> 格式: {code, message, data: {dietHabits: [...]}}
         // 需要提取 data.data 字段
         final responseData = data['data'] ?? data;
         return {'success': true, 'data': responseData};
       } else {
         return {
           'success': false,
-          'error': data['message'] ?? 'Failed to update taboos',
+          'error': data['message'] ?? 'Failed to update diet habits',
         };
       }
     } catch (e) {

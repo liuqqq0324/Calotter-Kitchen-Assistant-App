@@ -449,35 +449,35 @@ public class UserService {
     }
     
     /**
-     * 获取用户禁忌
-     * 从 dietaryStyles Map 的 TABOO 键中获取
+     * 获取用户饮食习惯
+     * 从 dietaryStyles Map 的 DIET_HABITS 键中获取
      */
-    public TaboosResponse getUserTaboos(Long userId) {
+    public DietHabitsResponse getUserDietHabits(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("用户不存在"));
         
-        // 从 dietaryStyles Map 中获取 TABOO 列表
+        // 从 dietaryStyles Map 中获取 DIET_HABITS 列表
         Map<String, List<String>> dietaryStyles = user.getDietaryStyles();
-        List<String> taboos = new ArrayList<>();
+        List<String> dietHabits = new ArrayList<>();
         
-        if (dietaryStyles != null && dietaryStyles.containsKey(PreferenceStandardLibrary.PREF_KEY_TABOO)) {
-            taboos = dietaryStyles.get(PreferenceStandardLibrary.PREF_KEY_TABOO);
-            if (taboos == null) {
-                taboos = new ArrayList<>();
+        if (dietaryStyles != null && dietaryStyles.containsKey(PreferenceStandardLibrary.PREF_KEY_DIET_HABITS)) {
+            dietHabits = dietaryStyles.get(PreferenceStandardLibrary.PREF_KEY_DIET_HABITS);
+            if (dietHabits == null) {
+                dietHabits = new ArrayList<>();
             }
         }
         
-        return TaboosResponse.builder()
-                .taboos(taboos)
+        return DietHabitsResponse.builder()
+                .dietHabits(dietHabits)
                 .build();
     }
     
     /**
-     * 更新用户禁忌
-     * 更新到 dietaryStyles Map 的 TABOO 键中
+     * 更新用户饮食习惯
+     * 更新到 dietaryStyles Map 的 DIET_HABITS 键中
      */
     @Transactional
-    public TaboosResponse updateUserTaboos(Long userId, TaboosRequest request) {
+    public DietHabitsResponse updateUserDietHabits(Long userId, DietHabitsRequest request) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("用户不存在"));
         
@@ -487,38 +487,38 @@ public class UserService {
             dietaryStyles = DietaryStylesValidator.createEmptyMap();
         }
         
-        // ✅ 严格校验：taboos 必须来自标准库（并且是英文）
-        List<String> taboos = request.getTaboos() != null ? request.getTaboos() : new ArrayList<>();
-        List<String> cleanedTaboos = taboos.stream()
+        // ✅ 严格校验：dietHabits 必须来自标准库（并且是英文）
+        List<String> dietHabits = request.getDietHabits() != null ? request.getDietHabits() : new ArrayList<>();
+        List<String> cleanedDietHabits = dietHabits.stream()
                 .filter(t -> t != null && !t.trim().isEmpty())
                 .map(t -> t.trim().toLowerCase())
                 .toList();
 
-        List<String> invalidTaboos = cleanedTaboos.stream()
-                .filter(t -> t.matches(".*[\\u4e00-\\u9fa5].*") || !PreferenceStandardLibrary.isValidTaboo(t))
+        List<String> invalidDietHabits = cleanedDietHabits.stream()
+                .filter(t -> t.matches(".*[\\u4e00-\\u9fa5].*") || !PreferenceStandardLibrary.isValidDietHabit(t))
                 .toList();
 
-        if (!invalidTaboos.isEmpty()) {
+        if (!invalidDietHabits.isEmpty()) {
             throw new IllegalArgumentException(
-                    "无效的 taboos: " + String.join(", ", invalidTaboos) +
-                            ". 只能使用标准库中的值: " + String.join(", ", PreferenceStandardLibrary.TABOO_OPTIONS)
+                    "无效的 dietHabits: " + String.join(", ", invalidDietHabits) +
+                            ". 只能使用标准库中的值: " + String.join(", ", PreferenceStandardLibrary.DIET_HABITS_OPTIONS)
             );
         }
         
         // 更新 dietaryStyles Map
-        dietaryStyles.put(PreferenceStandardLibrary.PREF_KEY_TABOO, cleanedTaboos);
+        dietaryStyles.put(PreferenceStandardLibrary.PREF_KEY_DIET_HABITS, cleanedDietHabits);
         user.setDietaryStyles(dietaryStyles);
         
         // 保存用户（会触发 @PreUpdate 钩子进行最终验证）
         user = userRepository.save(user);
         
-        // 返回更新后的 taboos
+        // 返回更新后的 dietHabits
         List<String> result = user.getDietaryStyles() != null 
-                ? user.getDietaryStyles().getOrDefault(PreferenceStandardLibrary.PREF_KEY_TABOO, new ArrayList<>())
+                ? user.getDietaryStyles().getOrDefault(PreferenceStandardLibrary.PREF_KEY_DIET_HABITS, new ArrayList<>())
                 : new ArrayList<>();
         
-        return TaboosResponse.builder()
-                .taboos(result)
+        return DietHabitsResponse.builder()
+                .dietHabits(result)
                 .build();
     }
     
@@ -605,16 +605,16 @@ public class UserService {
                 .orElse(List.of());
     }
 
-    public List<String> getAllStandardTaboos() {
-        return PreferenceStandardLibrary.TABOO_OPTIONS;
+    public List<String> getAllStandardDietHabits() {
+        return PreferenceStandardLibrary.DIET_HABITS_OPTIONS;
     }
 
-    public List<String> searchStandardTaboos(String query) {
+    public List<String> searchStandardDietHabits(String query) {
         if (query == null || query.trim().isEmpty()) {
-            return PreferenceStandardLibrary.TABOO_OPTIONS;
+            return PreferenceStandardLibrary.DIET_HABITS_OPTIONS;
         }
         String q = query.trim().toLowerCase();
-        return PreferenceStandardLibrary.TABOO_OPTIONS.stream()
+        return PreferenceStandardLibrary.DIET_HABITS_OPTIONS.stream()
                 .filter(t -> t.contains(q))
                 .toList();
     }

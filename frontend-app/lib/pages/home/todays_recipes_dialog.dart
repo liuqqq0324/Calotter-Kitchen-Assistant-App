@@ -4,7 +4,8 @@ import 'package:personal_sous_chef/services/homepage_api_service.dart';
 
 /// 今日菜谱数据模型
 class TodayRecipe {
-  final int? intakeId;
+  int? intakeId;  // ✅ 改为可变，保存后更新
+  final int? leftoverId;  // ✅ 新增：用于标识 leftover dish
   final String name;
   final String imageIcon;
   /// UI percentage relative to the ORIGINAL leftover (0.0 - 1.0).
@@ -15,12 +16,20 @@ class TodayRecipe {
   /// Typically computed as: baseGramsAtIntakeCreation / initialGrams.
   final double maxConsumablePercentage;
 
+  /// ✅ 初始质量（克）
+  final double? initialGrams;
+  /// ✅ 当前质量（克）
+  final double? currentGrams;
+
   TodayRecipe({
     this.intakeId,
+    this.leftoverId,  // ✅ 新增
     required this.name,
     required this.imageIcon,
-    this.consumedPercentage = 0.5,
+    this.consumedPercentage = 0.0,  // ✅ 改为0.0（最低值）
     this.maxConsumablePercentage = 1.0,
+    this.initialGrams,
+    this.currentGrams,
   });
 }
 
@@ -37,6 +46,7 @@ class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
   bool _isSaving = false;
   bool _isAdding = false;
   List<TodayRecipe> _todaysRecipes = [];
+  List<Map<String, dynamic>>? _cachedDishOptions;  // ✅ 新增：缓存菜品选项
 
   @override
   void initState() {
@@ -67,11 +77,15 @@ class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
             final uiFrac =
                 (maxFrac * (backendConsumedPct / 100.0)).clamp(0.0, maxFrac);
             return TodayRecipe(
-              intakeId: item['intakeId'] as int?,
+              intakeId: (item['intakeId'] as num?)?.toInt(),
+              leftoverId: (item['leftoverId'] as num?)?.toInt(),  // ✅ 添加
               name: item['leftoverTitle'] as String? ?? 'Unknown Leftover',
               imageIcon: "🍽️", // 默认图标，可以根据recipe_id获取真实图标
               consumedPercentage: uiFrac,
               maxConsumablePercentage: maxFrac,
+              // ✅ 解析初始质量和当前质量
+              initialGrams: (item['initialGrams'] as num?)?.toDouble(),
+              currentGrams: (item['currentGrams'] as num?)?.toDouble(),
             );
           }).toList();
           _isLoading = false;
@@ -134,9 +148,40 @@ class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
       int? errorCode;
 
       for (final recipe in _todaysRecipes) {
-        if (recipe.intakeId != null) {
+        if (recipe.intakeId == null) {
+          // ✅ 新添加的菜品：调用 addDishIntake
+          if (recipe.leftoverId == null) {
+            continue;  // 跳过无效数据
+          }
+          
           // Convert UI percentage (0..maxConsumablePercentage) to backend percentage (0..100)
-          // relative to the grams at intake creation.
+          final max = recipe.maxConsumablePercentage;
+          final ui = recipe.consumedPercentage.clamp(0.0, max);
+          final percentage = (max > 0)
+              ? ((ui / max) * 100.0).clamp(0.0, 100.0)
+              : 0.0;
+          
+          final result = await HomepageApiService.addDishIntake(
+            ids: [recipe.leftoverId!],
+            consumedPercentage: percentage,
+          );
+
+          if (result['success'] != true) {
+            allSuccess = false;
+            errorMessage = result['error'] ?? 'Failed to add recipe';
+            errorCode = result['code'] as int?;
+            break;
+          }
+          
+          // ✅ 更新本地数据：从后端返回的数据中获取 intakeId
+          final data = result['data'] as Map<String, dynamic>?;
+          final addedIntakes = data?['addedIntakes'] as List<dynamic>? ?? [];
+          if (addedIntakes.isNotEmpty) {
+            final item = addedIntakes.first as Map<String, dynamic>;
+            recipe.intakeId = (item['intakeId'] as num?)?.toInt();
+          }
+        } else {
+          // ✅ 已存在的菜品：调用 updateIntakePercentage
           final max = recipe.maxConsumablePercentage;
           final ui = recipe.consumedPercentage.clamp(0.0, max);
           final percentage = (max > 0)
@@ -159,6 +204,9 @@ class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
       setState(() => _isSaving = false);
 
       if (allSuccess) {
+        // ✅ 重新加载数据，确保 UI 显示最新的后端数据
+        await _loadTodayRecipes();
+        
         if (mounted) {
           Navigator.of(context).pop(_todaysRecipes);
           ScaffoldMessenger.of(context).showSnackBar(
@@ -232,6 +280,9 @@ class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
           final opt = o as Map<String, dynamic>;
           return (opt['type'] as String?) == 'leftover';
         }).toList();
+        
+        // ✅ 缓存 options 数据
+        _cachedDishOptions = options.cast<Map<String, dynamic>>();
 
         await showModalBottomSheet<void>(
           context: context,
@@ -370,63 +421,62 @@ class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
   }
 
   Future<void> _addDishes({required List<int> ids}) async {
-    setState(() => _isAdding = true);
-    try {
-      final result = await HomepageApiService.addDishIntake(ids: ids);
-      setState(() => _isAdding = false);
-
-      if (!mounted) return;
-
-      if (result['success'] == true && result['data'] != null) {
-        // Prefer backend-provided list to refresh UI immediately
-        final data = result['data'] as Map<String, dynamic>;
-        final todayItems = data['todayDishIntakes'] as List<dynamic>? ?? [];
-
-        setState(() {
-          _todaysRecipes = todayItems.map((item) {
-            final backendConsumedPct =
-                (item['consumedPercentage'] as num?)?.toDouble() ?? 0.0;
-            final maxConsumablePct =
-                (item['maxConsumablePercentage'] as num?)?.toDouble() ?? 100.0;
-            final maxFrac = (maxConsumablePct / 100.0).clamp(0.0, 1.0);
-            final uiFrac =
-                (maxFrac * (backendConsumedPct / 100.0)).clamp(0.0, maxFrac);
-            return TodayRecipe(
-              intakeId: item['intakeId'] as int?,
-              name: item['leftoverTitle'] as String? ?? 'Unknown Leftover',
-              imageIcon: "🥡",
-              consumedPercentage: uiFrac,
-              maxConsumablePercentage: maxFrac,
-            );
-          }).toList();
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Added'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
-          ),
-        );
-      } else {
-        final errorMsg = result['error'] as String? ?? 'Unknown error';
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to add: $errorMsg'),
-            backgroundColor: Colors.red,
-          ),
-        );
+    // ✅ 不再调用后端API，只添加到本地列表
+    setState(() {
+      for (final id in ids) {
+        // 检查是否已经添加过（避免重复）
+        if (_todaysRecipes.any((r) => r.leftoverId == id)) {
+          continue;
+        }
+        
+        // 从缓存的 options 中查找
+        Map<String, dynamic>? opt;
+        if (_cachedDishOptions != null) {
+          try {
+            opt = _cachedDishOptions!.firstWhere(
+              (o) => (o['id'] as num?)?.toInt() == id,
+            ) as Map<String, dynamic>?;
+          } catch (e) {
+            opt = null;
+          }
+        }
+        
+        if (opt != null) {
+          final title = opt['title'] as String? ?? 'Unknown Leftover';
+          final maxConsumablePct = (opt['maxConsumablePercentage'] as num?)?.toDouble() ?? 100.0;
+          final maxFrac = (maxConsumablePct / 100.0).clamp(0.0, 1.0);
+          final initialGrams = (opt['initialGrams'] as num?)?.toDouble();
+          final currentGrams = (opt['currentGrams'] as num?)?.toDouble();
+          
+          // ✅ 计算最低值（已消费的部分）
+          double minValue = 0.0;
+          if (initialGrams != null && currentGrams != null && initialGrams > 0) {
+            final minPercentage = 100 * (initialGrams - currentGrams) / initialGrams;
+            minValue = (minPercentage / 100.0).clamp(0.0, 1.0);
+          }
+          
+          // ✅ 创建本地对象，intakeId 为 null（表示未保存）
+          _todaysRecipes.add(TodayRecipe(
+            intakeId: null,  // ✅ 新添加的，还未保存
+            leftoverId: id,
+            name: title,
+            imageIcon: "🥡",
+            consumedPercentage: minValue,  // ✅ 初始值设为最低值
+            maxConsumablePercentage: maxFrac,
+            initialGrams: initialGrams,
+            currentGrams: currentGrams,
+          ));
+        }
       }
-    } catch (e) {
-      setState(() => _isAdding = false);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Unexpected error: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Added to list (not saved yet)'),
+        backgroundColor: Colors.blue,
+        duration: Duration(seconds: 2),
+      ),
+    );
   }
 
   @override
@@ -578,8 +628,38 @@ class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
   }
 
   Widget _buildRecipeItem(TodayRecipe recipe) {
-    final max = recipe.maxConsumablePercentage.clamp(0.0, 1.0);
-    final value = recipe.consumedPercentage.clamp(0.0, max);
+    // ✅ 计算滑动条的最小值和最大值
+    double minValue = 0.0;
+    double maxValue = recipe.maxConsumablePercentage.clamp(0.0, 1.0);
+    
+    // 如果有初始质量和当前质量，根据公式计算
+    if (recipe.initialGrams != null && 
+        recipe.currentGrams != null && 
+        recipe.initialGrams! > 0) {
+      final initial = recipe.initialGrams!;
+      final current = recipe.currentGrams!;
+      
+      // 最低值：100 * (初始质量 - 当前质量) / 初始质量
+      // 转换为 0-1 范围（相对于初始质量的百分比）
+      final minPercentage = 100 * (initial - current) / initial;
+      minValue = (minPercentage / 100.0).clamp(0.0, 1.0);
+      
+      // 最高值：100 * 当前质量 / 初始质量
+      // 转换为 0-1 范围（相对于初始质量的百分比）
+      final maxPercentage = 100 * current / initial;
+      maxValue = (maxPercentage / 100.0).clamp(0.0, 1.0);
+    }
+    
+    // ✅ 确保 maxValue >= minValue（防止 Slider 参数错误）
+    if (maxValue < minValue) {
+      maxValue = minValue;
+    }
+    // ✅ 如果 maxValue 为 0，至少设置为 minValue 或 0.01（防止 Slider 参数错误）
+    if (maxValue <= 0) {
+      maxValue = minValue > 0 ? minValue : 0.01;
+    }
+    
+    final value = recipe.consumedPercentage.clamp(minValue, maxValue);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -642,13 +722,13 @@ class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
             ),
             child: Slider(
               value: value,
-              onChanged: (value) {
+              onChanged: (newValue) {
                 setState(() {
-                  recipe.consumedPercentage = value.clamp(0.0, max);
+                  recipe.consumedPercentage = newValue.clamp(minValue, maxValue);
                 });
               },
-              min: 0.0,
-              max: max > 0 ? max : 1.0,
+              min: minValue,
+              max: maxValue,
             ),
           ),
 

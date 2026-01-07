@@ -24,10 +24,9 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> {
   // ------------ 选项类状态 ------------
   Set<String> _selectedCuisines = {};
   Set<String> _selectedTastes = {};
-  Set<String> _selectedCookers = {};
   Set<String> _selectedDifficulties = {}; // 支持多选
   Set<String> _selectedAllergies = {}; // ✅ 已选择的过敏原列表
-  Set<String> _selectedTaboos = {}; // ✅ 已选择的饮食习惯标签（标准库，发送给后端时字段名为 taboos）
+  Set<String> _selectedDietHabits = {}; // ✅ 已选择的饮食习惯标签（标准库，发送给后端时字段名为 dietHabits）
   Set<String> _selectedAvoidIngredients = {}; // ✅ 已选择的避免食材（标准库）
 
   // ✅ 标准过敏源库数据（包含 id 和 name）
@@ -64,18 +63,6 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> {
   ];
 
   static const List<String> _difficultyOptions = ["easy", "medium", "hard"];
-
-  static const List<String> _cookerOptions = [
-    "stove",
-    "oven",
-    "microwave",
-    "air_fryer",
-    "rice_cooker",
-    "pressure_cooker",
-    "steamer",
-    "slow_cooker",
-    "blender",
-  ];
 
   bool _isLoadingDefaults = false;
 
@@ -193,9 +180,10 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> {
             _selectedAvoidIngredients = Set<String>.from(avoidIngredients);
           }
 
-          final taboos = (dietPrefs['taboos'] as List?) ?? [];
-          if (taboos.isNotEmpty) {
-            _selectedTaboos = Set<String>.from(taboos);
+          // ✅ 兼容两种格式：dietHabits (camelCase) 和 diet_habits (snake_case)
+          final dietHabits = (dietPrefs['dietHabits'] ?? dietPrefs['diet_habits'] as List?) ?? [];
+          if (dietHabits.isNotEmpty) {
+            _selectedDietHabits = Set<String>.from(dietHabits);
           }
 
           final cuisines = (dietPrefs['cuisine_preferences'] as List?) ?? [];
@@ -214,9 +202,7 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> {
             }
           }
 
-          // 填充 cookers
-          final cookers = (defaultFilter['cookers'] as List?) ?? [];
-          _selectedCookers = Set<String>.from(cookers);
+          // ✅ cookers 和 seasonings 由后端从数据库自动获取，不再需要前端处理
         });
       }
     } catch (e) {
@@ -339,12 +325,12 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> {
       "diet_preferences": {
         "allergies": allergyList, // ✅ 使用验证后的过敏原列表
         "avoid_ingredients": _selectedAvoidIngredients.toList(),
-        "taboos": _selectedTaboos.toList(),
+        "dietHabits": _selectedDietHabits.toList(),
         "cuisine_preferences": _selectedCuisines.toList(),
         "taste_preferences": _selectedTastes.toList(),
       },
       "difficulty_target": _selectedDifficulties.toList(),
-      "cookers": _selectedCookers.toList(),
+      // ✅ cookers 和 seasonings 由后端从数据库自动获取，不再需要前端发送
     };
 
     // 现在我们先简单地 pop 出去，把 filter 回传给上一个页面
@@ -516,29 +502,29 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> {
                   // ✅ Diet Habits (standard library)
                   _buildSubTitle("Diet habits (standard tags, optional)"),
                   const SizedBox(height: 6),
-                  if (_selectedTaboos.isNotEmpty)
+                  if (_selectedDietHabits.isNotEmpty)
                     Wrap(
                       spacing: 8,
                       runSpacing: 4,
-                      children: _selectedTaboos.map((t) {
+                      children: _selectedDietHabits.map((t) {
                         return Chip(
                           label: Text(t),
                           onDeleted: () {
                             setState(() {
-                              _selectedTaboos.remove(t);
+                              _selectedDietHabits.remove(t);
                             });
                           },
                           deleteIcon: const Icon(Icons.close, size: 18),
                         );
                       }).toList(),
                     ),
-                  if (_selectedTaboos.isNotEmpty) const SizedBox(height: 8),
+                  if (_selectedDietHabits.isNotEmpty) const SizedBox(height: 8),
                   Autocomplete<String>(
                     optionsBuilder: (TextEditingValue tev) {
                       final q = tev.text.trim().toLowerCase();
                       if (q.isEmpty) return const Iterable<String>.empty();
-                      // Use standard taboos list (value field)
-                      return StandardLibraryService.getStandardTaboos()
+                      // Use standard diet habits list (value field)
+                      return StandardLibraryService.getStandardDietHabits()
                           .map((e) => e['value'] ?? '')
                           .where((v) => v.isNotEmpty)
                           .where((v) => v.toLowerCase().contains(q))
@@ -546,7 +532,7 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> {
                     },
                     onSelected: (String selection) {
                       setState(() {
-                        _selectedTaboos.add(selection);
+                        _selectedDietHabits.add(selection);
                       });
                     },
                     fieldViewBuilder: (context, controller, focusNode, onEditingComplete) {
@@ -750,32 +736,7 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> {
                   ),
 
                   const SizedBox(height: 24),
-
-                  // ---- Cookers ----
-                  _buildSectionTitle("Cookers / equipment (optional)"),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 4,
-                    children: _cookerOptions.map((c) {
-                      final selected = _selectedCookers.contains(c);
-                      return FilterChip(
-                        label: Text(c),
-                        selected: selected,
-                        onSelected: (val) {
-                          setState(() {
-                            if (val) {
-                              _selectedCookers.add(c);
-                            } else {
-                              _selectedCookers.remove(c);
-                            }
-                          });
-                        },
-                      );
-                    }).toList(),
-                  ),
-
-                  const SizedBox(height: 24),
+                  // ✅ Cookers 和 Seasonings 由后端从数据库自动获取，已移除 UI 选择组件
                 ],
               ),
             ),

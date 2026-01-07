@@ -25,8 +25,8 @@ public class PreferenceStandardLibrary {
     /** 菜系偏好 Key (对应 User.preferences Map 的 Key) */
     public static final String PREF_KEY_CUISINE = "CUISINE";
     
-    /** 硬性饮食禁忌 Key (对应 User.dietaryStyles Map 的 Key) */
-    public static final String PREF_KEY_TABOO = "TABOO";
+    /** 硬性饮食习惯 Key (对应 User.dietaryStyles Map 的 Key) */
+    public static final String PREF_KEY_DIET_HABITS = "DIET_HABITS";
     
     /** 避免食材 Key (对应 User.dietaryStyles Map 的 Key) */
     public static final String PREF_KEY_AVOID_INGREDIENT = "AVOID_INGREDIENT";
@@ -81,9 +81,9 @@ public class PreferenceStandardLibrary {
         "blender"
     );
     
-    // ========== 硬性饮食禁忌预设值 (Dietary Taboos) ==========
-    /** 硬性饮食禁忌选项列表（英文值） */
-    public static final List<String> TABOO_OPTIONS = Arrays.asList(
+    // ========== 硬性饮食习惯预设值 (Dietary Habits) ==========
+    /** 硬性饮食习惯选项列表（英文值） */
+    public static final List<String> DIET_HABITS_OPTIONS = Arrays.asList(
         "low_sodium",      // 低钠
         "low_sugar",       // 低糖
         "low_fat",         // 低脂
@@ -136,12 +136,12 @@ public class PreferenceStandardLibrary {
     }
     
     /**
-     * 验证硬性饮食禁忌值是否有效
-     * @param taboo 禁忌值
+     * 验证硬性饮食习惯值是否有效
+     * @param dietHabit 饮食习惯值
      * @return 是否在标准库中
      */
-    public static boolean isValidTaboo(String taboo) {
-        return taboo != null && TABOO_OPTIONS.contains(taboo);
+    public static boolean isValidDietHabit(String dietHabit) {
+        return dietHabit != null && DIET_HABITS_OPTIONS.contains(dietHabit);
     }
     
     

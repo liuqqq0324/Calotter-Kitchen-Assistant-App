@@ -3,58 +3,58 @@ import 'package:personal_sous_chef/theme/fallback_google_fonts.dart';
 import '../../../services/user_service.dart';
 import '../../../services/standard_library_service.dart';
 
-class TaboosListPage extends StatefulWidget {
-  const TaboosListPage({super.key});
+class DietHabitsListPage extends StatefulWidget {
+  const DietHabitsListPage({super.key});
 
   @override
-  State<TaboosListPage> createState() => _TaboosListPageState();
+  State<DietHabitsListPage> createState() => _DietHabitsListPageState();
 }
 
-class _TaboosListPageState extends State<TaboosListPage> {
+class _DietHabitsListPageState extends State<DietHabitsListPage> {
   bool _isLoading = true;
   bool _isEditing = false; // 编辑模式标志
   
-  Set<String> _selectedTaboos = {}; // 使用 Set 存储选中的饮食习惯（发送给后端时字段名为 taboos）
+  Set<String> _selectedDietHabits = {}; // 使用 Set 存储选中的饮食习惯（发送给后端时字段名为 dietHabits）
 
-  // 标准饮食习惯选项（从 StandardLibraryService 获取，与后端 PreferenceStandardLibrary.TABOO_OPTIONS 保持一致）
-  List<Map<String, String>> get _tabooOptions => StandardLibraryService.getStandardTaboos();
+  // 标准饮食习惯选项（从 StandardLibraryService 获取，与后端 PreferenceStandardLibrary.DIET_HABITS_OPTIONS 保持一致）
+  List<Map<String, String>> get _dietHabitsOptions => StandardLibraryService.getStandardDietHabits();
 
   @override
   void initState() {
     super.initState();
-    _loadTaboos();
+    _loadDietHabits();
   }
 
-  Future<void> _loadTaboos() async {
+  Future<void> _loadDietHabits() async {
     setState(() {
       _isLoading = true;
     });
 
-    final result = await UserService.getUserTaboos();
+    final result = await UserService.getUserDietHabits();
     if (result['success'] == true && mounted) {
       setState(() {
-        _selectedTaboos = Set<String>.from(result['data']['taboos'] ?? []);
+        _selectedDietHabits = Set<String>.from(result['data']['dietHabits'] ?? []);
         _isLoading = false;
       });
     } else {
       if (mounted) {
         setState(() {
-          _selectedTaboos = {};
+          _selectedDietHabits = {};
           _isLoading = false;
         });
       }
     }
   }
 
-  Future<void> _saveTaboos() async {
-    final result = await UserService.updateUserTaboos(
-      taboos: _selectedTaboos.toList(),
+  Future<void> _saveDietHabits() async {
+    final result = await UserService.updateUserDietHabits(
+      dietHabits: _selectedDietHabits.toList(),
     );
     if (result['success'] == true) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Dietary restrictions saved', style: GoogleFonts.kalam()),
+            content: Text('Dietary habits saved', style: GoogleFonts.kalam()),
             backgroundColor: Colors.green.shade300,
           ),
         );
@@ -67,7 +67,7 @@ class _TaboosListPageState extends State<TaboosListPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              result['error'] ?? 'Failed to save dietary restrictions',
+              result['error'] ?? 'Failed to save dietary habits',
               style: GoogleFonts.kalam(),
             ),
             backgroundColor: Colors.red.shade300,
@@ -81,14 +81,14 @@ class _TaboosListPageState extends State<TaboosListPage> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Dietary Restrictions')),
+        appBar: AppBar(title: const Text('Dietary Habits')),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Dietary Restrictions'),
+        title: const Text('Dietary Habits'),
         actions: [
           if (!_isEditing)
             IconButton(
@@ -105,13 +105,13 @@ class _TaboosListPageState extends State<TaboosListPage> {
                 setState(() {
                   _isEditing = false;
                 });
-                _loadTaboos(); // 取消编辑，重新加载
+                _loadDietHabits(); // 取消编辑，重新加载
               },
               child: const Text('Cancel'),
             ),
           if (_isEditing)
             TextButton(
-              onPressed: _saveTaboos,
+              onPressed: _saveDietHabits,
               child: const Text('Save'),
             ),
         ],
@@ -119,15 +119,15 @@ class _TaboosListPageState extends State<TaboosListPage> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _buildSectionTitle('Dietary Restrictions'),
+          _buildSectionTitle('Dietary Habits'),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: _tabooOptions.map((option) {
+            children: _dietHabitsOptions.map((option) {
               final value = option['value']!;
               final label = option['label']!;
-              final selected = _selectedTaboos.contains(value);
+              final selected = _selectedDietHabits.contains(value);
               return FilterChip(
                 label: Text(label),
                 selected: selected,
@@ -135,9 +135,9 @@ class _TaboosListPageState extends State<TaboosListPage> {
                     ? (val) {
                         setState(() {
                           if (val) {
-                            _selectedTaboos.add(value);
+                            _selectedDietHabits.add(value);
                           } else {
-                            _selectedTaboos.remove(value);
+                            _selectedDietHabits.remove(value);
                           }
                         });
                       }
@@ -160,3 +160,4 @@ class _TaboosListPageState extends State<TaboosListPage> {
     );
   }
 }
+

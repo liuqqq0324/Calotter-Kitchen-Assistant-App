@@ -37,10 +37,10 @@ public class RecipeGenerationFilter {
          */
         private List<String> avoidIngredients;
         /**
-         * 硬性饮食禁忌（如 vegetarian / halal / low_sodium 等），应当来自 PreferenceStandardLibrary.TABOO_OPTIONS。
+         * 硬性饮食习惯（如 vegetarian / halal / low_sodium 等），应当来自 PreferenceStandardLibrary.DIET_HABITS_OPTIONS。
          * 与 avoidIngredients 分开存储，便于前端展示与校验。
          */
-        private List<String> taboos;
+        private List<String> dietHabits;
         private List<String> allergies;
     }
 

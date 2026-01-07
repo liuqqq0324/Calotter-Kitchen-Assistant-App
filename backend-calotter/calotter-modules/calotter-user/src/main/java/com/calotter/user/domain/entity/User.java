@@ -73,7 +73,7 @@ public class User extends BaseEntity {
      * 
      * <p>Key 使用 {@link com.calotter.common.core.domain.PreferenceStandardLibrary} 中定义的常量：
      * <ul>
-     *   <li>{@link com.calotter.common.core.domain.PreferenceStandardLibrary#PREF_KEY_TABOO PREF_KEY_TABOO} - 硬性饮食禁忌（如：low_sodium, low_sugar, halal, vegetarian等）</li>
+     *   <li>{@link com.calotter.common.core.domain.PreferenceStandardLibrary#PREF_KEY_DIET_HABITS PREF_KEY_DIET_HABITS} - 硬性饮食习惯（如：low_sodium, low_sugar, halal, vegetarian等）</li>
      *   <li>{@link com.calotter.common.core.domain.PreferenceStandardLibrary#PREF_KEY_AVOID_INGREDIENT PREF_KEY_AVOID_INGREDIENT} - 不喜欢吃的食材（如：cilantro, carrot, lamb等）</li>
      * </ul>
      * 
@@ -81,13 +81,13 @@ public class User extends BaseEntity {
      * 
      * <p>预设值请参考 {@link com.calotter.common.core.domain.PreferenceStandardLibrary} 中的常量列表：
      * <ul>
-     *   <li>硬性禁忌选项：{@link com.calotter.common.core.domain.PreferenceStandardLibrary#TABOO_OPTIONS TABOO_OPTIONS}</li>
+     *   <li>硬性饮食习惯选项：{@link com.calotter.common.core.domain.PreferenceStandardLibrary#DIET_HABITS_OPTIONS DIET_HABITS_OPTIONS}</li>
      * </ul>
      * 
      * <p>示例结构：
      * <pre>
      * {
-     *   "TABOO": ["low_sodium", "low_sugar", "halal", "vegetarian"],
+     *   "DIET_HABITS": ["low_sodium", "low_sugar", "halal", "vegetarian"],
      *   "AVOID_INGREDIENT": ["cilantro", "carrot", "lamb"]
      * }
      * </pre>

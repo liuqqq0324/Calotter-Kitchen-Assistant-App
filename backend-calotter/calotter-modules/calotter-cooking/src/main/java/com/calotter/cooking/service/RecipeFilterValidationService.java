@@ -55,17 +55,17 @@ public class RecipeFilterValidationService {
             }
         }
 
-        // taboos are strict, must be from TABOO_OPTIONS
-        if (dp.getTaboos() != null) {
-            List<String> invalid = dp.getTaboos().stream()
+        // dietHabits are strict, must be from DIET_HABITS_OPTIONS
+        if (dp.getDietHabits() != null) {
+            List<String> invalid = dp.getDietHabits().stream()
                     .filter(t -> t != null && !t.trim().isEmpty())
                     .map(t -> t.trim().toLowerCase())
-                    .filter(t -> !PreferenceStandardLibrary.isValidTaboo(t))
+                    .filter(t -> !PreferenceStandardLibrary.isValidDietHabit(t))
                     .toList();
             if (!invalid.isEmpty()) {
                 throw new IllegalArgumentException(
-                        "Invalid taboos: " + String.join(", ", invalid) +
-                                ". Must be one of: " + String.join(", ", PreferenceStandardLibrary.TABOO_OPTIONS)
+                        "Invalid dietHabits: " + String.join(", ", invalid) +
+                                ". Must be one of: " + String.join(", ", PreferenceStandardLibrary.DIET_HABITS_OPTIONS)
                 );
             }
         }

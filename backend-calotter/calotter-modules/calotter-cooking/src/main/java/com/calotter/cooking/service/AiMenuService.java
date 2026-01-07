@@ -50,21 +50,44 @@ public class AiMenuService {
             enrichFilterFromHousehold(filter, householdId);
         }
 
-        // ✅ 校验：限制 allergies/avoid/taboos 必须来自标准库
+        // ✅ 校验：限制 allergies/avoid/dietHabits 必须来自标准库
         recipeFilterValidationService.validate(filter);
+
+        // ✅ 处理 allergies 为 ["none"] 的情况：转换为空数组
+        if (filter != null && filter.getDietPreferences() != null) {
+            RecipeGenerationFilter.DietPreferences dp = filter.getDietPreferences();
+            List<String> allergies = dp.getAllergies();
+            
+            // 如果 allergies 包含 "none"（可能只有 ["none"] 或包含 "none"），将其置为空数组或移除 "none"
+            if (allergies != null && !allergies.isEmpty()) {
+                // 检查是否只包含 "none" 或者包含 "none"
+                if (allergies.size() == 1 && "none".equalsIgnoreCase(allergies.get(0))) {
+                    // 只有 ["none"]，置为空数组
+                    dp.setAllergies(new ArrayList<>());
+                    log.info("Allergies 包含 ['none']，已置为空数组");
+                } else if (allergies.stream().anyMatch(a -> "none".equalsIgnoreCase(a))) {
+                    // 包含 "none" 但还有其他值，移除 "none" 并保留其他值
+                    List<String> filtered = allergies.stream()
+                        .filter(a -> !"none".equalsIgnoreCase(a))
+                        .collect(Collectors.toList());
+                    dp.setAllergies(filtered);
+                    log.info("Allergies 包含 'none'，已移除 'none'，保留其他值: {}", filtered);
+                }
+            }
+        }
 
         // ✅ 添加日志：追踪 filter 数据
         if (filter != null && filter.getDietPreferences() != null) {
             RecipeGenerationFilter.DietPreferences dp = filter.getDietPreferences();
             log.info("=== Filter Data Before AI Call ===");
             log.info("Allergies: {}", dp.getAllergies());
-            log.info("Taboos: {}", dp.getTaboos());
+            log.info("Diet Habits: {}", dp.getDietHabits());
             log.info("Avoid Ingredients: {}", dp.getAvoidIngredients());
             log.info("===================================");
         }
         
-        // ✅ 不再合并 taboos 到 avoidIngredients，保持独立字段
-        // taboos 是硬性饮食限制（如 vegetarian），应该单独处理
+        // ✅ 不再合并 dietHabits 到 avoidIngredients，保持独立字段
+        // dietHabits 是硬性饮食习惯（如 vegetarian），应该单独处理
         // avoidIngredients 是软性避免食材（具体食材名称）
         
         // 使用注入的服务（Mock/Gemini/Groq）
@@ -100,7 +123,7 @@ public class AiMenuService {
         // 3. 收集过敏信息
         List<String> allergies = new ArrayList<>();
         List<String> avoidIngredients = new ArrayList<>();
-        List<String> taboos = new ArrayList<>();
+        List<String> dietHabits = new ArrayList<>();
         List<String> cuisinePreferences = new ArrayList<>();
         List<String> tastePreferences = new ArrayList<>();
         
@@ -124,12 +147,12 @@ public class AiMenuService {
                 tastePreferences.addAll(tastes);
             }
             
-            // 收集硬性饮食禁忌和避免食材（从 dietaryStyles Map）
+            // 收集硬性饮食习惯和避免食材（从 dietaryStyles Map）
             if (member.getDietaryStyles() != null) {
-                // 提取硬性饮食禁忌（TABOO）
-                List<String> memberTaboos = member.getDietaryStyles()
-                        .getOrDefault(PreferenceStandardLibrary.PREF_KEY_TABOO, new ArrayList<>());
-                taboos.addAll(memberTaboos);
+                // 提取硬性饮食习惯（DIET_HABITS）
+                List<String> memberDietHabits = member.getDietaryStyles()
+                        .getOrDefault(PreferenceStandardLibrary.PREF_KEY_DIET_HABITS, new ArrayList<>());
+                dietHabits.addAll(memberDietHabits);
                 
                 // 提取不喜欢吃的食材（AVOID_INGREDIENT）
                 List<String> avoidIngs = member.getDietaryStyles().getOrDefault(PreferenceStandardLibrary.PREF_KEY_AVOID_INGREDIENT, new ArrayList<>());
@@ -156,7 +179,7 @@ public class AiMenuService {
         RecipeGenerationFilter.DietPreferences dietPrefs = new RecipeGenerationFilter.DietPreferences();
         dietPrefs.setAllergies(allergies.stream().distinct().collect(Collectors.toList()));
         dietPrefs.setAvoidIngredients(avoidIngredients.stream().distinct().collect(Collectors.toList()));
-        dietPrefs.setTaboos(taboos.stream().distinct().collect(Collectors.toList()));
+        dietPrefs.setDietHabits(dietHabits.stream().distinct().collect(Collectors.toList()));
         dietPrefs.setCuisinePreferences(cuisinePreferences.stream().distinct().collect(Collectors.toList()));
         dietPrefs.setTastePreferences(tastePreferences.stream().distinct().collect(Collectors.toList()));
         filter.setDietPreferences(dietPrefs);
@@ -203,25 +226,21 @@ public class AiMenuService {
             log.info("自动填充inventory: {} 项", inventoryItems.size());
         }
 
-        // 填充cookers（如果为空）
-        if (filter.getCookers() == null || filter.getCookers().isEmpty()) {
-            List<HouseholdUtensil> utensils = utensilRepository.findByHouseholdIdAndIsAvailableTrue(householdId);
-            List<String> cookerNames = utensils.stream()
-                    .map(u -> u.getMetadata().getName())
-                    .collect(Collectors.toList());
-            filter.setCookers(cookerNames);
-            log.info("自动填充cookers: {} 项", cookerNames.size());
-        }
+        // 强制从数据库获取cookers（忽略前端传入的值，与inventory保持一致）
+        List<HouseholdUtensil> utensils = utensilRepository.findByHouseholdIdAndIsAvailableTrue(householdId);
+        List<String> cookerNames = utensils.stream()
+                .map(u -> u.getMetadata().getName())
+                .collect(Collectors.toList());
+        filter.setCookers(cookerNames);
+        log.info("自动填充cookers: {} 项", cookerNames.size());
 
-        // 填充seasonings（如果为空）
-        if (filter.getSeasonings() == null || filter.getSeasonings().isEmpty()) {
-            List<HouseholdSpice> spices = spiceRepository.findByHouseholdIdAndIsAvailableTrue(householdId);
-            List<String> spiceNames = spices.stream()
-                    .map(s -> s.getMetadata().getName())
-                    .collect(Collectors.toList());
-            filter.setSeasonings(spiceNames);
-            log.info("自动填充seasonings: {} 项", spiceNames.size());
-        }
+        // 强制从数据库获取seasonings（忽略前端传入的值，与inventory保持一致）
+        List<HouseholdSpice> spices = spiceRepository.findByHouseholdIdAndIsAvailableTrue(householdId);
+        List<String> spiceNames = spices.stream()
+                .map(s -> s.getMetadata().getName())
+                .collect(Collectors.toList());
+        filter.setSeasonings(spiceNames);
+        log.info("自动填充seasonings: {} 项", spiceNames.size());
     }
 
 }
