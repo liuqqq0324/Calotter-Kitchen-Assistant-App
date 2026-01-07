@@ -1,7 +1,6 @@
 package com.calotter.cooking.config;
 
 import com.calotter.cooking.service.ai.AiMenuGenerationService;
-import com.calotter.cooking.service.ai.BedrockAiMenuGenerationService;
 import com.calotter.cooking.service.ai.GeminiAiMenuGenerationService;
 import com.calotter.cooking.service.ai.GroqAiMenuGenerationService;
 import com.calotter.cooking.service.ai.MockAiMenuGenerationService;
@@ -51,38 +50,14 @@ public class AiMenuServiceConfig {
     }
 
     /**
-     * Groq 实现（保留原有逻辑）
-     */
-    @Bean
-    @ConditionalOnProperty(name = "ai.api.mode", havingValue = "groq")
-    public AiMenuGenerationService groqAiMenuGenerationService(ObjectMapper objectMapper) {
-        return new GroqAiMenuGenerationService(objectMapper);
-    }
-
-    /**
-     * AWS Bedrock 实现（使用 short-term Bearer Token，走 Groq 同款 prompt + userJson）
-     * 注意：token 过期需手动更新环境变量/配置。
+     * Groq 实现（主要使用，设为 Primary）
      */
     @Bean
     @Primary
-    @ConditionalOnProperty(name = "ai.api.mode", havingValue = "bedrock", matchIfMissing = false)
-    public AiMenuGenerationService bedrockAiMenuGenerationService(
-            ObjectMapper objectMapper,
-            @Value("${ai.api.bedrock.api-key:}") String apiKey,
-            @Value("${ai.api.bedrock.region:us-east-1}") String region,
-            @Value("${ai.api.bedrock.model-id:us.meta.llama3-3-70b-instruct-v1:0}") String modelId,
-            @Value("${ai.api.bedrock.max-tokens:4096}") int maxTokens,
-            @Value("${ai.api.bedrock.temperature:0.2}") double temperature,
-            @Value("${ai.api.bedrock.top-p:0.9}") double topP) {
-        log.info("创建 BedrockAiMenuGenerationService bean");
-        return new BedrockAiMenuGenerationService(
-                objectMapper,
-                apiKey,
-                region,
-                modelId,
-                maxTokens,
-                temperature,
-                topP);
+    @ConditionalOnProperty(name = "ai.api.mode", havingValue = "groq", matchIfMissing = false)
+    public AiMenuGenerationService groqAiMenuGenerationService(ObjectMapper objectMapper) {
+        log.info("创建 GroqAiMenuGenerationService bean（Primary）");
+        return new GroqAiMenuGenerationService(objectMapper);
     }
 }
 

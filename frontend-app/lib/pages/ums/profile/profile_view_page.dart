@@ -981,7 +981,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
               },
               child: ListTile(
                 title: Text(
-                  'Taboos',
+                  'Diet Habits',
                   style: GoogleFonts.kalam(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,

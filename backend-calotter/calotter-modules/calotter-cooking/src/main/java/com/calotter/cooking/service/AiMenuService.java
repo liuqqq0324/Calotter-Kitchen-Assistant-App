@@ -53,17 +53,19 @@ public class AiMenuService {
         // ✅ 校验：限制 allergies/avoid/taboos 必须来自标准库
         recipeFilterValidationService.validate(filter);
 
-        // ✅ AI 侧兼容：目前 prompt 只明确要求 allergies + avoidIngredients，
-        // 这里把 taboos 合并进 avoidIngredients 一起发给 AI（不影响前端分开展示）。
+        // ✅ 添加日志：追踪 filter 数据
         if (filter != null && filter.getDietPreferences() != null) {
             RecipeGenerationFilter.DietPreferences dp = filter.getDietPreferences();
-            List<String> mergedAvoid = new ArrayList<>();
-            if (dp.getAvoidIngredients() != null) mergedAvoid.addAll(dp.getAvoidIngredients());
-            if (dp.getTaboos() != null) mergedAvoid.addAll(dp.getTaboos());
-            if (!mergedAvoid.isEmpty()) {
-                dp.setAvoidIngredients(mergedAvoid.stream().filter(s -> s != null && !s.isBlank()).distinct().toList());
-            }
+            log.info("=== Filter Data Before AI Call ===");
+            log.info("Allergies: {}", dp.getAllergies());
+            log.info("Taboos: {}", dp.getTaboos());
+            log.info("Avoid Ingredients: {}", dp.getAvoidIngredients());
+            log.info("===================================");
         }
+        
+        // ✅ 不再合并 taboos 到 avoidIngredients，保持独立字段
+        // taboos 是硬性饮食限制（如 vegetarian），应该单独处理
+        // avoidIngredients 是软性避免食材（具体食材名称）
         
         // 使用注入的服务（Mock/Gemini/Groq）
         return aiMenuGenerationService.generateMenus(filter);

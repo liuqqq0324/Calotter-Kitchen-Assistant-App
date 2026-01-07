@@ -73,18 +73,27 @@ public class GroqAiMenuGenerationService implements AiMenuGenerationService {
             "- Hard: > 60 mins, complex techniques (deep fry, dough), multiple stages.",
             "- Respect the 'difficultyTarget' if provided.",
             "",
-            "TABOO (DIETARY STYLE) RULES - STRICT:",
-            "- The input may contain dietPreferences.taboos (and some systems may also copy them into avoidIngredients).",
-            "- These are HARD constraints. You MUST obey them even if it makes the menu simpler.",
-            "- Interpret them as follows:",
-            "  * vegetarian: NO meat/poultry/fish/seafood (no chicken, beef, pork, shrimp, fish, etc). Eggs/dairy are allowed unless vegan is also specified.",
-            "  * vegan: NO animal products at all (no meat/fish/seafood, no eggs, no dairy, no honey).",
-            "  * halal: NO pork/alcohol; avoid non-halal meats.",
-            "  * kosher: NO pork/shellfish; do not mix meat and dairy in the same dish.",
-            "  * gluten_free: NO wheat/barley/rye; avoid soy sauce unless gluten-free.",
-            "  * low_sugar: avoid added sugar and sweet sauces.",
-            "  * low_fat: choose lean/low-oil cooking methods; avoid deep-frying.",
-            "  * low_sodium: avoid salty sauces (soy, fish sauce) unless low-sodium; minimize added salt.",
+            "DIETARY RESTRICTIONS (dietPreferences.taboos) - CRITICAL UNDERSTANDING:",
+            "- ⚠️ IMPORTANT: The 'taboos' array contains the USER'S DIETARY LIFESTYLE/RESTRICTIONS, NOT things to avoid.",
+            "- If 'taboos' contains 'vegetarian', it means THE USER IS A VEGETARIAN (they follow a vegetarian diet).",
+            "- If 'taboos' contains 'vegetarian', you MUST generate ONLY vegetarian recipes (NO meat, NO poultry, NO fish, NO seafood).",
+            "- ⚠️ DO NOT MISUNDERSTAND: 'vegetarian' in taboos = user is vegetarian = recipes must be vegetarian (no meat).",
+            "- ⚠️ DO NOT MISUNDERSTAND: 'vegetarian' in taboos ≠ taboo against vegetarian food ≠ must include meat.",
+            "",
+            "INTERPRETATION GUIDE (what each value in 'taboos' means):",
+            "- 'vegetarian' in taboos = User follows vegetarian diet = Generate ONLY vegetarian recipes (NO chicken, beef, pork, lamb, fish, shrimp, crab, lobster, any meat, any seafood). Eggs and dairy are allowed unless 'vegan' is also present.",
+            "- 'vegan' in taboos = User follows vegan diet = Generate ONLY vegan recipes (NO meat, fish, eggs, dairy, honey, any animal products).",
+            "- 'halal' in taboos = User follows halal diet = Generate ONLY halal recipes (NO pork, NO alcohol).",
+            "- 'kosher' in taboos = User follows kosher diet = Generate ONLY kosher recipes (NO pork, NO shellfish, do not mix meat and dairy).",
+            "- 'gluten_free' in taboos = User requires gluten-free diet = Generate ONLY gluten-free recipes (NO wheat, barley, rye).",
+            "- 'low_sugar' in taboos = User requires low-sugar diet = Generate recipes with minimal added sugar.",
+            "- 'low_fat' in taboos = User requires low-fat diet = Generate recipes with lean cooking methods (avoid deep-frying).",
+            "- 'low_sodium' in taboos = User requires low-sodium diet = Generate recipes with minimal salt and salty sauces.",
+            "",
+            "VALIDATION CHECKLIST (before including any ingredient):",
+            "- If 'vegetarian' is in taboos: Ask 'Is this ingredient meat, poultry, fish, or seafood?' If YES, DO NOT use it.",
+            "- If 'vegan' is in taboos: Ask 'Is this ingredient from an animal?' If YES, DO NOT use it.",
+            "- These are ABSOLUTE HARD CONSTRAINTS. Violating them will result in recipe rejection.",
             "",
             "SEASONINGS & PREFERENCES:",
             "- Use the provided 'seasonings' list if possible. Assume basic (salt/oil/soy) if empty.",
@@ -159,11 +168,30 @@ public class GroqAiMenuGenerationService implements AiMenuGenerationService {
             String userJson = objectMapper.writeValueAsString(filter);
             log.debug("发送给 Groq 的请求数据: {}", userJson);
 
+            // ✅ 构建明确的 user message，特别强调 taboos 的含义
+            StringBuilder userMessage = new StringBuilder();
+            userMessage.append("Here is the user context in JSON format:\n\n").append(userJson).append("\n\n");
+            
+            // ✅ 如果存在 taboos，明确说明其含义
+            if (filter != null && filter.getDietPreferences() != null && 
+                filter.getDietPreferences().getTaboos() != null && 
+                !filter.getDietPreferences().getTaboos().isEmpty()) {
+                List<String> taboos = filter.getDietPreferences().getTaboos();
+                userMessage.append("⚠️ CRITICAL CLARIFICATION ABOUT 'taboos' ARRAY:\n");
+                userMessage.append("The 'taboos' array contains the USER'S DIETARY LIFESTYLE, not things to avoid.\n");
+                userMessage.append("For example, if 'taboos' contains 'vegetarian', it means THE USER IS A VEGETARIAN.\n");
+                userMessage.append("Therefore, you MUST generate ONLY vegetarian recipes (NO meat, NO poultry, NO fish, NO seafood).\n");
+                userMessage.append("Current taboos (user's dietary lifestyle): ").append(String.join(", ", taboos)).append("\n");
+                userMessage.append("Please generate recipes that match this dietary lifestyle.\n\n");
+            }
+            
+            userMessage.append("Now generate the menus following ALL constraints.");
+
             Map<String, Object> payload = new HashMap<>();
             payload.put("model", model);
             payload.put("messages", List.of(
                     Map.of("role", "system", "content", SYSTEM_PROMPT),
-                    Map.of("role", "user", "content", "Here is the user context in JSON format:\n\n" + userJson + "\n\nNow generate the menus.")
+                    Map.of("role", "user", "content", userMessage.toString())
             ));
             payload.put("response_format", Map.of("type", "json_object"));
 
