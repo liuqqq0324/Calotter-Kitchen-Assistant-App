@@ -97,7 +97,7 @@ class _LoginPageState extends State<LoginPage> {
       extendBodyBehindAppBar: true,
       body: VideoBackground(
         // 使用与启动页相同的本地视频
-        videoPath: 'assets/videos/meow.mp4',
+        videoPath: 'assets/videos/otter_seal_dance33.mp4',
         child: SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24.0),
