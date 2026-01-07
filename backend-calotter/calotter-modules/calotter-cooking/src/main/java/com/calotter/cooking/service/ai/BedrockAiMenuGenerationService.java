@@ -5,7 +5,6 @@ import com.calotter.cooking.service.dto.MenuDTO;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -14,8 +13,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,24 +32,12 @@ public class BedrockAiMenuGenerationService implements AiMenuGenerationService {
 
     private final ObjectMapper objectMapper;
     private final RestTemplate restTemplate = new RestTemplate();
-
-    @Value("${ai.api.bedrock.api-key:}")
-    private String apiKey;
-
-    @Value("${ai.api.bedrock.region:us-east-1}")
-    private String region;
-
-    @Value("${ai.api.bedrock.model-id:meta.llama3-1-8b-instruct-v1:0}")
-    private String modelId;
-
-    @Value("${ai.api.bedrock.max-tokens:4096}")
-    private int maxTokens;
-
-    @Value("${ai.api.bedrock.temperature:0.2}")
-    private double temperature;
-
-    @Value("${ai.api.bedrock.top-p:0.9}")
-    private double topP;
+    private final String apiKey;
+    private final String region;
+    private final String modelId;
+    private final int maxTokens;
+    private final double temperature;
+    private final double topP;
 
     // 复用 Groq 的系统提示词（保持行为一致：严格 JSON 输出 + 规则约束）
     // 注意：这里复制一份，避免跨类访问 private 常量；后续如需统一可提取到公共类。
@@ -163,8 +148,21 @@ public class BedrockAiMenuGenerationService implements AiMenuGenerationService {
             "- The JSON must be parseable by standard JSON parsers."
     );
 
-    public BedrockAiMenuGenerationService(ObjectMapper objectMapper) {
+    public BedrockAiMenuGenerationService(
+            ObjectMapper objectMapper,
+            String apiKey,
+            String region,
+            String modelId,
+            int maxTokens,
+            double temperature,
+            double topP) {
         this.objectMapper = objectMapper;
+        this.apiKey = apiKey;
+        this.region = region;
+        this.modelId = modelId;
+        this.maxTokens = maxTokens;
+        this.temperature = temperature;
+        this.topP = topP;
     }
 
     @Override
@@ -173,8 +171,8 @@ public class BedrockAiMenuGenerationService implements AiMenuGenerationService {
             throw new IllegalStateException("Bedrock short-term API key 未配置（ai.api.bedrock.api-key / BEDROCK_API_KEY）");
         }
 
-        final String encodedModelId = URLEncoder.encode(modelId, StandardCharsets.UTF_8);
-        final String url = "https://bedrock-runtime." + region + ".amazonaws.com/model/" + encodedModelId + "/converse";
+        // Bedrock API URL 路径中的 model identifier 不需要 URL 编码，直接使用即可
+        final String url = "https://bedrock-runtime." + region + ".amazonaws.com/model/" + modelId + "/converse";
 
         try {
             String userJson = objectMapper.writeValueAsString(filter);
@@ -196,11 +194,22 @@ public class BedrockAiMenuGenerationService implements AiMenuGenerationService {
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.setBearerAuth(apiKey);
+            
+            // Bedrock short-term API key 可能已经包含 "Bearer " 前缀，或者需要直接作为 token
+            // 如果 token 已经包含 "Bearer "，直接使用；否则添加 "Bearer " 前缀
+            String authValue = apiKey.trim();
+            if (!authValue.startsWith("Bearer ")) {
+                headers.setBearerAuth(authValue);
+            } else {
+                // Token 已经包含 "Bearer " 前缀，直接设置 Authorization header
+                headers.set("Authorization", authValue);
+            }
 
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(payload, headers);
 
-            log.debug("调用 Bedrock Converse: region={}, modelId={}, url={}", region, modelId, url);
+            log.info("调用 Bedrock Converse: region={}, modelId={}, url={}", region, modelId, url);
+            log.debug("Authorization header: {}", headers.getFirst("Authorization") != null ? 
+                headers.getFirst("Authorization").substring(0, Math.min(20, headers.getFirst("Authorization").length())) + "..." : "null");
             ResponseEntity<String> resp = restTemplate.exchange(url, HttpMethod.POST, entity, String.class);
 
             if (!resp.getStatusCode().is2xxSuccessful() || resp.getBody() == null) {
@@ -217,8 +226,11 @@ public class BedrockAiMenuGenerationService implements AiMenuGenerationService {
         } catch (HttpClientErrorException e) {
             // token 过期/无权限通常是 401/403
             if (e.getStatusCode().value() == 401 || e.getStatusCode().value() == 403) {
-                throw new IllegalStateException("Bedrock token 无效或已过期（请手动更新 short-term API key）: " + e.getStatusCode());
+                log.error("Bedrock API 调用失败: status={}, response={}", e.getStatusCode(), e.getResponseBodyAsString());
+                throw new IllegalStateException("Bedrock token 无效或已过期（请手动更新 short-term API key）: " + e.getStatusCode() + 
+                    (e.getResponseBodyAsString() != null ? " - " + e.getResponseBodyAsString() : ""));
             }
+            log.error("Bedrock API 调用失败: status={}, response={}", e.getStatusCode(), e.getResponseBodyAsString());
             throw e;
         } catch (Exception e) {
             throw new RuntimeException("使用 Bedrock 生成菜单失败: " + e.getMessage(), e);
