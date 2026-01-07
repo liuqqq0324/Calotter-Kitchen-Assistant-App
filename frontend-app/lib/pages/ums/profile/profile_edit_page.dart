@@ -574,7 +574,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
               _removePreference,
             ),
             _buildListSection(
-              'Taboos',
+              'Diet Habits',
               kCurrentUser.taboos,
               taboosInputController,
               _addTaboo,

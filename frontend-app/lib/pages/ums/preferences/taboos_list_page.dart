@@ -14,9 +14,9 @@ class _TaboosListPageState extends State<TaboosListPage> {
   bool _isLoading = true;
   bool _isEditing = false; // 编辑模式标志
   
-  Set<String> _selectedTaboos = {}; // 使用 Set 存储选中的禁忌
+  Set<String> _selectedTaboos = {}; // 使用 Set 存储选中的饮食习惯（发送给后端时字段名为 taboos）
 
-  // 标准 TABOO 选项（从 StandardLibraryService 获取，与后端 PreferenceStandardLibrary.TABOO_OPTIONS 保持一致）
+  // 标准饮食习惯选项（从 StandardLibraryService 获取，与后端 PreferenceStandardLibrary.TABOO_OPTIONS 保持一致）
   List<Map<String, String>> get _tabooOptions => StandardLibraryService.getStandardTaboos();
 
   @override

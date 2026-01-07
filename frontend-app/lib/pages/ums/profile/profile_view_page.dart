@@ -497,39 +497,6 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
     );
   }
 
-  Widget _buildNutritionItem({
-    required IconData icon,
-    required String label,
-    required int value,
-    required String unit,
-    required Color color,
-  }) {
-    return Row(
-      children: [
-        Icon(icon, size: 20, color: color),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            label,
-            style: GoogleFonts.kalam(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Colors.grey[800],
-            ),
-          ),
-        ),
-        Text(
-          '$value $unit',
-          style: GoogleFonts.kalam(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-            color: color,
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildPreferencesSummary() {
     if (_tastes.isEmpty && _cuisines.isEmpty) {
       return Text(
@@ -1070,6 +1037,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                         setState(() {});
                       },
                     ),
+                    const SizedBox(height: 12),
                     Divider(color: Colors.grey.shade300, height: 1),
                     ListTile(
                       contentPadding: EdgeInsets.zero,
@@ -1100,6 +1068,79 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                       },
                     ),
                   ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              SketchyCard(
+                backgroundColor: Colors.white,
+                borderColor: Colors.black87,
+                borderWidth: 2.0,
+                padding: EdgeInsets.zero,
+                onTap: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const TaboosListPage(),
+                    ),
+                  );
+                  // Reload lists data after returning from list page
+                  await _loadListsData();
+                  setState(() {});
+                },
+                child: ListTile(
+                  title: Text(
+                    'Diet Habits',
+                    style: GoogleFonts.kalam(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SketchyCard(
+                backgroundColor: Colors.white,
+                borderColor: Colors.black87,
+                borderWidth: 2.0,
+                padding: EdgeInsets.zero,
+                onTap: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AllergiesListPage(),
+                    ),
+                  );
+                  // Reload lists data after returning from list page
+                  await _loadListsData();
+                  setState(() {});
+                },
+                child: ListTile(
+                  title: Text(
+                    'Allergies',
+                    style: GoogleFonts.kalam(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                ),
+              ),
+              const SizedBox(height: 40),
+              // Settings 按钮 - 手绘风格
+              Center(
+                child: SketchyButton(
+                  text: 'settings',
+                  backgroundColor: Colors.grey.shade400,
+                  borderColor: Colors.grey.shade700,
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const SettingsPage(),
+                      ),
+                    );
+                  },
                 ),
               ),
             ],

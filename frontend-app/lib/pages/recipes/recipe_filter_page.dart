@@ -27,7 +27,7 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> {
   Set<String> _selectedCookers = {};
   Set<String> _selectedDifficulties = {}; // 支持多选
   Set<String> _selectedAllergies = {}; // ✅ 已选择的过敏原列表
-  Set<String> _selectedTaboos = {}; // ✅ 已选择的禁忌标签（标准库）
+  Set<String> _selectedTaboos = {}; // ✅ 已选择的饮食习惯标签（标准库，发送给后端时字段名为 taboos）
   Set<String> _selectedAvoidIngredients = {}; // ✅ 已选择的避免食材（标准库）
 
   // ✅ 标准过敏源库数据（包含 id 和 name）
@@ -386,8 +386,8 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> {
                   ),
                   const SizedBox(height: 24),
 
-                  // ---- Allergies & Taboo ----
-                  _buildSectionTitle("Allergies, taboos & avoid ingredients"),
+                  // ---- Allergies & Diet Habits ----
+                  _buildSectionTitle("Allergies, diet habits & avoid ingredients"),
                   const SizedBox(height: 8),
                   // ✅ 显示已选择的过敏原Chip
                   if (_selectedAllergies.isNotEmpty)
@@ -513,8 +513,8 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> {
                           },
                         ),
                   const SizedBox(height: 12),
-                  // ✅ Taboos (standard library)
-                  _buildSubTitle("Taboos (standard tags, optional)"),
+                  // ✅ Diet Habits (standard library)
+                  _buildSubTitle("Diet habits (standard tags, optional)"),
                   const SizedBox(height: 6),
                   if (_selectedTaboos.isNotEmpty)
                     Wrap(
@@ -555,7 +555,7 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> {
                         focusNode: focusNode,
                         onEditingComplete: onEditingComplete,
                         decoration: InputDecoration(
-                          labelText: "Add taboo tag",
+                          labelText: "Add diet habit",
                           hintText: "Type e.g. veg → vegetarian",
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
