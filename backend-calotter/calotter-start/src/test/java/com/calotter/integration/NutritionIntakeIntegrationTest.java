@@ -7,6 +7,7 @@ import com.calotter.user.domain.entity.User;
 import com.calotter.user.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -72,6 +73,7 @@ class NutritionIntakeIntegrationTest {
     }
 
     @Test
+    @DisplayName("添加手动摄入并获取今日摄入")
     void testAddManualIntakeAndGetTodayIntakes() throws Exception {
         // ==================== 步骤1：添加手动摄入 ====================
         Map<String, Object> addRequest = new HashMap<>();
@@ -114,6 +116,7 @@ class NutritionIntakeIntegrationTest {
     }
 
     @Test
+    @DisplayName("更新摄入百分比")
     void testUpdateIntakePercentage() throws Exception {
         // Given: 创建一个营养日志
         NutritionLog log = new NutritionLog();
@@ -153,6 +156,7 @@ class NutritionIntakeIntegrationTest {
     }
 
     @Test
+    @DisplayName("删除摄入记录")
     void testDeleteIntake() throws Exception {
         // Given: 创建一个营养日志
         NutritionLog log = new NutritionLog();
@@ -178,6 +182,7 @@ class NutritionIntakeIntegrationTest {
     }
 
     @Test
+    @DisplayName("获取所有今日摄入（包括手动和菜谱）")
     void testGetTodayIntakes_All() throws Exception {
         // Given: 创建多个营养日志（手动和菜谱）
         NutritionLog manualLog = new NutritionLog();
@@ -211,6 +216,7 @@ class NutritionIntakeIntegrationTest {
     }
 
     @Test
+    @DisplayName("添加手动摄入时用户不存在应返回错误")
     void testAddManualIntake_UserNotFound() throws Exception {
         // When & Then: 使用不存在的userId
         Map<String, Object> addRequest = new HashMap<>();
@@ -223,8 +229,32 @@ class NutritionIntakeIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(addRequest)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.code").value(400))
                 .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("用户不存在")));
     }
-}
 
+    @Test
+    @DisplayName("更新不存在的摄入记录应返回错误")
+    void testUpdateIntake_NotFound() throws Exception {
+        // When & Then: 更新不存在的摄入记录
+        Map<String, Object> updateRequest = new HashMap<>();
+        updateRequest.put("consumedPercentage", 80.0);
+
+        mockMvc.perform(patch("/api/intake/{intake_id}", 999L)
+                        .param("userId", user.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(404));
+    }
+
+    @Test
+    @DisplayName("删除不存在的摄入记录应返回错误")
+    void testDeleteIntake_NotFound() throws Exception {
+        // When & Then: 删除不存在的摄入记录
+        mockMvc.perform(delete("/api/intake/{intake_id}", 999L)
+                        .param("userId", user.getId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(404));
+    }
+}

@@ -1,9 +1,5 @@
 package com.calotter.health.service;
 
-import com.calotter.cooking.domain.entity.CookingSession;
-import com.calotter.cooking.domain.entity.Dish;
-import com.calotter.cooking.repository.CookingSessionRepository;
-import com.calotter.cooking.repository.DishRepository;
 import com.calotter.health.domain.entity.NutritionLog;
 import com.calotter.health.domain.enums.LogSourceType;
 import com.calotter.health.repository.NutritionLogRepository;
@@ -27,16 +23,11 @@ import org.springframework.beans.factory.ObjectProvider;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 /**
@@ -55,13 +46,7 @@ class IntakeServiceImplTest {
     private HouseholdRepository householdRepository;
 
     @Mock
-    private CookingSessionRepository cookingSessionRepository;
-
-    @Mock
     private LeftoverDishRepository leftoverDishRepository;
-
-    @Mock
-    private DishRepository dishRepository;
 
     @Mock
     private NutritionLogService nutritionLogService;
@@ -84,8 +69,7 @@ class IntakeServiceImplTest {
     private User user;
     private Household household;
     private NutritionLog nutritionLog;
-    private Dish dish;
-    private CookingSession cookingSession;
+    private LeftoverDish leftoverDish;
 
     @BeforeEach
     void setUp() {
@@ -109,22 +93,22 @@ class IntakeServiceImplTest {
         nutritionLog.setFat(20.0);
         nutritionLog.setCarbohydrates(80.0);
         nutritionLog.setConsumedPercentage(BigDecimal.valueOf(100.0));
+        nutritionLog.setBaseEnergy(650);
+        nutritionLog.setBaseProtein(18.0);
+        nutritionLog.setBaseFat(20.0);
+        nutritionLog.setBaseCarbohydrates(80.0);
 
-        dish = new Dish();
-        dish.setId(200L);
-        dish.setName("红烧肉");
-        dish.setTotalCalories(2000);
-        dish.setTotalProtein(100.0);
-        dish.setTotalFat(150.0);
-        dish.setTotalCarb(50.0);
-        dish.setTotalWeightGram(1000);
-
-        cookingSession = new CookingSession();
-        cookingSession.setId(300L);
-        cookingSession.setHouseholdId(1L);
-        cookingSession.setStatus(CookingSession.SessionStatus.COOKED);
-        cookingSession.setFinalDish(dish);
-        cookingSession.setUpdateTime(LocalDateTime.now());
+        leftoverDish = new LeftoverDish();
+        leftoverDish.setId(200L);
+        leftoverDish.setHousehold(household);
+        leftoverDish.setDishName("红烧肉");
+        leftoverDish.setCurrentQuantityGram(300);
+        leftoverDish.setInitialQuantityGram(1000);
+        leftoverDish.setCaloriesPer100g(200);
+        leftoverDish.setProteinPer100g(10.0);
+        leftoverDish.setFatPer100g(15.0);
+        leftoverDish.setCarbPer100g(5.0);
+        leftoverDish.setFiberPer100g(0.5);
     }
 
     // ==================== getTodayIntakes 测试 ====================
@@ -154,14 +138,22 @@ class IntakeServiceImplTest {
     void testGetTodayIntakes_Recipe_Success() {
         // Given
         LocalDate today = LocalDate.now();
+        NutritionLog leftoverLog = new NutritionLog();
+        leftoverLog.setId(101L);
+        leftoverLog.setUser(user);
+        leftoverLog.setLogDate(today);
+        leftoverLog.setSourceType(LogSourceType.LEFTOVER);
+        leftoverLog.setFoodName("红烧肉");
+        leftoverLog.setDishId(200L);
+        leftoverLog.setEnergy(600);
+        leftoverLog.setProtein(30.0);
+        leftoverLog.setConsumedPercentage(BigDecimal.valueOf(100.0));
+
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
-        when(householdRepository.findById(1L)).thenReturn(Optional.of(household));
-        when(cookingSessionRepository.findByHouseholdId(1L))
-                .thenReturn(Arrays.asList(cookingSession));
-        when(dishRepository.findAllById(any())).thenReturn(Arrays.asList(dish));
-        when(nutritionLogRepository.findByUserAndLogDateAndSourceType(
-                eq(user), eq(today), eq(LogSourceType.APP_COOKING)))
-                .thenReturn(Collections.emptyList());
+        when(nutritionLogRepository.findByUserAndLogDateAndSourceTypeIn(
+                eq(user), eq(today), anyList()))
+                .thenReturn(Arrays.asList(leftoverLog));
+        when(leftoverDishRepository.findById(200L)).thenReturn(Optional.of(leftoverDish));
 
         // When
         IIntakeService.TodayIntakesResponse response = intakeService.getTodayIntakes(1L, "recipe");
@@ -169,7 +161,9 @@ class IntakeServiceImplTest {
         // Then
         assertThat(response).isNotNull();
         assertThat(response.getSource()).isEqualTo("recipe");
-        // 验证返回了菜谱相关的摄入记录
+        assertThat(response.getItems()).hasSize(1);
+        assertThat(response.getItems().get(0).getSourceType()).isEqualTo("leftover");
+        assertThat(response.getItems().get(0).getLeftoverTitle()).isEqualTo("红烧肉");
     }
 
     @Test
@@ -200,6 +194,208 @@ class IntakeServiceImplTest {
                 .hasMessageContaining("用户不存在");
     }
 
+    // ==================== getDishOptions 测试 ====================
+
+    @Test
+    void testGetDishOptions_Success() {
+        // Given
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(householdRepository.findById(1L)).thenReturn(Optional.of(household));
+        when(leftoverDishRepository.findByHouseholdId(1L))
+                .thenReturn(Arrays.asList(leftoverDish));
+
+        // When
+        IIntakeService.DishOptionsResponse response = intakeService.getDishOptions(1L);
+
+        // Then
+        assertThat(response).isNotNull();
+        assertThat(response.getOptions()).hasSize(1);
+        assertThat(response.getOptions().get(0).getType()).isEqualTo("leftover");
+        assertThat(response.getOptions().get(0).getId()).isEqualTo(200L);
+        assertThat(response.getOptions().get(0).getTitle()).isEqualTo("红烧肉");
+        assertThat(response.getOptions().get(0).getInitialGrams()).isEqualTo(1000);
+        assertThat(response.getOptions().get(0).getCurrentGrams()).isEqualTo(300);
+    }
+
+    @Test
+    void testGetDishOptions_NoHousehold() {
+        // Given
+        user.setCurrentHouseholdId(null);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user)); // 用于 resolveHousehold
+
+        // When
+        IIntakeService.DishOptionsResponse response = intakeService.getDishOptions(1L);
+
+        // Then
+        assertThat(response).isNotNull();
+        assertThat(response.getOptions()).isEmpty();
+    }
+
+    @Test
+    void testGetDishOptions_FiltersZeroQuantity() {
+        // Given
+        LeftoverDish zeroLeftover = new LeftoverDish();
+        zeroLeftover.setId(201L);
+        zeroLeftover.setHousehold(household);
+        zeroLeftover.setDishName("空剩菜");
+        zeroLeftover.setCurrentQuantityGram(0);
+        zeroLeftover.setInitialQuantityGram(500);
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(householdRepository.findById(1L)).thenReturn(Optional.of(household));
+        when(leftoverDishRepository.findByHouseholdId(1L))
+                .thenReturn(Arrays.asList(leftoverDish, zeroLeftover));
+
+        // When
+        IIntakeService.DishOptionsResponse response = intakeService.getDishOptions(1L);
+
+        // Then: 应该过滤掉数量为0的剩菜
+        assertThat(response.getOptions()).hasSize(1);
+        assertThat(response.getOptions().get(0).getId()).isEqualTo(200L);
+    }
+
+    // ==================== addDishIntake 测试 ====================
+
+    @Test
+    void testAddDishIntake_Success() {
+        // Given
+        IIntakeService.AddDishIntakeRequest request = new IIntakeService.AddDishIntakeRequest();
+        request.setId(200L);
+        request.setType("leftover");
+        request.setConsumedPercentage(BigDecimal.valueOf(50.0));
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(householdRepository.findById(1L)).thenReturn(Optional.of(household));
+        when(leftoverDishRepository.findById(200L)).thenReturn(Optional.of(leftoverDish));
+        when(nutritionLogRepository.save(any(NutritionLog.class))).thenAnswer(invocation -> {
+            NutritionLog log = invocation.getArgument(0);
+            log.setId(300L);
+            return log;
+        });
+        when(nutritionLogRepository.findByUserAndLogDateAndSourceTypeIn(
+                any(), any(), anyList())).thenReturn(Collections.emptyList());
+
+        INutritionService.WeeklyNutritionSummaryResponse weeklySummary = 
+                new INutritionService.WeeklyNutritionSummaryResponse();
+        weeklySummary.setWeekStart(LocalDate.now().minusDays(3));
+        weeklySummary.setWeekEnd(LocalDate.now().plusDays(3));
+        INutritionService.Nutrition consumed = new INutritionService.Nutrition();
+        consumed.setEnergy(BigDecimal.valueOf(2000));
+        consumed.setFat(BigDecimal.valueOf(60.0));
+        consumed.setCarbohydrates(BigDecimal.valueOf(200.0));
+        consumed.setProtein(BigDecimal.valueOf(100.0));
+        weeklySummary.setConsumed(consumed);
+        when(nutritionService.getWeeklyNutritionSummary(1L)).thenReturn(weeklySummary);
+
+        // When
+        IIntakeService.AddDishIntakeResponse response = intakeService.addDishIntake(1L, request);
+
+        // Then
+        assertThat(response).isNotNull();
+        assertThat(response.getAddedIntakes()).hasSize(1);
+        assertThat(response.getIntake()).isNotNull();
+        verify(nutritionAggregateService, times(1)).rebuildDailyAggregate(eq(user), any(LocalDate.class));
+        verify(leftoverDishRepository, times(1)).save(any(LeftoverDish.class));
+    }
+
+    @Test
+    void testAddDishIntake_Batch_Success() {
+        // Given
+        LeftoverDish leftover2 = new LeftoverDish();
+        leftover2.setId(201L);
+        leftover2.setHousehold(household);
+        leftover2.setDishName("糖醋里脊");
+        leftover2.setCurrentQuantityGram(200);
+        leftover2.setInitialQuantityGram(500);
+        leftover2.setCaloriesPer100g(150);
+        leftover2.setProteinPer100g(8.0);
+
+        IIntakeService.AddDishIntakeRequest request = new IIntakeService.AddDishIntakeRequest();
+        request.setIds(Arrays.asList(200L, 201L));
+        request.setType("leftover");
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(householdRepository.findById(1L)).thenReturn(Optional.of(household));
+        when(leftoverDishRepository.findById(200L)).thenReturn(Optional.of(leftoverDish));
+        when(leftoverDishRepository.findById(201L)).thenReturn(Optional.of(leftover2));
+        when(nutritionLogRepository.save(any(NutritionLog.class))).thenAnswer(invocation -> {
+            NutritionLog log = invocation.getArgument(0);
+            log.setId(300L + (log.getDishId() == 200L ? 0 : 1));
+            return log;
+        });
+        when(nutritionLogRepository.findByUserAndLogDateAndSourceTypeIn(
+                any(), any(), anyList())).thenReturn(Collections.emptyList());
+
+        INutritionService.WeeklyNutritionSummaryResponse weeklySummary = 
+                new INutritionService.WeeklyNutritionSummaryResponse();
+        weeklySummary.setWeekStart(LocalDate.now().minusDays(3));
+        weeklySummary.setWeekEnd(LocalDate.now().plusDays(3));
+        INutritionService.Nutrition consumed = new INutritionService.Nutrition();
+        consumed.setEnergy(BigDecimal.valueOf(2000));
+        consumed.setFat(BigDecimal.valueOf(60.0));
+        consumed.setCarbohydrates(BigDecimal.valueOf(200.0));
+        consumed.setProtein(BigDecimal.valueOf(100.0));
+        weeklySummary.setConsumed(consumed);
+        when(nutritionService.getWeeklyNutritionSummary(1L)).thenReturn(weeklySummary);
+
+        // When
+        IIntakeService.AddDishIntakeResponse response = intakeService.addDishIntake(1L, request);
+
+        // Then
+        assertThat(response).isNotNull();
+        assertThat(response.getAddedIntakes()).hasSize(2);
+        verify(nutritionLogRepository, times(2)).save(any(NutritionLog.class));
+    }
+
+    @Test
+    void testAddDishIntake_InvalidType() {
+        // Given
+        IIntakeService.AddDishIntakeRequest request = new IIntakeService.AddDishIntakeRequest();
+        request.setId(200L);
+        request.setType("invalid");
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(householdRepository.findById(1L)).thenReturn(Optional.of(household));
+
+        // When & Then
+        assertThatThrownBy(() -> intakeService.addDishIntake(1L, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Invalid type");
+    }
+
+    @Test
+    void testAddDishIntake_NoIdOrIds() {
+        // Given
+        IIntakeService.AddDishIntakeRequest request = new IIntakeService.AddDishIntakeRequest();
+        request.setType("leftover");
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(householdRepository.findById(1L)).thenReturn(Optional.of(household));
+
+        // When & Then
+        assertThatThrownBy(() -> intakeService.addDishIntake(1L, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("id or ids is required");
+    }
+
+    @Test
+    void testAddDishIntake_LeftoverNotFound() {
+        // Given
+        IIntakeService.AddDishIntakeRequest request = new IIntakeService.AddDishIntakeRequest();
+        request.setId(999L);
+        request.setType("leftover");
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(householdRepository.findById(1L)).thenReturn(Optional.of(household));
+        when(leftoverDishRepository.findById(999L)).thenReturn(Optional.empty());
+
+        // When & Then
+        assertThatThrownBy(() -> intakeService.addDishIntake(1L, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Leftover 不存在");
+    }
+
     // ==================== updateIntakePercentage 测试 ====================
 
     @Test
@@ -210,6 +406,8 @@ class IntakeServiceImplTest {
         nutritionLog.setBaseFat(30.0);
         nutritionLog.setBaseCarbohydrates(100.0);
         nutritionLog.setConsumedPercentage(BigDecimal.valueOf(50.0));
+        nutritionLog.setEnergy(500);
+        nutritionLog.setProtein(25.0);
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(nutritionLogRepository.findByIdAndUser(100L, user))
@@ -238,11 +436,51 @@ class IntakeServiceImplTest {
         assertThat(response.getIntake().getConsumedPercentage()).isEqualByComparingTo(BigDecimal.valueOf(80.0));
         assertThat(response.getWeeklySummary()).isNotNull();
 
-        // 验证营养值被重新计算
         verify(nutritionLogRepository, times(1)).save(argThat(log ->
                 log.getConsumedPercentage().compareTo(BigDecimal.valueOf(80.0)) == 0
         ));
         verify(nutritionAggregateService, times(1)).rebuildDailyAggregate(eq(user), any(LocalDate.class));
+    }
+
+    @Test
+    void testUpdateIntakePercentage_Leftover_SyncsQuantity() {
+        // Given
+        NutritionLog leftoverLog = new NutritionLog();
+        leftoverLog.setId(101L);
+        leftoverLog.setUser(user);
+        leftoverLog.setLogDate(LocalDate.now());
+        leftoverLog.setSourceType(LogSourceType.LEFTOVER);
+        leftoverLog.setDishId(200L);
+        leftoverLog.setBaseEnergy(600);
+        leftoverLog.setBaseProtein(30.0);
+        leftoverLog.setConsumedPercentage(BigDecimal.valueOf(30.0));
+        leftoverLog.setQuantity(300.0);
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(nutritionLogRepository.findByIdAndUser(101L, user))
+                .thenReturn(Optional.of(leftoverLog));
+        when(leftoverDishRepository.findById(200L)).thenReturn(Optional.of(leftoverDish));
+        when(nutritionLogRepository.save(any(NutritionLog.class))).thenReturn(leftoverLog);
+
+        INutritionService.WeeklyNutritionSummaryResponse weeklySummary = 
+                new INutritionService.WeeklyNutritionSummaryResponse();
+        weeklySummary.setWeekStart(LocalDate.now().minusDays(3));
+        weeklySummary.setWeekEnd(LocalDate.now().plusDays(3));
+        INutritionService.Nutrition consumed = new INutritionService.Nutrition();
+        consumed.setEnergy(BigDecimal.valueOf(2000));
+        consumed.setFat(BigDecimal.valueOf(60.0));
+        consumed.setCarbohydrates(BigDecimal.valueOf(200.0));
+        consumed.setProtein(BigDecimal.valueOf(100.0));
+        weeklySummary.setConsumed(consumed);
+        when(nutritionService.getWeeklyNutritionSummary(1L)).thenReturn(weeklySummary);
+
+        // When
+        IIntakeService.UpdateIntakeResponse response = 
+                intakeService.updateIntakePercentage(1L, 101L, BigDecimal.valueOf(50.0));
+
+        // Then
+        assertThat(response).isNotNull();
+        verify(leftoverDishRepository, times(1)).save(any(LeftoverDish.class));
     }
 
     @Test
@@ -401,4 +639,3 @@ class IntakeServiceImplTest {
                 .hasMessageContaining("Intake record not found");
     }
 }
-

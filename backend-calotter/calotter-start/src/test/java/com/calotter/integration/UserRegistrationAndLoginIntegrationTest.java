@@ -6,6 +6,7 @@ import com.calotter.user.domain.entity.User;
 import com.calotter.user.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -24,8 +25,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * 
  * 测试完整的用户注册和登录流程，包括：
  * - 用户注册
- * - 用户登录
+ * - 用户登录（用户名/邮箱）
  * - JWT Token生成和验证
+ * - 错误场景处理
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -56,6 +58,7 @@ class UserRegistrationAndLoginIntegrationTest {
     }
 
     @Test
+    @DisplayName("完整用户注册和登录流程")
     void testUserRegistrationAndLoginFlow() throws Exception {
         // ==================== 步骤1：用户注册 ====================
         String registerResponse = mockMvc.perform(post("/api/user/register")
@@ -104,6 +107,7 @@ class UserRegistrationAndLoginIntegrationTest {
     }
 
     @Test
+    @DisplayName("用户注册时用户名已存在应返回错误")
     void testUserRegistration_DuplicateUsername() throws Exception {
         // Given: 先注册一个用户
         mockMvc.perform(post("/api/user/register")
@@ -126,6 +130,7 @@ class UserRegistrationAndLoginIntegrationTest {
     }
 
     @Test
+    @DisplayName("用户注册时邮箱已被注册应返回错误")
     void testUserRegistration_DuplicateEmail() throws Exception {
         // Given: 先注册一个用户
         mockMvc.perform(post("/api/user/register")
@@ -148,6 +153,7 @@ class UserRegistrationAndLoginIntegrationTest {
     }
 
     @Test
+    @DisplayName("用户登录时密码错误应返回错误")
     void testUserLogin_WrongPassword() throws Exception {
         // Given: 先注册一个用户
         mockMvc.perform(post("/api/user/register")
@@ -169,6 +175,7 @@ class UserRegistrationAndLoginIntegrationTest {
     }
 
     @Test
+    @DisplayName("用户登录时用户不存在应返回错误")
     void testUserLogin_UserNotFound() throws Exception {
         // When & Then: 尝试登录不存在的用户
         LoginRequest loginRequest = new LoginRequest();
@@ -182,5 +189,32 @@ class UserRegistrationAndLoginIntegrationTest {
                 .andExpect(jsonPath("$.code").value(400))
                 .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("用户名或密码错误")));
     }
-}
 
+    @Test
+    @DisplayName("用户注册时缺少必需字段应返回验证错误")
+    void testUserRegistration_ValidationError() throws Exception {
+        // Given: 缺少必需字段
+        RegisterRequest invalidRequest = new RegisterRequest();
+        invalidRequest.setUsername(""); // 空用户名
+
+        // When & Then: 应该返回验证错误
+        mockMvc.perform(post("/api/user/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalidRequest)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("用户登录时缺少必需字段应返回验证错误")
+    void testUserLogin_ValidationError() throws Exception {
+        // Given: 缺少必需字段
+        LoginRequest invalidRequest = new LoginRequest();
+        invalidRequest.setUsernameOrEmail(""); // 空用户名或邮箱
+
+        // When & Then: 应该返回验证错误
+        mockMvc.perform(post("/api/user/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalidRequest)))
+                .andExpect(status().isBadRequest());
+    }
+}

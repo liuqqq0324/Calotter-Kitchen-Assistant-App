@@ -5,6 +5,7 @@ import com.calotter.user.controller.dto.HouseholdRequest;
 import com.calotter.user.controller.dto.HouseholdResponse;
 import com.calotter.user.service.HouseholdService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -149,16 +150,82 @@ class HouseholdControllerApiTest {
     }
 
     @Test
-    void testDeleteHousehold_Success() throws Exception {
+    @DisplayName("获取当前活跃家庭 - 成功")
+    void testGetCurrentHousehold_Success() throws Exception {
         // Given
-        when(householdService.getHousehold(anyLong())).thenReturn(
-                HouseholdResponse.builder().id(1L).ownerId(1L).build()
-        );
+        HouseholdResponse response = HouseholdResponse.builder()
+                .id(1L)
+                .name("测试家庭")
+                .ownerId(1L)
+                .inviteCode("ABC123")
+                .build();
 
+        when(householdService.getCurrentHousehold(1L)).thenReturn(response);
+
+        // When & Then
+        mockMvc.perform(get("/api/household/current")
+                        .param("userId", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.id").value(1))
+                .andExpect(jsonPath("$.data.name").value("测试家庭"));
+    }
+
+    @Test
+    @DisplayName("删除家庭 - 成功")
+    void testDeleteHousehold_Success() throws Exception {
         // When & Then
         mockMvc.perform(delete("/api/household/1")
                         .param("ownerId", "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200));
+    }
+
+    @Test
+    @DisplayName("创建家庭 - 验证错误")
+    void testCreateHousehold_ValidationError() throws Exception {
+        // Given - 缺少必需字段
+        HouseholdRequest request = new HouseholdRequest();
+        request.setName(""); // 空名称
+
+        // When & Then
+        mockMvc.perform(post("/api/household")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("更新家庭 - 非所有者")
+    void testUpdateHousehold_NotOwner() throws Exception {
+        // Given
+        HouseholdRequest request = new HouseholdRequest();
+        request.setName("更新后的家庭");
+        request.setOwnerId(2L); // 不同的所有者
+
+        when(householdService.updateHousehold(anyLong(), any(HouseholdRequest.class)))
+                .thenThrow(new IllegalArgumentException("只有所有者可以修改家庭信息"));
+
+        // When & Then
+        mockMvc.perform(put("/api/household/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(500))
+                .andExpect(jsonPath("$.message").value("只有所有者可以修改家庭信息"));
+    }
+
+    @Test
+    @DisplayName("获取家庭 - 不存在")
+    void testGetHousehold_NotFound() throws Exception {
+        // Given
+        when(householdService.getHousehold(999L))
+                .thenThrow(new IllegalArgumentException("家庭不存在"));
+
+        // When & Then
+        mockMvc.perform(get("/api/household/999"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(500))
+                .andExpect(jsonPath("$.message").value("家庭不存在"));
     }
 }

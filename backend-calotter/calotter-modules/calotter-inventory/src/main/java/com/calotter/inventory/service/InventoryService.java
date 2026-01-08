@@ -35,6 +35,7 @@ public class InventoryService {
     private final StandardSpiceRepository standardSpiceRepository;
     private final StandardUtensilRepository standardUtensilRepository;
     private final HouseholdRepository householdRepository;
+    private final UnitValidationService unitValidationService; // ✅ 新增：单位验证服务
 
     // ==================== 食材管理 ====================
 
@@ -45,6 +46,11 @@ public class InventoryService {
     public IngredientResponse createIngredient(IngredientRequest request) {
         if (request.getStandardIngredientId() == null) {
             throw new IllegalArgumentException("标准食材ID不能为空");
+        }
+        
+        // ✅ 验证单位是否合法
+        if (request.getUnit() != null) {
+            unitValidationService.validateUnit(request.getStandardIngredientId(), request.getUnit());
         }
         
         Household household = householdRepository.findById(request.getHouseholdId())
@@ -73,10 +79,19 @@ public class InventoryService {
         Ingredient ingredient = ingredientRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("食材不存在"));
 
+        Long standardIngredientId = request.getStandardIngredientId() != null 
+            ? request.getStandardIngredientId() 
+            : ingredient.getMetadata().getId();
+
         if (request.getStandardIngredientId() != null) {
             StandardIngredient standardIngredient = standardIngredientRepository.findById(request.getStandardIngredientId())
                     .orElseThrow(() -> new IllegalArgumentException("标准食材不存在"));
             ingredient.setMetadata(standardIngredient);
+        }
+
+        // ✅ 如果更新了单位，验证单位是否合法（基于当前的标准食材）
+        if (request.getUnit() != null) {
+            unitValidationService.validateUnit(standardIngredientId, request.getUnit());
         }
 
         if (request.getQuantity() != null) {
@@ -562,5 +577,14 @@ public class InventoryService {
      */
     public List<com.calotter.common.core.domain.entity.StandardSpice> getAllStandardSpices() {
         return standardSpiceRepository.findAll();
+    }
+
+    /**
+     * ✅ 获取标准食材的允许单位列表
+     * @param standardIngredientId 标准食材ID
+     * @return 允许的单位列表
+     */
+    public List<String> getAllowedUnits(Long standardIngredientId) {
+        return unitValidationService.getAllowedUnits(standardIngredientId);
     }
 }

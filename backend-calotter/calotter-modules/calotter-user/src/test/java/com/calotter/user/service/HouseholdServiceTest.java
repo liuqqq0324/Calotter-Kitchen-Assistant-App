@@ -7,6 +7,7 @@ import com.calotter.user.domain.entity.User;
 import com.calotter.user.repository.HouseholdRepository;
 import com.calotter.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -15,18 +16,22 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 /**
- * HouseholdService 单元测试
+ * HouseholdService 完整单元测试
+ * 覆盖所有功能：创建、更新、查询、删除家庭，以及获取当前活跃家庭
  */
 @ExtendWith(MockitoExtension.class)
+@DisplayName("家庭服务测试")
 class HouseholdServiceTest {
 
     @Mock
@@ -47,6 +52,7 @@ class HouseholdServiceTest {
         owner = new User();
         owner.setId(1L);
         owner.setUsername("owner");
+        owner.setJoinedHouseholds(new java.util.ArrayList<>());
 
         householdRequest = new HouseholdRequest();
         householdRequest.setName("测试家庭");
@@ -62,6 +68,7 @@ class HouseholdServiceTest {
     // ==================== 创建家庭测试 ====================
 
     @Test
+    @DisplayName("创建家庭 - 成功")
     void testCreateHousehold_Success() {
         // Given
         when(userRepository.findById(1L)).thenReturn(Optional.of(owner));
@@ -89,6 +96,7 @@ class HouseholdServiceTest {
     }
 
     @Test
+    @DisplayName("创建家庭 - 用户不存在")
     void testCreateHousehold_UserNotFound() {
         // Given
         when(userRepository.findById(1L)).thenReturn(Optional.empty());
@@ -102,6 +110,7 @@ class HouseholdServiceTest {
     }
 
     @Test
+    @DisplayName("创建家庭 - 邀请码生成")
     void testCreateHousehold_InviteCodeGenerated() {
         // Given
         when(userRepository.findById(1L)).thenReturn(Optional.of(owner));
@@ -123,9 +132,32 @@ class HouseholdServiceTest {
         assertThat(saved.getInviteCode().length()).isGreaterThanOrEqualTo(6);
     }
 
+    @Test
+    @DisplayName("创建家庭 - 邀请码唯一性")
+    void testCreateHousehold_InviteCodeUniqueness() {
+        // Given
+        when(userRepository.findById(1L)).thenReturn(Optional.of(owner));
+        // 第一次生成的邀请码已存在，第二次生成新的
+        when(householdRepository.findByInviteCode(anyString()))
+                .thenReturn(Optional.of(new Household())) // 第一次返回已存在
+                .thenReturn(Optional.empty()); // 第二次返回不存在
+        when(householdRepository.save(any(Household.class))).thenAnswer(invocation -> {
+            Household saved = invocation.getArgument(0);
+            saved.setId(1L);
+            return saved;
+        });
+
+        // When
+        HouseholdResponse response = householdService.createHousehold(householdRequest);
+
+        // Then - 应该尝试生成唯一的邀请码
+        verify(householdRepository, atLeastOnce()).findByInviteCode(anyString());
+    }
+
     // ==================== 更新家庭测试 ====================
 
     @Test
+    @DisplayName("更新家庭 - 成功")
     void testUpdateHousehold_Success() {
         // Given
         when(householdRepository.findById(1L)).thenReturn(Optional.of(household));
@@ -147,6 +179,7 @@ class HouseholdServiceTest {
     }
 
     @Test
+    @DisplayName("更新家庭 - 非所有者")
     void testUpdateHousehold_NotOwner() {
         // Given
         when(householdRepository.findById(1L)).thenReturn(Optional.of(household));
@@ -164,6 +197,7 @@ class HouseholdServiceTest {
     }
 
     @Test
+    @DisplayName("更新家庭 - 家庭不存在")
     void testUpdateHousehold_HouseholdNotFound() {
         // Given
         when(householdRepository.findById(1L)).thenReturn(Optional.empty());
@@ -177,6 +211,7 @@ class HouseholdServiceTest {
     }
 
     @Test
+    @DisplayName("更新家庭 - 部分更新")
     void testUpdateHousehold_PartialUpdate() {
         // Given
         when(householdRepository.findById(1L)).thenReturn(Optional.of(household));
@@ -191,11 +226,13 @@ class HouseholdServiceTest {
 
         // Then - name 应该保持原值
         assertThat(household.getName()).isEqualTo("测试家庭");
+        verify(householdRepository, times(1)).save(household);
     }
 
     // ==================== 查询家庭测试 ====================
 
     @Test
+    @DisplayName("获取家庭详情 - 成功")
     void testGetHousehold_Success() {
         // Given
         when(householdRepository.findById(1L)).thenReturn(Optional.of(household));
@@ -212,6 +249,7 @@ class HouseholdServiceTest {
     }
 
     @Test
+    @DisplayName("获取家庭详情 - 不存在")
     void testGetHousehold_NotFound() {
         // Given
         when(householdRepository.findById(1L)).thenReturn(Optional.empty());
@@ -223,6 +261,7 @@ class HouseholdServiceTest {
     }
 
     @Test
+    @DisplayName("通过邀请码获取家庭 - 成功")
     void testGetHouseholdByInviteCode_Success() {
         // Given
         when(householdRepository.findByInviteCode("ABC123")).thenReturn(Optional.of(household));
@@ -233,9 +272,11 @@ class HouseholdServiceTest {
         // Then
         assertThat(response).isNotNull();
         assertThat(response.getInviteCode()).isEqualTo("ABC123");
+        assertThat(response.getId()).isEqualTo(1L);
     }
 
     @Test
+    @DisplayName("通过邀请码获取家庭 - 无效邀请码")
     void testGetHouseholdByInviteCode_InvalidCode() {
         // Given
         when(householdRepository.findByInviteCode("INVALID")).thenReturn(Optional.empty());
@@ -247,6 +288,7 @@ class HouseholdServiceTest {
     }
 
     @Test
+    @DisplayName("获取用户的所有家庭 - 成功")
     void testGetHouseholdsByOwner_Success() {
         // Given
         Household household2 = new Household();
@@ -271,9 +313,10 @@ class HouseholdServiceTest {
     }
 
     @Test
+    @DisplayName("获取用户的所有家庭 - 空列表")
     void testGetHouseholdsByOwner_Empty() {
         // Given
-        when(householdRepository.findAll()).thenReturn(Arrays.asList());
+        when(householdRepository.findAll()).thenReturn(Collections.emptyList());
 
         // When
         List<HouseholdResponse> responses = householdService.getHouseholdsByOwner(1L);
@@ -282,9 +325,111 @@ class HouseholdServiceTest {
         assertThat(responses).isEmpty();
     }
 
+    @Test
+    @DisplayName("获取当前活跃家庭 - 使用currentHouseholdId")
+    void testGetCurrentHousehold_WithCurrentHouseholdId() {
+        // Given
+        owner.setCurrentHouseholdId(1L);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(owner));
+        when(householdRepository.findById(1L)).thenReturn(Optional.of(household));
+
+        // When
+        HouseholdResponse response = householdService.getCurrentHousehold(1L);
+
+        // Then
+        assertThat(response).isNotNull();
+        assertThat(response.getId()).isEqualTo(1L);
+        verify(householdRepository, times(1)).findById(1L);
+    }
+
+    @Test
+    @DisplayName("获取当前活跃家庭 - 从拥有的家庭获取")
+    void testGetCurrentHousehold_FromOwnedHouseholds() {
+        // Given
+        owner.setCurrentHouseholdId(null);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(owner));
+        when(householdRepository.findAll()).thenReturn(Arrays.asList(household));
+
+        // When
+        HouseholdResponse response = householdService.getCurrentHousehold(1L);
+
+        // Then
+        assertThat(response).isNotNull();
+        assertThat(response.getId()).isEqualTo(1L);
+    }
+
+    @Test
+    @DisplayName("获取当前活跃家庭 - 从加入的家庭获取")
+    void testGetCurrentHousehold_FromJoinedHouseholds() {
+        // Given
+        owner.setCurrentHouseholdId(null);
+        Household joinedHousehold = new Household();
+        joinedHousehold.setId(2L);
+        joinedHousehold.setName("加入的家庭");
+        joinedHousehold.setOwnerId(2L);
+        owner.setJoinedHouseholds(Arrays.asList(joinedHousehold));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(owner));
+        when(householdRepository.findAll()).thenReturn(Collections.emptyList());
+
+        // When
+        HouseholdResponse response = householdService.getCurrentHousehold(1L);
+
+        // Then
+        assertThat(response).isNotNull();
+        assertThat(response.getId()).isEqualTo(2L);
+    }
+
+    @Test
+    @DisplayName("获取当前活跃家庭 - 用户不存在")
+    void testGetCurrentHousehold_UserNotFound() {
+        // Given
+        when(userRepository.findById(1L)).thenReturn(Optional.empty());
+
+        // When & Then
+        assertThatThrownBy(() -> householdService.getCurrentHousehold(1L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("用户不存在");
+    }
+
+    @Test
+    @DisplayName("获取当前活跃家庭 - 没有关联的家庭")
+    void testGetCurrentHousehold_NoHousehold() {
+        // Given
+        owner.setCurrentHouseholdId(null);
+        owner.setJoinedHouseholds(Collections.emptyList());
+        when(userRepository.findById(1L)).thenReturn(Optional.of(owner));
+        when(householdRepository.findAll()).thenReturn(Collections.emptyList());
+
+        // When & Then
+        assertThatThrownBy(() -> householdService.getCurrentHousehold(1L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("用户没有关联的家庭");
+    }
+
+    @Test
+    @DisplayName("获取当前活跃家庭 - currentHouseholdId无效时回退")
+    void testGetCurrentHousehold_InvalidCurrentHouseholdId() {
+        // Given
+        owner.setCurrentHouseholdId(999L); // 不存在的家庭ID
+        Household ownedHousehold = new Household();
+        ownedHousehold.setId(1L);
+        ownedHousehold.setOwnerId(1L);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(owner));
+        when(householdRepository.findById(999L)).thenReturn(Optional.empty());
+        when(householdRepository.findAll()).thenReturn(Arrays.asList(ownedHousehold));
+
+        // When
+        HouseholdResponse response = householdService.getCurrentHousehold(1L);
+
+        // Then - 应该回退到拥有的家庭
+        assertThat(response).isNotNull();
+        assertThat(response.getId()).isEqualTo(1L);
+    }
+
     // ==================== 删除家庭测试 ====================
 
     @Test
+    @DisplayName("删除家庭 - 成功")
     void testDeleteHousehold_Success() {
         // Given
         when(householdRepository.findById(1L)).thenReturn(Optional.of(household));
@@ -298,6 +443,7 @@ class HouseholdServiceTest {
     }
 
     @Test
+    @DisplayName("删除家庭 - 非所有者")
     void testDeleteHousehold_NotOwner() {
         // Given
         when(householdRepository.findById(1L)).thenReturn(Optional.of(household));
@@ -311,6 +457,7 @@ class HouseholdServiceTest {
     }
 
     @Test
+    @DisplayName("删除家庭 - 家庭不存在")
     void testDeleteHousehold_NotFound() {
         // Given
         when(householdRepository.findById(1L)).thenReturn(Optional.empty());

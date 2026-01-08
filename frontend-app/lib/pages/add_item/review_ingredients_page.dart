@@ -22,6 +22,12 @@ class _ReviewIngredientsPageState extends State<ReviewIngredientsPage> {
   // 🔥 修改 1: 去掉 final，加上 late (因为我们要稍后初始化它)
   late List<Ingredient> _detectedItems;
 
+  // ✅ 为每个食材存储允许的单位列表（key: 食材名称，value: 允许的单位列表）
+  Map<String, List<String>> _ingredientAllowedUnits = {};
+  
+  // ✅ 为每个食材存储标准食材ID（key: 食材名称，value: 标准食材ID）
+  Map<String, int?> _ingredientStandardIds = {};
+
   // 🔥 修改 2: 在 initState 中判断是用真实数据还是测试数据
   @override
   void initState() {
@@ -58,6 +64,66 @@ class _ReviewIngredientsPageState extends State<ReviewIngredientsPage> {
         // ... 你原来的其他测试数据 ...
       ];
     }
+    
+    // ✅ 初始化时，为所有食材加载允许的单位列表
+    _loadAllowedUnitsForAll();
+  }
+
+  /// ✅ 为所有食材加载允许的单位列表
+  Future<void> _loadAllowedUnitsForAll() async {
+    for (final ingredient in _detectedItems) {
+      await _loadAllowedUnitsForIngredient(ingredient.name);
+    }
+  }
+
+  /// ✅ 为单个食材加载允许的单位列表
+  Future<void> _loadAllowedUnitsForIngredient(String ingredientName) async {
+    try {
+      // 1. 通过名称查找标准食材ID
+      final standardIngredientId =
+          await InventoryApiService.findStandardIngredientIdByName(ingredientName);
+      
+      if (standardIngredientId != null) {
+        // 2. 保存标准食材ID
+        _ingredientStandardIds[ingredientName] = standardIngredientId;
+        
+        // 3. 获取允许的单位列表
+        final allowedUnits =
+            await InventoryApiService.getAllowedUnits(standardIngredientId);
+        
+        if (mounted) {
+          setState(() {
+            _ingredientAllowedUnits[ingredientName] = 
+                allowedUnits.isNotEmpty ? allowedUnits : ['g', 'pcs', 'ml'];
+            
+            // ✅ 如果当前单位不在允许列表中，设置为第一个允许的单位
+            final ingredient = _detectedItems.firstWhere(
+              (ing) => ing.name == ingredientName,
+              orElse: () => _detectedItems.first,
+            );
+            if (!_ingredientAllowedUnits[ingredientName]!.contains(ingredient.unit)) {
+              ingredient.unit = _ingredientAllowedUnits[ingredientName]!.first;
+            }
+          });
+        }
+      } else {
+        // 如果找不到标准食材，使用默认单位列表
+        if (mounted) {
+          setState(() {
+            _ingredientAllowedUnits[ingredientName] = ['g', 'pcs', 'ml'];
+            _ingredientStandardIds[ingredientName] = null;
+          });
+        }
+      }
+    } catch (e) {
+      // 加载失败时使用默认单位列表
+      if (mounted) {
+        setState(() {
+          _ingredientAllowedUnits[ingredientName] = ['g', 'pcs', 'ml'];
+          _ingredientStandardIds[ingredientName] = null;
+        });
+      }
+    }
   }
 
   // 🔥 状态控制：是否已完成添加
@@ -82,11 +148,16 @@ class _ReviewIngredientsPageState extends State<ReviewIngredientsPage> {
       // 遍历所有识别的食材，逐个保存
       for (final ingredient in _detectedItems) {
         try {
-          // 1. 通过名称查找标准食材 ID
-          final standardIngredientId =
-              await InventoryApiService.findStandardIngredientIdByName(
-            ingredient.name,
-          );
+          // ✅ 优先使用已加载的标准食材ID（如果之前加载过）
+          int? standardIngredientId = _ingredientStandardIds[ingredient.name];
+          
+          // 如果没有加载过，尝试通过名称查找
+          if (standardIngredientId == null) {
+            standardIngredientId =
+                await InventoryApiService.findStandardIngredientIdByName(
+              ingredient.name,
+            );
+          }
 
           if (standardIngredientId == null) {
             // 找不到标准食材，跳过并记录
@@ -293,7 +364,9 @@ class _ReviewIngredientsPageState extends State<ReviewIngredientsPage> {
               child: IngredientCard(
                 item: item,
                 useStatusColors: false,
-                unitOptions: const ['pcs', 'g', 'kg', 'ml', 'L', 'blocks', 'box', 'bag'],
+                // ✅ 使用动态加载的允许单位列表
+                unitOptions: _ingredientAllowedUnits[item.name] ?? 
+                    ['g', 'pcs', 'ml'], // 默认单位列表
                 onUnitChanged: (val) => setState(() => item.unit = val),
                 onQuantityChanged: (val) => setState(() => item.quantity = val),
                 onExpiryTap: () => _selectDate(item),

@@ -19,6 +19,7 @@ import com.calotter.user.repository.HouseholdRepository;
 import com.calotter.user.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -128,6 +129,10 @@ class CookingWorkflowIntegrationTest {
         standardIngredient.setId(1001L);
         standardIngredient.setName("五花肉");
         standardIngredient.setCategory("MEAT");
+        standardIngredient.setPrimaryUnit("g");
+        standardIngredient.setSecondaryUnit("kg");
+        standardIngredient.setUnitConversionFactor(0.001);
+        standardIngredient.setStandardUnit("g");
         standardIngredient = standardIngredientRepository.save(standardIngredient);
         
         // 创建测试食材
@@ -140,6 +145,7 @@ class CookingWorkflowIntegrationTest {
     }
 
     @Test
+    @DisplayName("完整烹饪流程：开始烹饪并完成烹饪")
     void testCookingWorkflow_StartAndFinish() throws Exception {
         // ==================== 步骤1：开始烹饪 ====================
         StartCookingRequest startRequest = new StartCookingRequest();
@@ -221,6 +227,7 @@ class CookingWorkflowIntegrationTest {
     }
 
     @Test
+    @DisplayName("使用菜谱开始烹饪")
     void testCookingWorkflow_StartWithRecipes() throws Exception {
         // Given: 创建RecipeDTO
         MenuDTO.RecipeDTO recipeDto = new MenuDTO.RecipeDTO();
@@ -257,6 +264,7 @@ class CookingWorkflowIntegrationTest {
     }
 
     @Test
+    @DisplayName("完成烹饪时记录用餐者信息")
     void testCookingWorkflow_FinishWithDiners() throws Exception {
         // Given: 创建Session
         StartCookingRequest startRequest = new StartCookingRequest();
@@ -299,6 +307,7 @@ class CookingWorkflowIntegrationTest {
     }
 
     @Test
+    @DisplayName("使用不存在的家庭ID开始烹饪应返回错误")
     void testCookingWorkflow_StartWithInvalidHousehold() throws Exception {
         // Given: 使用不存在的householdId
         StartCookingRequest startRequest = new StartCookingRequest();
@@ -311,8 +320,46 @@ class CookingWorkflowIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(startRequest)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200)) // Controller返回200，但data可能包含错误信息
-                .andExpect(jsonPath("$.data").doesNotExist()); // 或者检查错误消息
+                .andExpect(jsonPath("$.code").value(400));
+    }
+
+    @Test
+    @DisplayName("完成烹饪时部分完成菜品")
+    void testCookingWorkflow_FinishWithPartialDishes() throws Exception {
+        // Given: 创建Session
+        StartCookingRequest startRequest = new StartCookingRequest();
+        startRequest.setHouseholdId(household.getId());
+        startRequest.setInitiatorId(user.getId());
+        startRequest.setDishId(dish.getId());
+
+        String startResponse = mockMvc.perform(post("/api/cooking/start")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(startRequest)))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        Long sessionId = objectMapper.readTree(startResponse)
+                .at("/data")
+                .asLong();
+
+        // When: 完成烹饪（指定完成的菜品ID）
+        FinishCookingRequest finishRequest = new FinishCookingRequest();
+        finishRequest.setSessionId(sessionId);
+        finishRequest.setConsumedAt(LocalDateTime.now());
+        finishRequest.setCompletedDishIds(Arrays.asList(dish.getId()));
+
+        mockMvc.perform(post("/api/cooking/finish")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(finishRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.status").value("COOKED"));
+
+        // Then: 验证Session状态
+        CookingSession session = sessionRepository.findById(sessionId).orElse(null);
+        assertThat(session).isNotNull();
+        assertThat(session.getStatus()).isEqualTo(CookingSession.SessionStatus.COOKED);
     }
 }
-

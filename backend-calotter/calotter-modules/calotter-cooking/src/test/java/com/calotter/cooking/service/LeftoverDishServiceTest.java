@@ -104,6 +104,9 @@ class LeftoverDishServiceTest {
         assertThat(result.getCurrentNutrition()).isNotNull();
         assertThat(result.getCurrentNutrition().getCalories()).isEqualTo(600);
         assertThat(result.getCurrentNutrition().getProtein()).isEqualTo(30.0); // 10.0 * 3
+        assertThat(result.getCurrentNutrition().getFat()).isEqualTo(45.0); // 15.0 * 3
+        assertThat(result.getCurrentNutrition().getCarb()).isEqualTo(15.0); // 5.0 * 3
+        assertThat(result.getCurrentNutrition().getFiber()).isEqualTo(1.5); // 0.5 * 3
     }
 
     @Test
@@ -118,7 +121,7 @@ class LeftoverDishServiceTest {
     }
 
     @Test
-    void testGetLeftoverDishDetail_DishNotFound() {
+    void testGetLeftoverDishDetail_DishNotFound_UsesSnapshot() {
         // Given: Dish 不存在，但可以使用快照数据
         when(leftoverDishRepository.findById(1L)).thenReturn(Optional.of(leftoverDish));
         when(dishRepository.findById(100L)).thenReturn(Optional.empty());
@@ -131,6 +134,49 @@ class LeftoverDishServiceTest {
         assertThat(result.getName()).isEqualTo("红烧肉"); // 从快照获取
         assertThat(result.getDescription()).isNull(); // Dish 不存在，description 为 null
         assertThat(result.getCurrentCalories()).isEqualTo(600); // 使用快照数据计算
+        assertThat(result.getCaloriesPer100g()).isEqualTo(200); // 从快照获取
+    }
+
+    @Test
+    void testGetLeftoverDishDetail_NoSnapshotName_UsesDishName() {
+        // Given: 快照中没有 dishName，但 Dish 存在
+        leftoverDish.setDishName(null);
+        when(leftoverDishRepository.findById(1L)).thenReturn(Optional.of(leftoverDish));
+        when(dishRepository.findById(100L)).thenReturn(Optional.of(dish));
+
+        // When
+        LeftoverDishDetailDTO result = leftoverDishService.getLeftoverDishDetail(1L);
+
+        // Then: 应该使用 Dish 的 name
+        assertThat(result.getName()).isEqualTo("红烧肉");
+    }
+
+    @Test
+    void testGetLeftoverDishDetail_NoSnapshotNameAndDish_UsesDefault() {
+        // Given: 快照中没有 dishName，且 Dish 不存在
+        leftoverDish.setDishName(null);
+        when(leftoverDishRepository.findById(1L)).thenReturn(Optional.of(leftoverDish));
+        when(dishRepository.findById(100L)).thenReturn(Optional.empty());
+
+        // When
+        LeftoverDishDetailDTO result = leftoverDishService.getLeftoverDishDetail(1L);
+
+        // Then: 应该使用默认值
+        assertThat(result.getName()).isEqualTo("未知菜品");
+    }
+
+    @Test
+    void testGetLeftoverDishDetail_NoSnapshotCoverImage_UsesDishCoverImage() {
+        // Given: 快照中没有 coverImage，但 Dish 存在
+        leftoverDish.setCoverImage(null);
+        when(leftoverDishRepository.findById(1L)).thenReturn(Optional.of(leftoverDish));
+        when(dishRepository.findById(100L)).thenReturn(Optional.of(dish));
+
+        // When
+        LeftoverDishDetailDTO result = leftoverDishService.getLeftoverDishDetail(1L);
+
+        // Then: 应该使用 Dish 的 coverImage
+        assertThat(result.getCoverImage()).isEqualTo("http://example.com/image.jpg");
     }
 
     @Test
@@ -183,6 +229,35 @@ class LeftoverDishServiceTest {
     }
 
     @Test
+    void testGetLeftoverDishesByHousehold_DishNotFound_UsesDefault() {
+        // Given: 其中一个 Dish 不存在
+        LeftoverDish leftover1 = new LeftoverDish();
+        leftover1.setId(1L);
+        leftover1.setOriginalDishId(100L);
+        leftover1.setCurrentQuantityGram(300);
+
+        LeftoverDish leftover2 = new LeftoverDish();
+        leftover2.setId(2L);
+        leftover2.setOriginalDishId(999L); // 不存在的 Dish ID
+        leftover2.setCurrentQuantityGram(200);
+
+        when(leftoverDishRepository.findByHouseholdId(1L))
+            .thenReturn(Arrays.asList(leftover1, leftover2));
+        when(dishRepository.findAllById(anySet()))
+            .thenReturn(Arrays.asList(dish)); // 只返回 dish1
+
+        // When
+        List<LeftoverDishSummaryDTO> result = leftoverDishService.getLeftoverDishesByHousehold(1L);
+
+        // Then
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).getName()).isEqualTo("红烧肉");
+        assertThat(result.get(1).getName()).isEqualTo("未知菜品"); // 使用默认值
+        assertThat(result.get(1).getCurrentQuantityGram()).isEqualTo(200);
+        assertThat(result.get(1).getCoverImage()).isNull();
+    }
+
+    @Test
     void testCalculateNutritionForConsumption_Success() {
         // Given: 剩菜300g，吃100g（使用快照数据，无需查询 Dish）
         when(leftoverDishRepository.findById(1L)).thenReturn(Optional.of(leftoverDish));
@@ -202,13 +277,38 @@ class LeftoverDishServiceTest {
     }
 
     @Test
-    void testCalculateNutritionForConsumption_InvalidWeight() {
+    void testCalculateNutritionForConsumption_ExactQuantity() {
+        // Given: 剩菜300g，吃300g（全部吃完）
+        when(leftoverDishRepository.findById(1L)).thenReturn(Optional.of(leftoverDish));
+
+        // When
+        NutritionInfo result = leftoverDishService.calculateNutritionForConsumption(1L, 300);
+
+        // Then: 300g = 3 * 100g
+        assertThat(result.getCalories()).isEqualTo(600); // 200 * 3
+        assertThat(result.getProtein()).isEqualTo(30.0); // 10.0 * 3
+    }
+
+    @Test
+    void testCalculateNutritionForConsumption_InvalidWeight_Zero() {
         // When & Then
         assertThatThrownBy(() -> leftoverDishService.calculateNutritionForConsumption(1L, 0))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("食用重量必须大于0");
+    }
 
+    @Test
+    void testCalculateNutritionForConsumption_InvalidWeight_Negative() {
+        // When & Then
         assertThatThrownBy(() -> leftoverDishService.calculateNutritionForConsumption(1L, -10))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("食用重量必须大于0");
+    }
+
+    @Test
+    void testCalculateNutritionForConsumption_InvalidWeight_Null() {
+        // When & Then
+        assertThatThrownBy(() -> leftoverDishService.calculateNutritionForConsumption(1L, null))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("食用重量必须大于0");
     }
@@ -225,7 +325,18 @@ class LeftoverDishServiceTest {
     }
 
     @Test
-    void testCalculateNutritionForConsumption_ZeroWeight() {
+    void testCalculateNutritionForConsumption_LeftoverNotFound() {
+        // Given
+        when(leftoverDishRepository.findById(999L)).thenReturn(Optional.empty());
+
+        // When & Then
+        assertThatThrownBy(() -> leftoverDishService.calculateNutritionForConsumption(999L, 100))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("剩菜不存在");
+    }
+
+    @Test
+    void testCalculateNutritionForConsumption_NullSnapshotData() {
         // Given: 快照数据为 null 或 0
         leftoverDish.setCaloriesPer100g(null);
         leftoverDish.setProteinPer100g(null);
@@ -249,6 +360,25 @@ class LeftoverDishServiceTest {
     }
 
     @Test
+    void testCalculateNutritionForConsumption_PartialNullSnapshotData() {
+        // Given: 部分快照数据为 null
+        leftoverDish.setProteinPer100g(null);
+        leftoverDish.setFatPer100g(null);
+        // calories, carb, fiber 保持有效值
+        when(leftoverDishRepository.findById(1L)).thenReturn(Optional.of(leftoverDish));
+
+        // When
+        NutritionInfo result = leftoverDishService.calculateNutritionForConsumption(1L, 100);
+
+        // Then: null 的字段应该返回 0，其他字段正常计算
+        assertThat(result.getCalories()).isEqualTo(200);
+        assertThat(result.getProtein()).isEqualTo(0.0);
+        assertThat(result.getFat()).isEqualTo(0.0);
+        assertThat(result.getCarb()).isEqualTo(5.0);
+        assertThat(result.getFiber()).isEqualTo(0.5);
+    }
+
+    @Test
     void testCanConsume_Success() {
         // Given
         when(leftoverDishRepository.findById(1L)).thenReturn(Optional.of(leftoverDish));
@@ -260,10 +390,20 @@ class LeftoverDishServiceTest {
     }
 
     @Test
-    void testCanConsume_InvalidInput() {
+    void testCanConsume_InvalidInput_Zero() {
         // When & Then
         assertThat(leftoverDishService.canConsume(1L, 0)).isFalse();
+    }
+
+    @Test
+    void testCanConsume_InvalidInput_Negative() {
+        // When & Then
         assertThat(leftoverDishService.canConsume(1L, -10)).isFalse();
+    }
+
+    @Test
+    void testCanConsume_InvalidInput_Null() {
+        // When & Then
         assertThat(leftoverDishService.canConsume(1L, null)).isFalse();
     }
 
@@ -275,5 +415,13 @@ class LeftoverDishServiceTest {
         // When & Then
         assertThat(leftoverDishService.canConsume(999L, 100)).isFalse();
     }
-}
 
+    @Test
+    void testCanConsume_ExactMatch() {
+        // Given: 剩菜300g，吃300g（刚好）
+        when(leftoverDishRepository.findById(1L)).thenReturn(Optional.of(leftoverDish));
+
+        // When & Then
+        assertThat(leftoverDishService.canConsume(1L, 300)).isTrue();
+    }
+}

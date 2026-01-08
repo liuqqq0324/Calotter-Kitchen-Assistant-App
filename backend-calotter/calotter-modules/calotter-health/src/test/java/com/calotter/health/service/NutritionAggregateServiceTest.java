@@ -19,6 +19,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -105,8 +106,6 @@ class NutritionAggregateServiceTest {
         assertThat(saved.getDate()).isEqualTo(LocalDate.now());
         assertThat(saved.getTotalEnergy()).isEqualTo(500);
         assertThat(saved.getTotalProtein()).isEqualTo(25.0);
-        // 注意：Service中使用setGoalCaloriesSnapshot，但实体字段是goalEnergySnapshot
-        // Lombok会自动生成getGoalEnergySnapshot()方法
         assertThat(saved.getGoalEnergySnapshot()).isEqualTo(2000);
         assertThat(saved.getGoalProteinSnapshot()).isEqualTo(100);
     }
@@ -195,6 +194,71 @@ class NutritionAggregateServiceTest {
     }
 
     @Test
+    void testRebuildDailyAggregate_Success() {
+        // Given
+        NutritionLog log2 = new NutritionLog();
+        log2.setId(2L);
+        log2.setUser(user);
+        log2.setLogDate(LocalDate.now());
+        log2.setEnergy(300);
+        log2.setProtein(15.0);
+        log2.setFat(10.0);
+        log2.setCarbohydrates(30.0);
+        log2.setFiber(3.0);
+
+        when(nutritionLogRepository.findByUserAndLogDate(user, LocalDate.now()))
+            .thenReturn(Arrays.asList(log, log2));
+        when(aggregateRepository.findByUserAndDate(user, LocalDate.now()))
+            .thenReturn(Optional.empty());
+        
+        UserHealthService.UserHealthInfo healthInfo = new UserHealthService.UserHealthInfo();
+        healthInfo.setDailyEnergy(2000);
+        healthInfo.setDailyProtein(100);
+        healthInfo.setDailyFat(60);
+        healthInfo.setDailyCarbohydrates(300);
+        healthInfo.setDailyFiber(30);
+        when(userHealthService.getUserHealthInfo(user.getId())).thenReturn(healthInfo);
+        
+        when(aggregateRepository.save(any(DailyNutrientAggregate.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0));
+
+        // When
+        DailyNutrientAggregate result = aggregateService.rebuildDailyAggregate(user, LocalDate.now());
+
+        // Then: 应该汇总所有日志
+        assertThat(result).isNotNull();
+        assertThat(result.getTotalEnergy()).isEqualTo(800); // 500 + 300
+        assertThat(result.getTotalProtein()).isEqualTo(40.0); // 25.0 + 15.0
+        assertThat(result.getGoalEnergySnapshot()).isEqualTo(2000);
+    }
+
+    @Test
+    void testRebuildDailyAggregate_ExistingRecord() {
+        // Given: 已存在聚合记录
+        DailyNutrientAggregate existing = new DailyNutrientAggregate();
+        existing.setId(1L);
+        existing.setUser(user);
+        existing.setDate(LocalDate.now());
+        existing.setTotalEnergy(1000);
+        existing.setTotalProtein(50.0);
+
+        when(nutritionLogRepository.findByUserAndLogDate(user, LocalDate.now()))
+            .thenReturn(Arrays.asList(log));
+        when(aggregateRepository.findByUserAndDate(user, LocalDate.now()))
+            .thenReturn(Optional.of(existing));
+        
+        when(aggregateRepository.save(any(DailyNutrientAggregate.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0));
+
+        // When
+        DailyNutrientAggregate result = aggregateService.rebuildDailyAggregate(user, LocalDate.now());
+
+        // Then: 应该覆盖写回，而不是累加
+        assertThat(result.getTotalEnergy()).isEqualTo(500); // 覆盖为500，不是1000+500
+        assertThat(result.getTotalProtein()).isEqualTo(25.0);
+    }
+
+    @Test
     void testGetWeeklyReport_Success() {
         // Given: 7天的聚合数据
         LocalDate weekStart = LocalDate.of(2024, 1, 1); // 周一
@@ -271,8 +335,8 @@ class NutritionAggregateServiceTest {
             aggregateService.getWeeklyReport(1L, weekStart);
 
         // Then: 目标应该为null（当healthInfo中没有目标时）
-        // 注意：实际实现中，如果healthInfo.dailyEnergy为null，WeeklyReportVO的weeklyTarget可能为null
         assertThat(report).isNotNull();
+        assertThat(report.getWeeklyTarget()).isNull();
     }
 
     @Test
@@ -313,12 +377,6 @@ class NutritionAggregateServiceTest {
         when(healthGoalRepository.findByUserAndStatus(user, 1))
             .thenReturn(goal);
         
-        // Mock UserHealthService
-        UserHealthService.UserHealthInfo healthInfo = new UserHealthService.UserHealthInfo();
-        healthInfo.setDailyEnergy(2000);
-        healthInfo.setDailyProtein(100);
-        when(userHealthService.getUserHealthInfo(user.getId())).thenReturn(healthInfo);
-        
         when(aggregateRepository.save(any(DailyNutrientAggregate.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -328,10 +386,45 @@ class NutritionAggregateServiceTest {
         // Then: 应该创建新记录
         assertThat(result).isNotNull();
         assertThat(result.getUser()).isEqualTo(user);
-        // 注意：Service中使用setGoalCaloriesSnapshot，但实体字段是goalEnergySnapshot
-        // Lombok会根据字段名生成getGoalEnergySnapshot()方法
         assertThat(result.getGoalEnergySnapshot()).isEqualTo(2000);
         verify(aggregateRepository).save(result);
+    }
+
+    @Test
+    void testGetWeeklySummary_Success() {
+        // Given
+        LocalDate weekStart = LocalDate.of(2024, 1, 1);
+        LocalDate weekEnd = weekStart.plusDays(6);
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        
+        UserHealthService.UserHealthInfo healthInfo = new UserHealthService.UserHealthInfo();
+        healthInfo.setDailyEnergy(2000);
+        healthInfo.setDailyProtein(100);
+        healthInfo.setDailyFat(60);
+        healthInfo.setDailyCarbohydrates(300);
+        when(userHealthService.getUserHealthInfo(1L)).thenReturn(healthInfo);
+
+        List<DailyNutrientAggregate> aggregates = Arrays.asList(
+            createAggregate(weekStart, 2000, 100.0),
+            createAggregate(weekStart.plusDays(1), 1800, 90.0)
+        );
+
+        when(aggregateRepository.findByUserAndDateBetween(user, weekStart, weekEnd))
+            .thenReturn(aggregates);
+
+        // When
+        com.calotter.health.controller.dto.WeeklySummaryVO summary = 
+            aggregateService.getWeeklySummary(1L, weekStart);
+
+        // Then
+        assertThat(summary).isNotNull();
+        assertThat(summary.getWeekStart()).isEqualTo(weekStart);
+        assertThat(summary.getWeekEnd()).isEqualTo(weekEnd);
+        assertThat(summary.getConsumed().getEnergy()).isEqualTo(3800); // 2000 + 1800
+        assertThat(summary.getConsumed().getProtein()).isEqualTo(190.0); // 100 + 90
+        // 剩余 = 目标 - 已消耗
+        assertThat(summary.getRemaining().getEnergy()).isEqualTo(10200); // 14000 - 3800
     }
 
     // 辅助方法：创建聚合记录
@@ -347,4 +440,3 @@ class NutritionAggregateServiceTest {
         return aggregate;
     }
 }
-

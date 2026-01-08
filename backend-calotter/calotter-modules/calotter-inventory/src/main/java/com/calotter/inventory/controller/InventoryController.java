@@ -183,6 +183,20 @@ public class InventoryController {
         }
     }
 
+    /**
+     * ✅ 获取标准食材的允许单位列表
+     * GET /api/inventory/standard-ingredients/{id}/allowed-units
+     */
+    @GetMapping("/standard-ingredients/{id}/allowed-units")
+    public Result<List<String>> getAllowedUnits(@PathVariable Long id) {
+        try {
+            List<String> allowedUnits = inventoryService.getAllowedUnits(id);
+            return Result.success(allowedUnits);
+        } catch (IllegalArgumentException e) {
+            return Result.error(e.getMessage());
+        }
+    }
+
     // ==================== 调料管理 ====================
 
     /**

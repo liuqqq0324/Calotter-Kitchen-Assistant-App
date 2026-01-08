@@ -9,7 +9,6 @@ import com.calotter.health.domain.entity.NutritionLog;
 import com.calotter.health.domain.enums.LogSourceType;
 import com.calotter.health.domain.enums.MealType;
 import com.calotter.health.repository.NutritionLogRepository;
-import com.calotter.health.service.event.NutritionLogCreatedEvent;
 import com.calotter.inventory.domain.entity.LeftoverDish;
 import com.calotter.inventory.repository.LeftoverDishRepository;
 import com.calotter.user.domain.entity.User;
@@ -134,8 +133,8 @@ class NutritionLogServiceTest {
         assertThat(log1.getQuantity()).isEqualTo(300.0); // 1000 * 0.3
 
         // 验证事件发布
-        ArgumentCaptor<NutritionLogCreatedEvent> eventCaptor = 
-            ArgumentCaptor.forClass(NutritionLogCreatedEvent.class);
+        ArgumentCaptor<com.calotter.health.service.event.NutritionLogCreatedEvent> eventCaptor = 
+            ArgumentCaptor.forClass(com.calotter.health.service.event.NutritionLogCreatedEvent.class);
         verify(eventPublisher).publishEvent(eventCaptor.capture());
         assertThat(eventCaptor.getValue().getLogs()).hasSize(2);
     }
@@ -164,6 +163,27 @@ class NutritionLogServiceTest {
         assertThatThrownBy(() -> nutritionLogService.createFromEvent(event))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("用户不存在");
+    }
+
+    @Test
+    void testCreateFromEvent_NullNutritionValues() {
+        // Given: 营养值为null
+        CookingSessionCompletedEvent.DishNutritionSnapshot nutrition = 
+            new CookingSessionCompletedEvent.DishNutritionSnapshot(
+                null, null, null, null, null, null);
+        event.setDishNutrition(nutrition);
+
+        when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
+        when(nutritionLogRepository.saveAll(anyList())).thenAnswer(invocation -> 
+            invocation.getArgument(0));
+
+        // When
+        List<NutritionLog> result = nutritionLogService.createFromEvent(event);
+
+        // Then: null值应该被正确处理
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).getEnergy()).isNull();
+        assertThat(result.get(0).getProtein()).isNull();
     }
 
     @Test
@@ -210,14 +230,13 @@ class NutritionLogServiceTest {
         verify(leftoverDishRepository).save(leftoverDish);
 
         // 验证事件发布
-        verify(eventPublisher).publishEvent(any(NutritionLogCreatedEvent.class));
+        verify(eventPublisher).publishEvent(any(com.calotter.health.service.event.NutritionLogCreatedEvent.class));
     }
 
     @Test
     void testCreateFromLeftover_ExceedsQuantity() {
         // Given: 剩菜300g，尝试吃500g
         when(leftoverDishRepository.findById(1L)).thenReturn(Optional.of(leftoverDish));
-        // 注意：不需要mock user，因为验证会在查询user之前执行
 
         // When & Then: 应该在验证重量时就抛出异常，不会执行到查询user
         assertThatThrownBy(() -> nutritionLogService.createFromLeftover(1L, 1L, 500, LocalDateTime.now()))
@@ -229,6 +248,28 @@ class NutritionLogServiceTest {
     }
 
     @Test
+    void testCreateFromLeftover_InvalidWeight_Zero() {
+        // Given
+        when(leftoverDishRepository.findById(1L)).thenReturn(Optional.of(leftoverDish));
+
+        // When & Then
+        assertThatThrownBy(() -> nutritionLogService.createFromLeftover(1L, 1L, 0, LocalDateTime.now()))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("食用重量必须大于0");
+    }
+
+    @Test
+    void testCreateFromLeftover_InvalidWeight_Null() {
+        // Given
+        when(leftoverDishRepository.findById(1L)).thenReturn(Optional.of(leftoverDish));
+
+        // When & Then
+        assertThatThrownBy(() -> nutritionLogService.createFromLeftover(1L, 1L, null, LocalDateTime.now()))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("食用重量必须大于0");
+    }
+
+    @Test
     void testCreateFromLeftover_LeftoverNotFound() {
         // Given
         when(leftoverDishRepository.findById(1L)).thenReturn(Optional.empty());
@@ -237,6 +278,18 @@ class NutritionLogServiceTest {
         assertThatThrownBy(() -> nutritionLogService.createFromLeftover(1L, 1L, 100, LocalDateTime.now()))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("剩菜不存在");
+    }
+
+    @Test
+    void testCreateFromLeftover_UserNotFound() {
+        // Given
+        when(leftoverDishRepository.findById(1L)).thenReturn(Optional.of(leftoverDish));
+        when(userRepository.findById(1L)).thenReturn(Optional.empty());
+
+        // When & Then
+        assertThatThrownBy(() -> nutritionLogService.createFromLeftover(1L, 1L, 100, LocalDateTime.now()))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("用户不存在");
     }
 
     @Test
@@ -272,9 +325,10 @@ class NutritionLogServiceTest {
         assertThat(result.getMealType()).isEqualTo(MealType.SNACK);
         assertThat(result.getEnergy()).isEqualTo(80);
         assertThat(result.getProtein()).isEqualTo(0.5);
+        assertThat(result.getConsumedPercentage()).isEqualByComparingTo(java.math.BigDecimal.valueOf(100.0));
 
         // 验证事件发布
-        verify(eventPublisher).publishEvent(any(NutritionLogCreatedEvent.class));
+        verify(eventPublisher).publishEvent(any(com.calotter.health.service.event.NutritionLogCreatedEvent.class));
     }
 
     @Test
@@ -301,6 +355,75 @@ class NutritionLogServiceTest {
     }
 
     @Test
+    void testCreateManual_AutoDetermineMealType_Breakfast() {
+        // Given: 7点，应该是BREAKFAST
+        ManualNutritionLogRequest request = new ManualNutritionLogRequest();
+        request.setUserId(1L);
+        request.setEatenAt(LocalDateTime.of(2024, 1, 1, 7, 0));
+        request.setFoodName("苹果");
+        request.setEnergy(80);
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(nutritionLogRepository.save(any(NutritionLog.class))).thenAnswer(invocation -> {
+            NutritionLog log = invocation.getArgument(0);
+            log.setId(1L);
+            return log;
+        });
+
+        // When
+        NutritionLog result = nutritionLogService.createManual(request);
+
+        // Then
+        assertThat(result.getMealType()).isEqualTo(MealType.BREAKFAST);
+    }
+
+    @Test
+    void testCreateManual_AutoDetermineMealType_Dinner() {
+        // Given: 18点，应该是DINNER
+        ManualNutritionLogRequest request = new ManualNutritionLogRequest();
+        request.setUserId(1L);
+        request.setEatenAt(LocalDateTime.of(2024, 1, 1, 18, 0));
+        request.setFoodName("苹果");
+        request.setEnergy(80);
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(nutritionLogRepository.save(any(NutritionLog.class))).thenAnswer(invocation -> {
+            NutritionLog log = invocation.getArgument(0);
+            log.setId(1L);
+            return log;
+        });
+
+        // When
+        NutritionLog result = nutritionLogService.createManual(request);
+
+        // Then
+        assertThat(result.getMealType()).isEqualTo(MealType.DINNER);
+    }
+
+    @Test
+    void testCreateManual_AutoDetermineMealType_Snack() {
+        // Given: 22点，应该是SNACK
+        ManualNutritionLogRequest request = new ManualNutritionLogRequest();
+        request.setUserId(1L);
+        request.setEatenAt(LocalDateTime.of(2024, 1, 1, 22, 0));
+        request.setFoodName("苹果");
+        request.setEnergy(80);
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(nutritionLogRepository.save(any(NutritionLog.class))).thenAnswer(invocation -> {
+            NutritionLog log = invocation.getArgument(0);
+            log.setId(1L);
+            return log;
+        });
+
+        // When
+        NutritionLog result = nutritionLogService.createManual(request);
+
+        // Then
+        assertThat(result.getMealType()).isEqualTo(MealType.SNACK);
+    }
+
+    @Test
     void testCreateManual_UserNotFound() {
         // Given
         ManualNutritionLogRequest request = new ManualNutritionLogRequest();
@@ -314,5 +437,27 @@ class NutritionLogServiceTest {
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("用户不存在");
     }
-}
 
+    @Test
+    void testCreateManual_DefaultUnit() {
+        // Given: 不指定unit，应该使用默认值"g"
+        ManualNutritionLogRequest request = new ManualNutritionLogRequest();
+        request.setUserId(1L);
+        request.setEatenAt(LocalDateTime.now());
+        request.setFoodName("苹果");
+        request.setEnergy(80);
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(nutritionLogRepository.save(any(NutritionLog.class))).thenAnswer(invocation -> {
+            NutritionLog log = invocation.getArgument(0);
+            log.setId(1L);
+            return log;
+        });
+
+        // When
+        NutritionLog result = nutritionLogService.createManual(request);
+
+        // Then: 应该使用默认单位"g"
+        assertThat(result.getUnit()).isEqualTo("g");
+    }
+}

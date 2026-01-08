@@ -1,6 +1,7 @@
 package com.calotter.user.service;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -13,9 +14,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * JwtService 单元测试
+ * JwtService 完整单元测试
+ * 覆盖所有JWT相关功能：生成、提取、验证Token
  */
 @ExtendWith(MockitoExtension.class)
+@DisplayName("JWT服务测试")
 class JwtServiceTest {
 
     private JwtService jwtService;
@@ -32,6 +35,7 @@ class JwtServiceTest {
     }
 
     @Test
+    @DisplayName("生成Token - 成功")
     void testGenerateToken_Success() {
         // Given
         Long userId = 1L;
@@ -48,6 +52,24 @@ class JwtServiceTest {
     }
 
     @Test
+    @DisplayName("生成Token - 不同用户生成不同Token")
+    void testGenerateToken_DifferentUsers() {
+        // Given
+        Long userId1 = 1L;
+        String username1 = "user1";
+        Long userId2 = 2L;
+        String username2 = "user2";
+
+        // When
+        String token1 = jwtService.generateToken(userId1, username1);
+        String token2 = jwtService.generateToken(userId2, username2);
+
+        // Then
+        assertThat(token1).isNotEqualTo(token2);
+    }
+
+    @Test
+    @DisplayName("提取用户名 - 成功")
     void testExtractUsername_Success() {
         // Given
         Long userId = 1L;
@@ -62,6 +84,7 @@ class JwtServiceTest {
     }
 
     @Test
+    @DisplayName("提取用户ID - 成功")
     void testExtractUserId_Success() {
         // Given
         Long userId = 123L;
@@ -76,6 +99,7 @@ class JwtServiceTest {
     }
 
     @Test
+    @DisplayName("提取过期时间 - 成功")
     void testExtractExpiration_Success() {
         // Given
         Long userId = 1L;
@@ -87,14 +111,15 @@ class JwtServiceTest {
 
         // Then
         assertThat(expiration).isNotNull();
-        // 过期时间应该在未来（在当前时间之后，但在1小时后）
+        // 过期时间应该在未来（在当前时间之后，但在2小时后）
         Date now = new Date();
-        Date oneHourLater = new Date(now.getTime() + TimeUnit.HOURS.toMillis(2));
+        Date twoHoursLater = new Date(now.getTime() + TimeUnit.HOURS.toMillis(2));
         assertThat(expiration).isAfter(now);
-        assertThat(expiration).isBefore(oneHourLater);
+        assertThat(expiration).isBefore(twoHoursLater);
     }
 
     @Test
+    @DisplayName("验证Token - 有效Token")
     void testValidateToken_ValidToken() {
         // Given
         Long userId = 1L;
@@ -109,6 +134,7 @@ class JwtServiceTest {
     }
 
     @Test
+    @DisplayName("验证Token - 无效Token格式")
     void testValidateToken_InvalidToken() {
         // Given
         String invalidToken = "invalid.token.string";
@@ -121,6 +147,7 @@ class JwtServiceTest {
     }
 
     @Test
+    @DisplayName("验证Token - 空字符串")
     void testValidateToken_EmptyToken() {
         // Given
         String emptyToken = "";
@@ -133,14 +160,12 @@ class JwtServiceTest {
     }
 
     @Test
+    @DisplayName("验证Token - null值")
     void testValidateToken_NullToken() {
         // Given
         String nullToken = null;
 
-        // When - validateToken 对 null 应该返回 false（内部捕获异常）
-        // 注意：由于 validateToken 内部捕获所有异常，null 会导致 NullPointerException，被捕获后返回 false
-        // 但在某些 JWT 库实现中，null 可能直接导致异常，这个测试主要验证异常处理逻辑
-        // 实际行为取决于 JWT 库的实现，这里主要确保方法不会崩溃
+        // When
         Boolean result = jwtService.validateToken(nullToken);
         
         // Then - 应该返回 false（异常被捕获）
@@ -148,6 +173,7 @@ class JwtServiceTest {
     }
 
     @Test
+    @DisplayName("验证Token过期 - 未过期")
     void testIsTokenExpired_NotExpired() {
         // Given
         Long userId = 1L;
@@ -162,6 +188,7 @@ class JwtServiceTest {
     }
 
     @Test
+    @DisplayName("Token包含正确的Claims")
     void testTokenContainsCorrectClaims() {
         // Given
         Long userId = 1L;
@@ -178,6 +205,7 @@ class JwtServiceTest {
     }
 
     @Test
+    @DisplayName("生成多个Token - 唯一性")
     void testGenerateMultipleTokens_Unique() {
         // Given
         Long userId1 = 1L;
@@ -194,6 +222,28 @@ class JwtServiceTest {
     }
 
     @Test
+    @DisplayName("相同用户多次生成Token - 唯一性")
+    void testGenerateMultipleTokens_SameUser_Unique() {
+        // Given
+        Long userId = 1L;
+        String username = "testuser";
+
+        // When
+        String token1 = jwtService.generateToken(userId, username);
+        // 等待一小段时间确保时间戳不同
+        try {
+            Thread.sleep(10);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        String token2 = jwtService.generateToken(userId, username);
+
+        // Then - 由于issuedAt不同，token应该不同
+        assertThat(token1).isNotEqualTo(token2);
+    }
+
+    @Test
+    @DisplayName("Token过期时间 - 未过期")
     void testTokenExpirationTime_NotExpired() {
         // Given
         Long userId = 1L;
@@ -205,5 +255,46 @@ class JwtServiceTest {
 
         // Then
         assertThat(isExpired).isFalse();
+    }
+
+    @Test
+    @DisplayName("提取Claims - 完整流程")
+    void testExtractClaims_CompleteFlow() {
+        // Given
+        Long userId = 999L;
+        String username = "testuser999";
+        String token = jwtService.generateToken(userId, username);
+
+        // When
+        String extractedUsername = jwtService.extractUsername(token);
+        Long extractedUserId = jwtService.extractUserId(token);
+        Date expiration = jwtService.extractExpiration(token);
+        Boolean isValid = jwtService.validateToken(token);
+        Boolean isExpired = jwtService.isTokenExpired(token);
+
+        // Then
+        assertThat(extractedUsername).isEqualTo(username);
+        assertThat(extractedUserId).isEqualTo(userId);
+        assertThat(expiration).isNotNull();
+        assertThat(isValid).isTrue();
+        assertThat(isExpired).isFalse();
+    }
+
+    @Test
+    @DisplayName("Token格式验证 - 三部分结构")
+    void testTokenFormat_ThreeParts() {
+        // Given
+        Long userId = 1L;
+        String username = "testuser";
+
+        // When
+        String token = jwtService.generateToken(userId, username);
+        String[] parts = token.split("\\.");
+
+        // Then
+        assertThat(parts).hasSize(3);
+        assertThat(parts[0]).isNotEmpty(); // Header
+        assertThat(parts[1]).isNotEmpty(); // Payload
+        assertThat(parts[2]).isNotEmpty(); // Signature
     }
 }

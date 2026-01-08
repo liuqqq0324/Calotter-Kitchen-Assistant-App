@@ -3,6 +3,9 @@ package com.calotter.integration;
 import com.calotter.common.core.domain.entity.StandardIngredient;
 import com.calotter.common.core.domain.entity.StandardSpice;
 import com.calotter.common.core.domain.entity.StandardUtensil;
+import com.calotter.inventory.controller.dto.IngredientRequest;
+import com.calotter.inventory.controller.dto.SpiceRequest;
+import com.calotter.inventory.controller.dto.UtensilRequest;
 import com.calotter.inventory.domain.entity.Ingredient;
 import com.calotter.inventory.domain.entity.HouseholdSpice;
 import com.calotter.inventory.domain.entity.HouseholdUtensil;
@@ -18,6 +21,7 @@ import com.calotter.user.repository.HouseholdRepository;
 import com.calotter.user.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -28,8 +32,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.util.HashMap;
-import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -42,6 +44,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * - 添加食材
  * - 更新食材
  * - 获取食材列表
+ * - 删除食材
  * - 切换厨具和调料可用性
  */
 @SpringBootTest
@@ -82,6 +85,7 @@ class InventoryManagementIntegrationTest {
 
     private User user;
     private Household household;
+    private StandardIngredient standardIngredient;
 
     @BeforeEach
     void setUp() {
@@ -114,21 +118,33 @@ class InventoryManagementIntegrationTest {
 
         user.setCurrentHouseholdId(household.getId());
         userRepository.save(user);
+
+        // 创建标准食材
+        standardIngredient = new StandardIngredient();
+        standardIngredient.setId(1001L);
+        standardIngredient.setName("五花肉");
+        standardIngredient.setCategory("MEAT");
+        standardIngredient.setPrimaryUnit("g");
+        standardIngredient.setSecondaryUnit("kg");
+        standardIngredient.setUnitConversionFactor(0.001);
+        standardIngredient.setStandardUnit("g");
+        standardIngredient = standardIngredientRepository.save(standardIngredient);
     }
 
     @Test
+    @DisplayName("食材完整CRUD操作")
     void testIngredientCRUD() throws Exception {
-        // ==================== 步骤1：添加食材 ====================
-        Map<String, Object> addRequest = new HashMap<>();
-        addRequest.put("householdId", household.getId());
-        addRequest.put("standardIngredientId", 1001L);
-        addRequest.put("quantity", 500.0);
-        addRequest.put("unit", "g");
-        addRequest.put("expirationDate", LocalDate.now().plusDays(7).toString());
+        // ==================== 步骤1：创建食材 ====================
+        IngredientRequest createRequest = new IngredientRequest();
+        createRequest.setHouseholdId(household.getId());
+        createRequest.setStandardIngredientId(standardIngredient.getId());
+        createRequest.setQuantity(500.0);
+        createRequest.setUnit("g");
+        createRequest.setExpirationDate(LocalDate.now().plusDays(7));
 
-        String addResponse = mockMvc.perform(post("/api/inventory/ingredients")
+        String createResponse = mockMvc.perform(post("/api/inventory/ingredients")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(addRequest)))
+                        .content(objectMapper.writeValueAsString(createRequest)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data.id").exists())
@@ -136,7 +152,7 @@ class InventoryManagementIntegrationTest {
                 .getResponse()
                 .getContentAsString();
 
-        Long ingredientId = objectMapper.readTree(addResponse)
+        Long ingredientId = objectMapper.readTree(createResponse)
                 .at("/data/id")
                 .asLong();
 
@@ -146,7 +162,14 @@ class InventoryManagementIntegrationTest {
         assertThat(savedIngredient.getHousehold().getId()).isEqualTo(household.getId());
         assertThat(savedIngredient.getQuantity()).isEqualTo(500.0);
 
-        // ==================== 步骤2：获取食材列表 ====================
+        // ==================== 步骤2：获取食材详情 ====================
+        mockMvc.perform(get("/api/inventory/ingredients/{id}", ingredientId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.id").value(ingredientId))
+                .andExpect(jsonPath("$.data.quantity").value(500.0));
+
+        // ==================== 步骤3：获取食材列表 ====================
         mockMvc.perform(get("/api/inventory/ingredients")
                         .param("householdId", household.getId().toString()))
                 .andExpect(status().isOk())
@@ -154,12 +177,12 @@ class InventoryManagementIntegrationTest {
                 .andExpect(jsonPath("$.data").isArray())
                 .andExpect(jsonPath("$.data[0].id").value(ingredientId));
 
-        // ==================== 步骤3：更新食材 ====================
-        Map<String, Object> updateRequest = new HashMap<>();
-        updateRequest.put("householdId", household.getId());
-        updateRequest.put("standardIngredientId", 1001L);
-        updateRequest.put("quantity", 300.0);
-        updateRequest.put("unit", "g");
+        // ==================== 步骤4：更新食材 ====================
+        IngredientRequest updateRequest = new IngredientRequest();
+        updateRequest.setHouseholdId(household.getId());
+        updateRequest.setStandardIngredientId(standardIngredient.getId());
+        updateRequest.setQuantity(300.0);
+        updateRequest.setUnit("g");
 
         mockMvc.perform(put("/api/inventory/ingredients/{id}", ingredientId)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -173,7 +196,18 @@ class InventoryManagementIntegrationTest {
         assertThat(updatedIngredient).isNotNull();
         assertThat(updatedIngredient.getQuantity()).isEqualTo(300.0);
 
-        // ==================== 步骤4：删除食材 ====================
+        // ==================== 步骤5：扣减食材库存 ====================
+        mockMvc.perform(post("/api/inventory/ingredients/{id}/deduct", ingredientId)
+                        .param("amount", "100.0"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
+
+        // 验证扣减
+        Ingredient deductedIngredient = ingredientRepository.findById(ingredientId).orElse(null);
+        assertThat(deductedIngredient).isNotNull();
+        assertThat(deductedIngredient.getQuantity()).isEqualTo(200.0); // 300 - 100 = 200
+
+        // ==================== 步骤6：删除食材 ====================
         mockMvc.perform(delete("/api/inventory/ingredients/{id}", ingredientId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200));
@@ -183,6 +217,7 @@ class InventoryManagementIntegrationTest {
     }
 
     @Test
+    @DisplayName("切换厨具可用性")
     void testToggleUtensilAvailability() throws Exception {
         // Given: 创建标准厨具
         StandardUtensil standardUtensil = new StandardUtensil();
@@ -191,25 +226,38 @@ class InventoryManagementIntegrationTest {
         standardUtensil = standardUtensilRepository.save(standardUtensil);
 
         // 创建家庭厨具
-        HouseholdUtensil utensil = new HouseholdUtensil();
-        utensil.setHousehold(household);
-        utensil.setIsAvailable(false);
-        utensil.setMetadata(standardUtensil);
-        utensil = utensilRepository.save(utensil);
+        UtensilRequest createRequest = new UtensilRequest();
+        createRequest.setHouseholdId(household.getId());
+        createRequest.setStandardUtensilId(standardUtensil.getId());
+        createRequest.setIsAvailable(false);
+
+        String createResponse = mockMvc.perform(post("/api/inventory/utensils")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(createRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        Long utensilId = objectMapper.readTree(createResponse)
+                .at("/data/id")
+                .asLong();
 
         // When: 切换可用性
-        mockMvc.perform(patch("/api/inventory/utensils/{id}/toggle", utensil.getId()))
+        mockMvc.perform(patch("/api/inventory/utensils/{id}/toggle", utensilId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data.isAvailable").value(true));
 
         // Then: 验证状态已切换
-        HouseholdUtensil updatedUtensil = utensilRepository.findById(utensil.getId()).orElse(null);
+        HouseholdUtensil updatedUtensil = utensilRepository.findById(utensilId).orElse(null);
         assertThat(updatedUtensil).isNotNull();
         assertThat(updatedUtensil.getIsAvailable()).isTrue();
     }
 
     @Test
+    @DisplayName("切换调料可用性")
     void testToggleSpiceAvailability() throws Exception {
         // Given: 创建标准调料
         StandardSpice standardSpice = new StandardSpice();
@@ -218,25 +266,38 @@ class InventoryManagementIntegrationTest {
         standardSpice = standardSpiceRepository.save(standardSpice);
 
         // 创建家庭调料
-        HouseholdSpice spice = new HouseholdSpice();
-        spice.setHousehold(household);
-        spice.setIsAvailable(false);
-        spice.setMetadata(standardSpice);
-        spice = spiceRepository.save(spice);
+        SpiceRequest createRequest = new SpiceRequest();
+        createRequest.setHouseholdId(household.getId());
+        createRequest.setStandardSpiceId(standardSpice.getId());
+        createRequest.setIsAvailable(false);
+
+        String createResponse = mockMvc.perform(post("/api/inventory/spices")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(createRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        Long spiceId = objectMapper.readTree(createResponse)
+                .at("/data/id")
+                .asLong();
 
         // When: 切换可用性
-        mockMvc.perform(patch("/api/inventory/spices/{id}/toggle", spice.getId()))
+        mockMvc.perform(patch("/api/inventory/spices/{id}/toggle", spiceId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data.isAvailable").value(true));
 
         // Then: 验证状态已切换
-        HouseholdSpice updatedSpice = spiceRepository.findById(spice.getId()).orElse(null);
+        HouseholdSpice updatedSpice = spiceRepository.findById(spiceId).orElse(null);
         assertThat(updatedSpice).isNotNull();
         assertThat(updatedSpice.getIsAvailable()).isTrue();
     }
 
     @Test
+    @DisplayName("获取标准库列表")
     void testGetStandardLibraries() throws Exception {
         // 测试获取标准库（这些接口应该返回数据，即使数据库为空也应该返回空数组）
         mockMvc.perform(get("/api/inventory/standard-ingredients"))
@@ -259,5 +320,46 @@ class InventoryManagementIntegrationTest {
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data").isArray());
     }
-}
 
+    @Test
+    @DisplayName("搜索标准食材")
+    void testSearchStandardIngredients() throws Exception {
+        // Given: 已有标准食材
+        StandardIngredient ingredient1 = new StandardIngredient();
+        ingredient1.setId(2001L);
+        ingredient1.setName("猪肉");
+        ingredient1.setCategory("MEAT");
+        ingredient1.setPrimaryUnit("g");
+        ingredient1.setSecondaryUnit("kg");
+        ingredient1.setUnitConversionFactor(0.001);
+        ingredient1.setStandardUnit("g");
+        standardIngredientRepository.save(ingredient1);
+
+        StandardIngredient ingredient2 = new StandardIngredient();
+        ingredient2.setId(2002L);
+        ingredient2.setName("牛肉");
+        ingredient2.setCategory("MEAT");
+        ingredient2.setPrimaryUnit("g");
+        ingredient2.setSecondaryUnit("kg");
+        ingredient2.setUnitConversionFactor(0.001);
+        ingredient2.setStandardUnit("g");
+        standardIngredientRepository.save(ingredient2);
+
+        // When & Then: 精确搜索
+        mockMvc.perform(get("/api/inventory/standard-ingredients/search")
+                        .param("name", "猪肉")
+                        .param("fuzzy", "false"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.name").value("猪肉"));
+
+        // When & Then: 模糊搜索
+        mockMvc.perform(get("/api/inventory/standard-ingredients/search")
+                        .param("name", "肉")
+                        .param("fuzzy", "true"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data.length()").value(2));
+    }
+}

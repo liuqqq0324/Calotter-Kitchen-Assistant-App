@@ -41,7 +41,9 @@ class _QuantitySelectorState extends State<QuantitySelector> {
   @override
   void didUpdateWidget(QuantitySelector oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if ((oldWidget.initialValue - widget.initialValue).abs() > 0.001) { // 🔥 使用小数比较
+    // ✅ 当数值变化或单位变化时，更新显示
+    if ((oldWidget.initialValue - widget.initialValue).abs() > 0.001 || 
+        oldWidget.unit != widget.unit) {
       _currentValue = widget.initialValue;
       if (!_isTyping && _controller.text != _formatNumber(_currentValue)) {
         _controller.text = _formatNumber(_currentValue);
@@ -56,9 +58,15 @@ class _QuantitySelectorState extends State<QuantitySelector> {
   }
 
   String _formatNumber(double number) {
-    // 🔥 特殊处理：0 < number < 1 时显示 "< 1"
+    // ✅ 特殊处理：只有当单位为 pcs 时，0 < number < 1 才显示 "< 1"
+    // 其他单位显示两位小数
     if (number > 0 && number < 1) {
-      return '< 1';
+      if (widget.unit.toLowerCase() == 'pcs') {
+        return '< 1';
+      } else {
+        // 非 pcs 单位，显示两位小数
+        return number.toStringAsFixed(2);
+      }
     }
     
     // 整数部分
@@ -68,11 +76,20 @@ class _QuantitySelectorState extends State<QuantitySelector> {
       return '${(intPart / 1000000).toStringAsFixed(1).replaceAll(RegExp(r'\.0$'), '')}M';
     if (intPart >= 1000)
       return '${(intPart / 1000).toStringAsFixed(1).replaceAll(RegExp(r'\.0$'), '')}k';
+    
+    // ✅ 如果单位不是 pcs，且数字有小数部分，显示两位小数
+    if (widget.unit.toLowerCase() != 'pcs' && number != intPart) {
+      return number.toStringAsFixed(2);
+    }
+    
     return intPart.toString();
   }
   
-  // 🔥 判断是否需要显示指示器（0 < quantity < 1）
-  bool get _showIndicator => _currentValue > 0 && _currentValue < 1;
+  // ✅ 判断是否需要显示指示器（只有当单位为 pcs 时，0 < quantity < 1 才显示红点）
+  bool get _showIndicator => 
+      widget.unit.toLowerCase() == 'pcs' && 
+      _currentValue > 0 && 
+      _currentValue < 1;
 
   void _updateValue(double newValue) {
     if (newValue < 0) return; // 🔥 允许小数，但不允许负数

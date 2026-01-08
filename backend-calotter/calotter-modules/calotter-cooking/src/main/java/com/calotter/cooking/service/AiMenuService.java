@@ -50,16 +50,23 @@ public class AiMenuService {
             enrichFilterFromHousehold(filter, householdId);
         }
 
-        // ✅ 校验：限制 allergies/avoid/dietHabits 必须来自标准库
-        recipeFilterValidationService.validate(filter);
-
-        // ✅ 处理 allergies 为 ["none"] 的情况：转换为空数组
+        // ✅ 先处理 allergies：确保正确处理 null、空数组和 ["none"] 的情况（必须在验证之前）
         if (filter != null && filter.getDietPreferences() != null) {
             RecipeGenerationFilter.DietPreferences dp = filter.getDietPreferences();
             List<String> allergies = dp.getAllergies();
             
-            // 如果 allergies 包含 "none"（可能只有 ["none"] 或包含 "none"），将其置为空数组或移除 "none"
-            if (allergies != null && !allergies.isEmpty()) {
+            // ✅ 如果 allergies 为 null，初始化为空数组（防御性编程）
+            if (allergies == null) {
+                allergies = new ArrayList<>();
+                dp.setAllergies(allergies);
+                log.info("Allergies 为 null，已初始化为空数组");
+            }
+            // ✅ 如果 allergies 为空数组 []，保持不变（这是正确的，表示没有过敏）
+            else if (allergies.isEmpty()) {
+                log.debug("Allergies 为空数组，保持不变");
+            }
+            // ✅ 处理包含 "none" 的情况
+            else {
                 // 检查是否只包含 "none" 或者包含 "none"
                 if (allergies.size() == 1 && "none".equalsIgnoreCase(allergies.get(0))) {
                     // 只有 ["none"]，置为空数组
@@ -75,6 +82,9 @@ public class AiMenuService {
                 }
             }
         }
+
+        // ✅ 校验：限制 allergies/avoid/dietHabits 必须来自标准库（在清理 "none" 之后）
+        recipeFilterValidationService.validate(filter);
 
         // ✅ 添加日志：追踪 filter 数据
         if (filter != null && filter.getDietPreferences() != null) {

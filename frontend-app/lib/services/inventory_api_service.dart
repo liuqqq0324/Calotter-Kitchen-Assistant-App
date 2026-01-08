@@ -445,6 +445,35 @@ class InventoryApiService {
     }
   }
 
+  /// ✅ 获取标准食材的允许单位列表
+  /// Get allowed units for a standard ingredient
+  /// GET /api/inventory/standard-ingredients/{id}/allowed-units
+  static Future<List<String>> getAllowedUnits(int standardIngredientId) async {
+    try {
+      final url = Uri.parse(
+        '${ApiConfig.inventoryBaseUrl}/api/inventory/standard-ingredients/$standardIngredientId/allowed-units',
+      );
+
+      final response = await http.get(url, headers: await _getHeaders());
+
+      // ✅ 适配后端返回的 Result<T> 格式
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200 && data['code'] == 200) {
+        final responseData = data['data'];
+        if (responseData is List) {
+          return List<String>.from(responseData);
+        }
+        return [];
+      } else {
+        throw Exception(
+          'Failed to get allowed units: ${data['message'] ?? 'Unknown error'}',
+        );
+      }
+    } catch (e) {
+      throw Exception('Network error: $e');
+    }
+  }
+
   /// Create a new utensil (cookware) in household
   /// 在家庭中创建新厨具
   /// POST /api/inventory/utensils

@@ -16,11 +16,6 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.H2Dialect
         format_sql: true
-  
-  # 禁用JPA Auditing（测试时不需要）
-  jpa:
-    properties:
-      hibernate:
         enable_lazy_load_no_trans: true
 
 server:

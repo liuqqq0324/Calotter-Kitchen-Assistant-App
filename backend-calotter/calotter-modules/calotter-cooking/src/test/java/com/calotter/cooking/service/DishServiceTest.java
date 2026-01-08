@@ -59,9 +59,14 @@ class DishServiceTest {
         AiRecipeResponse.RequiredIngredient ingredient2 = new AiRecipeResponse.RequiredIngredient();
         ingredient2.setName("生抽");
         ingredient2.setAmountValue(30.0);
-        ingredient2.setAmountUnit("ml");
+        ingredient2.setAmountUnit("ml"); // ml 单位不累加重量
         
-        mainDish.setIngredients(Arrays.asList(ingredient1, ingredient2));
+        AiRecipeResponse.RequiredIngredient ingredient3 = new AiRecipeResponse.RequiredIngredient();
+        ingredient3.setName("糖");
+        ingredient3.setAmountValue(20.0);
+        ingredient3.setAmountUnit("g");
+        
+        mainDish.setIngredients(Arrays.asList(ingredient1, ingredient2, ingredient3));
         
         // 准备步骤
         AiRecipeResponse.CookingStep step1 = new AiRecipeResponse.CookingStep();
@@ -90,8 +95,6 @@ class DishServiceTest {
     @Test
     void testCreateDishFromAiResponse_Success() {
         // Given
-        Dish savedDish = new Dish();
-        savedDish.setId(1L);
         when(dishRepository.save(any(Dish.class))).thenAnswer(invocation -> {
             Dish dish = invocation.getArgument(0);
             dish.setId(1L);
@@ -113,10 +116,12 @@ class DishServiceTest {
         assertThat(result.getTotalFat()).isEqualTo(150.0);
         assertThat(result.getTotalCarb()).isEqualTo(50.0);
         assertThat(result.getTotalFiber()).isEqualTo(5.0);
-        assertThat(result.getTotalWeightGram()).isEqualTo(500); // 只累加单位为g的食材
+        // 只累加单位为 g 的食材：500g + 20g = 520g
+        assertThat(result.getTotalWeightGram()).isEqualTo(520);
         assertThat(result.getSteps()).hasSize(2);
-        assertThat(result.getIngredientSnapshots()).hasSize(2);
+        assertThat(result.getIngredientSnapshots()).hasSize(3);
         assertThat(result.getTags()).isEmpty();
+        assertThat(result.getHousehold()).isEqualTo(household);
     }
 
     @Test
@@ -131,6 +136,17 @@ class DishServiceTest {
     void testCreateDishFromAiResponse_EmptyDishes() {
         // Given
         aiResponse.setDishes(new ArrayList<>());
+
+        // When & Then
+        assertThatThrownBy(() -> dishService.createDishFromAiResponse(aiResponse, household))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("AI响应数据不完整");
+    }
+
+    @Test
+    void testCreateDishFromAiResponse_NullDishes() {
+        // Given
+        aiResponse.setDishes(null);
 
         // When & Then
         assertThatThrownBy(() -> dishService.createDishFromAiResponse(aiResponse, household))
@@ -157,8 +173,66 @@ class DishServiceTest {
     }
 
     @Test
-    void testCreateDishFromAiResponse_NoWeightUsesDefault() {
-        // Given: 移除所有食材或改为非g单位
+    void testCreateDishFromAiResponse_NullDifficulty() {
+        // Given
+        aiResponse.getDishes().get(0).setDifficulty(null);
+
+        when(dishRepository.save(any(Dish.class))).thenAnswer(invocation -> {
+            Dish dish = invocation.getArgument(0);
+            dish.setId(1L);
+            return dish;
+        });
+
+        // When
+        Dish result = dishService.createDishFromAiResponse(aiResponse, household);
+
+        // Then: 难度应该为null（未设置）
+        assertThat(result.getDifficulty()).isNull();
+    }
+
+    @Test
+    void testCreateDishFromAiResponse_LowercaseDifficulty() {
+        // Given
+        aiResponse.getDishes().get(0).setDifficulty("easy");
+
+        when(dishRepository.save(any(Dish.class))).thenAnswer(invocation -> {
+            Dish dish = invocation.getArgument(0);
+            dish.setId(1L);
+            return dish;
+        });
+
+        // When
+        Dish result = dishService.createDishFromAiResponse(aiResponse, household);
+
+        // Then: 应该转换为大写
+        assertThat(result.getDifficulty()).isEqualTo(DifficultyLevel.EASY);
+    }
+
+    @Test
+    void testCreateDishFromAiResponse_NoWeightIngredients_UsesDefault() {
+        // Given: 移除所有单位为 g 的食材，或者改为非 g 单位
+        AiRecipeResponse.RequiredIngredient ingredient = new AiRecipeResponse.RequiredIngredient();
+        ingredient.setName("油");
+        ingredient.setAmountValue(30.0);
+        ingredient.setAmountUnit("ml"); // ml 不累加重量
+        aiResponse.getDishes().get(0).setIngredients(Arrays.asList(ingredient));
+
+        when(dishRepository.save(any(Dish.class))).thenAnswer(invocation -> {
+            Dish dish = invocation.getArgument(0);
+            dish.setId(1L);
+            return dish;
+        });
+
+        // When
+        Dish result = dishService.createDishFromAiResponse(aiResponse, household);
+
+        // Then: 应该使用默认值1000g
+        assertThat(result.getTotalWeightGram()).isEqualTo(1000);
+    }
+
+    @Test
+    void testCreateDishFromAiResponse_NoIngredients_UsesDefault() {
+        // Given
         aiResponse.getDishes().get(0).setIngredients(new ArrayList<>());
 
         when(dishRepository.save(any(Dish.class))).thenAnswer(invocation -> {
@@ -191,6 +265,168 @@ class DishServiceTest {
         // Then: 营养信息应该为null
         assertThat(result.getTotalCalories()).isNull();
         assertThat(result.getTotalProtein()).isNull();
+        assertThat(result.getTotalFat()).isNull();
+        assertThat(result.getTotalCarb()).isNull();
+        assertThat(result.getTotalFiber()).isNull();
+    }
+
+    @Test
+    void testCreateDishFromAiResponse_NullNutritionFields() {
+        // Given
+        AiRecipeResponse.NutritionSummary nutrition = new AiRecipeResponse.NutritionSummary();
+        nutrition.setCalories(2000);
+        nutrition.setProtein(null);
+        nutrition.setFat(null);
+        nutrition.setCarb(null);
+        nutrition.setFiber(null);
+        aiResponse.setTotalNutrition(nutrition);
+
+        when(dishRepository.save(any(Dish.class))).thenAnswer(invocation -> {
+            Dish dish = invocation.getArgument(0);
+            dish.setId(1L);
+            return dish;
+        });
+
+        // When
+        Dish result = dishService.createDishFromAiResponse(aiResponse, household);
+
+        // Then: calories 应该设置，其他为 null
+        assertThat(result.getTotalCalories()).isEqualTo(2000);
+        assertThat(result.getTotalProtein()).isNull();
+        assertThat(result.getTotalFat()).isNull();
+        assertThat(result.getTotalCarb()).isNull();
+        assertThat(result.getTotalFiber()).isNull();
+    }
+
+    @Test
+    void testCreateDishFromAiResponse_NoSteps() {
+        // Given
+        aiResponse.getDishes().get(0).setSteps(null);
+
+        when(dishRepository.save(any(Dish.class))).thenAnswer(invocation -> {
+            Dish dish = invocation.getArgument(0);
+            dish.setId(1L);
+            return dish;
+        });
+
+        // When
+        Dish result = dishService.createDishFromAiResponse(aiResponse, household);
+
+        // Then: 步骤应该为null
+        assertThat(result.getSteps()).isNull();
+    }
+
+    @Test
+    void testCreateDishFromAiResponse_EmptySteps() {
+        // Given
+        aiResponse.getDishes().get(0).setSteps(new ArrayList<>());
+
+        when(dishRepository.save(any(Dish.class))).thenAnswer(invocation -> {
+            Dish dish = invocation.getArgument(0);
+            dish.setId(1L);
+            return dish;
+        });
+
+        // When
+        Dish result = dishService.createDishFromAiResponse(aiResponse, household);
+
+        // Then: 步骤应该为空列表
+        assertThat(result.getSteps()).isEmpty();
+    }
+
+    @Test
+    void testCreateDishFromAiResponse_NoIngredientSnapshots() {
+        // Given
+        aiResponse.getDishes().get(0).setIngredients(null);
+
+        when(dishRepository.save(any(Dish.class))).thenAnswer(invocation -> {
+            Dish dish = invocation.getArgument(0);
+            dish.setId(1L);
+            return dish;
+        });
+
+        // When
+        Dish result = dishService.createDishFromAiResponse(aiResponse, household);
+
+        // Then: 食材快照应该为null
+        assertThat(result.getIngredientSnapshots()).isNull();
+    }
+
+    @Test
+    void testCreateDishFromAiResponse_IngredientWithNullValues() {
+        // Given: 食材有 null 值
+        AiRecipeResponse.RequiredIngredient ingredient = new AiRecipeResponse.RequiredIngredient();
+        ingredient.setName("盐");
+        ingredient.setAmountValue(null);
+        ingredient.setAmountUnit(null);
+        aiResponse.getDishes().get(0).setIngredients(Arrays.asList(ingredient));
+
+        when(dishRepository.save(any(Dish.class))).thenAnswer(invocation -> {
+            Dish dish = invocation.getArgument(0);
+            dish.setId(1L);
+            return dish;
+        });
+
+        // When
+        Dish result = dishService.createDishFromAiResponse(aiResponse, household);
+
+        // Then: 应该使用默认值
+        assertThat(result.getIngredientSnapshots()).hasSize(1);
+        assertThat(result.getIngredientSnapshots().get(0).getAmountValue()).isEqualTo(0.0);
+        assertThat(result.getIngredientSnapshots().get(0).getAmountUnit()).isEqualTo("g");
+    }
+
+    @Test
+    void testCreateDishFromAiResponse_MultipleDishes_UsesFirst() {
+        // Given: 多个菜品，应该只使用第一个
+        AiRecipeResponse.GeneratedDish dish2 = new AiRecipeResponse.GeneratedDish();
+        dish2.setDishName("配菜");
+        dish2.setTotalTimeMin(20);
+        dish2.setDifficulty("EASY");
+        dish2.setIngredients(new ArrayList<>());
+        
+        aiResponse.setDishes(Arrays.asList(aiResponse.getDishes().get(0), dish2));
+
+        when(dishRepository.save(any(Dish.class))).thenAnswer(invocation -> {
+            Dish dish = invocation.getArgument(0);
+            dish.setId(1L);
+            return dish;
+        });
+
+        // When
+        Dish result = dishService.createDishFromAiResponse(aiResponse, household);
+
+        // Then: 应该使用第一个菜品的信息
+        assertThat(result.getName()).isEqualTo("红烧肉");
+        assertThat(result.getCookingTimeMinutes()).isEqualTo(60);
+        // 但是重量应该累加所有菜品的食材
+        assertThat(result.getTotalWeightGram()).isEqualTo(520); // 第一个菜品的重量
+    }
+
+    @Test
+    void testCreateDishFromAiResponse_MultipleDishes_WeightAccumulation() {
+        // Given: 多个菜品，重量应该累加所有菜品的 g 单位食材
+        AiRecipeResponse.GeneratedDish dish2 = new AiRecipeResponse.GeneratedDish();
+        dish2.setDishName("配菜");
+        
+        AiRecipeResponse.RequiredIngredient ingredient = new AiRecipeResponse.RequiredIngredient();
+        ingredient.setName("蔬菜");
+        ingredient.setAmountValue(200.0);
+        ingredient.setAmountUnit("g");
+        dish2.setIngredients(Arrays.asList(ingredient));
+        
+        aiResponse.setDishes(Arrays.asList(aiResponse.getDishes().get(0), dish2));
+
+        when(dishRepository.save(any(Dish.class))).thenAnswer(invocation -> {
+            Dish dish = invocation.getArgument(0);
+            dish.setId(1L);
+            return dish;
+        });
+
+        // When
+        Dish result = dishService.createDishFromAiResponse(aiResponse, household);
+
+        // Then: 重量应该累加所有菜品：520g (第一个) + 200g (第二个) = 720g
+        assertThat(result.getTotalWeightGram()).isEqualTo(720);
     }
 }
-

@@ -1,4 +1,3 @@
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:personal_sous_chef/theme/fallback_google_fonts.dart';
 import 'package:personal_sous_chef/services/homepage_api_service.dart';
@@ -55,7 +54,9 @@ class _AddFoodDialogState extends State<AddFoodDialog> {
     super.dispose();
   }
 
-  NutritionInfo _nutritionFromBackend(Map<String, dynamic>? effectiveNutrition) {
+  NutritionInfo _nutritionFromBackend(
+    Map<String, dynamic>? effectiveNutrition,
+  ) {
     if (effectiveNutrition == null) {
       return NutritionInfo(calories: 0, protein: 0, fat: 0, carbs: 0);
     }
@@ -85,18 +86,21 @@ class _AddFoodDialogState extends State<AddFoodDialog> {
           _addedFoods
             ..clear()
             ..addAll(
-              items.map((e) {
-                final item = (e as Map).cast<String, dynamic>();
-                final intakeId = (item['intakeId'] as num?)?.toInt();
-                final name = (item['manualFoodName'] as String?) ?? '';
-                final effectiveNutrition =
-                    (item['effectiveNutrition'] as Map?)?.cast<String, dynamic>();
-                return ExtraFood(
-                  intakeId: intakeId,
-                  name: name,
-                  nutrition: _nutritionFromBackend(effectiveNutrition),
-                );
-              }).where((f) => f.name.trim().isNotEmpty),
+              items
+                  .map((e) {
+                    final item = (e as Map).cast<String, dynamic>();
+                    final intakeId = (item['intakeId'] as num?)?.toInt();
+                    final name = (item['manualFoodName'] as String?) ?? '';
+                    final effectiveNutrition =
+                        (item['effectiveNutrition'] as Map?)
+                            ?.cast<String, dynamic>();
+                    return ExtraFood(
+                      intakeId: intakeId,
+                      name: name,
+                      nutrition: _nutritionFromBackend(effectiveNutrition),
+                    );
+                  })
+                  .where((f) => f.name.trim().isNotEmpty),
             );
         });
       }
@@ -111,18 +115,20 @@ class _AddFoodDialogState extends State<AddFoodDialog> {
       _addedFoods
         ..clear()
         ..addAll(
-          foods.map((e) {
-            final item = (e as Map).cast<String, dynamic>();
-            final intakeId = (item['intakeId'] as num?)?.toInt();
-            final name = (item['manualFoodName'] as String?) ?? '';
-            final effectiveNutrition =
-                (item['effectiveNutrition'] as Map?)?.cast<String, dynamic>();
-            return ExtraFood(
-              intakeId: intakeId,
-              name: name,
-              nutrition: _nutritionFromBackend(effectiveNutrition),
-            );
-          }).where((f) => f.name.trim().isNotEmpty),
+          foods
+              .map((e) {
+                final item = (e as Map).cast<String, dynamic>();
+                final intakeId = (item['intakeId'] as num?)?.toInt();
+                final name = (item['manualFoodName'] as String?) ?? '';
+                final effectiveNutrition = (item['effectiveNutrition'] as Map?)
+                    ?.cast<String, dynamic>();
+                return ExtraFood(
+                  intakeId: intakeId,
+                  name: name,
+                  nutrition: _nutritionFromBackend(effectiveNutrition),
+                );
+              })
+              .where((f) => f.name.trim().isNotEmpty),
         );
     });
   }
@@ -282,189 +288,176 @@ class _AddFoodDialogState extends State<AddFoodDialog> {
       child: Container(
         padding: const EdgeInsets.all(24),
         constraints: const BoxConstraints(maxWidth: 400, maxHeight: 650),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 标题栏
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.add_circle,
-                        color: Colors.teal.shade600,
-                        size: 28,
-                      ),
-                      const SizedBox(width: 10),
-                      Flexible(
-                        child: Text(
-                          "What Else Did You Eat?",
-                          style: GoogleFonts.caveat(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.teal.shade800,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 标题栏
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.add_circle,
+                          color: Colors.teal.shade600,
+                          size: 28,
+                        ),
+                        const SizedBox(width: 10),
+                        Flexible(
+                          child: Text(
+                            "What Else Did You Eat?",
+                            style: GoogleFonts.caveat(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.teal.shade800,
+                            ),
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                IconButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  icon: Icon(Icons.close, color: Colors.grey[600]),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              "Add any extra food you ate today",
-              style: GoogleFonts.kalam(fontSize: 14, color: Colors.grey[600]),
-            ),
-            const SizedBox(height: 20),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: Icon(Icons.close, color: Colors.grey[600]),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                "Add any extra food you ate today",
+                style: GoogleFonts.kalam(fontSize: 14, color: Colors.grey[600]),
+              ),
+              const SizedBox(height: 20),
 
-            // 输入框
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _foodController,
-                    decoration: InputDecoration(
-                      hintText: "Enter food name...",
-                      hintStyle: GoogleFonts.kalam(color: Colors.grey[400]),
-                      filled: true,
-                      fillColor: Colors.teal.shade50,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.teal.shade200),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.teal.shade200),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: Colors.teal.shade500,
-                          width: 2,
+              // 输入框
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _foodController,
+                      decoration: InputDecoration(
+                        hintText: "Enter food name...",
+                        hintStyle: GoogleFonts.kalam(color: Colors.grey[400]),
+                        filled: true,
+                        fillColor: Colors.teal.shade50,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.teal.shade200),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.teal.shade200),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: Colors.teal.shade500,
+                            width: 2,
+                          ),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
                         ),
                       ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
+                      style: GoogleFonts.kalam(fontSize: 16),
+                      onSubmitted: (_) => _addFood(),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  ElevatedButton(
+                    onPressed: _isLoading ? null : _addFood,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.teal.shade500,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.all(14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    style: GoogleFonts.kalam(fontSize: 16),
-                    onSubmitted: (_) => _addFood(),
+                    child: _isLoading
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Icon(Icons.add, size: 24),
                   ),
+                ],
+              ),
+
+              const SizedBox(height: 20),
+
+              // 已添加食物列表
+              Text(
+                "Added Foods",
+                style: GoogleFonts.kalam(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[700],
                 ),
-                const SizedBox(width: 12),
-                ElevatedButton(
-                  onPressed: _isLoading ? null : _addFood,
+              ),
+              const SizedBox(height: 10),
+
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 200),
+                child: (_isLoadingTodayFoods && _addedFoods.isEmpty)
+                    ? const Center(child: CircularProgressIndicator())
+                    : _addedFoods.isEmpty
+                    ? _buildEmptyState()
+                    : ListView.separated(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: _addedFoods.length,
+                        separatorBuilder: (_, _) => const SizedBox(height: 10),
+                        itemBuilder: (context, index) {
+                          return _buildFoodItem(_addedFoods[index], index);
+                        },
+                      ),
+              ),
+
+              const SizedBox(height: 20),
+
+              // 总计营养
+              if (_addedFoods.isNotEmpty) _buildNutritionSummary(),
+
+              const SizedBox(height: 16),
+
+              // 确认按钮
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _isLoading
+                      ? null
+                      : () {
+                          Navigator.of(context).pop(_addedFoods);
+                        },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.teal.shade500,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.all(14),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: _isLoading
-                      ? const SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Icon(Icons.add, size: 24),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 20),
-
-            // 已添加食物列表
-            Text(
-              "Added Foods",
-              style: GoogleFonts.kalam(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey[700],
-              ),
-            ),
-            const SizedBox(height: 10),
-
-            Flexible(
-              child: (_isLoadingTodayFoods && _addedFoods.isEmpty)
-                  ? const Center(child: CircularProgressIndicator())
-                  : _addedFoods.isEmpty
-                  ? _buildEmptyState()
-                  : ScrollConfiguration(
-                      behavior: ScrollConfiguration.of(context).copyWith(
-                        dragDevices: {
-                          PointerDeviceKind.touch,
-                          PointerDeviceKind.mouse,
-                          PointerDeviceKind.trackpad,
-                          PointerDeviceKind.stylus,
-                          PointerDeviceKind.unknown,
-                        },
-                      ),
-                      child: Scrollbar(
-                        controller: _foodsScrollController,
-                        thumbVisibility: true,
-                        child: ListView.separated(
-                          controller: _foodsScrollController,
-                          itemCount: _addedFoods.length,
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          separatorBuilder: (_, _) =>
-                              const SizedBox(height: 10),
-                          itemBuilder: (context, index) {
-                            return _buildFoodItem(_addedFoods[index], index);
-                          },
-                        ),
-                      ),
+                  child: Text(
+                    "Done",
+                    style: GoogleFonts.kalam(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
                     ),
-            ),
-
-            const SizedBox(height: 20),
-
-            // 总计营养
-            if (_addedFoods.isNotEmpty) _buildNutritionSummary(),
-
-            const SizedBox(height: 16),
-
-            // 确认按钮
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _isLoading
-                    ? null
-                    : () {
-                        Navigator.of(context).pop(_addedFoods);
-                      },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.teal.shade500,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: Text(
-                  "Done",
-                  style: GoogleFonts.kalam(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

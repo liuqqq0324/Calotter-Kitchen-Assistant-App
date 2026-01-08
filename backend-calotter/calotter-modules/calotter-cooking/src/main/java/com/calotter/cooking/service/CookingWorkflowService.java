@@ -105,25 +105,34 @@ public class CookingWorkflowService {
             allDishes = List.of(session.getFinalDish());
         }
 
-        // 确定完成了哪些菜品
-        List<Long> completedDishIds = req.getCompletedDishIds();
-        // 使用 final 变量来避免 lambda 表达式中的编译错误
-        final List<Long> finalCompletedDishIds;
-        if (completedDishIds == null || completedDishIds.isEmpty()) {
-            // 如果没指定，默认完成所有菜品
-            finalCompletedDishIds = allDishes.stream()
+        // 🔥 直接使用 session 中新创建的 dishIds，忽略前端传入的（避免模板 dishId 不匹配问题）
+        List<Long> finalCompletedDishIds = allDishes.stream()
                 .map(Dish::getId)
                 .collect(Collectors.toList());
+        
+        List<Dish> completedDishes = allDishes;
+
+        // 🔥 可选：如果前端传入了 completedDishIds，记录日志以便调试
+        List<Long> requestedDishIds = req.getCompletedDishIds();
+        if (requestedDishIds != null && !requestedDishIds.isEmpty()) {
+            List<Long> sessionDishIds = allDishes.stream()
+                    .map(Dish::getId)
+                    .collect(Collectors.toList());
+            
+            // 检查是否有匹配的
+            boolean hasMatch = requestedDishIds.stream()
+                    .anyMatch(sessionDishIds::contains);
+            
+            if (!hasMatch) {
+                log.warn("前端传入的 completedDishIds {} 与 session {} 的实际 dishIds {} 不匹配（可能是模板 dishId），将使用 session 中的所有 dishId 完成会话", 
+                        requestedDishIds, req.getSessionId(), sessionDishIds);
+            } else {
+                log.debug("使用 session {} 中的所有 dishIds {} 完成会话（前端传入: {}）", 
+                        req.getSessionId(), sessionDishIds, requestedDishIds);
+            }
         } else {
-            finalCompletedDishIds = completedDishIds;
-        }
-
-        List<Dish> completedDishes = allDishes.stream()
-            .filter(d -> finalCompletedDishIds.contains(d.getId()))
-            .collect(Collectors.toList());
-
-        if (completedDishes.isEmpty()) {
-            throw new IllegalArgumentException("没有已完成的菜品");
+            log.debug("未指定 completedDishIds，将完成 session {} 中的所有菜品: {}", 
+                    req.getSessionId(), finalCompletedDishIds);
         }
 
         // 保存快照（汇总所有已完成的菜品）
@@ -333,12 +342,13 @@ public class CookingWorkflowService {
     }
     
     /**
-     * 单位转换（重载版本，支持使用 StandardIngredient 的 averageGramPerUnit）
+     * 单位转换（重载版本，支持使用 StandardIngredient 的新单位转换方法）
+     * ✅ 使用新的 StandardIngredient 方法进行单位转换
      * 
      * @param amount 数量
      * @param fromUnit 源单位
      * @param toUnit 目标单位
-     * @param metadata 标准食材信息（用于 pcs ↔ g 转换）
+     * @param metadata 标准食材信息（用于单位转换）
      * @return 转换后的数量，如果无法转换则返回 null
      */
     private Double convertUnit(Double amount, String fromUnit, String toUnit, StandardIngredient metadata) {
@@ -346,31 +356,19 @@ public class CookingWorkflowService {
             return null;
         }
         
-        // 标准化单位名称（去除空格，转小写）
-        String normalizedFromUnit = fromUnit.trim().toLowerCase();
-        String normalizedToUnit = toUnit.trim().toLowerCase();
-        
-        // 相同单位直接返回
-        if (normalizedFromUnit.equals(normalizedToUnit)) {
-            return amount;
-        }
-        
-        // 🔥 特殊处理：pcs ↔ g 转换（使用 StandardIngredient 的 averageGramPerUnit）
-        if (metadata != null && metadata.getAverageGramPerUnit() != null) {
-            Integer gramsPerUnit = metadata.getAverageGramPerUnit();
-            
-            // pcs -> g
-            if (isCountUnit(normalizedFromUnit) && isWeightUnit(normalizedToUnit) && normalizedToUnit.equals("g")) {
-                return amount * gramsPerUnit;
-            }
-            
-            // g -> pcs
-            if (isWeightUnit(normalizedFromUnit) && normalizedFromUnit.equals("g") && isCountUnit(normalizedToUnit)) {
-                return amount / gramsPerUnit;
+        // ✅ 使用新的 StandardIngredient 方法进行单位转换
+        if (metadata != null) {
+            try {
+                // 使用 convertBetweenUnits 方法在两个单位之间转换
+                return metadata.convertBetweenUnits(amount, fromUnit, toUnit);
+            } catch (IllegalArgumentException | IllegalStateException e) {
+                log.warn("单位转换失败（使用 StandardIngredient 方法）: {} {} -> {}: {}", 
+                    amount, fromUnit, toUnit, e.getMessage());
+                // 如果新方法失败，回退到旧的转换逻辑
             }
         }
         
-        // 调用基础转换方法
+        // 回退到基础转换方法（用于通用单位转换，如 g <-> kg, ml <-> L）
         return convertUnit(amount, fromUnit, toUnit);
     }
     

@@ -141,14 +141,23 @@ public class GroqAiMenuGenerationService implements AiMenuGenerationService {
             "  ]",
             "}",
             "",
-            "CRITICAL RULES:",
+            "⚠️ CRITICAL JSON FORMAT RULES (MANDATORY - NO EXCEPTIONS):",
             "- The root object MUST have a 'menus' field containing an array of exactly 5 menu objects.",
             "- Each menu object MUST have 'menuId' (1-5) and 'recipes' array.",
             "- Each 'recipes' array MUST contain EXACTLY 'generationSettings.dishCount' recipe objects.",
             "  * If dishCount=4, recipes array length must be 4.",
             "  * If dishCount=1, recipes array length must be 1.",
-            "- Return ONLY valid JSON, no markdown, no code blocks, no explanatory text.",
-            "- The JSON must be parseable by standard JSON parsers."
+            "- ⚠️ USE COLON (:) NOT EQUALS (=) for JSON key-value pairs.",
+            "  * CORRECT: \"ingredients\": [",
+            "  * WRONG: \"ingredients\"=[ or \"ingredients\"=[",
+            "- ⚠️ All JSON keys MUST be enclosed in double quotes.",
+            "- ⚠️ All string values MUST be enclosed in double quotes.",
+            "- ⚠️ Use commas to separate array elements and object properties.",
+            "- ⚠️ Do NOT use markdown code blocks (no ```json or ```).",
+            "- ⚠️ Do NOT include any explanatory text before or after the JSON.",
+            "- ⚠️ Return ONLY the raw JSON object, nothing else.",
+            "- The JSON must be parseable by standard JSON parsers without any preprocessing.",
+            "- Double-check your JSON syntax before returning it."
     );
 
     public GroqAiMenuGenerationService(ObjectMapper objectMapper) {
@@ -164,6 +173,41 @@ public class GroqAiMenuGenerationService implements AiMenuGenerationService {
             throw new IllegalStateException("Groq API key 未配置");
         }
         
+        // ✅ 添加重试机制
+        int maxRetries = 3;
+        Exception lastException = null;
+        
+        for (int attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                log.info("尝试生成菜单 (第 {}/{} 次)", attempt, maxRetries);
+                return generateMenusInternal(filter);
+            } catch (Exception e) {
+                lastException = e;
+                log.warn("第 {} 次尝试失败: {}", attempt, e.getMessage());
+                
+                // 如果不是最后一次尝试，等待后重试
+                if (attempt < maxRetries) {
+                    try {
+                        // 指数退避：等待时间随尝试次数增加
+                        long waitMs = 1000L * attempt;
+                        log.info("等待 {} ms 后重试...", waitMs);
+                        Thread.sleep(waitMs);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        throw new RuntimeException("重试被中断", ie);
+                    }
+                } else {
+                    log.error("所有 {} 次尝试均失败", maxRetries);
+                }
+            }
+        }
+        
+        // 所有重试都失败，抛出最后一个异常
+        throw new RuntimeException("使用 Groq 生成菜单失败，已重试 " + maxRetries + " 次: " + 
+            (lastException != null ? lastException.getMessage() : "未知错误"), lastException);
+    }
+    
+    private List<MenuDTO> generateMenusInternal(RecipeGenerationFilter filter) {
         try {
             String userJson = objectMapper.writeValueAsString(filter);
             log.debug("发送给 Groq 的请求数据: {}", userJson);
@@ -186,6 +230,7 @@ public class GroqAiMenuGenerationService implements AiMenuGenerationService {
             }
             
             userMessage.append("Now generate the menus following ALL constraints.");
+            userMessage.append("\n\n⚠️ REMINDER: Use COLON (:) not equals (=) for JSON key-value pairs. Return ONLY valid JSON.");
 
             Map<String, Object> payload = new HashMap<>();
             payload.put("model", model);
@@ -223,6 +268,10 @@ public class GroqAiMenuGenerationService implements AiMenuGenerationService {
             log.debug("Groq API 原始 content: {}", content);
             content = stripMarkdown(content);
             log.debug("Groq API 清理后的 content: {}", content);
+            
+            // ✅ 添加后处理修复逻辑
+            content = fixJsonFormatErrors(content);
+            log.debug("Groq API 修复后的 content: {}", content);
 
             JsonNode menuRoot = objectMapper.readTree(content);
             JsonNode menusNode = menuRoot.get("menus");
@@ -314,6 +363,42 @@ public class GroqAiMenuGenerationService implements AiMenuGenerationService {
             c = c.substring(0, c.length() - 3);
         }
         return c.trim();
+    }
+    
+    /**
+     * ✅ 修复常见的 JSON 格式错误
+     * 主要修复问题：
+     * 1. "key"=[ 应该改为 "key": [
+     * 2. 其他可能的格式错误
+     */
+    private String fixJsonFormatErrors(String content) {
+        if (content == null || content.isEmpty()) {
+            return content;
+        }
+        
+        String fixed = content;
+        
+        // 修复 "key"=[ 或 "key"= [ 的情况（将 = 替换为 :）
+        // 使用正则表达式匹配，但要注意不要误替换字符串值中的 =
+        // 匹配模式：引号后的 = 符号（后面可能跟着空格）
+        fixed = fixed.replaceAll("\"([^\"]+)\"\\s*=\\s*\\[", "\"$1\": [");
+        fixed = fixed.replaceAll("\"([^\"]+)\"\\s*=\\s*\\{", "\"$1\": {");
+        fixed = fixed.replaceAll("\"([^\"]+)\"\\s*=\\s*\"", "\"$1\": \"");
+        fixed = fixed.replaceAll("\"([^\"]+)\"\\s*=\\s*(-?\\d+(?:\\.\\d+)?)", "\"$1\": $2");
+        fixed = fixed.replaceAll("\"([^\"]+)\"\\s*=\\s*(true|false|null)", "\"$1\": $2");
+        
+        // 修复其他可能的格式问题
+        // 移除可能的尾随逗号（在 ] 或 } 之前）
+        fixed = fixed.replaceAll(",\\s*([\\]\\}])", "$1");
+        
+        // 记录是否进行了修复
+        if (!fixed.equals(content)) {
+            log.info("检测到 JSON 格式错误，已自动修复");
+            log.debug("修复前: {}", content.substring(0, Math.min(500, content.length())));
+            log.debug("修复后: {}", fixed.substring(0, Math.min(500, fixed.length())));
+        }
+        
+        return fixed;
     }
 }
 

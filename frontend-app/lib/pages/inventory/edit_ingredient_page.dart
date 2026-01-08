@@ -31,6 +31,10 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
   bool _isLoadingIngredients = true;
   int? _selectedStandardIngredientId; // 用户选择的标准食材ID
 
+  // ✅ 允许的单位列表（根据选中的标准食材动态加载）
+  List<String> _allowedUnits = ['g', 'pcs', 'ml']; // 默认单位列表
+  bool _isLoadingUnits = false;
+
   @override
   void initState() {
     super.initState();
@@ -46,6 +50,47 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
 
     // ✅ 页面加载时获取标准食材库
     _loadStandardIngredients();
+
+    // ✅ 如果是编辑模式，尝试加载当前食材的允许单位
+    if (!widget.isNew && widget.ingredient.standardIngredientId != null) {
+      _loadAllowedUnits(widget.ingredient.standardIngredientId!);
+    }
+  }
+
+  /// ✅ 加载允许的单位列表
+  Future<void> _loadAllowedUnits(int standardIngredientId) async {
+    if (_isLoadingUnits) return; // 防止重复加载
+
+    setState(() {
+      _isLoadingUnits = true;
+    });
+
+    try {
+      final allowedUnits = await InventoryApiService.getAllowedUnits(
+        standardIngredientId,
+      );
+      if (mounted) {
+        setState(() {
+          _allowedUnits = allowedUnits.isNotEmpty
+              ? allowedUnits
+              : ['g', 'pcs', 'ml'];
+          _isLoadingUnits = false;
+
+          // ✅ 如果当前单位不在允许列表中，设置为第一个允许的单位
+          if (!_allowedUnits.contains(_unit)) {
+            _unit = _allowedUnits.isNotEmpty ? _allowedUnits[0] : 'g';
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingUnits = false;
+        });
+        // 加载失败时使用默认单位列表
+        _allowedUnits = ['g', 'pcs', 'ml'];
+      }
+    }
   }
 
   /// 加载标准食材库（使用缓存服务）
@@ -201,7 +246,7 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
                             .map((ingredient) => ingredient['name'] as String);
                       },
 
-                      // ✅ 选中回调：记录选中的标准食材ID
+                      // ✅ 选中回调：记录选中的标准食材ID，并加载允许的单位列表
                       onSelected: (String selection) {
                         _nameController.text = selection; // 更新控制器
                         // 查找对应的标准食材ID
@@ -210,14 +255,19 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
                           orElse: () => {},
                         );
                         if (matched.isNotEmpty && matched['id'] != null) {
+                          final standardIngredientId = matched['id'] as int;
                           setState(() {
                             _selectedStandardIngredientId =
-                                matched['id'] as int;
+                                standardIngredientId;
                           });
+
+                          // ✅ 加载允许的单位列表
+                          _loadAllowedUnits(standardIngredientId);
+
+                          print(
+                            '用户选择了: $selection (ID: $standardIngredientId)',
+                          );
                         }
-                        print(
-                          '用户选择了: $selection (ID: $_selectedStandardIngredientId)',
-                        );
                       },
 
                       // 自定义输入框样式 (伪装成之前的大橙色字体)
@@ -271,17 +321,8 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
                   // 🔥 传入宽度：因为加了箭头和下划线，我们给它宽一点的空间
                   totalWidth: 95,
 
-                  // 🔥 传入数据源：启用下拉功能
-                  unitOptions: const [
-                    'pcs',
-                    'g',
-                    'kg',
-                    'ml',
-                    'L',
-                    'blocks',
-                    'box',
-                    'bag',
-                  ],
+                  // ✅ 传入数据源：使用动态加载的允许单位列表
+                  unitOptions: _allowedUnits,
 
                   // 🔥 传入回调：当用户选了新单位时做什么
                   onUnitChanged: (newUnit) {

@@ -59,7 +59,7 @@ ai:
     #   top-p: 0.9
   # 营养估算器配置
   nutrition:
-    provider: gemini  # gemini 或 groq（默认 gemini）
+    provider: groq  # groq（Groq 是唯一可用的实现）
     # Gemini 配置
     gemini:
       base-url: https://generativelanguage.googleapis.com

@@ -14,7 +14,9 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -472,5 +474,143 @@ class InventoryControllerApiTest {
         mockMvc.perform(delete("/api/inventory/utensils/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200));
+    }
+
+    @Test
+    void testToggleUtensilAvailability_Success() throws Exception {
+        // Given
+        UtensilResponse response = UtensilResponse.builder()
+                .id(1L)
+                .householdId(1L)
+                .standardUtensilId(1L)
+                .isAvailable(false)
+                .build();
+
+        when(inventoryService.toggleUtensilAvailability(1L)).thenReturn(response);
+
+        // When & Then
+        mockMvc.perform(patch("/api/inventory/utensils/1/toggle"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.isAvailable").value(false));
+    }
+
+    @Test
+    void testToggleSpiceAvailability_Success() throws Exception {
+        // Given
+        SpiceResponse response = SpiceResponse.builder()
+                .id(1L)
+                .householdId(1L)
+                .standardSpiceId(1L)
+                .isAvailable(false)
+                .build();
+
+        when(inventoryService.toggleSpiceAvailability(1L)).thenReturn(response);
+
+        // When & Then
+        mockMvc.perform(patch("/api/inventory/spices/1/toggle"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.isAvailable").value(false));
+    }
+
+    // ==================== 剩菜部分更新测试 ====================
+
+    @Test
+    void testPatchLeftover_Success() throws Exception {
+        // Given
+        Map<String, Object> request = new HashMap<>();
+        request.put("consumedPercentage", 30.0);
+
+        LeftoverResponse response = LeftoverResponse.builder()
+                .id(1L)
+                .householdId(1L)
+                .originalDishId(100L)
+                .currentQuantityGram(350) // 消费30%后剩余
+                .build();
+
+        when(inventoryService.patchLeftover(1L, new java.math.BigDecimal("30.0"))).thenReturn(response);
+
+        // When & Then
+        mockMvc.perform(patch("/api/inventory/leftovers/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.currentQuantityGram").value(350));
+    }
+
+    // ==================== 标准库查询测试 ====================
+
+    @Test
+    void testGetAllStandardIngredients_Success() throws Exception {
+        // Given
+        com.calotter.common.core.domain.entity.StandardIngredient ingredient = 
+                new com.calotter.common.core.domain.entity.StandardIngredient();
+        ingredient.setId(1001L);
+        ingredient.setName("鸡蛋");
+        List<com.calotter.common.core.domain.entity.StandardIngredient> ingredients = Arrays.asList(ingredient);
+
+        when(inventoryService.getAllStandardIngredients()).thenReturn(ingredients);
+
+        // When & Then
+        mockMvc.perform(get("/api/inventory/standard-ingredients"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data").isArray());
+    }
+
+    @Test
+    void testSearchStandardIngredients_ExactMatch() throws Exception {
+        // Given
+        com.calotter.common.core.domain.entity.StandardIngredient ingredient = 
+                new com.calotter.common.core.domain.entity.StandardIngredient();
+        ingredient.setId(1001L);
+        ingredient.setName("鸡蛋");
+
+        when(inventoryService.findStandardIngredientByName("鸡蛋")).thenReturn(ingredient);
+
+        // When & Then
+        mockMvc.perform(get("/api/inventory/standard-ingredients/search")
+                        .param("name", "鸡蛋")
+                        .param("fuzzy", "false"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.name").value("鸡蛋"));
+    }
+
+    @Test
+    void testSearchStandardIngredients_FuzzyMatch() throws Exception {
+        // Given
+        com.calotter.common.core.domain.entity.StandardIngredient ingredient = 
+                new com.calotter.common.core.domain.entity.StandardIngredient();
+        ingredient.setId(1001L);
+        ingredient.setName("鸡蛋");
+        List<com.calotter.common.core.domain.entity.StandardIngredient> ingredients = Arrays.asList(ingredient);
+
+        when(inventoryService.searchStandardIngredientsByName("鸡")).thenReturn(ingredients);
+
+        // When & Then
+        mockMvc.perform(get("/api/inventory/standard-ingredients/search")
+                        .param("name", "鸡")
+                        .param("fuzzy", "true"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data").isArray());
+    }
+
+    @Test
+    void testGetAllowedUnits_Success() throws Exception {
+        // Given
+        List<String> allowedUnits = Arrays.asList("pcs", "g");
+
+        when(inventoryService.getAllowedUnits(1001L)).thenReturn(allowedUnits);
+
+        // When & Then
+        mockMvc.perform(get("/api/inventory/standard-ingredients/1001/allowed-units"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data.length()").value(2));
     }
 }
