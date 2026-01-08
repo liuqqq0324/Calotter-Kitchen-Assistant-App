@@ -12,7 +12,6 @@ class AllergiesListPage extends StatefulWidget {
 
 class _AllergiesListPageState extends State<AllergiesListPage> {
   bool _isLoading = true;
-  bool _isEditing = false; // 编辑模式标志
   
   Set<String> _selectedAllergies = {}; // 使用 Set 存储选中的过敏原
   List<Map<String, dynamic>> _standardAllergens = []; // 标准库
@@ -83,9 +82,8 @@ class _AllergiesListPageState extends State<AllergiesListPage> {
             backgroundColor: Colors.green.shade300,
           ),
         );
-        setState(() {
-          _isEditing = false;
-        });
+        // ✅ 保存成功后直接返回上一页
+        Navigator.pop(context, true);
       }
     } else {
       if (mounted) {
@@ -115,30 +113,17 @@ class _AllergiesListPageState extends State<AllergiesListPage> {
       appBar: AppBar(
         title: const Text('Allergies'),
         actions: [
-          if (!_isEditing)
-            IconButton(
-              icon: const Icon(Icons.edit),
-              onPressed: () {
-                setState(() {
-                  _isEditing = true;
-                });
-              },
-            )
-          else
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  _isEditing = false;
-                });
-                _loadAllergies(); // 取消编辑，重新加载
-              },
-              child: const Text('Cancel'),
-            ),
-          if (_isEditing)
-            TextButton(
-              onPressed: _saveAllergies,
-              child: const Text('Save'),
-            ),
+          TextButton(
+            onPressed: () {
+              // ✅ 取消编辑，直接返回上一页
+              Navigator.pop(context);
+            },
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: _saveAllergies,
+            child: const Text('Save'),
+          ),
         ],
       ),
       body: ListView(
@@ -155,17 +140,15 @@ class _AllergiesListPageState extends State<AllergiesListPage> {
               return FilterChip(
                 label: Text(name),
                 selected: selected,
-                onSelected: _isEditing
-                    ? (val) {
-                        setState(() {
-                          if (val) {
-                            _selectedAllergies.add(name);
-                          } else {
-                            _selectedAllergies.remove(name);
-                          }
-                        });
-                      }
-                    : null,
+                onSelected: (val) {
+                  setState(() {
+                    if (val) {
+                      _selectedAllergies.add(name);
+                    } else {
+                      _selectedAllergies.remove(name);
+                    }
+                  });
+                },
               );
             }).toList(),
           ),

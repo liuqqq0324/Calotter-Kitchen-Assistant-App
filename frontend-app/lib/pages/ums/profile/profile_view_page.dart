@@ -283,6 +283,17 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
   List<String> _tastes = [];
   List<String> _cuisines = [];
 
+  // ✅ 格式化文本：将下划线命名转换为标题格式
+  // 例如：south_east_asian → South East Asian, low_sugar → Low Sugar
+  String _formatToTitleCase(String text) {
+    return text
+        .split('_')
+        .map((word) => word.isEmpty
+            ? ''
+            : word[0].toUpperCase() + word.substring(1).toLowerCase())
+        .join(' ');
+  }
+
   Future<void> _loadListsData() async {
     // Load preferences map (TASTE, CUISINE, DISLIKE)
     final prefsResult = await UserService.getUserPreferencesMap();
@@ -510,7 +521,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
 
     Widget chips(String label, List<String> values) {
       if (values.isEmpty) return const SizedBox.shrink();
-      final show = values.take(6).toList();
+      final show = values.take(2).toList();  // ✅ 最多显示2项
       final remaining = values.length - show.length;
 
       return Column(
@@ -532,7 +543,10 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
               ...show.map(
                 (v) => Chip(
                   backgroundColor: Colors.grey.shade200,
-                  label: Text(v, style: GoogleFonts.kalam(fontSize: 12)),
+                  label: Text(
+                    _formatToTitleCase(v),
+                    style: GoogleFonts.kalam(fontSize: 12),
+                  ),
                   side: BorderSide(color: Colors.grey.shade400),
                 ),
               ),
@@ -558,6 +572,48 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
         if (_tastes.isNotEmpty && _cuisines.isNotEmpty)
           const SizedBox(height: 12),
         chips('Cuisines', _cuisines),
+      ],
+    );
+  }
+
+  // ✅ 构建项目摘要（最多显示2项，超过显示+n，使用 Chip 风格）
+  Widget _buildItemsSummary(List<String> items) {
+    if (items.isEmpty) {
+      return Text(
+        'No items',
+        style: GoogleFonts.kalam(
+          fontSize: 12,
+          color: Colors.grey[600],
+        ),
+      );
+    }
+
+    final show = items.take(2).toList();
+    final remaining = items.length - show.length;
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        ...show.map(
+          (item) => Chip(
+            backgroundColor: Colors.grey.shade200,
+            label: Text(
+              _formatToTitleCase(item),
+              style: GoogleFonts.kalam(fontSize: 12),
+            ),
+            side: BorderSide(color: Colors.grey.shade400),
+          ),
+        ),
+        if (remaining > 0)
+          Chip(
+            backgroundColor: Colors.grey.shade200,
+            label: Text(
+              '+$remaining',
+              style: GoogleFonts.kalam(fontSize: 12),
+            ),
+            side: BorderSide(color: Colors.grey.shade400),
+          ),
       ],
     );
   }
@@ -973,43 +1029,35 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Preferences',
-                          style: GoogleFonts.kalam(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(
+                        'Preferences',
+                        style: GoogleFonts.kalam(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
                         ),
-                        TextButton(
-                          onPressed: () async {
-                            // 跳转到编辑页面
-                            await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    const PreferencesListPage(),
-                              ),
-                            );
-                            // Reload lists data after returning from list page
-                            await _loadListsData();
-                            setState(() {});
-                          },
-                          child: Text(
-                            'Edit',
-                            style: GoogleFonts.kalam(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            ),
+                      ),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 8),
+                          _buildPreferencesSummary(),
+                        ],
+                      ),
+                      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                      onTap: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                const PreferencesListPage(),
                           ),
-                        ),
-                      ],
+                        );
+                        await _loadListsData();
+                        setState(() {});
+                      },
                     ),
-                    const SizedBox(height: 8),
-                    // 显示偏好摘要（只读）
-                    _buildPreferencesSummary(),
                     const SizedBox(height: 12),
                     Divider(color: Colors.grey.shade300, height: 1),
                     ListTile(
@@ -1021,13 +1069,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      subtitle: Text(
-                        '${kCurrentUser.dietHabits.length} items',
-                        style: GoogleFonts.kalam(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                        ),
-                      ),
+                      subtitle: _buildItemsSummary(kCurrentUser.dietHabits),
                       trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                       onTap: () async {
                         await Navigator.push(
@@ -1051,13 +1093,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      subtitle: Text(
-                        '${kCurrentUser.allergies.length} items',
-                        style: GoogleFonts.kalam(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                        ),
-                      ),
+                      subtitle: _buildItemsSummary(kCurrentUser.allergies),
                       trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                       onTap: () async {
                         await Navigator.push(
@@ -1071,62 +1107,6 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                       },
                     ),
                   ],
-                ),
-              ),
-              const SizedBox(height: 12),
-              SketchyCard(
-                backgroundColor: Colors.white,
-                borderColor: Colors.black87,
-                borderWidth: 2.0,
-                padding: EdgeInsets.zero,
-                onTap: () async {
-                  await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const DietHabitsListPage(),
-                    ),
-                  );
-                  // Reload lists data after returning from list page
-                  await _loadListsData();
-                  setState(() {});
-                },
-                child: ListTile(
-                  title: Text(
-                    'Diet Habits',
-                    style: GoogleFonts.kalam(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                ),
-              ),
-              const SizedBox(height: 12),
-              SketchyCard(
-                backgroundColor: Colors.white,
-                borderColor: Colors.black87,
-                borderWidth: 2.0,
-                padding: EdgeInsets.zero,
-                onTap: () async {
-                  await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const AllergiesListPage(),
-                    ),
-                  );
-                  // Reload lists data after returning from list page
-                  await _loadListsData();
-                  setState(() {});
-                },
-                child: ListTile(
-                  title: Text(
-                    'Allergies',
-                    style: GoogleFonts.kalam(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                 ),
               ),
               const SizedBox(height: 40),

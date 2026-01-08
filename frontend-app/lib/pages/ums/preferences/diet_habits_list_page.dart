@@ -12,7 +12,6 @@ class DietHabitsListPage extends StatefulWidget {
 
 class _DietHabitsListPageState extends State<DietHabitsListPage> {
   bool _isLoading = true;
-  bool _isEditing = false; // 编辑模式标志
   
   Set<String> _selectedDietHabits = {}; // 使用 Set 存储选中的饮食习惯（发送给后端时字段名为 dietHabits）
 
@@ -58,9 +57,8 @@ class _DietHabitsListPageState extends State<DietHabitsListPage> {
             backgroundColor: Colors.green.shade300,
           ),
         );
-        setState(() {
-          _isEditing = false;
-        });
+        // ✅ 保存成功后直接返回上一页
+        Navigator.pop(context, true);
       }
     } else {
       if (mounted) {
@@ -90,30 +88,17 @@ class _DietHabitsListPageState extends State<DietHabitsListPage> {
       appBar: AppBar(
         title: const Text('Dietary Habits'),
         actions: [
-          if (!_isEditing)
-            IconButton(
-              icon: const Icon(Icons.edit),
-              onPressed: () {
-                setState(() {
-                  _isEditing = true;
-                });
-              },
-            )
-          else
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  _isEditing = false;
-                });
-                _loadDietHabits(); // 取消编辑，重新加载
-              },
-              child: const Text('Cancel'),
-            ),
-          if (_isEditing)
-            TextButton(
-              onPressed: _saveDietHabits,
-              child: const Text('Save'),
-            ),
+          TextButton(
+            onPressed: () {
+              // ✅ 取消编辑，直接返回上一页
+              Navigator.pop(context);
+            },
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: _saveDietHabits,
+            child: const Text('Save'),
+          ),
         ],
       ),
       body: ListView(
@@ -131,17 +116,15 @@ class _DietHabitsListPageState extends State<DietHabitsListPage> {
               return FilterChip(
                 label: Text(label),
                 selected: selected,
-                onSelected: _isEditing
-                    ? (val) {
-                        setState(() {
-                          if (val) {
-                            _selectedDietHabits.add(value);
-                          } else {
-                            _selectedDietHabits.remove(value);
-                          }
-                        });
-                      }
-                    : null,
+                onSelected: (val) {
+                  setState(() {
+                    if (val) {
+                      _selectedDietHabits.add(value);
+                    } else {
+                      _selectedDietHabits.remove(value);
+                    }
+                  });
+                },
               );
             }).toList(),
           ),

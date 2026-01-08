@@ -12,7 +12,6 @@ class PreferencesListPage extends StatefulWidget {
 
 class _PreferencesListPageState extends State<PreferencesListPage> {
   bool _isLoading = true;
-  bool _isEditing = false; // 编辑模式标志
   
   // 两个大类的偏好
   Set<String> _selectedTastes = {}; // 口味偏好
@@ -68,9 +67,8 @@ class _PreferencesListPageState extends State<PreferencesListPage> {
             backgroundColor: Colors.green.shade300,
           ),
         );
-        setState(() {
-          _isEditing = false;
-        });
+        // ✅ 保存成功后直接返回上一页
+        Navigator.pop(context, true);
       }
     } else {
       if (mounted) {
@@ -101,30 +99,17 @@ class _PreferencesListPageState extends State<PreferencesListPage> {
       appBar: AppBar(
         title: const Text('Preferences'),
         actions: [
-          if (!_isEditing)
-            IconButton(
-              icon: const Icon(Icons.edit),
-              onPressed: () {
-                setState(() {
-                  _isEditing = true;
-                });
-              },
-            )
-          else
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  _isEditing = false;
-                });
-                _loadPreferences(); // 取消编辑，重新加载
-              },
-              child: const Text('Cancel'),
-            ),
-          if (_isEditing)
-            TextButton(
-              onPressed: _savePreferences,
-              child: const Text('Save'),
-            ),
+          TextButton(
+            onPressed: () {
+              // ✅ 取消编辑，直接返回上一页
+              Navigator.pop(context);
+            },
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: _savePreferences,
+            child: const Text('Save'),
+          ),
         ],
       ),
       body: ListView(
@@ -141,17 +126,15 @@ class _PreferencesListPageState extends State<PreferencesListPage> {
               return FilterChip(
                 label: Text(taste),
                 selected: selected,
-                onSelected: _isEditing
-                    ? (val) {
-                        setState(() {
-                          if (val) {
-                            _selectedTastes.add(taste);
-                          } else {
-                            _selectedTastes.remove(taste);
-                          }
-                        });
-                      }
-                    : null,
+                onSelected: (val) {
+                  setState(() {
+                    if (val) {
+                      _selectedTastes.add(taste);
+                    } else {
+                      _selectedTastes.remove(taste);
+                    }
+                  });
+                },
               );
             }).toList(),
           ),
@@ -168,17 +151,15 @@ class _PreferencesListPageState extends State<PreferencesListPage> {
               return FilterChip(
                 label: Text(cuisine),
                 selected: selected,
-                onSelected: _isEditing
-                    ? (val) {
-                        setState(() {
-                          if (val) {
-                            _selectedCuisines.add(cuisine);
-                          } else {
-                            _selectedCuisines.remove(cuisine);
-                          }
-                        });
-                      }
-                    : null,
+                onSelected: (val) {
+                  setState(() {
+                    if (val) {
+                      _selectedCuisines.add(cuisine);
+                    } else {
+                      _selectedCuisines.remove(cuisine);
+                    }
+                  });
+                },
               );
             }).toList(),
           ),
