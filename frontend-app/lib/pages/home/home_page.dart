@@ -54,7 +54,7 @@ class _HomePageState extends State<HomePage> {
     setState(() => _isLoading = true);
 
     try {
-      // 1) Weekly summary + targets (existing behavior)
+      // 1) Weekly summary + targets (weekly card)
       final summaryResult = await HomepageApiService.getWeeklyNutritionSummary();
 
       if (!mounted) return;
@@ -96,13 +96,8 @@ class _HomePageState extends State<HomePage> {
           };
         });
 
-        // 2) Daily summary (client-side): sum today's intake effectiveNutrition; daily target = weeklyTarget/7
-        await _loadDailyNutritionDataFromTodayIntakes(
-          weeklyTargetEnergy: (weeklyTarget['energy'] as num?)?.toDouble(),
-          weeklyTargetProtein: (weeklyTarget['protein'] as num?)?.toDouble(),
-          weeklyTargetFat: (weeklyTarget['fat'] as num?)?.toDouble(),
-          weeklyTargetCarbs: (weeklyTarget['carbohydrates'] as num?)?.toDouble(),
-        );
+        // 2) Daily summary + targets (daily card) - use backend endpoints for consistency
+        await _loadDailyNutritionDataFromBackend();
 
         if (!mounted) return;
         setState(() => _isLoading = false);
@@ -164,50 +159,32 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  Future<void> _loadDailyNutritionDataFromTodayIntakes({
-    double? weeklyTargetEnergy,
-    double? weeklyTargetProtein,
-    double? weeklyTargetFat,
-    double? weeklyTargetCarbs,
-  }) async {
+  Future<void> _loadDailyNutritionDataFromBackend() async {
     try {
-      final todayResult = await HomepageApiService.getTodayIntakes(source: 'all');
       if (!mounted) return;
-      if (todayResult['success'] != true) return;
 
-      final data = todayResult['data'] as Map<String, dynamic>?;
-      final items = data?['items'] as List<dynamic>? ?? const [];
+      final targetResult = await HomepageApiService.getDailyNutritionTargets();
+      final summaryResult = await HomepageApiService.getDailyNutritionSummary();
 
-      double energy = 0;
-      double protein = 0;
-      double fat = 0;
-      double carbs = 0;
+      if (!mounted) return;
+      if (targetResult['success'] != true || summaryResult['success'] != true) return;
 
-      for (final e in items) {
-        final item = (e as Map).cast<String, dynamic>();
-        final effective = (item['effectiveNutrition'] as Map?)?.cast<String, dynamic>();
-        if (effective == null) continue;
-        energy += (effective['energy'] as num?)?.toDouble() ?? 0.0;
-        protein += (effective['protein'] as num?)?.toDouble() ?? 0.0;
-        fat += (effective['fat'] as num?)?.toDouble() ?? 0.0;
-        carbs += (effective['carbohydrates'] as num?)?.toDouble() ?? 0.0;
-      }
+      final targetData = (targetResult['data'] as Map<String, dynamic>?) ?? {};
+      final dailyTarget = (targetData['dailyTarget'] as Map?)?.cast<String, dynamic>() ?? {};
 
-      final dailyEnergyTarget = (weeklyTargetEnergy ?? 14000.0) / 7.0;
-      final dailyProteinTarget = (weeklyTargetProtein ?? 700.0) / 7.0;
-      final dailyFatTarget = (weeklyTargetFat ?? 455.0) / 7.0;
-      final dailyCarbsTarget = (weeklyTargetCarbs ?? 1750.0) / 7.0;
+      final summaryData = (summaryResult['data'] as Map<String, dynamic>?) ?? {};
+      final consumed = (summaryData['consumed'] as Map?)?.cast<String, dynamic>() ?? {};
 
       setState(() {
         _dailyNutritionData = {
-          'energy_current': energy,
-          'energy_target': dailyEnergyTarget,
-          'protein_current': protein,
-          'protein_target': dailyProteinTarget,
-          'fat_current': fat,
-          'fat_target': dailyFatTarget,
-          'carbs_current': carbs,
-          'carbs_target': dailyCarbsTarget,
+          'energy_current': (consumed['energy'] as num?)?.toDouble() ?? 0.0,
+          'energy_target': (dailyTarget['energy'] as num?)?.toDouble() ?? 0.0,
+          'protein_current': (consumed['protein'] as num?)?.toDouble() ?? 0.0,
+          'protein_target': (dailyTarget['protein'] as num?)?.toDouble() ?? 0.0,
+          'fat_current': (consumed['fat'] as num?)?.toDouble() ?? 0.0,
+          'fat_target': (dailyTarget['fat'] as num?)?.toDouble() ?? 0.0,
+          'carbs_current': (consumed['carbohydrates'] as num?)?.toDouble() ?? 0.0,
+          'carbs_target': (dailyTarget['carbohydrates'] as num?)?.toDouble() ?? 0.0,
         };
       });
     } catch (_) {

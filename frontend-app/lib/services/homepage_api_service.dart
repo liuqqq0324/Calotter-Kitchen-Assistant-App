@@ -210,6 +210,58 @@ class HomepageApiService {
     String? userId,
   }) async {
     try {
+      if (_useMockApi) {
+        // Basic mock: weekly targets and consumed numbers (best-effort).
+        // Keep shape aligned with backend: {period, weekStart, weekEnd, consumed, remaining}
+        final now = DateTime.now();
+        final weekStart = now.subtract(Duration(days: now.weekday - 1));
+        final weekEnd = weekStart.add(const Duration(days: 6));
+
+        // Simple mock targets (weekly)
+        const weeklyEnergyTarget = 14000.0;
+        const weeklyProteinTarget = 700.0;
+        const weeklyFatTarget = 455.0;
+        const weeklyCarbsTarget = 1750.0;
+
+        // Very rough mock consumed: sum today's manual foods only (if present), and treat as week-to-date.
+        double consumedEnergy = 0;
+        double consumedProtein = 0;
+        double consumedFat = 0;
+        double consumedCarbs = 0;
+        for (final e in _mockTodayManualFoods) {
+          final eff = (e['effectiveNutrition'] as Map?)?.cast<String, dynamic>();
+          if (eff == null) continue;
+          consumedEnergy += (eff['energy'] as num?)?.toDouble() ?? 0.0;
+          consumedProtein += (eff['protein'] as num?)?.toDouble() ?? 0.0;
+          consumedFat += (eff['fat'] as num?)?.toDouble() ?? 0.0;
+          consumedCarbs += (eff['carbohydrates'] as num?)?.toDouble() ?? 0.0;
+        }
+
+        return {
+          'success': true,
+          'data': {
+            'period': 'week',
+            'weekStart':
+                '${weekStart.year}-${weekStart.month.toString().padLeft(2, '0')}-${weekStart.day.toString().padLeft(2, '0')}',
+            'weekEnd':
+                '${weekEnd.year}-${weekEnd.month.toString().padLeft(2, '0')}-${weekEnd.day.toString().padLeft(2, '0')}',
+            'consumed': {
+              'energy': consumedEnergy,
+              'protein': consumedProtein,
+              'fat': consumedFat,
+              'carbohydrates': consumedCarbs,
+            },
+            'remaining': {
+              'energy': (weeklyEnergyTarget - consumedEnergy).clamp(0.0, 1e18),
+              'protein': (weeklyProteinTarget - consumedProtein).clamp(0.0, 1e18),
+              'fat': (weeklyFatTarget - consumedFat).clamp(0.0, 1e18),
+              'carbohydrates': (weeklyCarbsTarget - consumedCarbs).clamp(0.0, 1e18),
+            },
+          },
+          'code': 200,
+        };
+      }
+
       final userIdParam = userId ?? await AuthService.getUserId();
       if (userIdParam == null) {
         return {'success': false, 'error': 'User not logged in', 'code': 401};
@@ -239,6 +291,200 @@ class HomepageApiService {
 
       return _handleResponse(response);
     } on http.ClientException catch (e) {
+      return {
+        'success': false,
+        'error':
+            'Network connection failed. Please check your internet connection.',
+        'code': 0,
+      };
+    } on Exception catch (e) {
+      String errorMsg = 'Network error';
+      if (e.toString().contains('timeout')) {
+        errorMsg = 'Request timeout. Please try again.';
+      } else if (e.toString().contains('Failed host lookup') ||
+          e.toString().contains('Connection refused')) {
+        errorMsg =
+            'Cannot connect to server. Please check:\n'
+            '1. Backend service is running on port ${ApiConfig.homepagePort}\n'
+            '2. IP address is correct (${ApiConfig.serverIp})\n'
+            '3. Network connection is available';
+      } else {
+        errorMsg = 'Network error: ${e.toString()}';
+      }
+      return {'success': false, 'error': errorMsg, 'code': 0};
+    } catch (e) {
+      return {
+        'success': false,
+        'error': 'Unexpected error: ${e.toString()}',
+        'code': 0,
+      };
+    }
+  }
+
+  /// 2.1 获取日营养摘要（已消耗 + 剩余）
+  /// GET /api/nutrition/summary/daily?userId={userId}&date=YYYY-MM-DD
+  static Future<Map<String, dynamic>> getDailyNutritionSummary({
+    String? userId,
+    DateTime? date,
+  }) async {
+    try {
+      if (_useMockApi) {
+        final d = date ?? DateTime.now();
+        // Simple mock consumed = sum today's manual foods only.
+        double consumedEnergy = 0;
+        double consumedProtein = 0;
+        double consumedFat = 0;
+        double consumedCarbs = 0;
+        for (final e in _mockTodayManualFoods) {
+          final eff = (e['effectiveNutrition'] as Map?)?.cast<String, dynamic>();
+          if (eff == null) continue;
+          consumedEnergy += (eff['energy'] as num?)?.toDouble() ?? 0.0;
+          consumedProtein += (eff['protein'] as num?)?.toDouble() ?? 0.0;
+          consumedFat += (eff['fat'] as num?)?.toDouble() ?? 0.0;
+          consumedCarbs += (eff['carbohydrates'] as num?)?.toDouble() ?? 0.0;
+        }
+
+        // Simple mock daily targets
+        const dailyEnergyTarget = 2000.0;
+        const dailyProteinTarget = 100.0;
+        const dailyFatTarget = 65.0;
+        const dailyCarbsTarget = 250.0;
+
+        return {
+          'success': true,
+          'data': {
+            'period': 'day',
+            'date':
+                '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}',
+            'consumed': {
+              'energy': consumedEnergy,
+              'protein': consumedProtein,
+              'fat': consumedFat,
+              'carbohydrates': consumedCarbs,
+            },
+            'remaining': {
+              'energy': (dailyEnergyTarget - consumedEnergy).clamp(0.0, 1e18),
+              'protein': (dailyProteinTarget - consumedProtein).clamp(0.0, 1e18),
+              'fat': (dailyFatTarget - consumedFat).clamp(0.0, 1e18),
+              'carbohydrates': (dailyCarbsTarget - consumedCarbs).clamp(0.0, 1e18),
+            },
+          },
+          'code': 200,
+        };
+      }
+
+      final userIdParam = userId ?? await AuthService.getUserId();
+      if (userIdParam == null) {
+        return {'success': false, 'error': 'User not logged in', 'code': 401};
+      }
+
+      final d = date ?? DateTime.now();
+      final dateStr =
+          '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+      final url = Uri.parse(
+        '${ApiConfig.homepageBaseUrl}/api/nutrition/summary/daily?userId=$userIdParam&date=$dateStr',
+      );
+      final headers = _getHeaders();
+
+      print('[HomepageApi] GET $url');
+
+      final response = await http.get(url, headers: headers).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw Exception('Request timeout: Server did not respond in time');
+        },
+      );
+
+      print(
+        '[HomepageApi] Response ${response.statusCode}: ${response.body.substring(0, response.body.length > 200 ? 200 : response.body.length)}',
+      );
+
+      return _handleResponse(response);
+    } on http.ClientException catch (_) {
+      return {
+        'success': false,
+        'error':
+            'Network connection failed. Please check your internet connection.',
+        'code': 0,
+      };
+    } on Exception catch (e) {
+      String errorMsg = 'Network error';
+      if (e.toString().contains('timeout')) {
+        errorMsg = 'Request timeout. Please try again.';
+      } else if (e.toString().contains('Failed host lookup') ||
+          e.toString().contains('Connection refused')) {
+        errorMsg =
+            'Cannot connect to server. Please check:\n'
+            '1. Backend service is running on port ${ApiConfig.homepagePort}\n'
+            '2. IP address is correct (${ApiConfig.serverIp})\n'
+            '3. Network connection is available';
+      } else {
+        errorMsg = 'Network error: ${e.toString()}';
+      }
+      return {'success': false, 'error': errorMsg, 'code': 0};
+    } catch (e) {
+      return {
+        'success': false,
+        'error': 'Unexpected error: ${e.toString()}',
+        'code': 0,
+      };
+    }
+  }
+
+  /// 2.2 获取日营养目标
+  /// GET /api/nutrition/targets/daily?userId={userId}&date=YYYY-MM-DD
+  static Future<Map<String, dynamic>> getDailyNutritionTargets({
+    String? userId,
+    DateTime? date,
+  }) async {
+    try {
+      if (_useMockApi) {
+        final d = date ?? DateTime.now();
+        return {
+          'success': true,
+          'data': {
+            'date':
+                '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}',
+            'dailyTarget': {
+              'energy': 2000,
+              'protein': 100.0,
+              'fat': 65.0,
+              'carbohydrates': 250.0,
+              'fiber': 25.0,
+            },
+          },
+          'code': 200,
+        };
+      }
+
+      final userIdParam = userId ?? await AuthService.getUserId();
+      if (userIdParam == null) {
+        return {'success': false, 'error': 'User not logged in', 'code': 401};
+      }
+
+      final d = date ?? DateTime.now();
+      final dateStr =
+          '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+      final url = Uri.parse(
+        '${ApiConfig.homepageBaseUrl}/api/nutrition/targets/daily?userId=$userIdParam&date=$dateStr',
+      );
+      final headers = _getHeaders();
+
+      print('[HomepageApi] GET $url');
+
+      final response = await http.get(url, headers: headers).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw Exception('Request timeout: Server did not respond in time');
+        },
+      );
+
+      print(
+        '[HomepageApi] Response ${response.statusCode}: ${response.body.substring(0, response.body.length > 200 ? 200 : response.body.length)}',
+      );
+
+      return _handleResponse(response);
+    } on http.ClientException catch (_) {
       return {
         'success': false,
         'error':

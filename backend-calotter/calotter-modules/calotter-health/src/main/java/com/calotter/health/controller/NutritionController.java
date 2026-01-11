@@ -1,6 +1,8 @@
 package com.calotter.health.controller;
 
 import com.calotter.common.core.Result;
+import com.calotter.health.controller.dto.DailySummaryVO;
+import com.calotter.health.controller.dto.DailyTargetVO;
 import com.calotter.health.controller.dto.WeeklyReportVO;
 import com.calotter.health.controller.dto.WeeklySummaryVO;
 import com.calotter.health.domain.entity.NutritionLog;
@@ -84,6 +86,32 @@ public class NutritionController {
         
         WeeklySummaryVO summary = aggregateService.getWeeklySummary(userId, weekStart);
         return Result.success(summary);
+    }
+
+    /**
+     * 获取日营养摘要
+     * GET /api/nutrition/summary/daily?userId={userId}&date={YYYY-MM-DD}
+     */
+    @GetMapping("/summary/daily")
+    public Result<DailySummaryVO> getDailySummary(
+            @RequestParam Long userId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        LocalDate targetDate = date != null ? date : LocalDate.now();
+        DailySummaryVO summary = aggregateService.getDailySummary(userId, targetDate);
+        return Result.success(summary);
+    }
+
+    /**
+     * 获取日营养目标
+     * GET /api/nutrition/targets/daily?userId={userId}&date={YYYY-MM-DD}
+     */
+    @GetMapping("/targets/daily")
+    public Result<DailyTargetVO> getDailyTarget(
+            @RequestParam Long userId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        LocalDate targetDate = date != null ? date : LocalDate.now();
+        DailyTargetVO target = aggregateService.getDailyTarget(userId, targetDate);
+        return Result.success(target);
     }
 
     /**

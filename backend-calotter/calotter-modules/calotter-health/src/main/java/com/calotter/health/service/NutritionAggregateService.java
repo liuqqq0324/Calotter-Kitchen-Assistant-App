@@ -350,5 +350,81 @@ public class NutritionAggregateService {
                 .remaining(remaining)
                 .build();
     }
+
+    /**
+     * 获取日营养摘要
+     * - consumed: 汇总当天 NutritionLog（优先）
+     * - remaining: daily target - consumed
+     *
+     * @param userId 用户ID
+     * @param date 日期（默认今天由 controller 传入）
+     */
+    @Transactional(readOnly = true)
+    public com.calotter.health.controller.dto.DailySummaryVO getDailySummary(Long userId, LocalDate date) {
+        // 1. 获取用户
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("用户不存在: " + userId));
+
+        // 2. 获取日目标（来自 user 模块）
+        UserHealthService.UserHealthInfo healthInfo = userHealthService.getUserHealthInfo(userId);
+        int dailyTargetEnergy = healthInfo.getDailyEnergy() != null ? healthInfo.getDailyEnergy() : 0;
+        double dailyTargetProtein = healthInfo.getDailyProtein() != null ? healthInfo.getDailyProtein() : 0.0;
+        double dailyTargetFat = healthInfo.getDailyFat() != null ? healthInfo.getDailyFat() : 0.0;
+        double dailyTargetCarbohydrates = healthInfo.getDailyCarbohydrates() != null ? healthInfo.getDailyCarbohydrates() : 0.0;
+
+        // 3. 汇总当天流水（用 effective 值：energy/protein/fat/carbohydrates）
+        List<NutritionLog> logs = nutritionLogRepository.findByUserAndLogDate(user, date);
+        int consumedEnergy = logs.stream().mapToInt(l -> l.getEnergy() == null ? 0 : l.getEnergy()).sum();
+        double consumedProtein = logs.stream().mapToDouble(l -> l.getProtein() == null ? 0.0 : l.getProtein()).sum();
+        double consumedFat = logs.stream().mapToDouble(l -> l.getFat() == null ? 0.0 : l.getFat()).sum();
+        double consumedCarbohydrates = logs.stream().mapToDouble(l -> l.getCarbohydrates() == null ? 0.0 : l.getCarbohydrates()).sum();
+
+        int remainingEnergy = Math.max(0, dailyTargetEnergy - consumedEnergy);
+        double remainingProtein = Math.max(0.0, dailyTargetProtein - consumedProtein);
+        double remainingFat = Math.max(0.0, dailyTargetFat - consumedFat);
+        double remainingCarbohydrates = Math.max(0.0, dailyTargetCarbohydrates - consumedCarbohydrates);
+
+        com.calotter.health.controller.dto.DailySummaryVO.NutritionValues consumed =
+                com.calotter.health.controller.dto.DailySummaryVO.NutritionValues.builder()
+                        .energy(consumedEnergy)
+                        .protein(consumedProtein)
+                        .fat(consumedFat)
+                        .carbohydrates(consumedCarbohydrates)
+                        .build();
+
+        com.calotter.health.controller.dto.DailySummaryVO.NutritionValues remaining =
+                com.calotter.health.controller.dto.DailySummaryVO.NutritionValues.builder()
+                        .energy(remainingEnergy)
+                        .protein(remainingProtein)
+                        .fat(remainingFat)
+                        .carbohydrates(remainingCarbohydrates)
+                        .build();
+
+        return com.calotter.health.controller.dto.DailySummaryVO.builder()
+                .period("day")
+                .date(date)
+                .consumed(consumed)
+                .remaining(remaining)
+                .build();
+    }
+
+    /**
+     * 获取日营养目标（来自 user 模块的 HealthGoal / 默认值）
+     */
+    @Transactional(readOnly = true)
+    public com.calotter.health.controller.dto.DailyTargetVO getDailyTarget(Long userId, LocalDate date) {
+        // date is currently informational; targets are per-day and not date-dependent yet
+        UserHealthService.UserHealthInfo healthInfo = userHealthService.getUserHealthInfo(userId);
+        return com.calotter.health.controller.dto.DailyTargetVO.builder()
+                .date(date)
+                .dailyTarget(com.calotter.health.controller.dto.DailyTargetVO.NutritionValues.builder()
+                        .energy(healthInfo.getDailyEnergy())
+                        .protein(healthInfo.getDailyProtein() != null ? healthInfo.getDailyProtein().doubleValue() : null)
+                        .fat(healthInfo.getDailyFat() != null ? healthInfo.getDailyFat().doubleValue() : null)
+                        .carbohydrates(healthInfo.getDailyCarbohydrates() != null ? healthInfo.getDailyCarbohydrates().doubleValue() : null)
+                        .fiber(healthInfo.getDailyFiber() != null ? healthInfo.getDailyFiber().doubleValue() : null)
+                        .build())
+                .build();
+    }
 }
 
