@@ -3,7 +3,7 @@ name: Deploy Spring Boot to AWS
 on:
   push:
     branches:
-      - "**" # 允许所有分支触发，方便调试
+      - "**" # 允许所有分支触发
 
 jobs:
   build-and-deploy:
@@ -22,8 +22,7 @@ jobs:
         distribution: 'temurin'
         cache: maven
 
-    # 3. Maven 构建 (在父目录执行 install)
-    # 使用 install 确保 common/modules 模块能被正确引用
+    # 3. Maven 构建
     - name: Build with Maven
       run: mvn -B clean install -DskipTests
       working-directory: ./backend-calotter
@@ -32,14 +31,15 @@ jobs:
     - name: Copy Jar to Server
       uses: appleboy/scp-action@master
       with:
+        # 注意：请确保 GitHub Secrets 里配置的名字是 SERVER_HOST 还是 SERVER_IP
         host: ${{ secrets.SERVER_HOST }}
         username: ${{ secrets.SERVER_USER }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         source: "backend-calotter/calotter-start/target/*.jar"
         target: "/opt/calotter"
-        strip_components: 3 # 剥离掉 backend-calotter/calotter-start/target 这3层目录
+        strip_components: 3
 
-    # 5. 远程重启服务
+    # 5. 远程重启服务 (核心修改在这里 👇)
     - name: Restart Application
       uses: appleboy/ssh-action@master
       with:
@@ -48,23 +48,26 @@ jobs:
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
           echo "Stopping old process..."
-          
-          # 🌟 终极修复：不再匹配文字，直接杀掉 java 进程
-          # 不加 -f 参数，它就只会看进程名叫不叫 java，不会看命令行参数
-          # 这样绝对不会杀掉部署脚本自己 (因为脚本叫 bash)
-          sudo pkill java || true
+          # 强制杀掉旧的 java 进程
+          sudo pkill -f 'java -jar' || true
           
           # 等待端口释放
           sleep 5
           
+          # 进入存放 jar 包的目录 (根据你第4步的 target 设定)
           cd /opt/calotter
           
           # 找到最新的 jar 包
           JAR_NAME=$(ls -t *.jar | head -1)
           
-          echo "Starting $JAR_NAME..."
+          echo "Starting $JAR_NAME with DB config..."
           
-          # 后台启动
-          nohup java -jar $JAR_NAME > app.log 2>&1 &
+          # 🌟 关键修改：注入数据库配置 🌟
+          # 使用 nohup 后台启动，并引用 secrets.DB_PASSWORD
+          nohup java -jar $JAR_NAME \
+            --spring.datasource.url=jdbc:postgresql://localhost:5432/calotter \
+            --spring.datasource.username=postgres \
+            --spring.datasource.password=${{ secrets.DB_PASSWORD }} \
+            > app.log 2>&1 &
           
-          echo "Deployment finished!"
+          echo "Deployment finished! Application is starting in background."
