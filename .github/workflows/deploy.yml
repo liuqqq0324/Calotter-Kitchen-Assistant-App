@@ -39,36 +39,37 @@ jobs:
         target: "/opt/calotter"
         strip_components: 3
 
-    # 5. 远程重启服务 (轻量化版)
+    # 5. 远程重启服务 (极简稳定版)
     - name: Restart Application
       uses: appleboy/ssh-action@master
       with:
         host: ${{ secrets.SERVER_HOST }}
         username: ${{ secrets.SERVER_USER }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
-        command_timeout: 30m
         script: |
-          echo "Deployment started..."
+          echo "Deployment script started..."
           
-          # 1. 释放文件缓存 (给系统腾出呼吸空间)
-          sync && sudo sysctl -w vm.drop_caches=3 || true
-          
-          # 2. 杀进程 (去掉 sudo，减少开销)
-          echo "Stopping old process..."
-          pkill -9 -f 'java -jar' || true
-          
-          # 3. 进入目录
+          # 1. 进入目录
           cd /opt/calotter
           
-          # 4. 找到最新的 jar 包
+          # 2. 只有检测到有 Java 在跑才杀进程 (避免空杀导致报错)
+          # 使用 if 判断，比直接运行 pkill 更稳妥
+          if pgrep -f "java -jar"; then
+            echo "Found running process, killing it..."
+            pkill -9 -f "java -jar"
+          else
+            echo "No running process found (Clean server)."
+          fi
+          
+          # 3. 找到最新的 jar 包
           JAR_NAME=$(ls -t *.jar | head -1)
           echo "Starting $JAR_NAME ..."
           
-          # 5. 后台启动 (带上数据库密码)
+          # 4. 后台启动 (移除 drop_caches，那个命令太危险)
           nohup java -jar $JAR_NAME \
             --spring.datasource.url=jdbc:postgresql://localhost:5432/calotter \
             --spring.datasource.username=postgres \
             --spring.datasource.password=${{ secrets.DB_PASSWORD }} \
             > app.log 2>&1 &
             
-          echo "Deployment successful!"
+          echo "Deployment finished successfully!"
