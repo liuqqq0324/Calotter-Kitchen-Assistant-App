@@ -49,13 +49,13 @@ jobs:
         script: |
           echo "Stopping old process..."
           
-          # 🌟 核心修复：使用 [c]alotter 技巧
-          # 这能匹配到 'java -jar ...calotter...' 
-          # 但不会匹配到当前这个命令本身 '...pkill...[c]alotter...'
-          sudo pkill -f 'java -jar.*[c]alotter' || true
+          # 🌟 终极修复：不再匹配文字，直接杀掉 java 进程
+          # 不加 -f 参数，它就只会看进程名叫不叫 java，不会看命令行参数
+          # 这样绝对不会杀掉部署脚本自己 (因为脚本叫 bash)
+          sudo pkill java || true
           
           # 等待端口释放
-          sleep 2
+          sleep 5
           
           cd /opt/calotter
           
