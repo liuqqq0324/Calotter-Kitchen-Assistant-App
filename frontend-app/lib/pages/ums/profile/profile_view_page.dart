@@ -13,6 +13,7 @@ import '../../../widgets/sketchy_card.dart';
 import '../../../widgets/sketchy_button.dart';
 import '../../../widgets/sketchy_border.dart';
 import '../../../services/user_service.dart';
+import '../../household/household_manage_page.dart';
 
 // Modified by Chase: Changed to StatefulWidget to support refresh after edit / 由 Chase 修改：改为 StatefulWidget 以支持编辑后刷新
 class ProfileViewPage extends StatefulWidget {
@@ -865,6 +866,20 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                               ),
                             ],
                           ),
+                        ),
+                        const SizedBox(width: 8),
+                        SketchyButton(
+                          text: 'Invite',
+                          backgroundColor: Colors.orange.shade100,
+                          borderColor: Colors.orange.shade700,
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const HouseholdManagePage(),
+                              ),
+                            );
+                          },
                         ),
                       ],
                     ),

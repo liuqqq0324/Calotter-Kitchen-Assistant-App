@@ -56,6 +56,12 @@ dependencies:
   # Google Fonts
   google_fonts: ^6.2.1
 
+  # QR Code generation
+  qr_flutter: ^4.1.0
+
+  # QR Code scanning
+  mobile_scanner: ^5.2.3
+
 
 
 dev_dependencies:

@@ -121,4 +121,116 @@ public class HouseholdController {
             return Result.error(e.getMessage());
         }
     }
+
+    /**
+     * 邀请用户加入厨房
+     * POST /api/household/{householdId}/invite?usernameOrEmail={usernameOrEmail}&inviterId={inviterId}
+     */
+    @PostMapping("/{householdId}/invite")
+    public Result<Void> inviteUser(
+            @PathVariable Long householdId,
+            @RequestParam String usernameOrEmail,
+            @RequestParam Long inviterId) {
+        try {
+            householdService.inviteUserToHousehold(householdId, usernameOrEmail, inviterId);
+            return Result.success(null);
+        } catch (IllegalArgumentException e) {
+            return Result.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 通过邀请码加入厨房
+     * POST /api/household/join?inviteCode={inviteCode}&userId={userId}
+     */
+    @PostMapping("/join")
+    public Result<HouseholdResponse> joinHousehold(
+            @RequestParam String inviteCode,
+            @RequestParam Long userId) {
+        try {
+            HouseholdResponse response = householdService.joinHouseholdByInviteCode(inviteCode, userId);
+            return Result.success(response);
+        } catch (IllegalArgumentException e) {
+            return Result.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 用户退出厨房
+     * DELETE /api/household/{householdId}/leave?userId={userId}
+     */
+    @DeleteMapping("/{householdId}/leave")
+    public Result<Void> leaveHousehold(
+            @PathVariable Long householdId,
+            @RequestParam Long userId) {
+        try {
+            householdService.leaveHousehold(householdId, userId);
+            return Result.success(null);
+        } catch (IllegalArgumentException e) {
+            return Result.error(e.getMessage());
+        }
+    }
+
+    /**
+     * owner踢出成员
+     * DELETE /api/household/{householdId}/members/{memberId}?ownerId={ownerId}
+     */
+    @DeleteMapping("/{householdId}/members/{memberId}")
+    public Result<Void> removeMember(
+            @PathVariable Long householdId,
+            @PathVariable Long memberId,
+            @RequestParam Long ownerId) {
+        try {
+            householdService.removeMemberFromHousehold(householdId, memberId, ownerId);
+            return Result.success(null);
+        } catch (IllegalArgumentException e) {
+            return Result.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 切换当前使用的厨房
+     * PUT /api/household/{householdId}/switch?userId={userId}
+     */
+    @PutMapping("/{householdId}/switch")
+    public Result<HouseholdResponse> switchCurrentHousehold(
+            @PathVariable Long householdId,
+            @RequestParam Long userId) {
+        try {
+            HouseholdResponse response = householdService.switchCurrentHousehold(householdId, userId);
+            return Result.success(response);
+        } catch (IllegalArgumentException e) {
+            return Result.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 获取用户加入的所有厨房列表
+     * GET /api/household/user/{userId}/joined
+     */
+    @GetMapping("/user/{userId}/joined")
+    public Result<List<HouseholdResponse>> getJoinedHouseholds(@PathVariable Long userId) {
+        try {
+            List<HouseholdResponse> responses = householdService.getJoinedHouseholds(userId);
+            return Result.success(responses);
+        } catch (IllegalArgumentException e) {
+            return Result.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 重新生成邀请码
+     * PUT /api/household/{householdId}/regenerate-invite-code?ownerId={ownerId}
+     */
+    @PutMapping("/{householdId}/regenerate-invite-code")
+    public Result<HouseholdResponse> regenerateInviteCode(
+            @PathVariable Long householdId,
+            @RequestParam Long ownerId) {
+        try {
+            HouseholdResponse response = householdService.regenerateInviteCode(householdId, ownerId);
+            return Result.success(response);
+        } catch (IllegalArgumentException e) {
+            return Result.error(e.getMessage());
+        }
+    }
 }
