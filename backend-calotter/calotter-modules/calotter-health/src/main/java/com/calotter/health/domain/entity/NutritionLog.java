@@ -122,7 +122,7 @@ public class NutritionLog extends BaseEntity {
      * - 默认值为 100.0（表示全部吃掉）
      * - 当 consumedPercentage < 100.0 时，剩余部分可以在当天过后转为剩菜存入 inventory
      */
-    @Column(name = "consumed_percentage", nullable = false, columnDefinition = "decimal(5,2) default 100.00")
+    @Column(name = "consumed_percentage", nullable = false, columnDefinition = "decimal(5,2)")
     private BigDecimal consumedPercentage = BigDecimal.valueOf(100.00);
 }
 

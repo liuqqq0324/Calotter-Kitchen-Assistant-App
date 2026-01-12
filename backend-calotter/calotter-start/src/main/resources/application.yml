@@ -17,38 +17,18 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
         use_sql_comments: true
-
-server:
-  port: 8080
-
-logging:
-  level:
-    root: INFO
-    com.calotter: DEBUG
-    org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
-
-jwt:
-  key: YourSuperSecretKeyForJWTTokenGenerationThatShouldBeAtLeast32CharactersLong!
-  issuer: CalotterBackend
-  audience: CalotterFrontend
-  expiration: 3000 # seconds (50 minutes)
-
-# AI API 配置
-# 模式选择：mock（开发测试，默认）/ gemini（优化版，简化 Prompt）/ groq（完整 Prompt）
-ai:
-  api:
-    mode: groq  # mock / gemini / groq（当前使用 groq）
-    # Gemini 配置（优化版 - 简化 Prompt 减少 Token）
-    gemini:
-      api-key: ${GEMINI_API_KEY:}   # 从环境变量读取，如果不存在则为空
-      base-url: https://generativelanguage.googleapis.com
-      model: gemini-2.5-pro
-    # Groq 配置（完整 Prompt 版本，主要使用）
-    groq:
-      api-key: ${GROQ_API_KEY:}  # 从环境变量读取
-      url: https://api.groq.com/openai/v1/chat/completions
-      model: llama-3.3-70b-versatile
+  
+  # Spring AI Google GenAI 配置
+  ai:
+    google:
+      genai:
+        api-key: ${GEMINI_API_KEY:}
+        chat:
+          options:
+            model: gemini-2.5-flash
+            temperature: 0.7
+            # 注意：Spring AI Google GenAI 通过结构化输出功能支持 Function Calling
+            # response-format 可能不需要单独配置，Spring AI 会自动处理
     # AWS Bedrock 配置（已弃用，保留配置以备后用）
     # bedrock:
     #   api-key: ${BEDROCK_API_KEY:}  # 从环境变量读取（短期 token）
@@ -69,4 +49,31 @@ ai:
     groq:
       base-url: https://api.groq.com
       api-key: ${GROQ_API_KEY:}
+      model: llama-3.3-70b-versatile
+
+server:
+  port: 8080
+
+logging:
+  level:
+    root: INFO
+    com.calotter: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+
+jwt:
+  key: YourSuperSecretKeyForJWTTokenGenerationThatShouldBeAtLeast32CharactersLong!
+  issuer: CalotterBackend
+  audience: CalotterFrontend
+  expiration: 3000 # seconds (50 minutes)
+
+# AI API 配置
+# 模式选择：mock（开发测试，默认）/ spring-ai-gemini（Spring AI Gemini，使用 Function Calling）/ groq（完整 Prompt）/ bedrock（AWS Bedrock）
+ai:
+  api:
+    mode: spring-ai-gemini  # mock / spring-ai-gemini / groq / bedrock
+    # Groq 配置（完整 Prompt 版本，主要使用）
+    groq:
+      api-key: ${GROQ_API_KEY:}  # 从环境变量读取
+      url: https://api.groq.com/openai/v1/chat/completions
       model: llama-3.3-70b-versatile

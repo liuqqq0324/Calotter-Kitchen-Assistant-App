@@ -41,6 +41,13 @@
             <optional>true</optional>
         </dependency>
         
+        <!-- Spring AI Google GenAI (version managed by spring-ai-bom in parent) -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-starter-model-google-genai</artifactId>
+            <!-- Version is managed by spring-ai-bom 1.1.0-M4 in parent pom -->
+        </dependency>
+        
         <!-- Test Dependencies -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

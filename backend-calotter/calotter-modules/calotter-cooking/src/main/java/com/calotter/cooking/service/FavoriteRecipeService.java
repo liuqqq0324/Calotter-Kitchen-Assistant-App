@@ -120,7 +120,7 @@ public class FavoriteRecipeService {
         return dishRepository.save(dish);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<DishDTO> listFavorites(Long householdId) {
         // 先校验家庭是否存在
         householdRepository.findById(householdId)
