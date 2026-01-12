@@ -53,6 +53,7 @@ spring:
 
 server:
   port: 8080
+  address: 0.0.0.0  # 🔥 监听所有网络接口，允许外部连接（AWS 公网 IP 访问必需）
 
 logging:
   level:

@@ -13,10 +13,12 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.util.List;
 
 /**
- * Dish (菜谱快照/蓝图)
- * 代表一道已经生成的、具体的菜品配方。
- * 采用 Copy-on-Write 策略：每次配方微调都会生成新的 Dish 记录，
+ * Dish (烹饪历史记录)
+ * 代表一次具体的烹饪/进食记录。
+ * 采用 Copy-on-Write 策略：每次开始烹饪都创建新的 Dish 记录，
  * 以确保历史摄入记录和剩菜营养计算的绝对准确性。
+ * 
+ * 重要：收藏功能已迁移到 UserRecipe 实体，实现物理隔离。
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
@@ -44,20 +46,12 @@ public class Dish extends BaseEntity {
     private String description; // 短描述
 
     /**
-     * Dish 类型：
-     * - TEMPLATE: “菜谱模板”（用于收藏/复用，不会随着每次烹饪变化）
-     * - INSTANCE: “本次烹饪快照”（每次开始烹饪生成一条，保证每次有独立 dishId）
+     * 来源菜谱ID（弱引用，指向 UserRecipe）
+     * 如果该 Dish 是从收藏菜谱创建的，则记录来源；否则为 null
+     * 仅用于追溯，无外键约束，不影响生命周期
      */
-    @Enumerated(EnumType.STRING)
-    @Column(name = "dish_type", nullable = false)
-    private DishType dishType = DishType.INSTANCE;
-
-    /**
-     * 如果该 Dish 是 INSTANCE，则指向它来源的 TEMPLATE dishId（可选但推荐）。
-     * 如果该 Dish 本身就是 TEMPLATE，则为空。
-     */
-    @Column(name = "template_dish_id")
-    private Long templateDishId;
+    @Column(name = "source_recipe_id")
+    private Long sourceRecipeId;
 
     // --- 核心物理属性 (Snapshot Metrics) ---
     /**
@@ -106,17 +100,6 @@ public class Dish extends BaseEntity {
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
     private List<IngredientSnapshot> ingredientSnapshots;
-
-    /**
-     * 是否收藏
-     */
-    @Column(nullable = false)
-    private boolean favorite = false;
-
-    public enum DishType {
-        TEMPLATE,
-        INSTANCE
-    }
 
     // --- 辅助计算方法 (Domain Logic) ---
     

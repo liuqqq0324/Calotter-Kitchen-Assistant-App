@@ -66,11 +66,11 @@ class CookingApiService {
 
   /// 完成烹饪：保存快照，扣减库存，创建剩菜记录
   /// POST /api/cooking/finish
+  /// 注意：后端会自动完成 session 中的所有 dish，不再需要传递 completedDishIds
   static Future<Map<String, dynamic>> finishCooking({
     required int sessionId,
     required List<Map<String, dynamic>> finalIngredients,
     required Map<String, dynamic> totalNutrition,
-    List<int>? completedDishIds, // 已完成的菜品 ID 列表（可选）
     List<Map<String, dynamic>>? diners, // 用餐者信息（可选）
   }) async {
     final url = Uri.parse('${ApiConfig.recipeBaseUrl}/api/cooking/finish');
@@ -79,9 +79,6 @@ class CookingApiService {
       'finalIngredients': finalIngredients,
       'totalNutrition': totalNutrition,
     };
-    if (completedDishIds != null && completedDishIds.isNotEmpty) {
-      body['completedDishIds'] = completedDishIds;
-    }
     if (diners != null && diners.isNotEmpty) {
       body['diners'] = diners;
     }

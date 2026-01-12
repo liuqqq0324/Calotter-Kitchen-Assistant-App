@@ -3,8 +3,10 @@ package com.calotter.cooking.service;
 import com.calotter.cooking.controller.dto.DishDTO;
 import com.calotter.cooking.domain.entity.Dish;
 import com.calotter.cooking.domain.entity.HouseholdFavoriteDish;
+import com.calotter.cooking.domain.entity.UserRecipe;
 import com.calotter.cooking.repository.DishRepository;
 import com.calotter.cooking.repository.HouseholdFavoriteDishRepository;
+import com.calotter.cooking.repository.UserRecipeRepository;
 import com.calotter.cooking.service.dto.MenuDTO;
 import com.calotter.user.domain.entity.Household;
 import com.calotter.user.repository.HouseholdRepository;
@@ -14,11 +16,16 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
+/**
+ * 收藏菜谱服务
+ * 
+ * 设计原则：物理隔离
+ * - UserRecipe: 收藏的菜谱（蓝图）
+ * - Dish: 烹饪历史记录
+ * - 不做 JOIN 查询，只通过字段复制交互
+ */
 @Service
 @RequiredArgsConstructor
 public class FavoriteRecipeService {
@@ -26,199 +33,262 @@ public class FavoriteRecipeService {
     private final DishRepository dishRepository;
     private final HouseholdRepository householdRepository;
     private final HouseholdFavoriteDishRepository favoriteDishRepository;
+    private final UserRecipeRepository userRecipeRepository;
 
     /**
-        收藏/取消收藏
+     * 收藏/取消收藏
+     * 从 RecipeDTO 创建或更新 UserRecipe，并管理收藏关系
      */
     @Transactional
     public DishDTO toggleFavorite(Long householdId, MenuDTO.RecipeDTO recipeDto) {
-        Household household = householdRepository.findById(householdId)
+        householdRepository.findById(householdId)
                 .orElseThrow(() -> new IllegalArgumentException("家庭不存在"));
 
-        // 收藏永远指向“模板 Dish”
-        Dish dish = dishRepository
-                .findFirstByHouseholdIdAndNameIgnoreCaseAndDishType(
-                        householdId, recipeDto.getTitle(), Dish.DishType.TEMPLATE)
+        // 查找或创建 UserRecipe（按名称，忽略大小写）
+        UserRecipe recipe = userRecipeRepository
+                .findFirstByHouseholdIdAndNameIgnoreCase(householdId, recipeDto.getTitle())
                 .orElseGet(() -> {
-                    Dish d = mapToDish(recipeDto, household);
-                    d.setDishType(Dish.DishType.TEMPLATE);
-                    d.setTemplateDishId(null);
-                    return dishRepository.save(d);
+                    UserRecipe r = mapToUserRecipe(recipeDto, householdId);
+                    return userRecipeRepository.save(r);
                 });
 
+        // 更新现有 recipe 的数据（如果传入的数据有更新）
+        updateUserRecipeFromDto(recipe, recipeDto);
+        recipe = userRecipeRepository.save(recipe);
+
         // 使用独立关系表保存收藏状态
-        boolean exists = favoriteDishRepository.existsByHouseholdIdAndDishId(householdId, dish.getId());
+        boolean exists = favoriteDishRepository.existsByHouseholdIdAndRecipeId(householdId, recipe.getId());
         if (exists) {
-            favoriteDishRepository.deleteByHouseholdIdAndDishId(householdId, dish.getId());
-            return toDto(dish, false);
+            favoriteDishRepository.deleteByHouseholdIdAndRecipeId(householdId, recipe.getId());
+            return userRecipeToDto(recipe, false);
         } else {
             HouseholdFavoriteDish fav = new HouseholdFavoriteDish();
             fav.setHouseholdId(householdId);
-            fav.setDishId(dish.getId());
+            fav.setRecipeId(recipe.getId());
             favoriteDishRepository.save(fav);
-            return toDto(dish, true);
+            return userRecipeToDto(recipe, true);
         }
     }
 
     /**
-     * 创建 Dish 快照（Copy-on-Write）
-     *
-     * 重要：烹饪场景必须“每次开始烹饪都生成新的 Dish 记录”，以保证：
-     * - 每次做同一道菜也有独立的 dishId（用于 health / leftover 的精确归因）
-     * - 允许同名菜品在不同时间有不同配方/营养值（AI 生成会变化）
+     * 从收藏菜谱创建 Dish 快照（用于开始烹饪）
+     * 不做 JOIN，只复制字段
+     */
+    @Transactional
+    public Dish cookFromFavorite(Long householdId, Long recipeId) {
+        Household household = householdRepository.findById(householdId)
+                .orElseThrow(() -> new IllegalArgumentException("家庭不存在"));
+
+        UserRecipe recipe = userRecipeRepository.findById(recipeId)
+                .orElseThrow(() -> new IllegalArgumentException("菜谱不存在: " + recipeId));
+
+        if (!recipe.getHouseholdId().equals(householdId)) {
+            throw new IllegalArgumentException("菜谱不属于该家庭");
+        }
+
+        // 从 UserRecipe 复制字段创建新的 Dish（不复制 ID）
+        Dish dish = new Dish();
+        dish.setHousehold(household);
+        dish.setName(recipe.getName());
+        dish.setCoverImage(recipe.getCoverImage());
+        dish.setDescription(recipe.getDescription());
+        dish.setTotalWeightGram(recipe.getTotalWeightGram());
+        dish.setTotalCalories(recipe.getTotalCalories());
+        dish.setTotalProtein(recipe.getTotalProtein());
+        dish.setTotalFat(recipe.getTotalFat());
+        dish.setTotalCarb(recipe.getTotalCarb());
+        dish.setTotalFiber(recipe.getTotalFiber());
+        dish.setCookingTimeMinutes(recipe.getCookingTimeMinutes());
+        dish.setDifficulty(recipe.getDifficulty());
+        
+        // 复制 JSONB 字段（深拷贝）
+        dish.setSteps(recipe.getSteps() == null ? null : 
+                copyStepsToDish(recipe.getSteps()));
+        dish.setTags(recipe.getTags() == null ? null : new ArrayList<>(recipe.getTags()));
+        dish.setIngredientSnapshots(recipe.getIngredientSnapshots() == null ? null :
+                copyIngredientSnapshotsToDish(recipe.getIngredientSnapshots()));
+        
+        // 记录来源
+        dish.setSourceRecipeId(recipe.getId());
+
+        return dishRepository.save(dish);
+    }
+
+    /**
+     * 从 RecipeDTO 创建 Dish 快照（AI 生成的临时菜谱直接烹饪）
      */
     @Transactional
     public Dish createDishSnapshot(Long householdId, MenuDTO.RecipeDTO recipeDto) {
         Household household = householdRepository.findById(householdId)
                 .orElseThrow(() -> new IllegalArgumentException("家庭不存在"));
         Dish dish = mapToDish(recipeDto, household);
-        dish.setDishType(Dish.DishType.INSTANCE);
-        dish.setTemplateDishId(null);
+        dish.setSourceRecipeId(null); // 不是从收藏创建的
         return dishRepository.save(dish);
     }
 
     /**
-     * Clone an existing Dish (usually a favorited/template dish) into a new Dish snapshot.
-     *
-     * This is required to guarantee: "each cook has a unique dishId", even when cooking from favorites/history.
+     * 获取收藏列表
      */
-    @Transactional
-    public Dish cloneDishSnapshot(Long householdId, Long dishId) {
-        Household household = householdRepository.findById(householdId)
-                .orElseThrow(() -> new IllegalArgumentException("家庭不存在"));
-
-        Dish base = dishRepository.findByIdAndHousehold(dishId, household)
-                .orElseThrow(() -> new IllegalArgumentException("菜品不存在: " + dishId));
-
-        Dish dish = new Dish();
-        dish.setHousehold(household);
-        dish.setName(base.getName());
-        dish.setCoverImage(base.getCoverImage());
-        dish.setDescription(base.getDescription());
-        dish.setTotalWeightGram(base.getTotalWeightGram());
-        dish.setTotalCalories(base.getTotalCalories());
-        dish.setTotalProtein(base.getTotalProtein());
-        dish.setTotalFat(base.getTotalFat());
-        dish.setTotalCarb(base.getTotalCarb());
-        dish.setTotalFiber(base.getTotalFiber());
-        dish.setCookingTimeMinutes(base.getCookingTimeMinutes());
-        dish.setDifficulty(base.getDifficulty());
-
-        // Copy JSONB fields (shallow copy is fine; persisted as JSON)
-        dish.setSteps(base.getSteps() == null ? null : new ArrayList<>(base.getSteps()));
-        dish.setTags(base.getTags() == null ? null : new ArrayList<>(base.getTags()));
-        dish.setIngredientSnapshots(base.getIngredientSnapshots() == null ? null : new ArrayList<>(base.getIngredientSnapshots()));
-
-        // 标记为 INSTANCE，并记录来源模板（若 base 已是 INSTANCE，则沿用其 templateDishId；否则用 base.id）
-        dish.setDishType(Dish.DishType.INSTANCE);
-        if (base.getDishType() == Dish.DishType.TEMPLATE) {
-            dish.setTemplateDishId(base.getId());
-        } else {
-            dish.setTemplateDishId(base.getTemplateDishId() != null ? base.getTemplateDishId() : base.getId());
-        }
-
-        return dishRepository.save(dish);
-    }
-
-    @Transactional
+    @Transactional(readOnly = true)
     public List<DishDTO> listFavorites(Long householdId) {
-        // 先校验家庭是否存在
         householdRepository.findById(householdId)
                 .orElseThrow(() -> new IllegalArgumentException("家庭不存在"));
-
-        // 兼容历史数据：如果旧版本把 favorite 直接写在 Dish 上，这里做一次轻量 backfill
-        backfillLegacyFavorites(householdId);
 
         List<HouseholdFavoriteDish> rels = favoriteDishRepository.findByHouseholdId(householdId);
         if (rels.isEmpty()) {
             return List.of();
         }
 
-        Set<Long> dishIds = rels.stream().map(HouseholdFavoriteDish::getDishId).collect(Collectors.toSet());
-        Map<Long, Dish> dishMap = dishRepository.findAllById(dishIds).stream()
-                .collect(Collectors.toMap(Dish::getId, Function.identity()));
+        // 提取 recipeId
+        List<Long> recipeIds = rels.stream()
+                .map(HouseholdFavoriteDish::getRecipeId)
+                .collect(Collectors.toList());
 
-        // 返回 DTO 列表，favorite 永远从关系表派生
-        return dishMap.values().stream()
-                .map(d -> toDto(d, true))
+        // 批量查询 UserRecipe（不做 JOIN）
+        List<UserRecipe> recipes = userRecipeRepository.findAllById(recipeIds);
+
+        return recipes.stream()
+                .map(r -> userRecipeToDto(r, true))
                 .sorted((a, b) -> {
                     if (a.getId() == null && b.getId() == null) return 0;
                     if (a.getId() == null) return 1;
                     if (b.getId() == null) return -1;
-                    // keep deterministic ordering; frontend doesn't strictly depend on it
                     return b.getId().compareTo(a.getId());
                 })
                 .toList();
     }
 
+    // ========== 辅助方法 ==========
+
     /**
-     * Backfill legacy favorites from Dish.favorite=true into the new relation table.
-     * This prevents existing dev/test data from "disappearing" after introducing the new table.
+     * UserRecipe 转 DishDTO
      */
-    private void backfillLegacyFavorites(Long householdId) {
-        List<Dish> legacyFavs = dishRepository.findByHouseholdIdAndFavoriteTrueOrderByUpdateTimeDesc(householdId);
-        for (Dish d : legacyFavs) {
-            if (d.getId() == null) continue;
-            // Legacy versions may have favorite=true on INSTANCE rows; we must migrate favorites to TEMPLATE dishes.
-            Long templateId;
-            if (d.getDishType() == Dish.DishType.TEMPLATE) {
-                templateId = d.getId();
-            } else if (d.getTemplateDishId() != null) {
-                templateId = d.getTemplateDishId();
-            } else {
-                // No template link available (very old data). Create a TEMPLATE dish by copying this row.
-                Dish template = new Dish();
-                template.setHousehold(d.getHousehold());
-                template.setName(d.getName());
-                template.setCoverImage(d.getCoverImage());
-                template.setDescription(d.getDescription());
-                template.setTotalWeightGram(d.getTotalWeightGram());
-                template.setTotalCalories(d.getTotalCalories());
-                template.setTotalProtein(d.getTotalProtein());
-                template.setTotalFat(d.getTotalFat());
-                template.setTotalCarb(d.getTotalCarb());
-                template.setTotalFiber(d.getTotalFiber());
-                template.setCookingTimeMinutes(d.getCookingTimeMinutes());
-                template.setDifficulty(d.getDifficulty());
-                template.setSteps(d.getSteps());
-                template.setTags(d.getTags());
-                template.setIngredientSnapshots(d.getIngredientSnapshots());
-                template.setDishType(Dish.DishType.TEMPLATE);
-                template.setTemplateDishId(null);
-                template = dishRepository.save(template);
-                templateId = template.getId();
-            }
-
-            if (!favoriteDishRepository.existsByHouseholdIdAndDishId(householdId, templateId)) {
-                HouseholdFavoriteDish fav = new HouseholdFavoriteDish();
-                fav.setHouseholdId(householdId);
-                fav.setDishId(templateId);
-                favoriteDishRepository.save(fav);
-            }
-        }
-    }
-
-    private DishDTO toDto(Dish dish, boolean favorite) {
+    private DishDTO userRecipeToDto(UserRecipe recipe, boolean favorite) {
         return DishDTO.builder()
-                .id(dish.getId())
-                .name(dish.getName())
-                .coverImage(dish.getCoverImage())
-                .description(dish.getDescription())
-                .totalWeightGram(dish.getTotalWeightGram())
-                .totalCalories(dish.getTotalCalories())
-                .totalProtein(dish.getTotalProtein())
-                .totalFat(dish.getTotalFat())
-                .totalCarb(dish.getTotalCarb())
-                .totalFiber(dish.getTotalFiber())
-                .cookingTimeMinutes(dish.getCookingTimeMinutes())
-                .difficulty(dish.getDifficulty())
-                .steps(dish.getSteps())
-                .tags(dish.getTags())
-                .ingredientSnapshots(dish.getIngredientSnapshots())
+                .id(recipe.getId())
+                .name(recipe.getName())
+                .coverImage(recipe.getCoverImage())
+                .description(recipe.getDescription())
+                .totalWeightGram(recipe.getTotalWeightGram())
+                .totalCalories(recipe.getTotalCalories())
+                .totalProtein(recipe.getTotalProtein())
+                .totalFat(recipe.getTotalFat())
+                .totalCarb(recipe.getTotalCarb())
+                .totalFiber(recipe.getTotalFiber())
+                .cookingTimeMinutes(recipe.getCookingTimeMinutes())
+                .difficulty(recipe.getDifficulty())
+                .steps(convertStepsToDish(recipe.getSteps()))
+                .tags(recipe.getTags())
+                .ingredientSnapshots(convertIngredientSnapshotsToDish(recipe.getIngredientSnapshots()))
                 .favorite(favorite)
                 .build();
     }
 
+    /**
+     * RecipeDTO 转 UserRecipe
+     */
+    private UserRecipe mapToUserRecipe(MenuDTO.RecipeDTO recipeDto, Long householdId) {
+        UserRecipe recipe = new UserRecipe();
+        recipe.setHouseholdId(householdId);
+        recipe.setName(recipeDto.getTitle());
+        recipe.setDescription(recipeDto.getShortDescription());
+        recipe.setCookingTimeMinutes(recipeDto.getCookingTimeMin());
+        recipe.setDifficulty(parseDifficulty(recipeDto.getDifficulty()));
+        
+        if (recipeDto.getNutritionEstimate() != null) {
+            recipe.setTotalCalories(toInt(recipeDto.getNutritionEstimate().getCalories()));
+            recipe.setTotalProtein(recipeDto.getNutritionEstimate().getProteinG());
+            recipe.setTotalFat(recipeDto.getNutritionEstimate().getFatG());
+            recipe.setTotalCarb(recipeDto.getNutritionEstimate().getCarbsG());
+        }
+        
+        if (recipeDto.getIngredients() != null) {
+            recipe.setIngredientSnapshots(
+                    recipeDto.getIngredients().stream().map(ing -> {
+                        UserRecipe.IngredientSnapshot snap = new UserRecipe.IngredientSnapshot();
+                        snap.setName(ing.getName());
+                        snap.setAmountValue(ing.getAmountValue() != null ? ing.getAmountValue() : 0.0);
+                        snap.setAmountUnit(ing.getAmountUnit() != null ? ing.getAmountUnit() : "g");
+                        return snap;
+                    }).toList()
+            );
+        }
+        
+        if (recipeDto.getSteps() != null) {
+            recipe.setSteps(
+                    recipeDto.getSteps().stream().map(s -> {
+                        UserRecipe.CookingStep cs = new UserRecipe.CookingStep();
+                        cs.setStepNumber(s.getStepNumber());
+                        cs.setInstruction(s.getInstruction());
+                        cs.setTimeMin(s.getStepTimeMin());
+                        return cs;
+                    }).toList()
+            );
+        }
+        
+        int totalWeight = recipeDto.getIngredients() == null ? 0 :
+                recipeDto.getIngredients().stream()
+                        .filter(i -> "g".equalsIgnoreCase(i.getAmountUnit()) && i.getAmountValue() != null)
+                        .mapToInt(i -> i.getAmountValue().intValue())
+                        .sum();
+        recipe.setTotalWeightGram(totalWeight > 0 ? totalWeight : 1000);
+        
+        return recipe;
+    }
+
+    /**
+     * 更新 UserRecipe（从 RecipeDTO）
+     */
+    private void updateUserRecipeFromDto(UserRecipe recipe, MenuDTO.RecipeDTO recipeDto) {
+        // 更新字段（允许用户重新收藏时更新数据）
+        recipe.setDescription(recipeDto.getShortDescription());
+        recipe.setCookingTimeMinutes(recipeDto.getCookingTimeMin());
+        recipe.setDifficulty(parseDifficulty(recipeDto.getDifficulty()));
+        
+        if (recipeDto.getNutritionEstimate() != null) {
+            recipe.setTotalCalories(toInt(recipeDto.getNutritionEstimate().getCalories()));
+            recipe.setTotalProtein(recipeDto.getNutritionEstimate().getProteinG());
+            recipe.setTotalFat(recipeDto.getNutritionEstimate().getFatG());
+            recipe.setTotalCarb(recipeDto.getNutritionEstimate().getCarbsG());
+        }
+        
+        if (recipeDto.getIngredients() != null) {
+            recipe.setIngredientSnapshots(
+                    recipeDto.getIngredients().stream().map(ing -> {
+                        UserRecipe.IngredientSnapshot snap = new UserRecipe.IngredientSnapshot();
+                        snap.setName(ing.getName());
+                        snap.setAmountValue(ing.getAmountValue() != null ? ing.getAmountValue() : 0.0);
+                        snap.setAmountUnit(ing.getAmountUnit() != null ? ing.getAmountUnit() : "g");
+                        return snap;
+                    }).toList()
+            );
+        }
+        
+        if (recipeDto.getSteps() != null) {
+            recipe.setSteps(
+                    recipeDto.getSteps().stream().map(s -> {
+                        UserRecipe.CookingStep cs = new UserRecipe.CookingStep();
+                        cs.setStepNumber(s.getStepNumber());
+                        cs.setInstruction(s.getInstruction());
+                        cs.setTimeMin(s.getStepTimeMin());
+                        return cs;
+                    }).toList()
+            );
+        }
+        
+        int totalWeight = recipeDto.getIngredients() == null ? 0 :
+                recipeDto.getIngredients().stream()
+                        .filter(i -> "g".equalsIgnoreCase(i.getAmountUnit()) && i.getAmountValue() != null)
+                        .mapToInt(i -> i.getAmountValue().intValue())
+                        .sum();
+        if (totalWeight > 0) {
+            recipe.setTotalWeightGram(totalWeight);
+        }
+    }
+
+    /**
+     * RecipeDTO 转 Dish（用于 AI 生成的临时菜谱）
+     */
     private Dish mapToDish(MenuDTO.RecipeDTO recipeDto, Household household) {
         Dish dish = new Dish();
         dish.setHousehold(household);
@@ -262,6 +332,54 @@ public class FavoriteRecipeService {
                         .sum();
         dish.setTotalWeightGram(totalWeight > 0 ? totalWeight : 1000);
         return dish;
+    }
+
+    // ========== 类型转换辅助方法 ==========
+
+    /**
+     * UserRecipe.CookingStep 转 Dish.CookingStep
+     */
+    private List<Dish.CookingStep> convertStepsToDish(List<UserRecipe.CookingStep> steps) {
+        if (steps == null) return null;
+        return steps.stream().map(s -> {
+            Dish.CookingStep ds = new Dish.CookingStep();
+            ds.setStepNumber(s.getStepNumber());
+            ds.setInstruction(s.getInstruction());
+            ds.setTimeMin(s.getTimeMin());
+            return ds;
+        }).toList();
+    }
+
+    /**
+     * UserRecipe.CookingStep 转 Dish.CookingStep（深拷贝）
+     */
+    private List<Dish.CookingStep> copyStepsToDish(List<UserRecipe.CookingStep> steps) {
+        if (steps == null) return null;
+        return convertStepsToDish(steps);
+    }
+
+    /**
+     * UserRecipe.IngredientSnapshot 转 Dish.IngredientSnapshot
+     */
+    private List<Dish.IngredientSnapshot> convertIngredientSnapshotsToDish(
+            List<UserRecipe.IngredientSnapshot> snapshots) {
+        if (snapshots == null) return null;
+        return snapshots.stream().map(s -> {
+            Dish.IngredientSnapshot ds = new Dish.IngredientSnapshot();
+            ds.setName(s.getName());
+            ds.setAmountValue(s.getAmountValue());
+            ds.setAmountUnit(s.getAmountUnit());
+            return ds;
+        }).toList();
+    }
+
+    /**
+     * UserRecipe.IngredientSnapshot 转 Dish.IngredientSnapshot（深拷贝）
+     */
+    private List<Dish.IngredientSnapshot> copyIngredientSnapshotsToDish(
+            List<UserRecipe.IngredientSnapshot> snapshots) {
+        if (snapshots == null) return null;
+        return convertIngredientSnapshotsToDish(snapshots);
     }
 
     private com.calotter.cooking.domain.enums.DifficultyLevel parseDifficulty(String d) {

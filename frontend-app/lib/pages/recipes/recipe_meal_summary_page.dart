@@ -167,8 +167,6 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
     // 如果有sessionId，调用后端API完成烹饪
     if (widget.sessionId != null) {
       try {
-        // 收集已完成的菜品 ID（如果 percentEaten > 0，认为已完成）
-        final completedDishIds = <int>[];
         final completedRecipes = _completedRecipes;
         final int completedDishCount = completedRecipes.length;
         final finalIngredients = <Map<String, dynamic>>[];
@@ -180,13 +178,6 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
         // Summary 只处理"已标记 dish done"的菜品；不再显示/编辑 percent eaten，按 100% 处理
         for (final recipe in completedRecipes) {
           final percentEaten = 100.0;
-          // 尝试解析 recipe.id 为 int（如果是后端返回的 Dish ID）
-          // 注意：如果 recipe.id 不是数字格式，completedDishIds 可能为空
-          // 这种情况下，后端会完成所有菜品（如果 completedDishIds 为空）
-          final dishId = int.tryParse(recipe.id);
-          if (dishId != null && dishId > 0) {
-            completedDishIds.add(dishId);
-          }
 
           final ingControllers = _ingredientControllers[recipe.id] ?? {};
 
@@ -226,11 +217,9 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
         }
 
         // 调用finish cooking API
-        // 注意：completedDishIds 可以为空，后端会自动完成所有菜品
+        // 注意：后端会自动完成 session 中的所有 dish，不再需要传递 completedDishIds
         await CookingApiService.finishCooking(
           sessionId: widget.sessionId!,
-          // 只有当能解析出真实后端 Dish ID 时才传；否则省略，让后端按"未指定=全部完成"处理。
-          completedDishIds: completedDishIds.isEmpty ? null : completedDishIds,
           finalIngredients: finalIngredients,
           totalNutrition: {
             'calories': totalCalories,
@@ -449,10 +438,14 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
                     children: [
                       Row(
                         children: [
-                          Text(
-                            recipe.title,
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
+                          Expanded(
+                            child: Text(
+                              recipe.title,
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 2,
                             ),
                           ),
                         ],

@@ -9,10 +9,25 @@ import java.util.Optional;
 
 @Repository
 public interface HouseholdFavoriteDishRepository extends JpaRepository<HouseholdFavoriteDish, Long> {
-    Optional<HouseholdFavoriteDish> findByHouseholdIdAndDishId(Long householdId, Long dishId);
+    /**
+     * 根据家庭ID和菜谱ID查找收藏关系
+     */
+    Optional<HouseholdFavoriteDish> findByHouseholdIdAndRecipeId(Long householdId, Long recipeId);
+    
+    /**
+     * 根据家庭ID查询所有收藏关系
+     */
     List<HouseholdFavoriteDish> findByHouseholdId(Long householdId);
-    long deleteByHouseholdIdAndDishId(Long householdId, Long dishId);
-    boolean existsByHouseholdIdAndDishId(Long householdId, Long dishId);
+    
+    /**
+     * 删除收藏关系
+     */
+    long deleteByHouseholdIdAndRecipeId(Long householdId, Long recipeId);
+    
+    /**
+     * 检查收藏关系是否存在
+     */
+    boolean existsByHouseholdIdAndRecipeId(Long householdId, Long recipeId);
 }
 
 

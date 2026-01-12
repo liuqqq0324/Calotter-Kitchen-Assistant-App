@@ -68,10 +68,11 @@ public class CookingWorkflowService {
             }
         }
         // 支持单道菜（向后兼容）
+        // 注意：这里的 dishId 实际是 recipeId（从收藏开始烹饪时传递的是 UserRecipe ID）
         else if (req.getDishId() != null) {
-            // ✅ 重要：即使从收藏/历史（dishId）开始烹饪，也要克隆成新的 Dish 快照
-            // 这样才能保证“每次吃的菜都有独立 dishId”，避免同名/同ID复用导致营养归因错误。
-            Dish dish = favoriteRecipeService.cloneDishSnapshot(req.getHouseholdId(), req.getDishId());
+            // ✅ 重要：从收藏菜谱创建新的 Dish 快照
+            // 这样才能保证"每次吃的菜都有独立 dishId"，避免同名/同ID复用导致营养归因错误。
+            Dish dish = favoriteRecipeService.cookFromFavorite(req.getHouseholdId(), req.getDishId());
             dishes.add(dish);
             session.setDishes(dishes);
             session.setFinalDish(dish);
@@ -105,35 +106,12 @@ public class CookingWorkflowService {
             allDishes = List.of(session.getFinalDish());
         }
 
-        // 🔥 直接使用 session 中新创建的 dishIds，忽略前端传入的（避免模板 dishId 不匹配问题）
+        // 使用 session 中所有新创建的 dishIds
         List<Long> finalCompletedDishIds = allDishes.stream()
                 .map(Dish::getId)
                 .collect(Collectors.toList());
         
         List<Dish> completedDishes = allDishes;
-
-        // 🔥 可选：如果前端传入了 completedDishIds，记录日志以便调试
-        List<Long> requestedDishIds = req.getCompletedDishIds();
-        if (requestedDishIds != null && !requestedDishIds.isEmpty()) {
-            List<Long> sessionDishIds = allDishes.stream()
-                    .map(Dish::getId)
-                    .collect(Collectors.toList());
-            
-            // 检查是否有匹配的
-            boolean hasMatch = requestedDishIds.stream()
-                    .anyMatch(sessionDishIds::contains);
-            
-            if (!hasMatch) {
-                log.warn("前端传入的 completedDishIds {} 与 session {} 的实际 dishIds {} 不匹配（可能是模板 dishId），将使用 session 中的所有 dishId 完成会话", 
-                        requestedDishIds, req.getSessionId(), sessionDishIds);
-            } else {
-                log.debug("使用 session {} 中的所有 dishIds {} 完成会话（前端传入: {}）", 
-                        req.getSessionId(), sessionDishIds, requestedDishIds);
-            }
-        } else {
-            log.debug("未指定 completedDishIds，将完成 session {} 中的所有菜品: {}", 
-                    req.getSessionId(), finalCompletedDishIds);
-        }
 
         // 保存快照（汇总所有已完成的菜品）
         if (req.getFinalIngredients() != null) {

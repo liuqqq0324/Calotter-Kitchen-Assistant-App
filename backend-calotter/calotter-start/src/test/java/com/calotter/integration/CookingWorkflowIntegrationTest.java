@@ -344,11 +344,11 @@ class CookingWorkflowIntegrationTest {
                 .at("/data")
                 .asLong();
 
-        // When: 完成烹饪（指定完成的菜品ID）
+        // When: 完成烹饪（自动完成session中的所有dish）
         FinishCookingRequest finishRequest = new FinishCookingRequest();
         finishRequest.setSessionId(sessionId);
         finishRequest.setConsumedAt(LocalDateTime.now());
-        finishRequest.setCompletedDishIds(Arrays.asList(dish.getId()));
+        // 不再需要设置 completedDishIds，系统会自动完成session中的所有dish
 
         mockMvc.perform(post("/api/cooking/finish")
                         .contentType(MediaType.APPLICATION_JSON)

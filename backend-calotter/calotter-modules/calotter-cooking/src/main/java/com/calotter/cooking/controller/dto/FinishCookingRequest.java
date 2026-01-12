@@ -18,12 +18,6 @@ public class FinishCookingRequest {
     private Long sessionId;
 
     /**
-     * 完成了哪些菜品（Dish ID 列表）
-     * 如果为空，表示完成所有菜品
-     */
-    private List<Long> completedDishIds;
-
-    /**
      * 最终用料列表（可选）
      * 如果不提供，不扣减库存
      */

@@ -132,7 +132,7 @@ class CookingWorkflowServiceTest {
         request.setDishId(100L);
 
         when(householdRepository.findById(1L)).thenReturn(Optional.of(household));
-        when(favoriteRecipeService.cloneDishSnapshot(eq(1L), eq(100L))).thenReturn(dish);
+        when(favoriteRecipeService.cookFromFavorite(eq(1L), eq(100L))).thenReturn(dish);
         when(sessionRepository.save(any(CookingSession.class))).thenAnswer(invocation -> {
             CookingSession saved = invocation.getArgument(0);
             saved.setId(200L);
@@ -144,7 +144,7 @@ class CookingWorkflowServiceTest {
 
         // Then
         assertThat(sessionId).isEqualTo(200L);
-        verify(favoriteRecipeService, times(1)).cloneDishSnapshot(eq(1L), eq(100L));
+        verify(favoriteRecipeService, times(1)).cookFromFavorite(eq(1L), eq(100L));
         verify(sessionRepository, times(1)).save(any(CookingSession.class));
     }
 
@@ -257,8 +257,8 @@ class CookingWorkflowServiceTest {
     }
 
     @Test
-    void testFinishCooking_WithCompletedDishIds() {
-        // Given
+    void testFinishCooking_WithMultipleDishes() {
+        // Given: session 中有多道菜
         Dish dish2 = new Dish();
         dish2.setId(101L);
         dish2.setName("清炒时蔬");
@@ -269,7 +269,6 @@ class CookingWorkflowServiceTest {
         FinishCookingRequest request = new FinishCookingRequest();
         request.setSessionId(200L);
         request.setConsumedAt(LocalDateTime.now());
-        request.setCompletedDishIds(Arrays.asList(100L)); // 只完成第一道菜
 
         when(sessionRepository.findById(200L)).thenReturn(Optional.of(session));
         when(householdRepository.findById(1L)).thenReturn(Optional.of(household));
@@ -285,14 +284,9 @@ class CookingWorkflowServiceTest {
         // When
         CookingSession result = cookingWorkflowService.finishCooking(request);
 
-        // Then
+        // Then: 验证完成了所有菜品（创建了 2 个 LeftoverDish）
         assertThat(result).isNotNull();
-        // 验证只创建了一个 LeftoverDish（只完成了第一道菜）
-        verify(leftoverDishRepository, times(1)).save(any(LeftoverDish.class));
-        
-        ArgumentCaptor<LeftoverDish> leftoverCaptor = ArgumentCaptor.forClass(LeftoverDish.class);
-        verify(leftoverDishRepository).save(leftoverCaptor.capture());
-        assertThat(leftoverCaptor.getValue().getOriginalDishId()).isEqualTo(100L);
+        verify(leftoverDishRepository, times(2)).save(any(LeftoverDish.class));
     }
 
     @Test
@@ -342,22 +336,5 @@ class CookingWorkflowServiceTest {
         assertThat(savedIngredient.getQuantity()).isEqualTo(500.0); // 1000 - 500 = 500
     }
 
-    @Test
-    void testFinishCooking_NoCompletedDishes() {
-        // Given
-        FinishCookingRequest request = new FinishCookingRequest();
-        request.setSessionId(200L);
-        request.setConsumedAt(LocalDateTime.now());
-        request.setCompletedDishIds(Arrays.asList(999L)); // 不存在的 dishId
-
-        when(sessionRepository.findById(200L)).thenReturn(Optional.of(session));
-
-        // When & Then
-        assertThatThrownBy(() -> cookingWorkflowService.finishCooking(request))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("没有已完成的菜品");
-
-        verify(leftoverDishRepository, never()).save(any());
-    }
 }
 

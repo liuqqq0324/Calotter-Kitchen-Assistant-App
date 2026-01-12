@@ -6,13 +6,11 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 /**
- * Household Favorite Dish relation (favorites are a relationship, not a Dish field).
+ * Household Favorite Recipe relation (收藏关系表)
  *
- * - One household can favorite many dishes.
- * - A dish can be favorited by at most one household in practice because Dish already belongs to a household,
- *   but we still store householdId explicitly to keep the relation clear and future-proof.
- *
- * Important: Cooking creates Dish snapshots per cook, while favorites point to "template" dishes.
+ * - One household can favorite many recipes (UserRecipe).
+ * - Favorites now point to UserRecipe (not Dish), achieving physical isolation.
+ * - 收藏与烹饪记录完全隔离，删除收藏不影响历史 Dish 记录。
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
@@ -20,11 +18,11 @@ import lombok.EqualsAndHashCode;
 @Table(
         name = "household_favorite_dishes",
         uniqueConstraints = {
-                @UniqueConstraint(name = "uk_household_dish", columnNames = {"household_id", "dish_id"})
+                @UniqueConstraint(name = "uk_household_recipe", columnNames = {"household_id", "recipe_id"})
         },
         indexes = {
                 @Index(name = "idx_fav_household", columnList = "household_id"),
-                @Index(name = "idx_fav_dish", columnList = "dish_id")
+                @Index(name = "idx_fav_recipe", columnList = "recipe_id")
         }
 )
 public class HouseholdFavoriteDish extends BaseEntity {
@@ -36,8 +34,12 @@ public class HouseholdFavoriteDish extends BaseEntity {
     @Column(name = "household_id", nullable = false)
     private Long householdId;
 
-    @Column(name = "dish_id", nullable = false)
-    private Long dishId;
+    /**
+     * 收藏的菜谱ID（指向 UserRecipe）
+     * 注意：字段名从 dish_id 改为 recipe_id，但表名保持不变以兼容现有数据
+     */
+    @Column(name = "recipe_id", nullable = false)
+    private Long recipeId;
 }
 
 
