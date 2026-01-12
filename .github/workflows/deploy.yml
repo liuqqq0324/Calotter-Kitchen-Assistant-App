@@ -39,7 +39,7 @@ jobs:
         target: "/opt/calotter"
         strip_components: 3
 
-    # 5. 远程重启服务 (极简稳定版)
+    # 5. 远程重启服务 (防自杀版：按端口关闭)
     - name: Restart Application
       uses: appleboy/ssh-action@master
       with:
@@ -49,23 +49,24 @@ jobs:
         script: |
           echo "Deployment script started..."
           
-          # 1. 进入目录
-          cd /opt/calotter
+          # 1. 释放 8080 端口 (确保 fuser 工具已安装，没有就装一个)
+          echo "Freeing port 8080..."
+          # 尝试安装 psmisc (包含 fuser)，防止报错
+          sudo apt-get update && sudo apt-get install -y psmisc
+          # 杀掉占用 8080 的进程
+          sudo fuser -k 8080/tcp || true
           
-          # 2. 只有检测到有 Java 在跑才杀进程 (避免空杀导致报错)
-          # 使用 if 判断，比直接运行 pkill 更稳妥
-          if pgrep -f "java -jar"; then
-            echo "Found running process, killing it..."
-            pkill -9 -f "java -jar"
-          else
-            echo "No running process found (Clean server)."
-          fi
+          # 等待端口彻底释放
+          sleep 5
+          
+          # 2. 进入目录
+          cd /opt/calotter
           
           # 3. 找到最新的 jar 包
           JAR_NAME=$(ls -t *.jar | head -1)
           echo "Starting $JAR_NAME ..."
           
-          # 4. 后台启动 (移除 drop_caches，那个命令太危险)
+          # 4. 后台启动 (带上数据库密码)
           nohup java -jar $JAR_NAME \
             --spring.datasource.url=jdbc:postgresql://localhost:5432/calotter \
             --spring.datasource.username=postgres \
