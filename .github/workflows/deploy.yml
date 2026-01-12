@@ -39,7 +39,7 @@ jobs:
         target: "/opt/calotter"
         strip_components: 3 # 剥离掉 backend-calotter/calotter-start/target 这3层目录
 
-    # 5. 远程重启服务 (修复了误杀进程的问题)
+    # 5. 远程重启服务
     - name: Restart Application
       uses: appleboy/ssh-action@master
       with:
@@ -49,9 +49,10 @@ jobs:
         script: |
           echo "Stopping old process..."
           
-          # 🌟 核心修复：只杀带有 'java' 且包含 'calotter' 的进程
-          # 加上 || true 是为了防止如果没有进程在跑，命令报错导致脚本停止
-          sudo pkill -f 'java -jar.*calotter' || true
+          # 🌟 核心修复：使用 [c]alotter 技巧
+          # 这能匹配到 'java -jar ...calotter...' 
+          # 但不会匹配到当前这个命令本身 '...pkill...[c]alotter...'
+          sudo pkill -f 'java -jar.*[c]alotter' || true
           
           # 等待端口释放
           sleep 2
@@ -63,7 +64,7 @@ jobs:
           
           echo "Starting $JAR_NAME..."
           
-          # 后台启动，并把日志输出到 app.log
+          # 后台启动
           nohup java -jar $JAR_NAME > app.log 2>&1 &
           
           echo "Deployment finished!"
