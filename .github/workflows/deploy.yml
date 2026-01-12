@@ -20,20 +20,22 @@ jobs:
         distribution: 'temurin'
         cache: maven
 
-    # 👇👇👇 重点修改了这里 👇👇👇
+    # 👇 修正点 1：进到两层目录里去执行 Maven
     - name: Build with Maven
       run: mvn -B clean package -DskipTests
-      working-directory: ./calotter-start  # 👈 加上这行！告诉它进到子目录里去
+      working-directory: ./backend-calotter/calotter-start
 
+    # 👇 修正点 2：拿货的路径也要跟着改，否则会传空文件
     - name: Copy Jar to Server
       uses: appleboy/scp-action@master
       with:
         host: ${{ secrets.SERVER_HOST }}
         username: ${{ secrets.SERVER_USER }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
-        source: "calotter-start/target/*.jar"
+        # 注意这里路径变长了
+        source: "backend-calotter/calotter-start/target/*.jar"
         target: "/opt/calotter"
-        strip_components: 2
+        strip_components: 3 # 👈 注意！这里改成了 3，因为我们要剥离掉前面 3 层目录 (backend/calotter/target)
 
     - name: Restart Application
       uses: appleboy/ssh-action@master
@@ -47,7 +49,6 @@ jobs:
           sleep 2
           
           cd /opt/calotter
-          # 这一步会自动找到刚才传上来的那个最新的 jar 包
           JAR_NAME=$(ls -t *.jar | head -1)
           
           echo "Starting $JAR_NAME..."
