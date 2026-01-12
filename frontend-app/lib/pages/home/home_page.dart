@@ -14,6 +14,19 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   bool _isLoading = true;
+  int _nutritionPageIndex = 0; // 0 = daily, 1 = weekly
+  final PageController _nutritionPageController = PageController(initialPage: 0);
+
+  Map<String, double> _dailyNutritionData = {
+    'energy_current': 0.0,
+    'energy_target': 2000.0,
+    'protein_current': 0.0,
+    'protein_target': 100.0,
+    'fat_current': 0.0,
+    'fat_target': 65.0,
+    'carbs_current': 0.0,
+    'carbs_target': 250.0,
+  };
   Map<String, double> _nutritionData = {
     'energy_current': 0.0,
     'energy_target': 2000.0,
@@ -31,13 +44,18 @@ class _HomePageState extends State<HomePage> {
     _loadNutritionData();
   }
 
+  @override
+  void dispose() {
+    _nutritionPageController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadNutritionData() async {
     setState(() => _isLoading = true);
 
     try {
-      // 获取周营养摘要（包含已消费和剩余）
-      final summaryResult =
-          await HomepageApiService.getWeeklyNutritionSummary();
+      // 1) Weekly summary + targets (weekly card)
+      final summaryResult = await HomepageApiService.getWeeklyNutritionSummary();
 
       if (!mounted) return;
 
@@ -45,9 +63,7 @@ class _HomePageState extends State<HomePage> {
         final data = summaryResult['data'] as Map<String, dynamic>;
         final consumed = data['consumed'] as Map<String, dynamic>? ?? {};
 
-        // 获取周营养目标（用于target值）
-        final targetResult =
-            await HomepageApiService.getWeeklyNutritionTargets();
+        final targetResult = await HomepageApiService.getWeeklyNutritionTargets();
 
         if (!mounted) return;
 
@@ -78,8 +94,13 @@ class _HomePageState extends State<HomePage> {
                 (consumed['carbohydrates'] as num?)?.toDouble() ?? 0.0,
             'carbs_target': weeklyCarbs,
           };
-          _isLoading = false;
         });
+
+        // 2) Daily summary + targets (daily card) - use backend endpoints for consistency
+        await _loadDailyNutritionDataFromBackend();
+
+        if (!mounted) return;
+        setState(() => _isLoading = false);
       } else {
         if (!mounted) return;
         setState(() => _isLoading = false);
@@ -138,6 +159,133 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  Future<void> _loadDailyNutritionDataFromBackend() async {
+    try {
+      if (!mounted) return;
+
+      final targetResult = await HomepageApiService.getDailyNutritionTargets();
+      final summaryResult = await HomepageApiService.getDailyNutritionSummary();
+
+      if (!mounted) return;
+      if (targetResult['success'] != true || summaryResult['success'] != true) return;
+
+      final targetData = (targetResult['data'] as Map<String, dynamic>?) ?? {};
+      final dailyTarget = (targetData['dailyTarget'] as Map?)?.cast<String, dynamic>() ?? {};
+
+      final summaryData = (summaryResult['data'] as Map<String, dynamic>?) ?? {};
+      final consumed = (summaryData['consumed'] as Map?)?.cast<String, dynamic>() ?? {};
+
+      setState(() {
+        _dailyNutritionData = {
+          'energy_current': (consumed['energy'] as num?)?.toDouble() ?? 0.0,
+          'energy_target': (dailyTarget['energy'] as num?)?.toDouble() ?? 0.0,
+          'protein_current': (consumed['protein'] as num?)?.toDouble() ?? 0.0,
+          'protein_target': (dailyTarget['protein'] as num?)?.toDouble() ?? 0.0,
+          'fat_current': (consumed['fat'] as num?)?.toDouble() ?? 0.0,
+          'fat_target': (dailyTarget['fat'] as num?)?.toDouble() ?? 0.0,
+          'carbs_current': (consumed['carbohydrates'] as num?)?.toDouble() ?? 0.0,
+          'carbs_target': (dailyTarget['carbohydrates'] as num?)?.toDouble() ?? 0.0,
+        };
+      });
+    } catch (_) {
+      // keep previous daily data; do not fail the whole dashboard
+    }
+  }
+
+  Widget _buildNutritionDashboardCard({
+    required String title,
+    required Map<String, double> nutritionData,
+    required VoidCallback onRefresh,
+    required String targetPeriodLabel, // "daily" | "weekly"
+  }) {
+    return SketchyCard(
+      backgroundColor: Colors.white,
+      borderColor: Colors.teal.shade700,
+      borderWidth: 2.5,
+      padding: const EdgeInsets.all(18),
+      child: _isLoading
+          ? const Center(
+              child: Padding(
+                padding: EdgeInsets.all(20.0),
+                child: CircularProgressIndicator(),
+              ),
+            )
+          : SingleChildScrollView(
+              // Prevent "bottom overflowed" on smaller screens by allowing vertical scroll inside the card.
+              physics: const ClampingScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.analytics,
+                        size: 22,
+                        color: Colors.teal.shade700,
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        targetPeriodLabel == 'daily' ? 'Daily' : 'Weekly',
+                        style: GoogleFonts.caveat(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.teal.shade900,
+                        ),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        icon: const Icon(Icons.refresh),
+                        onPressed: onRefresh,
+                        tooltip: 'Refresh',
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _buildNutritionItem(
+                    label: "Energy",
+                    unit: "kcal",
+                    current: nutritionData['energy_current'] ?? 0.0,
+                    target: nutritionData['energy_target'] ?? 0.0,
+                    color: Colors.orange,
+                    icon: Icons.local_fire_department,
+                    targetPeriodLabel: targetPeriodLabel,
+                  ),
+                  const SizedBox(height: 12),
+                  _buildNutritionItem(
+                    label: "Protein",
+                    unit: "g",
+                    current: nutritionData['protein_current'] ?? 0.0,
+                    target: nutritionData['protein_target'] ?? 0.0,
+                    color: Colors.blue,
+                    icon: Icons.fitness_center,
+                    targetPeriodLabel: targetPeriodLabel,
+                  ),
+                  const SizedBox(height: 12),
+                  _buildNutritionItem(
+                    label: "Fat",
+                    unit: "g",
+                    current: nutritionData['fat_current'] ?? 0.0,
+                    target: nutritionData['fat_target'] ?? 0.0,
+                    color: Colors.amber,
+                    icon: Icons.water_drop,
+                    targetPeriodLabel: targetPeriodLabel,
+                  ),
+                  const SizedBox(height: 12),
+                  _buildNutritionItem(
+                    label: "Carbohydrates",
+                    unit: "g",
+                    current: nutritionData['carbs_current'] ?? 0.0,
+                    target: nutritionData['carbs_target'] ?? 0.0,
+                    color: Colors.green,
+                    icon: Icons.eco,
+                    targetPeriodLabel: targetPeriodLabel,
+                  ),
+                ],
+              ),
+            ),
+    );
+  }
+
   // 构建营养项显示
   Widget _buildNutritionItem({
     required String label,
@@ -146,6 +294,7 @@ class _HomePageState extends State<HomePage> {
     required double target,
     required Color color,
     required IconData icon,
+    required String targetPeriodLabel, // "daily" | "weekly"
   }) {
     final percentage = (current / target).clamp(0.0, 1.0);
 
@@ -205,7 +354,7 @@ class _HomePageState extends State<HomePage> {
         const SizedBox(height: 4),
         // 百分比文本
         Text(
-          "${(percentage * 100).toStringAsFixed(0)}% of weekly target",
+          "${(percentage * 100).toStringAsFixed(0)}% of $targetPeriodLabel target",
           style: GoogleFonts.kalam(fontSize: 12, color: Colors.grey[600]),
         ),
       ],
@@ -227,7 +376,7 @@ class _HomePageState extends State<HomePage> {
         backgroundColor: color.shade50,
         borderColor: color.shade400,
         borderWidth: 2.0,
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(18),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -335,96 +484,65 @@ class _HomePageState extends State<HomePage> {
 
           const SizedBox(height: 30),
 
-          // 3. 营养仪表盘标题 - 手绘风格
+          // 3. 营养仪表盘标题 - 手绘风格（可左右滑动：Daily <-> Weekly）
           Text(
-            "Weekly Nutrition Dashboard",
+            _nutritionPageIndex == 0
+                ? "Daily Nutrition Dashboard"
+                : "Weekly Nutrition Dashboard",
             style: SketchyTextStyle.heading(context),
           ),
           const SizedBox(height: 15),
 
-          // 4. 营养仪表盘卡片 - 手绘风格
-          SketchyCard(
-            backgroundColor: Colors.white,
-            borderColor: Colors.teal.shade700,
-            borderWidth: 2.5,
-            padding: const EdgeInsets.all(20),
-            child: _isLoading
-                ? const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(20.0),
-                      child: CircularProgressIndicator(),
+          // 4. 营养仪表盘（左右滑动卡片）
+          Column(
+            children: [
+              SizedBox(
+                // Ensure the last row (Carbohydrates) is visible without needing inner scrolling.
+                // This page itself is scrollable, so a taller card is safe.
+                height: 460,
+                child: PageView(
+                  controller: _nutritionPageController,
+                  onPageChanged: (idx) => setState(() => _nutritionPageIndex = idx),
+                  children: [
+                    _buildNutritionDashboardCard(
+                      title: "Today's Intake",
+                      nutritionData: _dailyNutritionData,
+                      onRefresh: _loadNutritionData,
+                      targetPeriodLabel: "daily",
                     ),
-                  )
-                : Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // 标题行
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.analytics,
-                            size: 28,
-                            color: Colors.teal.shade700,
-                          ),
-                          const SizedBox(width: 10),
-                          Text(
-                            "This Week's Intake",
-                            style: GoogleFonts.caveat(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.teal.shade900,
-                            ),
-                          ),
-                          const Spacer(),
-                          IconButton(
-                            icon: const Icon(Icons.refresh),
-                            onPressed: _loadNutritionData,
-                            tooltip: 'Refresh',
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-
-                      // 营养成分列表
-                      _buildNutritionItem(
-                        label: "Energy",
-                        unit: "kcal",
-                        current: _nutritionData['energy_current']!,
-                        target: _nutritionData['energy_target']!,
-                        color: Colors.orange,
-                        icon: Icons.local_fire_department,
-                      ),
-                      const SizedBox(height: 15),
-                      _buildNutritionItem(
-                        label: "Protein",
-                        unit: "g",
-                        current: _nutritionData['protein_current']!,
-                        target: _nutritionData['protein_target']!,
-                        color: Colors.blue,
-                        icon: Icons.fitness_center,
-                      ),
-                      const SizedBox(height: 15),
-                      _buildNutritionItem(
-                        label: "Fat",
-                        unit: "g",
-                        current: _nutritionData['fat_current']!,
-                        target: _nutritionData['fat_target']!,
-                        color: Colors.amber,
-                        icon: Icons.water_drop,
-                      ),
-                      const SizedBox(height: 15),
-                      _buildNutritionItem(
-                        label: "Carbohydrates",
-                        unit: "g",
-                        current: _nutritionData['carbs_current']!,
-                        target: _nutritionData['carbs_target']!,
-                        color: Colors.green,
-                        icon: Icons.eco,
-                      ),
-                    ],
-                  ),
+                    _buildNutritionDashboardCard(
+                      title: "This Week's Intake",
+                      nutritionData: _nutritionData,
+                      onRefresh: _loadNutritionData,
+                      targetPeriodLabel: "weekly",
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _buildDot(isActive: _nutritionPageIndex == 0),
+                  const SizedBox(width: 8),
+                  _buildDot(isActive: _nutritionPageIndex == 1),
+                ],
+              ),
+            ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildDot({required bool isActive}) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      width: isActive ? 10 : 8,
+      height: isActive ? 10 : 8,
+      decoration: BoxDecoration(
+        color: isActive ? Colors.teal.shade700 : Colors.grey.shade400,
+        shape: BoxShape.circle,
       ),
     );
   }
