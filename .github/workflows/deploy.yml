@@ -39,35 +39,36 @@ jobs:
         target: "/opt/calotter"
         strip_components: 3
 
-    # 5. 远程重启服务 (核心修改在这里 👇)
+    # 5. 远程重启服务 (优化版：增加超时设置 + 暴力清理)
     - name: Restart Application
       uses: appleboy/ssh-action@master
       with:
         host: ${{ secrets.SERVER_HOST }}
         username: ${{ secrets.SERVER_USER }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
+        command_timeout: 30m # 🔴 关键修改：设置 30 分钟超时，防止因服务器卡顿导致 GitHub 报错断开
         script: |
-          echo "Stopping old process..."
-          # 强制杀掉旧的 java 进程
-          sudo pkill -f 'java -jar' || true
+          echo "Starting deployment script..."
           
-          # 等待端口释放
-          sleep 5
+          # 1. 暴力清理旧进程 (-9 表示强制立即执行，不耗费 CPU 等待)
+          echo "Force killing old process..."
+          sudo pkill -9 -f 'java -jar' || true
           
-          # 进入存放 jar 包的目录 (根据你第4步的 target 设定)
+          # 2. 清理一点缓存
+          sudo sync && sudo sysctl -w vm.drop_caches=3 || true
+          
+          # 3. 进入目录
           cd /opt/calotter
           
-          # 找到最新的 jar 包
+          # 4. 找到最新的 jar 包
           JAR_NAME=$(ls -t *.jar | head -1)
+          echo "Deploying $JAR_NAME ..."
           
-          echo "Starting $JAR_NAME with DB config..."
-          
-          # 🌟 关键修改：注入数据库配置 🌟
-          # 使用 nohup 后台启动，并引用 secrets.DB_PASSWORD
+          # 5. 后台启动 (带上数据库密码)
           nohup java -jar $JAR_NAME \
             --spring.datasource.url=jdbc:postgresql://localhost:5432/calotter \
             --spring.datasource.username=postgres \
             --spring.datasource.password=${{ secrets.DB_PASSWORD }} \
             > app.log 2>&1 &
-          
-          echo "Deployment finished! Application is starting in background."
+            
+          echo "Deployment command finished. Check app.log for details."
