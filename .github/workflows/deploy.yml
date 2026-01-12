@@ -3,7 +3,7 @@ name: Deploy Spring Boot to AWS
 on:
   push:
     branches:
-      - "**"  # 允许所有分支触发，方便调试
+      - "**"
 
 jobs:
   build-and-deploy:
@@ -20,9 +20,10 @@ jobs:
         distribution: 'temurin'
         cache: maven
 
+    # 👇👇👇 重点修改了这里 👇👇👇
     - name: Build with Maven
-      # 注意：这里加了 -B (Batch mode) 让日志更简洁
       run: mvn -B clean package -DskipTests
+      working-directory: ./calotter-start  # 👈 加上这行！告诉它进到子目录里去
 
     - name: Copy Jar to Server
       uses: appleboy/scp-action@master
@@ -46,10 +47,10 @@ jobs:
           sleep 2
           
           cd /opt/calotter
+          # 这一步会自动找到刚才传上来的那个最新的 jar 包
           JAR_NAME=$(ls -t *.jar | head -1)
           
           echo "Starting $JAR_NAME..."
-          # 注意：这里稍微优化了启动命令，确保更稳定
           nohup java -jar $JAR_NAME > app.log 2>&1 &
           
           echo "Deployment finished!"
