@@ -257,17 +257,28 @@ public class CookingWorkflowService {
                     break; // 已经扣减完成
                 }
                 
-                Double currentQuantity = ingredient.getQuantity();
-                String currentUnit = ingredient.getUnit();
+                // 🔥 重要：在循环开始时重新从数据库获取实体，确保获取最新状态
+                // 避免处理已被删除的实体
+                Ingredient currentIngredient = ingredientRepository.findById(ingredient.getId())
+                        .orElse(null);
+                
+                if (currentIngredient == null) {
+                    // 实体已被删除（可能在其他迭代中），跳过
+                    log.debug("食材 {} 已被删除，跳过处理", ingredient.getMetadata().getName());
+                    continue;
+                }
+                
+                Double currentQuantity = currentIngredient.getQuantity();
+                String currentUnit = currentIngredient.getUnit();
                 
                 // 单位转换：将需求数量转换为当前食材的单位
                 // 🔥 传入 StandardIngredient 以便使用 averageGramPerUnit 进行 pcs ↔ g 转换
-                Double amountToDeduct = convertUnit(remainingToDeduct, reqUnit, currentUnit, ingredient.getMetadata());
+                Double amountToDeduct = convertUnit(remainingToDeduct, reqUnit, currentUnit, currentIngredient.getMetadata());
                 
                 if (amountToDeduct == null) {
                     log.warn("单位转换失败: {} {} -> {}，跳过该食材: {}", 
                             remainingToDeduct, reqUnit, currentUnit, 
-                            ingredient.getMetadata().getName());
+                            currentIngredient.getMetadata().getName());
                     continue; // 尝试下一个同名食材
                 }
                 
@@ -278,7 +289,7 @@ public class CookingWorkflowService {
                         
                         // 更新剩余需要扣减的数量（需要反向单位转换回 reqUnit）
                         // 🔥 传入 StandardIngredient 以便使用 averageGramPerUnit 进行 pcs ↔ g 转换
-                        Double deductedInReqUnit = convertUnit(deducted, currentUnit, reqUnit, ingredient.getMetadata());
+                        Double deductedInReqUnit = convertUnit(deducted, currentUnit, reqUnit, currentIngredient.getMetadata());
                         if (deductedInReqUnit != null) {
                             remainingToDeduct -= deductedInReqUnit;
                         } else {
@@ -286,23 +297,24 @@ public class CookingWorkflowService {
                             remainingToDeduct -= deducted;
                         }
                         
-                        // 删除记录（因为数量为 0）
-                        ingredientRepository.delete(ingredient);
+                        // 🔥 使用 deleteById 而不是 delete，避免传递已删除的实体对象
+                        Long ingredientId = currentIngredient.getId();
+                        ingredientRepository.deleteById(ingredientId);
                         
                         log.info("库存已用完并删除: {} (扣减了 {} {}，剩余需求: {} {})", 
-                                ingredient.getMetadata().getName(), 
+                                currentIngredient.getMetadata().getName(), 
                                 deducted, currentUnit,
                                 remainingToDeduct > 0 ? remainingToDeduct : 0, reqUnit);
                     } else {
                         // 正常扣减
-                        ingredient.setQuantity(currentQuantity - amountToDeduct);
-                        ingredientRepository.save(ingredient);
+                        currentIngredient.setQuantity(currentQuantity - amountToDeduct);
+                        ingredientRepository.save(currentIngredient);
                         remainingToDeduct = 0.0; // 已完全满足需求
                         
                         log.info("扣减库存: {} {} -> {} {} (扣减了 {} {})", 
-                                ingredient.getMetadata().getName(), 
+                                currentIngredient.getMetadata().getName(), 
                                 currentQuantity, 
-                                ingredient.getQuantity(), 
+                                currentIngredient.getQuantity(), 
                                 currentUnit,
                                 amountToDeduct, currentUnit);
                     }
