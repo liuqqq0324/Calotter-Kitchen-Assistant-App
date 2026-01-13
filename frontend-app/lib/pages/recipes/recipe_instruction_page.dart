@@ -6,6 +6,7 @@ import 'package:personal_sous_chef/models/recipe_models.dart';
 import 'package:personal_sous_chef/pages/recipes/recipe_meal_summary_page.dart';
 import 'package:personal_sous_chef/services/cooking_api_service.dart';
 import 'package:personal_sous_chef/services/household_service.dart';
+import 'package:personal_sous_chef/services/cooking_voice_assistant.dart';
 
 class RecipeInstructionPage extends StatefulWidget {
   final RecipeMenuModel menu;
@@ -34,6 +35,11 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
   final Set<String> _completedSteps = {};
   int? _sessionId;
   bool _sessionCreated = false;
+  
+  // Voice control
+  final CookingVoiceAssistant _voiceAssistant = CookingVoiceAssistant();
+  bool _isVoiceModeActive = false;
+  int _currentFocusedStepNumber = 1; // 当前聚焦的步骤编号
 
   String _stepKey(int dishIndex, int stepNumber) => '$dishIndex:$stepNumber';
 
@@ -43,6 +49,11 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
     _currentIndex = widget.initialRecipeIndex;
     _completedDishes = <int>{};
     _createCookingSession();
+    _initializeVoiceAssistant();
+  }
+  
+  Future<void> _initializeVoiceAssistant() async {
+    await _voiceAssistant.initialize();
   }
 
   /// 创建烹饪session（传入整个 Menu）
@@ -108,6 +119,7 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
     for (final t in _runningTimers.values) {
       t.cancel();
     }
+    _voiceAssistant.dispose();
     super.dispose();
   }
 
@@ -173,6 +185,7 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
     if (_currentIndex < _totalDishes - 1) {
       setState(() {
         _currentIndex++;
+        _currentFocusedStepNumber = 1; // 重置到第一步
       });
     }
   }
@@ -181,6 +194,7 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
     if (_currentIndex > 0) {
       setState(() {
         _currentIndex--;
+        _currentFocusedStepNumber = 1; // 重置到第一步
       });
     }
   }
@@ -263,6 +277,273 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
       _completedSteps.add(key);
     });
   }
+  
+  // ========== Voice Control Methods ==========
+  
+  /// 获取当前菜品的步骤列表
+  List<RecipeStepModel> get _currentSteps => widget.menu.recipes[_currentIndex].steps;
+  
+  /// 获取当前聚焦的步骤
+  RecipeStepModel? _getFocusedStep() {
+    if (_currentFocusedStepNumber < 1 || _currentFocusedStepNumber > _currentSteps.length) {
+      return _currentSteps.isNotEmpty ? _currentSteps[0] : null;
+    }
+    return _currentSteps[_currentFocusedStepNumber - 1];
+  }
+  
+  /// 获取下一个步骤
+  RecipeStepModel? _getNextStep() {
+    if (_currentFocusedStepNumber < _currentSteps.length) {
+      return _currentSteps[_currentFocusedStepNumber]; // _currentFocusedStepNumber 是 1-based，数组是 0-based，所以这里直接使用
+    }
+    return null;
+  }
+  
+  /// 获取上一个步骤
+  RecipeStepModel? _getPreviousStep() {
+    if (_currentFocusedStepNumber > 1) {
+      return _currentSteps[_currentFocusedStepNumber - 2];
+    }
+    return null;
+  }
+  
+  /// 切换到指定步骤
+  void _jumpToStep(int stepNumber) {
+    if (stepNumber >= 1 && stepNumber <= _currentSteps.length) {
+      setState(() {
+        _currentFocusedStepNumber = stepNumber;
+      });
+    }
+  }
+  
+  /// 处理语音命令
+  Future<void> _handleVoiceCommand(String commandText) async {
+    final commandType = _voiceAssistant.recognizeCommand(commandText);
+    final recipe = widget.menu.recipes[_currentIndex];
+    
+    switch (commandType) {
+      case VoiceCommandType.nextStep:
+        final nextStep = _getNextStep();
+        if (nextStep != null) {
+          setState(() {
+            _currentFocusedStepNumber = nextStep.stepNumber;
+          });
+          await _voiceAssistant.speakStep(nextStep);
+        } else {
+          await _voiceAssistant.speak('已经是最后一步了');
+        }
+        break;
+        
+      case VoiceCommandType.previousStep:
+        final prevStep = _getPreviousStep();
+        if (prevStep != null) {
+          setState(() {
+            _currentFocusedStepNumber = prevStep.stepNumber;
+          });
+          await _voiceAssistant.speakStep(prevStep);
+        } else {
+          await _voiceAssistant.speak('已经是第一步了');
+        }
+        break;
+        
+      case VoiceCommandType.repeatStep:
+        final currentStep = _getFocusedStep();
+        if (currentStep != null) {
+          await _voiceAssistant.speakStep(currentStep);
+        }
+        break;
+        
+      case VoiceCommandType.jumpToStep:
+        final stepNumber = _voiceAssistant.extractStepNumber(commandText);
+        if (stepNumber != null && stepNumber >= 1 && stepNumber <= _currentSteps.length) {
+          final targetStep = _currentSteps[stepNumber - 1];
+          setState(() {
+            _currentFocusedStepNumber = stepNumber;
+          });
+          await _voiceAssistant.speakStep(targetStep);
+        } else {
+          await _voiceAssistant.speak('步骤编号无效');
+        }
+        break;
+        
+      case VoiceCommandType.startTimer:
+        final currentStep = _getFocusedStep();
+        if (currentStep != null && currentStep.stepTimeMin > 0) {
+          _startTimerForStep(_currentIndex, currentStep.stepNumber, currentStep.stepTimeMin);
+          await _voiceAssistant.speak('计时器已启动，${currentStep.stepTimeMin}分钟');
+        } else {
+          await _voiceAssistant.speak('当前步骤没有设置时间');
+        }
+        break;
+        
+      case VoiceCommandType.pauseTimer:
+        final currentStep = _getFocusedStep();
+        if (currentStep != null) {
+          _pauseTimer(_currentIndex, currentStep.stepNumber);
+          await _voiceAssistant.speak('计时器已暂停');
+        }
+        break;
+        
+      case VoiceCommandType.resumeTimer:
+        final currentStep = _getFocusedStep();
+        if (currentStep != null && currentStep.stepTimeMin > 0) {
+          final key = _stepKey(_currentIndex, currentStep.stepNumber);
+          if (_pausedSteps[key] == true) {
+            _startTimerForStep(_currentIndex, currentStep.stepNumber, currentStep.stepTimeMin);
+            await _voiceAssistant.speak('计时器已继续');
+          } else {
+            await _voiceAssistant.speak('计时器未暂停');
+          }
+        }
+        break;
+        
+      case VoiceCommandType.stopTimer:
+        final currentStep = _getFocusedStep();
+        if (currentStep != null) {
+          _stopTimerForStep(_currentIndex, currentStep.stepNumber);
+          await _voiceAssistant.speak('计时器已停止');
+        }
+        break;
+        
+      case VoiceCommandType.completeStep:
+        final currentStep = _getFocusedStep();
+        if (currentStep != null) {
+          _stopAndCompleteStep(_currentIndex, currentStep.stepNumber);
+          await _voiceAssistant.speak('步骤已完成');
+        }
+        break;
+        
+      case VoiceCommandType.nextDish:
+        if (_currentIndex < _totalDishes - 1) {
+          setState(() {
+            _currentIndex++;
+            _currentFocusedStepNumber = 1;
+          });
+          await _voiceAssistant.speak('已切换到下一道菜：${widget.menu.recipes[_currentIndex].title}');
+        } else {
+          await _voiceAssistant.speak('已经是最后一道菜了');
+        }
+        break;
+        
+      case VoiceCommandType.previousDish:
+        if (_currentIndex > 0) {
+          setState(() {
+            _currentIndex--;
+            _currentFocusedStepNumber = 1;
+          });
+          await _voiceAssistant.speak('已切换到上一道菜：${widget.menu.recipes[_currentIndex].title}');
+        } else {
+          await _voiceAssistant.speak('已经是第一道菜了');
+        }
+        break;
+        
+      case VoiceCommandType.currentStepInfo:
+        final currentStep = _getFocusedStep();
+        if (currentStep != null) {
+          await _voiceAssistant.speakStep(currentStep);
+        }
+        break;
+        
+      case VoiceCommandType.timerStatus:
+        final currentStep = _getFocusedStep();
+        if (currentStep != null) {
+          final key = _stepKey(_currentIndex, currentStep.stepNumber);
+          final remaining = _remainingSeconds[key];
+          if (remaining != null) {
+            final minutes = remaining ~/ 60;
+            final seconds = remaining % 60;
+            if (remaining >= 0) {
+              await _voiceAssistant.speak('还剩${minutes}分${seconds}秒');
+            } else {
+              await _voiceAssistant.speak('已超时${-minutes}分${-seconds}秒');
+            }
+          } else {
+            await _voiceAssistant.speak('当前步骤没有运行中的计时器');
+          }
+        }
+        break;
+        
+      case VoiceCommandType.ingredientsList:
+        final ingredients = recipe.ingredients;
+        if (ingredients.isEmpty) {
+          await _voiceAssistant.speak('没有食材列表');
+        } else {
+          String text = '需要以下食材：';
+          for (var ing in ingredients) {
+            text += '${ing.name}${ing.amountValue}${ing.amountUnit}，';
+          }
+          await _voiceAssistant.speak(text);
+        }
+        break;
+        
+      case VoiceCommandType.exitVoiceMode:
+        _toggleVoiceMode();
+        await _voiceAssistant.speak('已退出语音模式');
+        break;
+        
+      case VoiceCommandType.help:
+        await _voiceAssistant.speak(_voiceAssistant.getHelpText());
+        break;
+        
+      case VoiceCommandType.unknown:
+        await _voiceAssistant.speak('抱歉，我没有理解，请再说一遍');
+        break;
+    }
+  }
+  
+  /// 切换语音模式
+  void _toggleVoiceMode() {
+    setState(() {
+      _isVoiceModeActive = !_isVoiceModeActive;
+      if (_isVoiceModeActive) {
+        _startVoiceListening();
+      } else {
+        _stopVoiceListening();
+      }
+    });
+  }
+  
+  /// 开始语音监听
+  void _startVoiceListening() {
+    _voiceAssistant.startListening(
+      onResult: (recognizedText) async {
+        await _handleVoiceCommand(recognizedText);
+        // 如果语音模式仍然激活，继续监听下一个命令
+        if (_isVoiceModeActive && mounted) {
+          // 等待语音播放完成后再继续监听（避免语音播放时识别干扰）
+          await Future.delayed(const Duration(milliseconds: 500));
+          if (_isVoiceModeActive && mounted) {
+            _startVoiceListening();
+          }
+        }
+      },
+      onError: (error) {
+        if (mounted) {
+          ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(
+              SnackBar(
+                content: Text('语音识别错误: $error'),
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          // 出错后也继续监听
+          if (_isVoiceModeActive && mounted) {
+            Future.delayed(const Duration(seconds: 1), () {
+              if (_isVoiceModeActive && mounted) {
+                _startVoiceListening();
+              }
+            });
+          }
+        }
+      },
+    );
+  }
+  
+  /// 停止语音监听
+  void _stopVoiceListening() {
+    _voiceAssistant.stopListening();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -274,6 +555,15 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
       appBar: AppBar(
         title: Text(recipe.title),
         actions: [
+          // Voice control button
+          IconButton(
+            onPressed: _toggleVoiceMode,
+            icon: Icon(
+              _isVoiceModeActive ? Icons.mic : Icons.mic_none,
+              color: _isVoiceModeActive ? Colors.red : null,
+            ),
+            tooltip: _isVoiceModeActive ? '退出语音模式' : '开启语音模式',
+          ),
           ValueListenableBuilder<List<RecipeModel>>(
             valueListenable: CollectedRecipesStore.favorites,
             builder: (context, favorites, _) {
