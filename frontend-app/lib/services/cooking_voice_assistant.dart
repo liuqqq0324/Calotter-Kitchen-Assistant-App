@@ -34,6 +34,11 @@ class CookingVoiceAssistant {
   bool _isListening = false;
   bool _isSpeaking = false;
   
+  // 用于暂停/恢复功能
+  bool _wasListeningBeforePause = false;
+  Function(String)? _savedOnResult;
+  Function(String)? _savedOnError;
+  
   // 命令关键词映射（支持中英文）
   static const Map<VoiceCommandType, List<String>> _commandKeywords = {
     VoiceCommandType.nextStep: [
@@ -162,6 +167,10 @@ class CookingVoiceAssistant {
       return;
     }
     
+    // 保存回调函数，用于恢复监听
+    _savedOnResult = onResult;
+    _savedOnError = onError;
+    
     try {
       await _speech.listen(
         onResult: (result) {
@@ -194,7 +203,32 @@ class CookingVoiceAssistant {
     if (_isListening) {
       _speech.stop();
       _isListening = false;
+      _wasListeningBeforePause = false;
+      _savedOnResult = null;
+      _savedOnError = null;
       debugPrint('[VoiceAssistant] Stopped listening');
+    }
+  }
+  
+  /// 暂停监听（用于手势控制时的智能切换）
+  void pauseListening() {
+    if (_isListening) {
+      _wasListeningBeforePause = true;
+      _speech.stop();
+      _isListening = false;
+      debugPrint('[VoiceAssistant] Paused listening (will resume later)');
+    }
+  }
+  
+  /// 恢复监听（用于手势控制结束后的智能切换）
+  Future<void> resumeListening() async {
+    if (_wasListeningBeforePause && _savedOnResult != null) {
+      _wasListeningBeforePause = false;
+      await startListening(
+        onResult: _savedOnResult!,
+        onError: _savedOnError,
+      );
+      debugPrint('[VoiceAssistant] Resumed listening');
     }
   }
   

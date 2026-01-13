@@ -263,10 +263,10 @@ class CookingGestureControl {
     return GestureType.none;
   }
   
-  /// 计算两点之间的距离
-  double _calculateDistance(Point point1, Point point2) {
-    final dx = point1.x - point2.x;
-    final dy = point1.y - point2.y;
+  /// 计算两点之间的距离（使用 HandLandmark 的 x, y 属性）
+  double _calculateDistance(HandLandmark landmark1, HandLandmark landmark2) {
+    final dx = landmark1.x - landmark2.x;
+    final dy = landmark1.y - landmark2.y;
     return (dx * dx + dy * dy);
   }
   

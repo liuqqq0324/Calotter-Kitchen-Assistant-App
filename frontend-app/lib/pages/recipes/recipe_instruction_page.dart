@@ -7,6 +7,7 @@ import 'package:personal_sous_chef/pages/recipes/recipe_meal_summary_page.dart';
 import 'package:personal_sous_chef/services/cooking_api_service.dart';
 import 'package:personal_sous_chef/services/household_service.dart';
 import 'package:personal_sous_chef/services/cooking_voice_assistant.dart';
+import 'package:personal_sous_chef/services/cooking_gesture_control.dart';
 
 class RecipeInstructionPage extends StatefulWidget {
   final RecipeMenuModel menu;
@@ -40,6 +41,10 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
   final CookingVoiceAssistant _voiceAssistant = CookingVoiceAssistant();
   bool _isVoiceModeActive = false;
   int _currentFocusedStepNumber = 1; // 当前聚焦的步骤编号
+  
+  // Gesture control
+  final CookingGestureControl _gestureControl = CookingGestureControl();
+  bool _isGestureModeActive = false;
 
   String _stepKey(int dishIndex, int stepNumber) => '$dishIndex:$stepNumber';
 
@@ -54,6 +59,12 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
   
   Future<void> _initializeVoiceAssistant() async {
     await _voiceAssistant.initialize();
+  }
+  
+  Future<void> _initializeGestureControl() async {
+    await _gestureControl.initialize();
+    // 设置手势检测回调
+    _gestureControl.onGestureDetected = _handleGesture;
   }
 
   /// 创建烹饪session（传入整个 Menu）
@@ -544,6 +555,99 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
   void _stopVoiceListening() {
     _voiceAssistant.stopListening();
   }
+  
+  // ========== Gesture Control Methods ==========
+  
+  /// 处理手势命令
+  Future<void> _handleGesture(GestureType gesture) async {
+    // 智能切换：检测到手势时，暂停语音识别
+    if (_isVoiceModeActive && _voiceAssistant.isListening) {
+      _voiceAssistant.pauseListening();
+    }
+    
+    // 根据手势类型执行相应操作
+    switch (gesture) {
+      case GestureType.handUp:
+        // 下一步
+        final nextStep = _getNextStep();
+        if (nextStep != null) {
+          setState(() {
+            _currentFocusedStepNumber = nextStep.stepNumber;
+          });
+          await _voiceAssistant.speakStep(nextStep);
+        } else {
+          await _voiceAssistant.speak('已经是最后一步了');
+        }
+        break;
+        
+      case GestureType.handDown:
+        // 上一步
+        final prevStep = _getPreviousStep();
+        if (prevStep != null) {
+          setState(() {
+            _currentFocusedStepNumber = prevStep.stepNumber;
+          });
+          await _voiceAssistant.speakStep(prevStep);
+        } else {
+          await _voiceAssistant.speak('已经是第一步了');
+        }
+        break;
+        
+      case GestureType.fist:
+        // 重复当前步骤
+        final currentStep = _getFocusedStep();
+        if (currentStep != null) {
+          await _voiceAssistant.speakStep(currentStep);
+        }
+        break;
+        
+      case GestureType.openHand:
+        // 暂停计时
+        final currentStep = _getFocusedStep();
+        if (currentStep != null) {
+          _pauseTimer(_currentIndex, currentStep.stepNumber);
+          await _voiceAssistant.speak('计时器已暂停');
+        }
+        break;
+        
+      case GestureType.okSign:
+        // 完成步骤
+        final currentStep = _getFocusedStep();
+        if (currentStep != null) {
+          _stopAndCompleteStep(_currentIndex, currentStep.stepNumber);
+          await _voiceAssistant.speak('步骤已完成');
+        }
+        break;
+        
+      case GestureType.none:
+        // 无手势，不做处理
+        break;
+    }
+    
+    // 智能切换：手势识别结束后，恢复语音识别
+    if (_isVoiceModeActive) {
+      await Future.delayed(const Duration(milliseconds: 300)); // 短暂延迟，确保手势处理完成
+      await _voiceAssistant.resumeListening();
+    }
+  }
+  
+  /// 切换手势模式
+  void _toggleGestureMode() async {
+    setState(() {
+      _isGestureModeActive = !_isGestureModeActive;
+    });
+    
+    if (_isGestureModeActive) {
+      await _initializeGestureControl();
+      await _gestureControl.startDetection();
+    } else {
+      await _gestureControl.stopDetection();
+      // 如果语音模式也激活，确保语音识别恢复
+      if (_isVoiceModeActive) {
+        await _voiceAssistant.resumeListening();
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -555,6 +659,15 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
       appBar: AppBar(
         title: Text(recipe.title),
         actions: [
+          // Gesture control button
+          IconButton(
+            onPressed: _toggleGestureMode,
+            icon: Icon(
+              _isGestureModeActive ? Icons.gesture : Icons.gesture_outlined,
+              color: _isGestureModeActive ? Colors.blue : null,
+            ),
+            tooltip: _isGestureModeActive ? '退出手势模式' : '开启手势模式',
+          ),
           // Voice control button
           IconButton(
             onPressed: _toggleVoiceMode,

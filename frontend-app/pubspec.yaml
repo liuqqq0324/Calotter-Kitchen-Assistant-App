@@ -66,6 +66,10 @@ dependencies:
   speech_to_text: ^6.3.0
   flutter_tts: ^3.8.0
 
+  # Gesture control for cooking
+  camera: ^0.10.5+5
+  google_mlkit_hand_landmark_detection: ^0.10.0
+
 
 
 dev_dependencies:
