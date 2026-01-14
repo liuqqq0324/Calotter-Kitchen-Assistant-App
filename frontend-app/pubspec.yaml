@@ -63,12 +63,12 @@ dependencies:
   mobile_scanner: ^5.2.3
 
   # Voice control for cooking
-  speech_to_text: ^6.3.0
+  speech_to_text: ^7.3.0
   flutter_tts: ^3.8.0
 
   # Gesture control for cooking
   camera: ^0.10.5+5
-  google_mlkit_hand_landmark_detection: ^0.10.0
+  google_mlkit_pose_detection: ^0.14.0
 
 
 

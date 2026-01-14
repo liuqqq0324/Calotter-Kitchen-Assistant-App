@@ -34,6 +34,9 @@ class CookingVoiceAssistant {
   bool _isListening = false;
   bool _isSpeaking = false;
   
+  // 初始化失败标志，防止无限循环
+  bool _initializationFailed = false;
+  
   // 用于暂停/恢复功能
   bool _wasListeningBeforePause = false;
   Function(String)? _savedOnResult;
@@ -105,46 +108,82 @@ class CookingVoiceAssistant {
   
   /// 初始化语音助手
   Future<bool> initialize() async {
-    if (_isInitialized) return true;
+    debugPrint('[VoiceAssistant] ===== initialize() 开始 =====');
+    debugPrint('[VoiceAssistant] 当前初始化状态: $_isInitialized, 初始化失败标志: $_initializationFailed');
+    
+    // 如果之前初始化失败过，直接返回 false，不再尝试
+    if (_initializationFailed) {
+      debugPrint('[VoiceAssistant] ⚠️ 之前初始化已失败，不再重试');
+      debugPrint('[VoiceAssistant] ===== initialize() 跳过（已失败） =====');
+      return false;
+    }
+    
+    if (_isInitialized) {
+      debugPrint('[VoiceAssistant] 已经初始化，直接返回 true');
+      return true;
+    }
     
     try {
+      debugPrint('[VoiceAssistant] 开始初始化语音识别...');
       // 初始化语音识别
       final speechAvailable = await _speech.initialize(
         onError: (error) {
-          debugPrint('[VoiceAssistant] Speech recognition error: $error');
+          debugPrint('[VoiceAssistant] ⚠️ Speech recognition error: $error');
+          debugPrint('[VoiceAssistant] 错误类型: ${error.runtimeType}');
+          debugPrint('[VoiceAssistant] 错误详情: ${error.toString()}');
         },
         onStatus: (status) {
-          debugPrint('[VoiceAssistant] Speech recognition status: $status');
+          debugPrint('[VoiceAssistant] 📊 Speech recognition status: $status');
         },
       );
       
+      debugPrint('[VoiceAssistant] 语音识别初始化结果: $speechAvailable');
+      
       if (!speechAvailable) {
-        debugPrint('[VoiceAssistant] Speech recognition not available');
+        debugPrint('[VoiceAssistant] ❌ Speech recognition not available');
+        debugPrint('[VoiceAssistant] 可能的原因: 设备不支持、权限未授予、服务不可用');
+        debugPrint('[VoiceAssistant] 设置初始化失败标志，防止重复尝试');
+        _initializationFailed = true;
         return false;
       }
       
+      debugPrint('[VoiceAssistant] 语音识别初始化成功，开始初始化TTS...');
+      
       // 初始化TTS
       await _tts.setLanguage("zh-CN"); // 中文
+      debugPrint('[VoiceAssistant] TTS 语言设置为: zh-CN');
+      
       await _tts.setSpeechRate(0.5);   // 语速（0.0-1.0）
       await _tts.setVolume(1.0);       // 音量（0.0-1.0）
       await _tts.setPitch(1.0);        // 音调（0.5-2.0）
+      debugPrint('[VoiceAssistant] TTS 参数设置完成 (语速: 0.5, 音量: 1.0, 音调: 1.0)');
       
       // 设置TTS回调
       _tts.setCompletionHandler(() {
         _isSpeaking = false;
-        debugPrint('[VoiceAssistant] TTS completed');
+        debugPrint('[VoiceAssistant] ✅ TTS completed');
       });
       
       _tts.setErrorHandler((msg) {
         _isSpeaking = false;
-        debugPrint('[VoiceAssistant] TTS error: $msg');
+        debugPrint('[VoiceAssistant] ⚠️ TTS error: $msg');
       });
       
       _isInitialized = true;
-      debugPrint('[VoiceAssistant] Initialized successfully');
+      _initializationFailed = false; // 初始化成功，清除失败标志
+      debugPrint('[VoiceAssistant] ✅ 初始化成功！_isInitialized = true');
+      debugPrint('[VoiceAssistant] ===== initialize() 完成 =====');
       return true;
-    } catch (e) {
-      debugPrint('[VoiceAssistant] Initialization error: $e');
+    } catch (e, stackTrace) {
+      debugPrint('[VoiceAssistant] ❌ 初始化异常: $e');
+      debugPrint('[VoiceAssistant] 异常类型: ${e.runtimeType}');
+      debugPrint('[VoiceAssistant] 堆栈跟踪:');
+      debugPrint(stackTrace.toString());
+      
+      // 标记初始化失败，防止无限循环
+      _initializationFailed = true;
+      debugPrint('[VoiceAssistant] 设置初始化失败标志，防止重复尝试');
+      debugPrint('[VoiceAssistant] ===== initialize() 失败 =====');
       return false;
     }
   }
@@ -154,46 +193,70 @@ class CookingVoiceAssistant {
     required Function(String recognizedText) onResult,
     Function(String error)? onError,
   }) async {
+    debugPrint('[VoiceAssistant] ===== startListening() 开始 =====');
+    debugPrint('[VoiceAssistant] 当前状态: _isInitialized=$_isInitialized, _isListening=$_isListening');
+    
     if (!_isInitialized) {
+      debugPrint('[VoiceAssistant] 未初始化，尝试初始化...');
       final initialized = await initialize();
+      debugPrint('[VoiceAssistant] 初始化结果: $initialized');
+      
       if (!initialized) {
+        debugPrint('[VoiceAssistant] ❌ 初始化失败，调用 onError');
+        debugPrint('[VoiceAssistant] ===== startListening() 失败 =====');
         onError?.call('语音助手未初始化');
         return;
       }
+      debugPrint('[VoiceAssistant] ✅ 初始化成功');
     }
     
     if (_isListening) {
-      debugPrint('[VoiceAssistant] Already listening');
+      debugPrint('[VoiceAssistant] ⚠️ 已经在监听中，直接返回');
+      debugPrint('[VoiceAssistant] ===== startListening() 跳过 =====');
       return;
     }
     
+    debugPrint('[VoiceAssistant] 保存回调函数...');
     // 保存回调函数，用于恢复监听
     _savedOnResult = onResult;
     _savedOnError = onError;
     
     try {
+      debugPrint('[VoiceAssistant] 调用 _speech.listen()...');
+      debugPrint('[VoiceAssistant] 监听参数: listenFor=30s, pauseFor=3s, localeId=zh_CN');
+      
       await _speech.listen(
         onResult: (result) {
+          debugPrint('[VoiceAssistant] 📝 收到识别结果: finalResult=${result.finalResult}, recognizedWords="${result.recognizedWords}"');
           if (result.finalResult) {
             _isListening = false;
+            debugPrint('[VoiceAssistant] 识别完成，_isListening 设为 false');
             final text = result.recognizedWords.trim();
             if (text.isNotEmpty) {
-              debugPrint('[VoiceAssistant] Recognized: $text');
+              debugPrint('[VoiceAssistant] ✅ 识别到文本: "$text"');
               onResult(text);
+            } else {
+              debugPrint('[VoiceAssistant] ⚠️ 识别文本为空，忽略');
             }
+          } else {
+            debugPrint('[VoiceAssistant] ⏳ 中间结果，继续监听...');
           }
         },
         listenFor: const Duration(seconds: 30),
         pauseFor: const Duration(seconds: 3),
         localeId: "zh_CN", // 中文识别
-        cancelOnError: false,
-        listenMode: stt.ListenMode.confirmation,
       );
+      
       _isListening = true;
-      debugPrint('[VoiceAssistant] Started listening');
-    } catch (e) {
+      debugPrint('[VoiceAssistant] ✅ 监听启动成功，_isListening = true');
+      debugPrint('[VoiceAssistant] ===== startListening() 成功 =====');
+    } catch (e, stackTrace) {
       _isListening = false;
-      debugPrint('[VoiceAssistant] Start listening error: $e');
+      debugPrint('[VoiceAssistant] ❌ 启动监听异常: $e');
+      debugPrint('[VoiceAssistant] 异常类型: ${e.runtimeType}');
+      debugPrint('[VoiceAssistant] 堆栈跟踪:');
+      debugPrint(stackTrace.toString());
+      debugPrint('[VoiceAssistant] ===== startListening() 异常 =====');
       onError?.call('开始监听失败: $e');
     }
   }
@@ -327,11 +390,22 @@ class CookingVoiceAssistant {
   /// 是否已初始化
   bool get isInitialized => _isInitialized;
   
+  /// 重置初始化失败标志（允许重新尝试初始化）
+  void resetInitializationState() {
+    debugPrint('[VoiceAssistant] 重置初始化状态');
+    _initializationFailed = false;
+    _isInitialized = false;
+  }
+  
+  /// 是否初始化失败
+  bool get isInitializationFailed => _initializationFailed;
+  
   /// 清理资源
   void dispose() {
     stopListening();
     stopSpeaking();
     _speech.cancel();
     _isInitialized = false;
+    _initializationFailed = false; // 清理时重置失败标志
   }
 }

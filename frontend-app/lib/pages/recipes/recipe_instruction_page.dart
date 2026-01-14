@@ -51,14 +51,33 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
   @override
   void initState() {
     super.initState();
+    debugPrint('[RecipePage] ===== initState() 开始 =====');
     _currentIndex = widget.initialRecipeIndex;
     _completedDishes = <int>{};
+    debugPrint('[RecipePage] 创建烹饪会话...');
     _createCookingSession();
+    debugPrint('[RecipePage] 初始化语音助手...');
     _initializeVoiceAssistant();
+    debugPrint('[RecipePage] ===== initState() 完成 =====');
   }
   
   Future<void> _initializeVoiceAssistant() async {
-    await _voiceAssistant.initialize();
+    debugPrint('[RecipePage] _initializeVoiceAssistant() 开始');
+    try {
+      final result = await _voiceAssistant.initialize();
+      debugPrint('[RecipePage] 语音助手初始化结果: $result');
+      if (result) {
+        debugPrint('[RecipePage] ✅ 语音助手初始化成功');
+      } else {
+        debugPrint('[RecipePage] ❌ 语音助手初始化失败');
+      }
+    } catch (e, stackTrace) {
+      debugPrint('[RecipePage] ❌ 语音助手初始化异常: $e');
+      debugPrint('[RecipePage] 异常类型: ${e.runtimeType}');
+      debugPrint('[RecipePage] 堆栈跟踪:');
+      debugPrint(stackTrace.toString());
+    }
+    debugPrint('[RecipePage] _initializeVoiceAssistant() 完成');
   }
   
   Future<void> _initializeGestureControl() async {
@@ -507,6 +526,11 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
     setState(() {
       _isVoiceModeActive = !_isVoiceModeActive;
       if (_isVoiceModeActive) {
+        // 如果之前初始化失败，先重置状态再尝试
+        if (_voiceAssistant.isInitializationFailed) {
+          debugPrint('[RecipePage] 检测到之前的初始化失败，重置状态后重试');
+          _voiceAssistant.resetInitializationState();
+        }
         _startVoiceListening();
       } else {
         _stopVoiceListening();
@@ -516,6 +540,8 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
   
   /// 开始语音监听
   void _startVoiceListening() {
+    debugPrint('[RecipePage] _startVoiceListening() 被调用');
+    
     _voiceAssistant.startListening(
       onResult: (recognizedText) async {
         await _handleVoiceCommand(recognizedText);
@@ -529,19 +555,41 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
         }
       },
       onError: (error) {
+        debugPrint('[RecipePage] 语音监听错误: $error');
+        
         if (mounted) {
+          // 检查是否是初始化失败的错误
+          final isInitializationError = error.contains('语音助手未初始化') || 
+                                       error.contains('not available');
+          
           ScaffoldMessenger.of(context)
             ..hideCurrentSnackBar()
             ..showSnackBar(
               SnackBar(
-                content: Text('语音识别错误: $error'),
-                duration: const Duration(seconds: 2),
+                content: Text(isInitializationError 
+                  ? '语音识别不可用，请检查设备设置或安装语音服务' 
+                  : '语音识别错误: $error'),
+                duration: const Duration(seconds: 3),
               ),
             );
-          // 出错后也继续监听
+          
+          // 如果是初始化错误，关闭语音模式，不再继续尝试
+          if (isInitializationError) {
+            debugPrint('[RecipePage] 检测到初始化失败，关闭语音模式');
+            if (mounted) {
+              setState(() {
+                _isVoiceModeActive = false;
+              });
+            }
+            return; // 不再继续监听
+          }
+          
+          // 其他错误（如临时错误），可以继续尝试监听
+          debugPrint('[RecipePage] 临时错误，延迟后重试监听');
           if (_isVoiceModeActive && mounted) {
             Future.delayed(const Duration(seconds: 1), () {
               if (_isVoiceModeActive && mounted) {
+                debugPrint('[RecipePage] 重试开始监听');
                 _startVoiceListening();
               }
             });
