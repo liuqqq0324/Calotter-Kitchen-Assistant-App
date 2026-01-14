@@ -43,13 +43,13 @@ dependencies:
   animated_text_kit: ^4.2.2
 
   # Network requests
-  http: ^1.6.0
-  shared_preferences: ^2.5.3
+  http: ^1.2.2
+  shared_preferences: ^2.5.4
 
   onnxruntime: ^1.4.1
 
   image_picker: ^1.0.4
-  image: ^4.0.17 
+  image: ^4.7.2 
 
   path_provider: ^2.1.1
 
@@ -65,6 +65,9 @@ dependencies:
   # Voice control for cooking
   speech_to_text: ^7.3.0
   flutter_tts: ^3.8.0
+  
+  # 权限管理（用于动态申请录音权限）
+  permission_handler: ^12.0.1
 
   # Gesture control for cooking
   camera: ^0.10.5+5

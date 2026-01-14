@@ -1,0 +1,43 @@
+# YOLO 训练工程 .gitignore
+
+# 训练结果
+runs/
+*.pt
+*.onnx
+*.torchscript
+
+# 数据集（通常很大，不提交到 Git）
+dataset/images/
+dataset/labels/
+*.zip
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 日志文件
+*.log
+*.txt
+
+# 临时文件
+*.tmp
+*.temp
+

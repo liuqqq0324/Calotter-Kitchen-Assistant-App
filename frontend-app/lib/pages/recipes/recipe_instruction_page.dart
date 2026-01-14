@@ -36,12 +36,12 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
   final Set<String> _completedSteps = {};
   int? _sessionId;
   bool _sessionCreated = false;
-  
+
   // Voice control
   final CookingVoiceAssistant _voiceAssistant = CookingVoiceAssistant();
   bool _isVoiceModeActive = false;
   int _currentFocusedStepNumber = 1; // 当前聚焦的步骤编号
-  
+
   // Gesture control
   final CookingGestureControl _gestureControl = CookingGestureControl();
   bool _isGestureModeActive = false;
@@ -56,30 +56,12 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
     _completedDishes = <int>{};
     debugPrint('[RecipePage] 创建烹饪会话...');
     _createCookingSession();
-    debugPrint('[RecipePage] 初始化语音助手...');
-    _initializeVoiceAssistant();
+    // 注意：不再自动初始化语音助手
+    // 语音识别只在用户开启语音模式时初始化
+    // TTS（语音播报）会在首次调用 speak() 时自动初始化
     debugPrint('[RecipePage] ===== initState() 完成 =====');
   }
-  
-  Future<void> _initializeVoiceAssistant() async {
-    debugPrint('[RecipePage] _initializeVoiceAssistant() 开始');
-    try {
-      final result = await _voiceAssistant.initialize();
-      debugPrint('[RecipePage] 语音助手初始化结果: $result');
-      if (result) {
-        debugPrint('[RecipePage] ✅ 语音助手初始化成功');
-      } else {
-        debugPrint('[RecipePage] ❌ 语音助手初始化失败');
-      }
-    } catch (e, stackTrace) {
-      debugPrint('[RecipePage] ❌ 语音助手初始化异常: $e');
-      debugPrint('[RecipePage] 异常类型: ${e.runtimeType}');
-      debugPrint('[RecipePage] 堆栈跟踪:');
-      debugPrint(stackTrace.toString());
-    }
-    debugPrint('[RecipePage] _initializeVoiceAssistant() 完成');
-  }
-  
+
   Future<void> _initializeGestureControl() async {
     await _gestureControl.initialize();
     // 设置手势检测回调
@@ -91,38 +73,50 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
     try {
       final householdId = await HouseholdService.getHouseholdId();
       final initiatorId = await HouseholdService.getInitiatorId();
-      
+
       if (householdId == null || initiatorId == null) {
         print('[RecipePage] Failed to get householdId or initiatorId');
         return;
       }
 
       // 将整个 Menu 的所有菜品转换为后端需要的格式（使用驼峰命名）
-      final recipesJson = widget.menu.recipes.map((recipe) => {
-        'title': recipe.title,
-        'shortDescription': recipe.shortDescription,
-        'servings': recipe.servings,
-        'cookingTimeMin': recipe.cookingTimeMin,
-        'difficulty': recipe.difficulty,
-        'nutritionEstimate': {
-          'calories': recipe.totalCaloriesEstimate,
-          'proteinG': recipe.totalProtein ?? 0.0,
-          'fatG': recipe.totalFat ?? 0.0,
-          'carbsG': recipe.totalCarb ?? 0.0,
-        },
-        'ingredients': recipe.ingredients.map((ing) => {
-          'name': ing.name,
-          'amountValue': ing.amountValue,
-          'amountUnit': ing.amountUnit,
-          'isOptional': ing.isOptional,
-          'sourceType': 'MANUAL_ADD',
-        }).toList(),
-        'steps': recipe.steps.map((step) => {
-          'stepNumber': step.stepNumber,
-          'instruction': step.instruction,
-          'stepTimeMin': step.stepTimeMin,
-        }).toList(),
-      }).toList();
+      final recipesJson = widget.menu.recipes
+          .map(
+            (recipe) => {
+              'title': recipe.title,
+              'shortDescription': recipe.shortDescription,
+              'servings': recipe.servings,
+              'cookingTimeMin': recipe.cookingTimeMin,
+              'difficulty': recipe.difficulty,
+              'nutritionEstimate': {
+                'calories': recipe.totalCaloriesEstimate,
+                'proteinG': recipe.totalProtein ?? 0.0,
+                'fatG': recipe.totalFat ?? 0.0,
+                'carbsG': recipe.totalCarb ?? 0.0,
+              },
+              'ingredients': recipe.ingredients
+                  .map(
+                    (ing) => {
+                      'name': ing.name,
+                      'amountValue': ing.amountValue,
+                      'amountUnit': ing.amountUnit,
+                      'isOptional': ing.isOptional,
+                      'sourceType': 'MANUAL_ADD',
+                    },
+                  )
+                  .toList(),
+              'steps': recipe.steps
+                  .map(
+                    (step) => {
+                      'stepNumber': step.stepNumber,
+                      'instruction': step.instruction,
+                      'stepTimeMin': step.stepTimeMin,
+                    },
+                  )
+                  .toList(),
+            },
+          )
+          .toList();
 
       final sessionId = await CookingApiService.startCooking(
         householdId: householdId,
@@ -136,7 +130,9 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
           _sessionId = sessionId;
           _sessionCreated = true;
         });
-        print('[RecipePage] Created cooking session: $sessionId for menu with ${widget.menu.recipes.length} dishes');
+        print(
+          '[RecipePage] Created cooking session: $sessionId for menu with ${widget.menu.recipes.length} dishes',
+        );
       }
     } catch (e) {
       print('[RecipePage] Failed to create cooking session: $e');
@@ -150,6 +146,7 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
       t.cancel();
     }
     _voiceAssistant.dispose();
+    _gestureControl.dispose(); // 清理手势控制资源
     super.dispose();
   }
 
@@ -168,13 +165,17 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
         throw Exception('Failed to get householdId');
       }
 
-      final saved = await CollectedRecipesStore.toggle(recipe, householdId: householdId);
+      final saved = await CollectedRecipesStore.toggle(
+        recipe,
+        householdId: householdId,
+      );
       if (!wasCollected && saved != null) {
         setState(() {
           widget.menu.recipes[_currentIndex] = saved;
         });
         print(
-            '[RecipePage] Updated recipe id after saving: ${saved.id} (${saved.title})');
+          '[RecipePage] Updated recipe id after saving: ${saved.id} (${saved.title})',
+        );
       }
       final text = wasCollected
           ? 'Removed recipe from your collection.'
@@ -183,10 +184,7 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
-          SnackBar(
-            content: Text(text),
-            duration: const Duration(seconds: 1),
-          ),
+          SnackBar(content: Text(text), duration: const Duration(seconds: 1)),
         );
     } catch (e) {
       if (!mounted) return;
@@ -264,8 +262,7 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
     _completedSteps.remove(key);
     _runningTimers[key]?.cancel();
     _remainingSeconds[key] = startFrom;
-    _runningTimers[key] =
-        Timer.periodic(const Duration(seconds: 1), (timer) {
+    _runningTimers[key] = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) {
         timer.cancel();
         return;
@@ -307,20 +304,22 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
       _completedSteps.add(key);
     });
   }
-  
+
   // ========== Voice Control Methods ==========
-  
+
   /// 获取当前菜品的步骤列表
-  List<RecipeStepModel> get _currentSteps => widget.menu.recipes[_currentIndex].steps;
-  
+  List<RecipeStepModel> get _currentSteps =>
+      widget.menu.recipes[_currentIndex].steps;
+
   /// 获取当前聚焦的步骤
   RecipeStepModel? _getFocusedStep() {
-    if (_currentFocusedStepNumber < 1 || _currentFocusedStepNumber > _currentSteps.length) {
+    if (_currentFocusedStepNumber < 1 ||
+        _currentFocusedStepNumber > _currentSteps.length) {
       return _currentSteps.isNotEmpty ? _currentSteps[0] : null;
     }
     return _currentSteps[_currentFocusedStepNumber - 1];
   }
-  
+
   /// 获取下一个步骤
   RecipeStepModel? _getNextStep() {
     if (_currentFocusedStepNumber < _currentSteps.length) {
@@ -328,7 +327,7 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
     }
     return null;
   }
-  
+
   /// 获取上一个步骤
   RecipeStepModel? _getPreviousStep() {
     if (_currentFocusedStepNumber > 1) {
@@ -336,7 +335,7 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
     }
     return null;
   }
-  
+
   /// 切换到指定步骤
   void _jumpToStep(int stepNumber) {
     if (stepNumber >= 1 && stepNumber <= _currentSteps.length) {
@@ -345,12 +344,12 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
       });
     }
   }
-  
+
   /// 处理语音命令
   Future<void> _handleVoiceCommand(String commandText) async {
     final commandType = _voiceAssistant.recognizeCommand(commandText);
     final recipe = widget.menu.recipes[_currentIndex];
-    
+
     switch (commandType) {
       case VoiceCommandType.nextStep:
         final nextStep = _getNextStep();
@@ -360,10 +359,10 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
           });
           await _voiceAssistant.speakStep(nextStep);
         } else {
-          await _voiceAssistant.speak('已经是最后一步了');
+          await _voiceAssistant.speak('This is already the last step');
         }
         break;
-        
+
       case VoiceCommandType.previousStep:
         final prevStep = _getPreviousStep();
         if (prevStep != null) {
@@ -372,108 +371,124 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
           });
           await _voiceAssistant.speakStep(prevStep);
         } else {
-          await _voiceAssistant.speak('已经是第一步了');
+          await _voiceAssistant.speak('This is already the first step');
         }
         break;
-        
+
       case VoiceCommandType.repeatStep:
         final currentStep = _getFocusedStep();
         if (currentStep != null) {
           await _voiceAssistant.speakStep(currentStep);
         }
         break;
-        
+
       case VoiceCommandType.jumpToStep:
         final stepNumber = _voiceAssistant.extractStepNumber(commandText);
-        if (stepNumber != null && stepNumber >= 1 && stepNumber <= _currentSteps.length) {
+        if (stepNumber != null &&
+            stepNumber >= 1 &&
+            stepNumber <= _currentSteps.length) {
           final targetStep = _currentSteps[stepNumber - 1];
           setState(() {
             _currentFocusedStepNumber = stepNumber;
           });
           await _voiceAssistant.speakStep(targetStep);
         } else {
-          await _voiceAssistant.speak('步骤编号无效');
+          await _voiceAssistant.speak('Invalid step number');
         }
         break;
-        
+
       case VoiceCommandType.startTimer:
         final currentStep = _getFocusedStep();
         if (currentStep != null && currentStep.stepTimeMin > 0) {
-          _startTimerForStep(_currentIndex, currentStep.stepNumber, currentStep.stepTimeMin);
-          await _voiceAssistant.speak('计时器已启动，${currentStep.stepTimeMin}分钟');
+          _startTimerForStep(
+            _currentIndex,
+            currentStep.stepNumber,
+            currentStep.stepTimeMin,
+          );
+          await _voiceAssistant.speak(
+            'Timer started for ${currentStep.stepTimeMin} minutes',
+          );
         } else {
-          await _voiceAssistant.speak('当前步骤没有设置时间');
+          await _voiceAssistant.speak('No time set for this step');
         }
         break;
-        
+
       case VoiceCommandType.pauseTimer:
         final currentStep = _getFocusedStep();
         if (currentStep != null) {
           _pauseTimer(_currentIndex, currentStep.stepNumber);
-          await _voiceAssistant.speak('计时器已暂停');
+          await _voiceAssistant.speak('Timer paused');
         }
         break;
-        
+
       case VoiceCommandType.resumeTimer:
         final currentStep = _getFocusedStep();
         if (currentStep != null && currentStep.stepTimeMin > 0) {
           final key = _stepKey(_currentIndex, currentStep.stepNumber);
           if (_pausedSteps[key] == true) {
-            _startTimerForStep(_currentIndex, currentStep.stepNumber, currentStep.stepTimeMin);
-            await _voiceAssistant.speak('计时器已继续');
+            _startTimerForStep(
+              _currentIndex,
+              currentStep.stepNumber,
+              currentStep.stepTimeMin,
+            );
+            await _voiceAssistant.speak('Timer resumed');
           } else {
-            await _voiceAssistant.speak('计时器未暂停');
+            await _voiceAssistant.speak('Timer is not paused');
           }
         }
         break;
-        
+
       case VoiceCommandType.stopTimer:
         final currentStep = _getFocusedStep();
         if (currentStep != null) {
           _stopTimerForStep(_currentIndex, currentStep.stepNumber);
-          await _voiceAssistant.speak('计时器已停止');
+          await _voiceAssistant.speak('Timer stopped');
         }
         break;
-        
+
       case VoiceCommandType.completeStep:
         final currentStep = _getFocusedStep();
         if (currentStep != null) {
           _stopAndCompleteStep(_currentIndex, currentStep.stepNumber);
-          await _voiceAssistant.speak('步骤已完成');
+          await _voiceAssistant.speak('Step completed');
         }
         break;
-        
+
       case VoiceCommandType.nextDish:
         if (_currentIndex < _totalDishes - 1) {
           setState(() {
             _currentIndex++;
             _currentFocusedStepNumber = 1;
           });
-          await _voiceAssistant.speak('已切换到下一道菜：${widget.menu.recipes[_currentIndex].title}');
+          await _voiceAssistant.speak(
+            'Switched to next dish: ${widget.menu.recipes[_currentIndex].title}',
+          );
         } else {
-          await _voiceAssistant.speak('已经是最后一道菜了');
+          await _voiceAssistant.speak('This is already the last dish');
         }
         break;
-        
+
       case VoiceCommandType.previousDish:
         if (_currentIndex > 0) {
           setState(() {
             _currentIndex--;
             _currentFocusedStepNumber = 1;
           });
-          await _voiceAssistant.speak('已切换到上一道菜：${widget.menu.recipes[_currentIndex].title}');
+          await _voiceAssistant.speak(
+            'Switched to previous dish: ${widget.menu.recipes[_currentIndex].title}',
+          );
         } else {
-          await _voiceAssistant.speak('已经是第一道菜了');
+          await _voiceAssistant.speak('This is already the first dish');
         }
         break;
-        
+
       case VoiceCommandType.currentStepInfo:
         final currentStep = _getFocusedStep();
         if (currentStep != null) {
           await _voiceAssistant.speakStep(currentStep);
         }
         break;
-        
+
       case VoiceCommandType.timerStatus:
         final currentStep = _getFocusedStep();
         if (currentStep != null) {
@@ -483,20 +498,24 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
             final minutes = remaining ~/ 60;
             final seconds = remaining % 60;
             if (remaining >= 0) {
-              await _voiceAssistant.speak('还剩${minutes}分${seconds}秒');
+              await _voiceAssistant.speak(
+                'Time remaining: ${minutes} minutes and ${seconds} seconds',
+              );
             } else {
-              await _voiceAssistant.speak('已超时${-minutes}分${-seconds}秒');
+              await _voiceAssistant.speak(
+                'Time exceeded by ${-minutes} minutes and ${-seconds} seconds',
+              );
             }
           } else {
-            await _voiceAssistant.speak('当前步骤没有运行中的计时器');
+            await _voiceAssistant.speak('No timer running for this step');
           }
         }
         break;
-        
+
       case VoiceCommandType.ingredientsList:
         final ingredients = recipe.ingredients;
         if (ingredients.isEmpty) {
-          await _voiceAssistant.speak('没有食材列表');
+          await _voiceAssistant.speak('No ingredients list available');
         } else {
           String text = '需要以下食材：';
           for (var ing in ingredients) {
@@ -505,22 +524,24 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
           await _voiceAssistant.speak(text);
         }
         break;
-        
+
       case VoiceCommandType.exitVoiceMode:
         _toggleVoiceMode();
-        await _voiceAssistant.speak('已退出语音模式');
+        await _voiceAssistant.speak('Voice mode exited');
         break;
-        
+
       case VoiceCommandType.help:
         await _voiceAssistant.speak(_voiceAssistant.getHelpText());
         break;
-        
+
       case VoiceCommandType.unknown:
-        await _voiceAssistant.speak('抱歉，我没有理解，请再说一遍');
+        await _voiceAssistant.speak(
+          'Sorry, I did not understand. Please say again',
+        );
         break;
     }
   }
-  
+
   /// 切换语音模式
   void _toggleVoiceMode() {
     setState(() {
@@ -537,11 +558,11 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
       }
     });
   }
-  
+
   /// 开始语音监听
   void _startVoiceListening() {
     debugPrint('[RecipePage] _startVoiceListening() 被调用');
-    
+
     _voiceAssistant.startListening(
       onResult: (recognizedText) async {
         await _handleVoiceCommand(recognizedText);
@@ -556,23 +577,25 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
       },
       onError: (error) {
         debugPrint('[RecipePage] 语音监听错误: $error');
-        
+
         if (mounted) {
           // 检查是否是初始化失败的错误
-          final isInitializationError = error.contains('语音助手未初始化') || 
-                                       error.contains('not available');
-          
+          final isInitializationError =
+              error.contains('语音助手未初始化') || error.contains('not available');
+
           ScaffoldMessenger.of(context)
             ..hideCurrentSnackBar()
             ..showSnackBar(
               SnackBar(
-                content: Text(isInitializationError 
-                  ? '语音识别不可用，请检查设备设置或安装语音服务' 
-                  : '语音识别错误: $error'),
+                content: Text(
+                  isInitializationError
+                      ? '语音识别不可用，请检查设备设置或安装语音服务'
+                      : '语音识别错误: $error',
+                ),
                 duration: const Duration(seconds: 3),
               ),
             );
-          
+
           // 如果是初始化错误，关闭语音模式，不再继续尝试
           if (isInitializationError) {
             debugPrint('[RecipePage] 检测到初始化失败，关闭语音模式');
@@ -583,7 +606,7 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
             }
             return; // 不再继续监听
           }
-          
+
           // 其他错误（如临时错误），可以继续尝试监听
           debugPrint('[RecipePage] 临时错误，延迟后重试监听');
           if (_isVoiceModeActive && mounted) {
@@ -598,21 +621,30 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
       },
     );
   }
-  
+
   /// 停止语音监听
   void _stopVoiceListening() {
     _voiceAssistant.stopListening();
   }
-  
+
   // ========== Gesture Control Methods ==========
-  
+
   /// 处理手势命令
   Future<void> _handleGesture(GestureType gesture) async {
+    debugPrint('[RecipePage] ✅ 手势触发: $gesture');
+
+    // 如果正在播报，先停止当前播报，避免重复触发
+    if (_voiceAssistant.isSpeaking) {
+      debugPrint('[RecipePage] ⚠️ 正在播报中，停止当前播报');
+      await _voiceAssistant.stopSpeaking();
+      await Future.delayed(const Duration(milliseconds: 200)); // 等待停止完成
+    }
+
     // 智能切换：检测到手势时，暂停语音识别
     if (_isVoiceModeActive && _voiceAssistant.isListening) {
       _voiceAssistant.pauseListening();
     }
-    
+
     // 根据手势类型执行相应操作
     switch (gesture) {
       case GestureType.handUp:
@@ -624,10 +656,10 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
           });
           await _voiceAssistant.speakStep(nextStep);
         } else {
-          await _voiceAssistant.speak('已经是最后一步了');
+          await _voiceAssistant.speak('This is already the last step');
         }
         break;
-        
+
       case GestureType.handDown:
         // 上一步
         final prevStep = _getPreviousStep();
@@ -637,10 +669,10 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
           });
           await _voiceAssistant.speakStep(prevStep);
         } else {
-          await _voiceAssistant.speak('已经是第一步了');
+          await _voiceAssistant.speak('This is already the first step');
         }
         break;
-        
+
       case GestureType.fist:
         // 重复当前步骤
         final currentStep = _getFocusedStep();
@@ -648,45 +680,47 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
           await _voiceAssistant.speakStep(currentStep);
         }
         break;
-        
+
       case GestureType.openHand:
         // 暂停计时
         final currentStep = _getFocusedStep();
         if (currentStep != null) {
           _pauseTimer(_currentIndex, currentStep.stepNumber);
-          await _voiceAssistant.speak('计时器已暂停');
+          await _voiceAssistant.speak('Timer paused');
         }
         break;
-        
+
       case GestureType.okSign:
         // 完成步骤
         final currentStep = _getFocusedStep();
         if (currentStep != null) {
           _stopAndCompleteStep(_currentIndex, currentStep.stepNumber);
-          await _voiceAssistant.speak('步骤已完成');
+          await _voiceAssistant.speak('Step completed');
         }
         break;
-        
+
       case GestureType.none:
         // 无手势，不做处理
         break;
     }
-    
+
     // 智能切换：手势识别结束后，恢复语音识别
     if (_isVoiceModeActive) {
       await Future.delayed(const Duration(milliseconds: 300)); // 短暂延迟，确保手势处理完成
       await _voiceAssistant.resumeListening();
     }
   }
-  
+
   /// 切换手势模式
   void _toggleGestureMode() async {
     setState(() {
       _isGestureModeActive = !_isGestureModeActive;
     });
-    
+
     if (_isGestureModeActive) {
       await _initializeGestureControl();
+      // 确保回调被设置（因为停止时被清理了）
+      _gestureControl.onGestureDetected = _handleGesture;
       await _gestureControl.startDetection();
     } else {
       await _gestureControl.stopDetection();
@@ -735,8 +769,9 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
                 icon: Icon(
                   isCollected ? Icons.favorite : Icons.favorite_outline,
                 ),
-                tooltip:
-                    isCollected ? 'Remove from favorites' : 'Save this recipe',
+                tooltip: isCollected
+                    ? 'Remove from favorites'
+                    : 'Save this recipe',
               );
             },
           ),
@@ -787,22 +822,30 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
                         const SizedBox(height: 8),
                         Row(
                           children: [
-                            Icon(Icons.access_time,
-                                size: 14, color: Colors.grey[600]),
+                            Icon(
+                              Icons.access_time,
+                              size: 14,
+                              color: Colors.grey[600],
+                            ),
                             const SizedBox(width: 4),
                             Text(
                               '${recipe.cookingTimeMin} min',
-                              style: theme.textTheme.bodySmall
-                                  ?.copyWith(color: Colors.grey[700]),
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: Colors.grey[700],
+                              ),
                             ),
                             const SizedBox(width: 12),
-                            Icon(Icons.local_fire_department,
-                                size: 14, color: Colors.grey[600]),
+                            Icon(
+                              Icons.local_fire_department,
+                              size: 14,
+                              color: Colors.grey[600],
+                            ),
                             const SizedBox(width: 4),
                             Text(
                               '${recipe.totalCaloriesEstimate.toStringAsFixed(0)} kcal',
-                              style: theme.textTheme.bodySmall
-                                  ?.copyWith(color: Colors.grey[700]),
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: Colors.grey[700],
+                              ),
                             ),
                           ],
                         ),
@@ -824,8 +867,9 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
               if (recipe.ingredients.isEmpty)
                 Text(
                   'No ingredients listed.',
-                  style: theme.textTheme.bodySmall
-                      ?.copyWith(color: Colors.grey[600]),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: Colors.grey[600],
+                  ),
                 )
               else
                 Column(
@@ -854,7 +898,7 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
                                 color: Colors.orange,
                               ),
                             ),
-                          ]
+                          ],
                         ],
                       ),
                     );
@@ -916,9 +960,7 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
     );
   }
 
-  Widget _buildStepItem({
-    required RecipeStepModel step,
-  }) {
+  Widget _buildStepItem({required RecipeStepModel step}) {
     final theme = Theme.of(context);
     final key = _stepKey(_currentIndex, step.stepNumber);
     final remaining = _remainingSeconds[key];
@@ -956,18 +998,16 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  step.instruction,
-                  style: theme.textTheme.bodyMedium,
-                ),
+                Text(step.instruction, style: theme.textTheme.bodyMedium),
                 if (step.stepTimeMin > 0) ...[
                   const SizedBox(height: 4),
                   Row(
                     children: [
                       Text(
                         '~ ${step.stepTimeMin} min',
-                        style: theme.textTheme.bodySmall
-                            ?.copyWith(color: Colors.grey[600]),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: Colors.grey[600],
+                        ),
                       ),
                       const SizedBox(width: 8),
                       if (remaining != null)
@@ -991,13 +1031,16 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
                         onPressed: isRunning
                             ? () => _pauseTimer(_currentIndex, step.stepNumber)
                             : () => _startTimerForStep(
-                                _currentIndex, step.stepNumber, step.stepTimeMin),
+                                _currentIndex,
+                                step.stepNumber,
+                                step.stepTimeMin,
+                              ),
                         icon: Icon(
                           isRunning
                               ? Icons.pause_circle
                               : (isPaused
-                                  ? Icons.play_circle
-                                  : Icons.timer_outlined),
+                                    ? Icons.play_circle
+                                    : Icons.timer_outlined),
                           size: 16,
                           color: isRunning
                               ? Colors.orange
@@ -1015,8 +1058,10 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
                         ),
                       ),
                       OutlinedButton.icon(
-                        onPressed: () =>
-                            _stopAndCompleteStep(_currentIndex, step.stepNumber),
+                        onPressed: () => _stopAndCompleteStep(
+                          _currentIndex,
+                          step.stepNumber,
+                        ),
                         icon: Icon(
                           Icons.check_circle,
                           size: 16,
@@ -1087,8 +1132,9 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
                   icon: const Icon(Icons.chevron_left),
                 ),
                 IconButton(
-                  onPressed:
-                      _currentIndex < _totalDishes - 1 ? _goToNextDish : null,
+                  onPressed: _currentIndex < _totalDishes - 1
+                      ? _goToNextDish
+                      : null,
                   icon: const Icon(Icons.chevron_right),
                 ),
               ],
@@ -1106,9 +1152,7 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
                           ? Icons.check_circle
                           : Icons.radio_button_unchecked,
                     ),
-                    label: Text(
-                      isCurrentDone ? 'Dish done' : 'Mark dish done',
-                    ),
+                    label: Text(isCurrentDone ? 'Dish done' : 'Mark dish done'),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -1120,8 +1164,8 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
                       foregroundColor: Colors.white,
                     ),
                     child: Text(
-                      _isWholeMealDone 
-                          ? 'Meal done' 
+                      _isWholeMealDone
+                          ? 'Meal done'
                           : 'Save progress ($completedCount dishes)',
                     ),
                   ),
