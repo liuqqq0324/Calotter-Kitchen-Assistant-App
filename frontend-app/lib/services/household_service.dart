@@ -135,12 +135,12 @@ class HouseholdService {
       if (response.statusCode == 200 && data['code'] == 200) {
         return {
           'success': true,
-          'message': data['message'] ?? '邀请成功',
+          'message': data['message'] ?? 'Invitation sent',
         };
       } else {
         return {
           'success': false,
-          'error': data['message'] ?? '邀请失败',
+          'error': data['message'] ?? 'Invitation failed',
         };
       }
     } catch (e) {
@@ -181,13 +181,13 @@ class HouseholdService {
         }
         return {
           'success': true,
-          'message': data['message'] ?? '加入成功',
+          'message': data['message'] ?? 'Successfully joined',
           'data': householdData,
         };
       } else {
         return {
           'success': false,
-          'error': data['message'] ?? '加入失败',
+          'error': data['message'] ?? 'Failed to join',
         };
       }
     } catch (e) {
@@ -229,12 +229,12 @@ class HouseholdService {
         }
         return {
           'success': true,
-          'message': data['message'] ?? '退出成功',
+          'message': data['message'] ?? 'Successfully left',
         };
       } else {
         return {
           'success': false,
-          'error': data['message'] ?? '退出失败',
+          'error': data['message'] ?? 'Failed to leave',
         };
       }
     } catch (e) {

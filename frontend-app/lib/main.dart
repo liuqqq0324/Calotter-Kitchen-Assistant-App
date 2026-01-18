@@ -146,16 +146,16 @@ class MainScaffoldState extends State<MainScaffold> {
         final shouldExit = await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Text('退出应用'),
-            content: const Text('确定要退出应用吗？'),
+            title: const Text('Exit App'),
+            content: const Text('Are you sure you want to exit the app?'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('取消'),
+                child: const Text('Cancel'),
               ),
               TextButton(
                 onPressed: () => Navigator.of(context).pop(true),
-                child: const Text('退出'),
+                child: const Text('Exit'),
               ),
             ],
           ),

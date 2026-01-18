@@ -64,7 +64,7 @@ class _ScanJoinHouseholdPageState extends State<ScanJoinHouseholdPage> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('成功加入厨房！'),
+              content: Text('Successfully joined household!'),
               backgroundColor: Colors.green,
             ),
           );
@@ -72,7 +72,7 @@ class _ScanJoinHouseholdPageState extends State<ScanJoinHouseholdPage> {
       } else {
         // 加入失败
         setState(() {
-          _errorMessage = result['error'] ?? '加入失败';
+          _errorMessage = result['error'] ?? 'Failed to join';
         });
         // 延迟后重新开始扫描
         Future.delayed(const Duration(seconds: 2), () {
@@ -87,7 +87,7 @@ class _ScanJoinHouseholdPageState extends State<ScanJoinHouseholdPage> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = '错误: $e';
+        _errorMessage = 'Error: $e';
       });
       // 延迟后重新开始扫描
       Future.delayed(const Duration(seconds: 2), () {
@@ -109,7 +109,7 @@ class _ScanJoinHouseholdPageState extends State<ScanJoinHouseholdPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('扫描二维码加入厨房'),
+        title: const Text('Scan QR Code to Join Household'),
         backgroundColor: Colors.orange.shade100,
       ),
       body: Stack(
@@ -149,7 +149,7 @@ class _ScanJoinHouseholdPageState extends State<ScanJoinHouseholdPage> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Text(
-                  '将二维码放入框内扫描',
+                  'Place QR code within the frame to scan',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 16,
@@ -171,7 +171,7 @@ class _ScanJoinHouseholdPageState extends State<ScanJoinHouseholdPage> {
                     ),
                     SizedBox(height: 16),
                     Text(
-                      '正在处理...',
+                      'Processing...',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 16,

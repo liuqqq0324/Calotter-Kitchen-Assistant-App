@@ -68,27 +68,27 @@ class _HouseholdManagePageState extends State<HouseholdManagePage> {
   Future<void> _joinByInviteCode() async {
     final inviteCode = _inviteCodeController.text.trim();
     if (inviteCode.isEmpty) {
-      _showSnackBar('请输入邀请码', isError: true);
+      _showSnackBar('Please enter invite code', isError: true);
       return;
     }
 
     try {
       final result = await HouseholdService.joinHousehold(inviteCode: inviteCode);
       if (result['success'] == true) {
-        _showSnackBar('成功加入厨房！');
+        _showSnackBar('Successfully joined household!');
         _inviteCodeController.clear();
         await _loadHouseholdData();
       } else {
-        _showSnackBar(result['error'] ?? '加入失败', isError: true);
+        _showSnackBar(result['error'] ?? 'Failed to join', isError: true);
       }
     } catch (e) {
-      _showSnackBar('网络错误: $e', isError: true);
+      _showSnackBar('Network error: $e', isError: true);
     }
   }
 
   Future<void> _regenerateInviteCode() async {
     if (_currentHousehold == null) {
-      _showSnackBar('没有当前厨房', isError: true);
+      _showSnackBar('No current household', isError: true);
       return;
     }
 
@@ -97,20 +97,20 @@ class _HouseholdManagePageState extends State<HouseholdManagePage> {
     final userId = await HouseholdService.getUserId();
 
     if (userId != ownerId) {
-      _showSnackBar('只有厨房所有者可以重新生成邀请码', isError: true);
+      _showSnackBar('Only household owner can regenerate invite code', isError: true);
       return;
     }
 
     try {
       final result = await HouseholdService.regenerateInviteCode(householdId: householdId);
       if (result['success'] == true) {
-        _showSnackBar('邀请码已重新生成');
+        _showSnackBar('Invite code regenerated');
         await _loadHouseholdData();
       } else {
-        _showSnackBar(result['error'] ?? '重新生成失败', isError: true);
+        _showSnackBar(result['error'] ?? 'Failed to regenerate', isError: true);
       }
     } catch (e) {
-      _showSnackBar('网络错误: $e', isError: true);
+      _showSnackBar('Network error: $e', isError: true);
     }
   }
 
@@ -118,13 +118,13 @@ class _HouseholdManagePageState extends State<HouseholdManagePage> {
     try {
       final result = await HouseholdService.switchCurrentHousehold(householdId: householdId);
       if (result['success'] == true) {
-        _showSnackBar('已切换到该厨房');
+        _showSnackBar('Switched to household');
         await _loadHouseholdData();
       } else {
-        _showSnackBar(result['error'] ?? '切换失败', isError: true);
+        _showSnackBar(result['error'] ?? 'Failed to switch', isError: true);
       }
     } catch (e) {
-      _showSnackBar('网络错误: $e', isError: true);
+      _showSnackBar('Network error: $e', isError: true);
     }
   }
 
@@ -132,16 +132,16 @@ class _HouseholdManagePageState extends State<HouseholdManagePage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('确认退出'),
-        content: const Text('确定要退出这个厨房吗？'),
+        title: const Text('Confirm Leave'),
+        content: const Text('Are you sure you want to leave this household?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
+            child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('确认'),
+            child: const Text('Confirm'),
           ),
         ],
       ),
@@ -152,25 +152,25 @@ class _HouseholdManagePageState extends State<HouseholdManagePage> {
     try {
       final result = await HouseholdService.leaveHousehold(householdId: householdId);
       if (result['success'] == true) {
-        _showSnackBar('已退出厨房');
+        _showSnackBar('Left household');
         await _loadHouseholdData();
       } else {
-        _showSnackBar(result['error'] ?? '退出失败', isError: true);
+        _showSnackBar(result['error'] ?? 'Failed to leave', isError: true);
       }
     } catch (e) {
-      _showSnackBar('网络错误: $e', isError: true);
+      _showSnackBar('Network error: $e', isError: true);
     }
   }
 
   Future<void> _inviteUser() async {
     if (_currentHousehold == null) {
-      _showSnackBar('没有当前厨房', isError: true);
+      _showSnackBar('No current household', isError: true);
       return;
     }
 
     final usernameOrEmail = _inviteUserController.text.trim();
     if (usernameOrEmail.isEmpty) {
-      _showSnackBar('请输入用户名或邮箱', isError: true);
+      _showSnackBar('Please enter username or email', isError: true);
       return;
     }
 
@@ -181,19 +181,19 @@ class _HouseholdManagePageState extends State<HouseholdManagePage> {
         usernameOrEmail: usernameOrEmail,
       );
       if (result['success'] == true) {
-        _showSnackBar('邀请已发送');
+        _showSnackBar('Invitation sent');
         _inviteUserController.clear();
       } else {
-        _showSnackBar(result['error'] ?? '邀请失败', isError: true);
+        _showSnackBar(result['error'] ?? 'Failed to invite', isError: true);
       }
     } catch (e) {
-      _showSnackBar('网络错误: $e', isError: true);
+      _showSnackBar('Network error: $e', isError: true);
     }
   }
 
   Future<void> _copyInviteCode(String inviteCode) async {
     await Clipboard.setData(ClipboardData(text: inviteCode));
-    _showSnackBar('邀请码已复制到剪贴板');
+    _showSnackBar('Invite code copied to clipboard');
   }
 
   void _showSnackBar(String message, {bool isError = false}) {
@@ -325,7 +325,7 @@ class _HouseholdManagePageState extends State<HouseholdManagePage> {
               IconButton(
                 icon: const Icon(Icons.copy),
                 onPressed: () => _copyInviteCode(inviteCode),
-                tooltip: '复制邀请码',
+                tooltip: 'Copy invite code',
               ),
             ],
           ),

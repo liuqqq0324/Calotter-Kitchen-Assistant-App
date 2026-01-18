@@ -531,7 +531,7 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
                         errorMessage.contains('Quota exceeded');
     
     if (isQuotaError) {
-      displayMessage = 'API 配额已用完\n\n请稍后再试，或检查您的 API 配额限制。';
+      displayMessage = 'API quota exceeded\n\nPlease try again later or check your API quota limits.';
     } else if (errorMessage.length > 200) {
       // 如果错误信息太长，截取前200个字符
       displayMessage = errorMessage.substring(0, 200) + '...';
@@ -551,7 +551,7 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
               ),
               const SizedBox(height: 8),
               Text(
-                isQuotaError ? 'API 配额已用完' : 'Failed to load recipes.',
+                isQuotaError ? 'API quota exceeded' : 'Failed to load recipes.',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.w600,
                 ),
@@ -578,7 +578,7 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
                   onPressed: () {
                     // 可以添加跳转到设置页面或显示更多信息的逻辑
                   },
-                  child: const Text('查看配额信息'),
+                  child: const Text('View quota info'),
                 ),
               ],
             ],

@@ -517,9 +517,9 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
         if (ingredients.isEmpty) {
           await _voiceAssistant.speak('No ingredients list available');
         } else {
-          String text = '需要以下食材：';
+          String text = 'You need the following ingredients: ';
           for (var ing in ingredients) {
-            text += '${ing.name}${ing.amountValue}${ing.amountUnit}，';
+            text += '${ing.name} ${ing.amountValue} ${ing.amountUnit}, ';
           }
           await _voiceAssistant.speak(text);
         }
@@ -581,7 +581,7 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
         if (mounted) {
           // 检查是否是初始化失败的错误
           final isInitializationError =
-              error.contains('语音助手未初始化') || error.contains('not available');
+              error.contains('Voice assistant not initialized') || error.contains('not available');
 
           ScaffoldMessenger.of(context)
             ..hideCurrentSnackBar()
@@ -589,8 +589,8 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
               SnackBar(
                 content: Text(
                   isInitializationError
-                      ? '语音识别不可用，请检查设备设置或安装语音服务'
-                      : '语音识别错误: $error',
+                      ? 'Speech recognition not available. Please check device settings or install speech services'
+                      : 'Speech recognition error: $error',
                 ),
                 duration: const Duration(seconds: 3),
               ),
@@ -748,7 +748,7 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
               _isGestureModeActive ? Icons.gesture : Icons.gesture_outlined,
               color: _isGestureModeActive ? Colors.blue : null,
             ),
-            tooltip: _isGestureModeActive ? '退出手势模式' : '开启手势模式',
+            tooltip: _isGestureModeActive ? 'Exit gesture mode' : 'Enable gesture mode',
           ),
           // Voice control button
           IconButton(
@@ -757,7 +757,7 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
               _isVoiceModeActive ? Icons.mic : Icons.mic_none,
               color: _isVoiceModeActive ? Colors.red : null,
             ),
-            tooltip: _isVoiceModeActive ? '退出语音模式' : '开启语音模式',
+            tooltip: _isVoiceModeActive ? 'Exit voice mode' : 'Enable voice mode',
           ),
           ValueListenableBuilder<List<RecipeModel>>(
             valueListenable: CollectedRecipesStore.favorites,

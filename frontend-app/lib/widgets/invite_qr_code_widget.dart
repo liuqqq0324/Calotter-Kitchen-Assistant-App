@@ -50,7 +50,7 @@ class InviteQrCodeWidget extends StatelessWidget {
           const SizedBox(height: 16),
           // 邀请码文本
           Text(
-            '邀请码',
+            'Invite Code',
             style: TextStyle(
               fontSize: 14,
               color: Colors.grey[600],

@@ -3,11 +3,11 @@ import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter/services.dart';
 import 'package:image/image.dart' as img;
-import 'package:onnxruntime/onnxruntime.dart';
+import 'package:tflite_flutter/tflite_flutter.dart';
 import 'package:personal_sous_chef/models/ingredient.dart';
 
 class YoloService {
-  OrtSession? _session;
+  Interpreter? _interpreter;
   static const int _inputSize = 640;
 
   // 🔥 这里的标签顺序必须严格对应 Python 截图中的 0-76
@@ -161,21 +161,37 @@ class YoloService {
   }
 
   Future<void> loadModel() async {
-    if (_session != null) return;
+    if (_interpreter != null) return;
     try {
-      final rawAssetFile = await rootBundle.load(
-        'assets/models/best.onnx',
-      ); // 🔥 确保文件名和你放入的一致
-      final bytes = rawAssetFile.buffer.asUint8List();
-      _session = OrtSession.fromBuffer(bytes, OrtSessionOptions());
-      print("✅ Model loaded. Labels count: ${_labels.length}");
+      // 加载 TFLite 模型
+      final modelPath = 'assets/models/best.tflite';
+      
+      // TFLite 需要从 assets 复制到本地文件系统
+      final ByteData data = await rootBundle.load(modelPath);
+      final bytes = data.buffer.asUint8List();
+      
+      // 创建临时文件
+      final tempDir = await Directory.systemTemp.createTemp('tflite_models');
+      final modelFile = File('${tempDir.path}/best.tflite');
+      await modelFile.writeAsBytes(bytes);
+      
+      // 加载模型
+      _interpreter = Interpreter.fromFile(modelFile);
+      
+      // 打印模型信息
+      final inputTensors = _interpreter!.getInputTensors();
+      final outputTensors = _interpreter!.getOutputTensors();
+      print("✅ TFLite Model loaded. Labels count: ${_labels.length}");
+      print("   输入: ${inputTensors.map((t) => t.shape).toList()}");
+      print("   输出: ${outputTensors.map((t) => t.shape).toList()}");
     } catch (e) {
-      print("❌ Error loading model: $e");
+      print("❌ Error loading TFLite model: $e");
+      rethrow;
     }
   }
 
   Future<List<Ingredient>> analyzeImage(String imagePath) async {
-    if (_session == null) await loadModel();
+    if (_interpreter == null) await loadModel();
 
     // A. 读取图片
     final imageFile = File(imagePath);
@@ -185,25 +201,70 @@ class YoloService {
     if (originalImage == null) return [];
 
     // B. 预处理
-    final inputTensor = _preprocess(originalImage);
+    final inputData = _preprocess(originalImage);
 
-    // C. 推理
-    final runOptions = OrtRunOptions();
-    final inputs = {'images': inputTensor};
-    final outputs = _session!.run(runOptions, inputs);
-
-    // D. 后处理
-    // 输出形状通常是 [1, 4+Nc, 8400]。对于77类，应该是 [1, 81, 8400]
-    final rawOutput = outputs[0]?.value as List<List<List<double>>>;
-    return _postprocess(rawOutput, originalImage.width, originalImage.height);
+    // C. 推理 - 使用 TFLite
+    try {
+      // 获取输出形状
+      final outputTensors = _interpreter!.getOutputTensors();
+      
+      // 准备输出缓冲区
+      final outputShape = outputTensors[0].shape;
+      
+      // 根据输出形状创建输出缓冲区
+      // TFLite 需要一维数组，形状由解释器处理
+      final totalSize = outputShape.reduce((a, b) => a * b);
+      final outputBuffer = List<double>.generate(totalSize, (_) => 0.0);
+      
+      // 执行推理
+      _interpreter!.run(inputData, outputBuffer);
+      
+      // D. 后处理
+      // 将输出转换为 List<List<List<double>>> 格式
+      // TFLite 输出是扁平数组，需要 reshape 为 [1, 81, 8400] 格式
+      final rawOutput = _reshapeOutput(outputBuffer, outputShape);
+      
+      return _postprocess(rawOutput, originalImage.width, originalImage.height);
+    } catch (e) {
+      print("❌ TFLite inference error: $e");
+      return [];
+    }
+  }
+  
+  /// 重塑输出数组
+  List<List<List<double>>> _reshapeOutput(dynamic output, List<int> shape) {
+    if (shape.length != 3) {
+      throw Exception("Expected 3D output shape, got ${shape.length}D");
+    }
+    
+    final batch = shape[0];
+    final channels = shape[1];
+    final anchors = shape[2];
+    
+    return List.generate(batch, (b) {
+      return List.generate(channels, (c) {
+        return List.generate(anchors, (a) {
+          final index = b * channels * anchors + c * anchors + a;
+          if (output is List) {
+            return output[index].toDouble();
+          }
+          return 0.0;
+        });
+      });
+    });
   }
 
-  OrtValueTensor _preprocess(img.Image image) {
+  /// 预处理图片为 TFLite 输入格式
+  /// 返回格式: [1, 3, 640, 640] 的 Float32List
+  Float32List _preprocess(img.Image image) {
     final resized = img.copyResize(
       image,
       width: _inputSize,
       height: _inputSize,
     );
+    
+    // TFLite 期望的格式通常是 [batch, height, width, channels] 或 [batch, channels, height, width]
+    // YOLO 模型通常使用 NCHW 格式: [1, 3, 640, 640]
     final Float32List float32List = Float32List(
       1 * 3 * _inputSize * _inputSize,
     );
@@ -211,20 +272,17 @@ class YoloService {
     for (int y = 0; y < _inputSize; y++) {
       for (int x = 0; x < _inputSize; x++) {
         final pixel = resized.getPixel(x, y);
-        float32List[0 * _inputSize * _inputSize + y * _inputSize + x] =
+        // NCHW 格式: [batch, channel, height, width]
+        float32List[0 * 3 * _inputSize * _inputSize + 0 * _inputSize * _inputSize + y * _inputSize + x] =
             pixel.r / 255.0;
-        float32List[1 * _inputSize * _inputSize + y * _inputSize + x] =
+        float32List[0 * 3 * _inputSize * _inputSize + 1 * _inputSize * _inputSize + y * _inputSize + x] =
             pixel.g / 255.0;
-        float32List[2 * _inputSize * _inputSize + y * _inputSize + x] =
+        float32List[0 * 3 * _inputSize * _inputSize + 2 * _inputSize * _inputSize + y * _inputSize + x] =
             pixel.b / 255.0;
       }
     }
-    return OrtValueTensor.createTensorWithDataList(float32List, [
-      1,
-      3,
-      _inputSize,
-      _inputSize,
-    ]);
+    
+    return float32List;
   }
 
   // 修改后的后处理方法：支持计数 + NMS 去重

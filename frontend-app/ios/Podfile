@@ -1,5 +1,8 @@
-# Uncomment this line to define a global platform for your project
-# platform :ios, '13.0'
+# Define a global platform for your project.
+#
+# NOTE: Some plugins (e.g. google_mlkit_commons -> MLKitVision) require iOS 15.5+.
+platform :ios, '15.5'
+$iOSVersion = '15.5'
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
@@ -28,7 +31,9 @@ require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelpe
 flutter_ios_podfile_setup
 
 target 'Runner' do
-  use_frameworks!
+  # Prefer static linkage for Flutter + CocoaPods to avoid runtime/framework
+  # code-signing issues on physical devices.
+  use_frameworks! :linkage => :static
 
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
   target 'RunnerTests' do
@@ -37,7 +42,20 @@ target 'Runner' do
 end
 
 post_install do |installer|
+  # ML Kit does not support 32-bit architectures (armv7/i386).
+  installer.pods_project.build_configurations.each do |config|
+    config.build_settings["EXCLUDED_ARCHS[sdk=*]"] = "armv7"
+    config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = $iOSVersion
+  end
+
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
+
+    # Ensure all Pods use a compatible deployment target.
+    target.build_configurations.each do |config|
+      if Gem::Version.new($iOSVersion) > Gem::Version.new(config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'])
+        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = $iOSVersion
+      end
+    end
   end
 end
