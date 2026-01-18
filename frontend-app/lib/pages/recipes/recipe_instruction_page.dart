@@ -6,8 +6,6 @@ import 'package:personal_sous_chef/models/recipe_models.dart';
 import 'package:personal_sous_chef/pages/recipes/recipe_meal_summary_page.dart';
 import 'package:personal_sous_chef/services/cooking_api_service.dart';
 import 'package:personal_sous_chef/services/household_service.dart';
-import 'package:personal_sous_chef/services/cooking_voice_assistant.dart';
-import 'package:personal_sous_chef/services/cooking_gesture_control.dart';
 
 class RecipeInstructionPage extends StatefulWidget {
   final RecipeMenuModel menu;
@@ -37,35 +35,17 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
   int? _sessionId;
   bool _sessionCreated = false;
 
-  // Voice control
-  final CookingVoiceAssistant _voiceAssistant = CookingVoiceAssistant();
-  bool _isVoiceModeActive = false;
-  int _currentFocusedStepNumber = 1; // 当前聚焦的步骤编号
-
-  // Gesture control
-  final CookingGestureControl _gestureControl = CookingGestureControl();
-  bool _isGestureModeActive = false;
+  int _currentFocusedStepNumber = 1; // Current focused step number
 
   String _stepKey(int dishIndex, int stepNumber) => '$dishIndex:$stepNumber';
 
   @override
   void initState() {
     super.initState();
-    debugPrint('[RecipePage] ===== initState() 开始 =====');
+    debugPrint('[RecipePage] Recipe instruction page initialized');
     _currentIndex = widget.initialRecipeIndex;
     _completedDishes = <int>{};
-    debugPrint('[RecipePage] 创建烹饪会话...');
     _createCookingSession();
-    // 注意：不再自动初始化语音助手
-    // 语音识别只在用户开启语音模式时初始化
-    // TTS（语音播报）会在首次调用 speak() 时自动初始化
-    debugPrint('[RecipePage] ===== initState() 完成 =====');
-  }
-
-  Future<void> _initializeGestureControl() async {
-    await _gestureControl.initialize();
-    // 设置手势检测回调
-    _gestureControl.onGestureDetected = _handleGesture;
   }
 
   /// 创建烹饪session（传入整个 Menu）
@@ -145,8 +125,7 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
     for (final t in _runningTimers.values) {
       t.cancel();
     }
-    _voiceAssistant.dispose();
-    _gestureControl.dispose(); // 清理手势控制资源
+    debugPrint('[RecipePage] Recipe instruction page disposed');
     super.dispose();
   }
 
@@ -345,390 +324,12 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
     }
   }
 
-  /// 处理语音命令
-  Future<void> _handleVoiceCommand(String commandText) async {
-    final commandType = _voiceAssistant.recognizeCommand(commandText);
-    final recipe = widget.menu.recipes[_currentIndex];
-
-    switch (commandType) {
-      case VoiceCommandType.nextStep:
-        final nextStep = _getNextStep();
-        if (nextStep != null) {
-          setState(() {
-            _currentFocusedStepNumber = nextStep.stepNumber;
-          });
-          await _voiceAssistant.speakStep(nextStep);
-        } else {
-          await _voiceAssistant.speak('This is already the last step');
-        }
-        break;
-
-      case VoiceCommandType.previousStep:
-        final prevStep = _getPreviousStep();
-        if (prevStep != null) {
-          setState(() {
-            _currentFocusedStepNumber = prevStep.stepNumber;
-          });
-          await _voiceAssistant.speakStep(prevStep);
-        } else {
-          await _voiceAssistant.speak('This is already the first step');
-        }
-        break;
-
-      case VoiceCommandType.repeatStep:
-        final currentStep = _getFocusedStep();
-        if (currentStep != null) {
-          await _voiceAssistant.speakStep(currentStep);
-        }
-        break;
-
-      case VoiceCommandType.jumpToStep:
-        final stepNumber = _voiceAssistant.extractStepNumber(commandText);
-        if (stepNumber != null &&
-            stepNumber >= 1 &&
-            stepNumber <= _currentSteps.length) {
-          final targetStep = _currentSteps[stepNumber - 1];
-          setState(() {
-            _currentFocusedStepNumber = stepNumber;
-          });
-          await _voiceAssistant.speakStep(targetStep);
-        } else {
-          await _voiceAssistant.speak('Invalid step number');
-        }
-        break;
-
-      case VoiceCommandType.startTimer:
-        final currentStep = _getFocusedStep();
-        if (currentStep != null && currentStep.stepTimeMin > 0) {
-          _startTimerForStep(
-            _currentIndex,
-            currentStep.stepNumber,
-            currentStep.stepTimeMin,
-          );
-          await _voiceAssistant.speak(
-            'Timer started for ${currentStep.stepTimeMin} minutes',
-          );
-        } else {
-          await _voiceAssistant.speak('No time set for this step');
-        }
-        break;
-
-      case VoiceCommandType.pauseTimer:
-        final currentStep = _getFocusedStep();
-        if (currentStep != null) {
-          _pauseTimer(_currentIndex, currentStep.stepNumber);
-          await _voiceAssistant.speak('Timer paused');
-        }
-        break;
-
-      case VoiceCommandType.resumeTimer:
-        final currentStep = _getFocusedStep();
-        if (currentStep != null && currentStep.stepTimeMin > 0) {
-          final key = _stepKey(_currentIndex, currentStep.stepNumber);
-          if (_pausedSteps[key] == true) {
-            _startTimerForStep(
-              _currentIndex,
-              currentStep.stepNumber,
-              currentStep.stepTimeMin,
-            );
-            await _voiceAssistant.speak('Timer resumed');
-          } else {
-            await _voiceAssistant.speak('Timer is not paused');
-          }
-        }
-        break;
-
-      case VoiceCommandType.stopTimer:
-        final currentStep = _getFocusedStep();
-        if (currentStep != null) {
-          _stopTimerForStep(_currentIndex, currentStep.stepNumber);
-          await _voiceAssistant.speak('Timer stopped');
-        }
-        break;
-
-      case VoiceCommandType.completeStep:
-        final currentStep = _getFocusedStep();
-        if (currentStep != null) {
-          _stopAndCompleteStep(_currentIndex, currentStep.stepNumber);
-          await _voiceAssistant.speak('Step completed');
-        }
-        break;
-
-      case VoiceCommandType.nextDish:
-        if (_currentIndex < _totalDishes - 1) {
-          setState(() {
-            _currentIndex++;
-            _currentFocusedStepNumber = 1;
-          });
-          await _voiceAssistant.speak(
-            'Switched to next dish: ${widget.menu.recipes[_currentIndex].title}',
-          );
-        } else {
-          await _voiceAssistant.speak('This is already the last dish');
-        }
-        break;
-
-      case VoiceCommandType.previousDish:
-        if (_currentIndex > 0) {
-          setState(() {
-            _currentIndex--;
-            _currentFocusedStepNumber = 1;
-          });
-          await _voiceAssistant.speak(
-            'Switched to previous dish: ${widget.menu.recipes[_currentIndex].title}',
-          );
-        } else {
-          await _voiceAssistant.speak('This is already the first dish');
-        }
-        break;
-
-      case VoiceCommandType.currentStepInfo:
-        final currentStep = _getFocusedStep();
-        if (currentStep != null) {
-          await _voiceAssistant.speakStep(currentStep);
-        }
-        break;
-
-      case VoiceCommandType.timerStatus:
-        final currentStep = _getFocusedStep();
-        if (currentStep != null) {
-          final key = _stepKey(_currentIndex, currentStep.stepNumber);
-          final remaining = _remainingSeconds[key];
-          if (remaining != null) {
-            final minutes = remaining ~/ 60;
-            final seconds = remaining % 60;
-            if (remaining >= 0) {
-              await _voiceAssistant.speak(
-                'Time remaining: ${minutes} minutes and ${seconds} seconds',
-              );
-            } else {
-              await _voiceAssistant.speak(
-                'Time exceeded by ${-minutes} minutes and ${-seconds} seconds',
-              );
-            }
-          } else {
-            await _voiceAssistant.speak('No timer running for this step');
-          }
-        }
-        break;
-
-      case VoiceCommandType.ingredientsList:
-        final ingredients = recipe.ingredients;
-        if (ingredients.isEmpty) {
-          await _voiceAssistant.speak('No ingredients list available');
-        } else {
-          String text = 'You need the following ingredients: ';
-          for (var ing in ingredients) {
-            text += '${ing.name} ${ing.amountValue} ${ing.amountUnit}, ';
-          }
-          await _voiceAssistant.speak(text);
-        }
-        break;
-
-      case VoiceCommandType.exitVoiceMode:
-        _toggleVoiceMode();
-        await _voiceAssistant.speak('Voice mode exited');
-        break;
-
-      case VoiceCommandType.help:
-        await _voiceAssistant.speak(_voiceAssistant.getHelpText());
-        break;
-
-      case VoiceCommandType.unknown:
-        await _voiceAssistant.speak(
-          'Sorry, I did not understand. Please say again',
-        );
-        break;
-    }
-  }
-
-  /// 切换语音模式
   void _toggleVoiceMode() {
-    setState(() {
-      _isVoiceModeActive = !_isVoiceModeActive;
-      if (_isVoiceModeActive) {
-        // 如果之前初始化失败，先重置状态再尝试
-        if (_voiceAssistant.isInitializationFailed) {
-          debugPrint('[RecipePage] 检测到之前的初始化失败，重置状态后重试');
-          _voiceAssistant.resetInitializationState();
-        }
-        _startVoiceListening();
-      } else {
-        _stopVoiceListening();
-      }
-    });
+    debugPrint('[RecipePage] Voice mode toggle - stub implementation');
   }
 
-  /// 开始语音监听
-  void _startVoiceListening() {
-    debugPrint('[RecipePage] _startVoiceListening() 被调用');
-
-    _voiceAssistant.startListening(
-      onResult: (recognizedText) async {
-        await _handleVoiceCommand(recognizedText);
-        // 如果语音模式仍然激活，继续监听下一个命令
-        if (_isVoiceModeActive && mounted) {
-          // 等待语音播放完成后再继续监听（避免语音播放时识别干扰）
-          await Future.delayed(const Duration(milliseconds: 500));
-          if (_isVoiceModeActive && mounted) {
-            _startVoiceListening();
-          }
-        }
-      },
-      onError: (error) {
-        debugPrint('[RecipePage] 语音监听错误: $error');
-
-        if (mounted) {
-          // 检查是否是初始化失败的错误
-          final isInitializationError =
-              error.contains('Voice assistant not initialized') || error.contains('not available');
-
-          ScaffoldMessenger.of(context)
-            ..hideCurrentSnackBar()
-            ..showSnackBar(
-              SnackBar(
-                content: Text(
-                  isInitializationError
-                      ? 'Speech recognition not available. Please check device settings or install speech services'
-                      : 'Speech recognition error: $error',
-                ),
-                duration: const Duration(seconds: 3),
-              ),
-            );
-
-          // 如果是初始化错误，关闭语音模式，不再继续尝试
-          if (isInitializationError) {
-            debugPrint('[RecipePage] 检测到初始化失败，关闭语音模式');
-            if (mounted) {
-              setState(() {
-                _isVoiceModeActive = false;
-              });
-            }
-            return; // 不再继续监听
-          }
-
-          // 其他错误（如临时错误），可以继续尝试监听
-          debugPrint('[RecipePage] 临时错误，延迟后重试监听');
-          if (_isVoiceModeActive && mounted) {
-            Future.delayed(const Duration(seconds: 1), () {
-              if (_isVoiceModeActive && mounted) {
-                debugPrint('[RecipePage] 重试开始监听');
-                _startVoiceListening();
-              }
-            });
-          }
-        }
-      },
-    );
-  }
-
-  /// 停止语音监听
-  void _stopVoiceListening() {
-    _voiceAssistant.stopListening();
-  }
-
-  // ========== Gesture Control Methods ==========
-
-  /// 处理手势命令
-  Future<void> _handleGesture(GestureType gesture) async {
-    debugPrint('[RecipePage] ✅ 手势触发: $gesture');
-
-    // 如果正在播报，先停止当前播报，避免重复触发
-    if (_voiceAssistant.isSpeaking) {
-      debugPrint('[RecipePage] ⚠️ 正在播报中，停止当前播报');
-      await _voiceAssistant.stopSpeaking();
-      await Future.delayed(const Duration(milliseconds: 200)); // 等待停止完成
-    }
-
-    // 智能切换：检测到手势时，暂停语音识别
-    if (_isVoiceModeActive && _voiceAssistant.isListening) {
-      _voiceAssistant.pauseListening();
-    }
-
-    // 根据手势类型执行相应操作
-    switch (gesture) {
-      case GestureType.handUp:
-        // 下一步
-        final nextStep = _getNextStep();
-        if (nextStep != null) {
-          setState(() {
-            _currentFocusedStepNumber = nextStep.stepNumber;
-          });
-          await _voiceAssistant.speakStep(nextStep);
-        } else {
-          await _voiceAssistant.speak('This is already the last step');
-        }
-        break;
-
-      case GestureType.handDown:
-        // 上一步
-        final prevStep = _getPreviousStep();
-        if (prevStep != null) {
-          setState(() {
-            _currentFocusedStepNumber = prevStep.stepNumber;
-          });
-          await _voiceAssistant.speakStep(prevStep);
-        } else {
-          await _voiceAssistant.speak('This is already the first step');
-        }
-        break;
-
-      case GestureType.fist:
-        // 重复当前步骤
-        final currentStep = _getFocusedStep();
-        if (currentStep != null) {
-          await _voiceAssistant.speakStep(currentStep);
-        }
-        break;
-
-      case GestureType.openHand:
-        // 暂停计时
-        final currentStep = _getFocusedStep();
-        if (currentStep != null) {
-          _pauseTimer(_currentIndex, currentStep.stepNumber);
-          await _voiceAssistant.speak('Timer paused');
-        }
-        break;
-
-      case GestureType.okSign:
-        // 完成步骤
-        final currentStep = _getFocusedStep();
-        if (currentStep != null) {
-          _stopAndCompleteStep(_currentIndex, currentStep.stepNumber);
-          await _voiceAssistant.speak('Step completed');
-        }
-        break;
-
-      case GestureType.none:
-        // 无手势，不做处理
-        break;
-    }
-
-    // 智能切换：手势识别结束后，恢复语音识别
-    if (_isVoiceModeActive) {
-      await Future.delayed(const Duration(milliseconds: 300)); // 短暂延迟，确保手势处理完成
-      await _voiceAssistant.resumeListening();
-    }
-  }
-
-  /// 切换手势模式
-  void _toggleGestureMode() async {
-    setState(() {
-      _isGestureModeActive = !_isGestureModeActive;
-    });
-
-    if (_isGestureModeActive) {
-      await _initializeGestureControl();
-      // 确保回调被设置（因为停止时被清理了）
-      _gestureControl.onGestureDetected = _handleGesture;
-      await _gestureControl.startDetection();
-    } else {
-      await _gestureControl.stopDetection();
-      // 如果语音模式也激活，确保语音识别恢复
-      if (_isVoiceModeActive) {
-        await _voiceAssistant.resumeListening();
-      }
-    }
+  void _toggleGestureMode() {
+    debugPrint('[RecipePage] Gesture mode toggle - stub implementation');
   }
 
   @override
@@ -741,24 +342,6 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
       appBar: AppBar(
         title: Text(recipe.title),
         actions: [
-          // Gesture control button
-          IconButton(
-            onPressed: _toggleGestureMode,
-            icon: Icon(
-              _isGestureModeActive ? Icons.gesture : Icons.gesture_outlined,
-              color: _isGestureModeActive ? Colors.blue : null,
-            ),
-            tooltip: _isGestureModeActive ? 'Exit gesture mode' : 'Enable gesture mode',
-          ),
-          // Voice control button
-          IconButton(
-            onPressed: _toggleVoiceMode,
-            icon: Icon(
-              _isVoiceModeActive ? Icons.mic : Icons.mic_none,
-              color: _isVoiceModeActive ? Colors.red : null,
-            ),
-            tooltip: _isVoiceModeActive ? 'Exit voice mode' : 'Enable voice mode',
-          ),
           ValueListenableBuilder<List<RecipeModel>>(
             valueListenable: CollectedRecipesStore.favorites,
             builder: (context, favorites, _) {

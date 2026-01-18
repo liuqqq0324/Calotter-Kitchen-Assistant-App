@@ -63,23 +63,6 @@ dependencies:
   # QR Code scanning
   mobile_scanner: ^7.1.4
 
-  # Voice control for cooking
-  speech_to_text: ^7.3.0
-  flutter_tts: ^3.8.0
-  
-  # 权限管理（用于动态申请录音权限）
-  permission_handler: ^12.0.1
-  
-  # Sherpa-onnx 离线语音识别
-  sherpa_onnx: ^1.10.0
-  
-  # 获取原始音频流 (Raw PCM) 的库，配合 Sherpa 使用
-  sound_stream: ^0.4.2
-
-  # Gesture control for cooking
-  camera: ^0.10.5+5
-  google_mlkit_pose_detection: ^0.14.0
-  ffi: ^2.1.5
 
 
 
@@ -114,11 +97,6 @@ flutter:
     - assets/models/
     # TFLite 模型文件（YOLO 图像识别）
     - assets/models/best.tflite
-    # Sherpa-onnx 模型文件（语音识别）
-    - assets/audios/tokens.txt
-    - assets/audios/encoder-epoch-99-avg-1.int8.onnx
-    - assets/audios/decoder-epoch-99-avg-1.int8.onnx
-    - assets/audios/joiner-epoch-99-avg-1.int8.onnx
   fonts:
     - family: Caveat
       fonts:

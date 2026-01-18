@@ -58,8 +58,8 @@ public class MockAiMenuGenerationService implements AiMenuGenerationService {
             !filter.getDietPreferences().getCuisinePreferences().isEmpty()) {
             String cuisine = filter.getDietPreferences().getCuisinePreferences().get(0);
             if (cuisine.toLowerCase().contains("chinese")) {
-                mainDish = "番茄炒蛋";
-                mockDishes = new String[]{"番茄炒蛋", "清蒸鱼", "蒜蓉油菜", "紫菜汤", "白米饭"};
+                mainDish = "Scrambled Eggs with Tomatoes";
+                mockDishes = new String[]{"Scrambled Eggs with Tomatoes", "Steamed Fish", "Garlic Bok Choy", "Seaweed Soup", "White Rice"};
             }
         }
         
