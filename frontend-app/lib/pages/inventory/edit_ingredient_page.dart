@@ -57,7 +57,7 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
     }
   }
 
-  /// ✅ 加载允许的单位列表
+  /// ✅ 加载允许的单位列表并规范化单位
   Future<void> _loadAllowedUnits(int standardIngredientId) async {
     if (_isLoadingUnits) return; // 防止重复加载
 
@@ -66,9 +66,23 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
     });
 
     try {
+      // 1. 获取标准食材详情（包含 primaryUnit）
+      final standardIngredient = await InventoryApiService.searchStandardIngredients(
+        name: widget.ingredient.name,
+        fuzzy: false,
+      );
+      
+      // 2. 获取允许的单位列表（primaryUnit 和 secondaryUnit）
       final allowedUnits = await InventoryApiService.getAllowedUnits(
         standardIngredientId,
       );
+      
+      // 3. 提取 primaryUnit（主单位，优先使用）
+      String? primaryUnit;
+      if (standardIngredient is Map<String, dynamic>) {
+        primaryUnit = standardIngredient['primaryUnit'] as String?;
+      }
+      
       if (mounted) {
         setState(() {
           _allowedUnits = allowedUnits.isNotEmpty
@@ -76,8 +90,14 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
               : ['g', 'pcs', 'ml'];
           _isLoadingUnits = false;
 
-          // ✅ 如果当前单位不在允许列表中，设置为第一个允许的单位
-          if (!_allowedUnits.contains(_unit)) {
+          // ✅ 规范化单位：优先使用 primaryUnit，如果不存在则使用第一个允许的单位
+          if (primaryUnit != null && _allowedUnits.contains(primaryUnit)) {
+            // 如果是新食材或当前单位不在允许列表中，使用 primaryUnit
+            if (widget.isNew || !_allowedUnits.contains(_unit)) {
+              _unit = primaryUnit;
+            }
+          } else if (!_allowedUnits.contains(_unit)) {
+            // 如果 primaryUnit 不可用，使用第一个允许的单位
             _unit = _allowedUnits.isNotEmpty ? _allowedUnits[0] : 'g';
           }
         });

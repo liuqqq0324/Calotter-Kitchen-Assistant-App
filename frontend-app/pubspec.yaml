@@ -46,8 +46,9 @@ dependencies:
   http: ^1.2.2
   shared_preferences: ^2.5.4
 
-  # TensorFlow Lite for Flutter (替代 ONNX Runtime)
-  tflite_flutter: ^0.10.4
+  # ONNX Runtime for Flutter (YOLO image recognition)
+  # 使用微软官方库，完全离线本地推理，无需联网
+  onnxruntime: ^1.4.1
 
   image_picker: ^1.0.4
   image: ^4.7.2 
@@ -95,8 +96,8 @@ flutter:
     - assets/fonts/
     - assets/fonts/caveat/
     - assets/models/
-    # TFLite 模型文件（YOLO 图像识别）
-    - assets/models/best.tflite
+    # ONNX 模型文件（YOLO 图像识别）- 77 个类别，输出 81 通道
+    - assets/models/best.onnx
   fonts:
     - family: Caveat
       fonts:

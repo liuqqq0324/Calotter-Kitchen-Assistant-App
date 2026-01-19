@@ -1,45 +1,77 @@
-// 示例代码：使用 TFLite 进行推理
-// 注意：实际使用请参考 YoloService 的实现
+// Example code: Using ONNX Runtime for inference
+// Note: For actual usage, please refer to YoloService implementation
 
-import 'package:tflite_flutter/tflite_flutter.dart';
+import 'package:onnxruntime/onnxruntime.dart';
 import 'package:flutter/services.dart';
-import 'dart:io';
 import 'dart:typed_data';
 
-Future<void> runTfliteInference() async {
-  // 1. 从 assets 加载 TFLite 模型
-  final ByteData modelBytes = await rootBundle.load(
-    'assets/models/best.tflite',
-  );
+Future<void> runOnnxInference() async {
+  try {
+    // 1. Initialize ONNX Runtime environment
+    OrtEnv.instance.init();
 
-  // 2. 创建临时文件
-  final tempDir = await Directory.systemTemp.createTemp('tflite_models');
-  final modelFile = File('${tempDir.path}/best.tflite');
-  await modelFile.writeAsBytes(modelBytes.buffer.asUint8List());
+    // 2. Load ONNX model from assets
+    final ByteData modelBytes = await rootBundle.load(
+      'assets/models/best.onnx',
+    );
 
-  // 3. 加载 TFLite 解释器
-  final interpreter = Interpreter.fromFile(modelFile);
+    // 3. Create session options
+    final sessionOptions = OrtSessionOptions();
+    sessionOptions.setIntraOpNumThreads(2); // Set thread count
 
-  // 4. 准备输入数据
-  // 模型输入形状通常是 [1, 3, 640, 640] 或 [1, 640, 640, 3]
-  final inputShape = [1, 3, 640, 640]; // 根据实际模型调整
-  final inputData = Float32List(inputShape.reduce((a, b) => a * b));
-  // ... 填充输入数据 ...
+    // 4. Create ONNX session from buffer
+    final session = OrtSession.fromBuffer(
+      modelBytes.buffer.asUint8List(),
+      sessionOptions,
+    );
 
-  // 5. 准备输出缓冲区
-  final outputTensor = interpreter.getOutputTensors()[0];
-  final outputShape = outputTensor.shape;
-  final outputBuffer = List.generate(
-    outputShape.reduce((a, b) => a * b),
-    (_) => 0.0,
-  );
+    sessionOptions.release();
 
-  // 6. 运行推理
-  interpreter.run(inputData, outputBuffer);
+    // 5. Prepare input data
+    // Model input shape is [1, 3, 640, 640] (NCHW format)
+    final inputShape = [1, 3, 640, 640];
+    final inputSize = inputShape.reduce((a, b) => a * b);
+    final inputData = Float32List(inputSize);
+    // ... fill input data with preprocessed image (NCHW format: R plane, G plane, B plane) ...
 
-  // 7. 处理输出数据
-  // final outputData = outputBuffer;
+    // 6. Create input tensor
+    final inputTensor = OrtValueTensor.createTensorWithDataList(
+      inputData,
+      inputShape,
+    );
 
-  // 8. 清理资源
-  interpreter.close();
+    // 7. Prepare inputs map (YOLOv8 input name is usually 'images')
+    final inputs = {'images': inputTensor};
+
+    // 8. Create run options
+    final runOptions = OrtRunOptions();
+
+    // 9. Run inference
+    final outputs = session.run(runOptions, inputs);
+
+    // 10. Process output data
+    // YOLOv8 output shape is usually [1, 81, 8400]
+    // outputs[0].value is a nested list: List<List<List<double>>>
+    final rawBatchOutput = (outputs[0]?.value as List)[0];
+    final List<List<double>> outputMatrix = (rawBatchOutput as List)
+        .map((e) => (e as List).map((x) => x as double).toList())
+        .toList();
+
+    // Process the outputMatrix for bounding boxes and class predictions
+    // See YoloService._postprocess() for full implementation
+    print(
+      "✅ Inference completed. Output shape: [${outputMatrix.length}, ${outputMatrix[0].length}]",
+    );
+
+    // 11. Cleanup resources
+    inputTensor.release();
+    runOptions.release();
+    for (var element in outputs) {
+      element?.release();
+    }
+    session.release();
+  } catch (e) {
+    print("❌ ONNX inference error: $e");
+    rethrow;
+  }
 }

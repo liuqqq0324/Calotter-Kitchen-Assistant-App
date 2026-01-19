@@ -76,10 +76,11 @@ class _ReviewIngredientsPageState extends State<ReviewIngredientsPage> {
     }
   }
 
-  /// ✅ 为单个食材加载允许的单位列表
+  /// ✅ 为单个食材加载允许的单位列表并规范化单位
   Future<void> _loadAllowedUnitsForIngredient(String ingredientName) async {
     try {
-      // 1. 通过名称查找标准食材ID
+      // 1. 通过名称查找标准食材ID（支持精确匹配）
+      // ✅ 修复：使用原始名称（带连字符）进行查找
       final standardIngredientId =
           await InventoryApiService.findStandardIngredientIdByName(ingredientName);
       
@@ -87,21 +88,39 @@ class _ReviewIngredientsPageState extends State<ReviewIngredientsPage> {
         // 2. 保存标准食材ID
         _ingredientStandardIds[ingredientName] = standardIngredientId;
         
-        // 3. 获取允许的单位列表
+        // 3. 获取标准食材详情（包含 primaryUnit）
+        final standardIngredient =
+            await InventoryApiService.searchStandardIngredients(
+          name: ingredientName,
+          fuzzy: false,
+        );
+        
+        // 4. 获取允许的单位列表（primaryUnit 和 secondaryUnit）
         final allowedUnits =
             await InventoryApiService.getAllowedUnits(standardIngredientId);
+        
+        // 5. 提取 primaryUnit（主单位，优先使用）
+        String? primaryUnit;
+        if (standardIngredient is Map<String, dynamic>) {
+          primaryUnit = standardIngredient['primaryUnit'] as String?;
+        }
         
         if (mounted) {
           setState(() {
             _ingredientAllowedUnits[ingredientName] = 
                 allowedUnits.isNotEmpty ? allowedUnits : ['g', 'pcs', 'ml'];
             
-            // ✅ 如果当前单位不在允许列表中，设置为第一个允许的单位
+            // ✅ 规范化单位：优先使用 primaryUnit，如果不存在则使用第一个允许的单位
             final ingredient = _detectedItems.firstWhere(
               (ing) => ing.name == ingredientName,
               orElse: () => _detectedItems.first,
             );
-            if (!_ingredientAllowedUnits[ingredientName]!.contains(ingredient.unit)) {
+            
+            // 如果当前单位不在允许列表中，或者没有设置，使用 primaryUnit
+            if (primaryUnit != null && 
+                _ingredientAllowedUnits[ingredientName]!.contains(primaryUnit)) {
+              ingredient.unit = primaryUnit; // ✅ 优先使用主单位
+            } else if (!_ingredientAllowedUnits[ingredientName]!.contains(ingredient.unit)) {
               ingredient.unit = _ingredientAllowedUnits[ingredientName]!.first;
             }
           });
