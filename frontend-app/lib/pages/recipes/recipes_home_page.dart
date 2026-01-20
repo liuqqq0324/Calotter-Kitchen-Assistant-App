@@ -400,6 +400,7 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                                     menu: tempMenu,
                                     initialRecipeIndex: 0,
                                     filter: _currentFilter,
+                                    isViewMode: false, // 批量烹饪模式
                                   ),
                                 ),
                               );
@@ -678,7 +679,7 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 20),
-            // Start Cooking 按钮
+            // Start Cooking 按钮 - 烹饪模式
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
@@ -695,6 +696,7 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                         menu: tempMenu,
                         initialRecipeIndex: 0,
                         filter: _currentFilter,
+                        isViewMode: false, // 烹饪模式
                       ),
                     ),
                   );
@@ -718,7 +720,7 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
               ),
             ),
             const SizedBox(height: 12),
-            // View Steps 按钮
+            // View Steps 按钮 - 只读模式
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
@@ -735,6 +737,7 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                         menu: tempMenu,
                         initialRecipeIndex: 0,
                         filter: _currentFilter,
+                        isViewMode: true, // 只读模式
                       ),
                     ),
                   );

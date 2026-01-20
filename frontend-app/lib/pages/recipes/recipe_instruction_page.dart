@@ -13,12 +13,14 @@ class RecipeInstructionPage extends StatefulWidget {
   final RecipeMenuModel menu;
   final int initialRecipeIndex;
   final Map<String, dynamic>? filter;
+  final bool isViewMode; // true: 只看模式, false: 烹饪模式
 
   const RecipeInstructionPage({
     super.key,
     required this.menu,
     this.initialRecipeIndex = 0,
     this.filter,
+    this.isViewMode = false, // 默认为烹饪模式
   });
 
   @override
@@ -57,10 +59,16 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
     debugPrint('[RecipePage] ===== initState() 开始 =====');
     _currentIndex = widget.initialRecipeIndex;
     _completedDishes = <int>{};
-    debugPrint('[RecipePage] 创建烹饪会话...');
-    _createCookingSession();
-    debugPrint('[RecipePage] 初始化语音助手...');
-    _initializeVoiceAssistant();
+    
+    // 只在烹饪模式下创建会话和初始化控制
+    if (!widget.isViewMode) {
+      debugPrint('[RecipePage] 创建烹饪会话...');
+      _createCookingSession();
+      debugPrint('[RecipePage] 初始化语音助手...');
+      _initializeVoiceAssistant();
+    } else {
+      debugPrint('[RecipePage] View Mode: 跳过会话创建和语音初始化');
+    }
     debugPrint('[RecipePage] ===== initState() 完成 =====');
   }
   
@@ -710,24 +718,29 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
       appBar: AppBar(
         title: Text(recipe.title),
         actions: [
-          // Gesture control button
-          IconButton(
-            onPressed: _toggleGestureMode,
-            icon: Icon(
-              _isGestureModeActive ? Icons.gesture : Icons.gesture_outlined,
-              color: _isGestureModeActive ? Colors.blue : null,
+          // View Mode: 只显示收藏按钮
+          // Cooking Mode: 显示语音/手势控制 + 收藏按钮
+          if (!widget.isViewMode) ...[
+            // Gesture control button
+            IconButton(
+              onPressed: _toggleGestureMode,
+              icon: Icon(
+                _isGestureModeActive ? Icons.gesture : Icons.gesture_outlined,
+                color: _isGestureModeActive ? Colors.blue : null,
+              ),
+              tooltip: _isGestureModeActive ? '退出手势模式' : '开启手势模式',
             ),
-            tooltip: _isGestureModeActive ? '退出手势模式' : '开启手势模式',
-          ),
-          // Voice control button
-          IconButton(
-            onPressed: _toggleVoiceMode,
-            icon: Icon(
-              _isVoiceModeActive ? Icons.mic : Icons.mic_none,
-              color: _isVoiceModeActive ? Colors.red : null,
+            // Voice control button
+            IconButton(
+              onPressed: _toggleVoiceMode,
+              icon: Icon(
+                _isVoiceModeActive ? Icons.mic : Icons.mic_none,
+                color: _isVoiceModeActive ? Colors.red : null,
+              ),
+              tooltip: _isVoiceModeActive ? '退出语音模式' : '开启语音模式',
             ),
-            tooltip: _isVoiceModeActive ? '退出语音模式' : '开启语音模式',
-          ),
+          ],
+          // 收藏按钮（两种模式都显示）
           ValueListenableBuilder<List<RecipeModel>>(
             valueListenable: CollectedRecipesStore.favorites,
             builder: (context, favorites, _) {
@@ -817,6 +830,73 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
 
               const SizedBox(height: 20),
 
+              // Cooking Mode: 显示烹饪状态
+              if (!widget.isViewMode) ...[
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Colors.orange.shade200,
+                      width: 2,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.timer_outlined,
+                        color: Colors.orange.shade700,
+                        size: 24,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _getCookingStatusTitle(),
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.orange.shade900,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              _getCookingStatusDetail(),
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey.shade700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.orange,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          '${_getCompletedStepsCount()}/${_getTotalStepsCount()}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+
               // 可折叠的原材料列表
               Container(
                 decoration: BoxDecoration(
@@ -852,21 +932,18 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
                           ),
                     children: [
                       if (recipe.ingredients.isEmpty)
-                        Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Text(
-                            'No ingredients listed.',
-                            style: theme.textTheme.bodySmall
-                                ?.copyWith(color: Colors.grey[600]),
-                          ),
+                        const Padding(
+                          padding: EdgeInsets.all(16.0),
+                          child: Text('No ingredients listed.'),
                         )
                       else
                         Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                          padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
                           child: Column(
+                            mainAxisSize: MainAxisSize.min,
                             children: recipe.ingredients.map((ing) {
                               return Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 6.0),
+                                padding: const EdgeInsets.symmetric(vertical: 4.0),
                                 child: Row(
                                   children: [
                                     Expanded(
@@ -952,7 +1029,9 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
           ),
         ),
       ),
-      bottomNavigationBar: _buildBottomControls(context),
+      // View Mode: 不显示底部控制栏
+      // Cooking Mode: 显示完整的底部控制栏
+      bottomNavigationBar: widget.isViewMode ? null : _buildBottomControls(context),
     );
   }
 
@@ -1010,7 +1089,8 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
                             ?.copyWith(color: Colors.grey[600]),
                       ),
                       const SizedBox(width: 8),
-                      if (remaining != null)
+                      // Cooking Mode: 显示剩余时间
+                      if (!widget.isViewMode && remaining != null)
                         Text(
                           remaining >= 0
                               ? 'Left ${remaining ~/ 60}:${(remaining % 60).toString().padLeft(2, '0')}'
@@ -1022,64 +1102,67 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
                         ),
                     ],
                   ),
-                  const SizedBox(height: 6),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 4,
-                    children: [
-                      OutlinedButton.icon(
-                        onPressed: isRunning
-                            ? () => _pauseTimer(_currentIndex, step.stepNumber)
-                            : () => _startTimerForStep(
-                                _currentIndex, step.stepNumber, step.stepTimeMin),
-                        icon: Icon(
-                          isRunning
-                              ? Icons.pause_circle
-                              : (isPaused
-                                  ? Icons.play_circle
-                                  : Icons.timer_outlined),
-                          size: 16,
-                          color: isRunning
-                              ? Colors.orange
-                              : (isOvertime ? Colors.red : Colors.orange),
+                  // Cooking Mode: 显示按钮
+                  if (!widget.isViewMode) ...[
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      children: [
+                        OutlinedButton.icon(
+                          onPressed: isRunning
+                              ? () => _pauseTimer(_currentIndex, step.stepNumber)
+                              : () => _startTimerForStep(
+                                  _currentIndex, step.stepNumber, step.stepTimeMin),
+                          icon: Icon(
+                            isRunning
+                                ? Icons.pause_circle
+                                : (isPaused
+                                    ? Icons.play_circle
+                                    : Icons.timer_outlined),
+                            size: 16,
+                            color: isRunning
+                                ? Colors.orange
+                                : (isOvertime ? Colors.red : Colors.orange),
+                          ),
+                          label: Text(
+                            isRunning
+                                ? 'Pause'
+                                : (isPaused ? 'Resume' : 'Start timer'),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(
+                              color: isOvertime ? Colors.red : Colors.orange,
+                            ),
+                          ),
                         ),
-                        label: Text(
-                          isRunning
-                              ? 'Pause'
-                              : (isPaused ? 'Resume' : 'Start timer'),
+                        OutlinedButton.icon(
+                          onPressed: () =>
+                              _stopAndCompleteStep(_currentIndex, step.stepNumber),
+                          icon: Icon(
+                            Icons.check_circle,
+                            size: 16,
+                            color: Colors.green,
+                          ),
+                          label: const Text('Mark step done'),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Colors.green),
+                          ),
                         ),
-                        style: OutlinedButton.styleFrom(
-                          side: BorderSide(
-                            color: isOvertime ? Colors.red : Colors.orange,
+                      ],
+                    ),
+                    if (isCompleted)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(
+                          'Step completed',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: Colors.green,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
-                      OutlinedButton.icon(
-                        onPressed: () =>
-                            _stopAndCompleteStep(_currentIndex, step.stepNumber),
-                        icon: Icon(
-                          Icons.check_circle,
-                          size: 16,
-                          color: Colors.green,
-                        ),
-                        label: const Text('Mark step done'),
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Colors.green),
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (isCompleted)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text(
-                        'Step completed',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: Colors.green,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
+                  ],
                 ],
               ],
             ),
@@ -1172,5 +1255,56 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
         ),
       ),
     );
+  }
+  
+  // ========== 烹饪状态辅助方法 ==========
+  
+  /// 获取烹饪状态标题
+  String _getCookingStatusTitle() {
+    final completedCount = _getCompletedStepsCount();
+    final totalCount = _getTotalStepsCount();
+    
+    if (completedCount == 0) {
+      return 'Ready to cook!';
+    } else if (completedCount == totalCount) {
+      return 'All steps completed!';
+    } else {
+      return 'Cooking in progress...';
+    }
+  }
+  
+  /// 获取烹饪状态详情
+  String _getCookingStatusDetail() {
+    final completedCount = _getCompletedStepsCount();
+    final totalCount = _getTotalStepsCount();
+    final recipe = widget.menu.recipes[_currentIndex];
+    
+    if (completedCount == 0) {
+      return 'Start your ${recipe.title} journey!';
+    } else if (completedCount == totalCount) {
+      return 'Great job! Ready to serve 🎉';
+    } else {
+      final nextStep = completedCount + 1;
+      return 'Currently on step $nextStep of $totalCount';
+    }
+  }
+  
+  /// 获取已完成步骤数（当前菜品）
+  int _getCompletedStepsCount() {
+    final recipe = widget.menu.recipes[_currentIndex];
+    int count = 0;
+    for (var step in recipe.steps) {
+      final key = _stepKey(_currentIndex, step.stepNumber);
+      if (_completedSteps.contains(key)) {
+        count++;
+      }
+    }
+    return count;
+  }
+  
+  /// 获取总步骤数（当前菜品）
+  int _getTotalStepsCount() {
+    final recipe = widget.menu.recipes[_currentIndex];
+    return recipe.steps.length;
   }
 }
