@@ -1,6 +1,6 @@
 // lib/pages/household/household_manage_page.dart
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:personal_sous_chef/theme/fallback_google_fonts.dart';
 import 'package:personal_sous_chef/services/household_service.dart';
 import 'package:personal_sous_chef/widgets/invite_qr_code_widget.dart';
 import 'package:personal_sous_chef/widgets/sketchy_button.dart';

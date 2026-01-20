@@ -35,8 +35,9 @@ class SousChefApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepOrange),
         useMaterial3: true,
-        // 使用本地字体族 Caveat 作为全局字体
-        textTheme: ThemeData.light().textTheme.apply(fontFamily: 'Caveat'),
+        // 使用本地字体族 PatrickHand 作为全局字体
+        fontFamily: 'PatrickHand',
+        textTheme: ThemeData.light().textTheme.apply(fontFamily: 'PatrickHand'),
       ),
       // Start with landing page for authentication
       home: const LandingPage(),
@@ -178,7 +179,7 @@ class MainScaffoldState extends State<MainScaffold> {
               const Text(
                 'CalOtter',
                 style: TextStyle(
-                  fontFamily: 'Caveat',
+                  fontFamily: 'PatrickHand',
                   fontSize: 24,
                   fontWeight: FontWeight.w700,
                 ),
