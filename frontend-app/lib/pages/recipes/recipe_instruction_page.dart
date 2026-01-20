@@ -1,6 +1,7 @@
 // lib/pages/recipes/recipe_instruction_page.dart
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:personal_sous_chef/data/collected_recipes_store.dart';
 import 'package:personal_sous_chef/models/recipe_models.dart';
 import 'package:personal_sous_chef/pages/recipes/recipe_meal_summary_page.dart';
@@ -521,8 +522,43 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
     }
   }
   
-  /// 切换语音模式
-  void _toggleVoiceMode() {
+  /// 切换语音模式（带权限检查）
+  Future<void> _toggleVoiceMode() async {
+    // 如果开启语音模式，先检查权限
+    if (!_isVoiceModeActive) {
+      // 检查权限
+      final hasPermission = await _voiceAssistant.checkAndRequestPermission();
+      if (!hasPermission) {
+        if (mounted) {
+          // 检查是否被永久拒绝
+          final status = await Permission.microphone.status;
+          final isPermanentlyDenied = status.isPermanentlyDenied;
+          
+          ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(
+              SnackBar(
+                content: Text(
+                  isPermanentlyDenied
+                      ? '需要麦克风权限才能使用语音控制，请在设置中开启'
+                      : '需要麦克风权限才能使用语音控制',
+                ),
+                action: isPermanentlyDenied
+                    ? SnackBarAction(
+                        label: '去设置',
+                        onPressed: () {
+                          openAppSettings();
+                        },
+                      )
+                    : null,
+                duration: const Duration(seconds: 5),
+              ),
+            );
+        }
+        return;
+      }
+    }
+    
     setState(() {
       _isVoiceModeActive = !_isVoiceModeActive;
       if (_isVoiceModeActive) {

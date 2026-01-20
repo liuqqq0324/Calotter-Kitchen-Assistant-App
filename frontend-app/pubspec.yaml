@@ -65,6 +65,7 @@ dependencies:
   # Voice control for cooking
   speech_to_text: ^7.3.0
   flutter_tts: ^3.8.0
+  permission_handler: ^11.3.1  # 用于运行时权限请求
 
   # Gesture control for cooking
   camera: ^0.10.5+5

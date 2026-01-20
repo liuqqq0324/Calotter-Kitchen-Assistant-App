@@ -2,6 +2,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:flutter_tts/flutter_tts.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:personal_sous_chef/models/recipe_models.dart';
 
 /// 语音命令类型枚举
@@ -106,6 +107,41 @@ class CookingVoiceAssistant {
     ],
   };
   
+  /// 检查并请求麦克风权限
+  Future<bool> checkAndRequestPermission() async {
+    debugPrint('[VoiceAssistant] 检查麦克风权限...');
+    
+    // 检查权限状态
+    final status = await Permission.microphone.status;
+    debugPrint('[VoiceAssistant] 当前权限状态: $status');
+    
+    if (status.isGranted) {
+      debugPrint('[VoiceAssistant] ✅ 权限已授予');
+      return true;
+    }
+    
+    if (status.isDenied) {
+      debugPrint('[VoiceAssistant] ⚠️ 权限被拒绝，请求权限...');
+      final result = await Permission.microphone.request();
+      debugPrint('[VoiceAssistant] 权限请求结果: $result');
+      
+      if (result.isGranted) {
+        debugPrint('[VoiceAssistant] ✅ 权限已授予');
+        return true;
+      } else if (result.isPermanentlyDenied) {
+        debugPrint('[VoiceAssistant] ❌ 权限被永久拒绝，需要手动设置');
+        return false;
+      }
+    }
+    
+    if (status.isPermanentlyDenied) {
+      debugPrint('[VoiceAssistant] ❌ 权限被永久拒绝');
+      return false;
+    }
+    
+    return false;
+  }
+  
   /// 初始化语音助手
   Future<bool> initialize() async {
     debugPrint('[VoiceAssistant] ===== initialize() 开始 =====');
@@ -124,6 +160,15 @@ class CookingVoiceAssistant {
     }
     
     try {
+      // 先检查权限
+      debugPrint('[VoiceAssistant] 检查麦克风权限...');
+      final hasPermission = await checkAndRequestPermission();
+      if (!hasPermission) {
+        debugPrint('[VoiceAssistant] ❌ 没有麦克风权限，初始化失败');
+        _initializationFailed = true;
+        return false;
+      }
+      
       debugPrint('[VoiceAssistant] 开始初始化语音识别...');
       // 初始化语音识别
       final speechAvailable = await _speech.initialize(
