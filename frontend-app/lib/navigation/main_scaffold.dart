@@ -142,7 +142,7 @@ class MainScaffoldState extends State<MainScaffold> {
               const Text(
                 'CalOtter',
                 style: TextStyle(
-                  fontFamily: 'Caveat',
+                  fontFamily: 'PatrickHand',
                   fontSize: 24,
                   fontWeight: FontWeight.w700,
                 ),

@@ -8,8 +8,9 @@ class AppTheme {
     return ThemeData(
       colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepOrange),
       useMaterial3: true,
-      // 使用本地字体族 Caveat 作为全局字体
-      textTheme: ThemeData.light().textTheme.apply(fontFamily: 'Caveat'),
+      // 使用本地字体族 PatrickHand 作为全局字体
+      fontFamily: 'PatrickHand',
+      textTheme: ThemeData.light().textTheme.apply(fontFamily: 'PatrickHand'),
     );
   }
 }

@@ -101,6 +101,14 @@ flutter:
     - assets/videos/
     - assets/sketch.png
     - assets/component/
+    - assets/
+    - assets/images/tape.png
+    - assets/images/clip.png
+    - assets/images/sketch_paper_transparent.png
+    - assets/images/background.png
+    - assets/images/frame_0.png
+    - assets/images/frame_1.png
+    - assets/images/frame_2.png
     - assets/fonts/
     - assets/fonts/caveat/
     - assets/models/
@@ -113,6 +121,20 @@ flutter:
         - asset: assets/fonts/caveat/Caveat-Bold.ttf
         - asset: assets/fonts/caveat/Caveat-SemiBold.ttf
         - asset: assets/fonts/caveat/Caveat-Medium.ttf
+    - family: Pangolin
+      fonts:
+        - asset: font/Pangolin/Pangolin-Regular.ttf
+    - family: Kalam
+      fonts:
+        - asset: font/Pangolin/Kalam/Kalam-Light.ttf
+          weight: 300
+        - asset: font/Pangolin/Kalam/Kalam-Regular.ttf
+          weight: 400
+        - asset: font/Pangolin/Kalam/Kalam-Bold.ttf
+          weight: 700
+    - family: PatrickHand
+      fonts:
+        - asset: font/Pangolin/Patrick_Hand/PatrickHand-Regular.ttf
 
 
   # An image asset can refer to one or more resolution-specific "variants", see

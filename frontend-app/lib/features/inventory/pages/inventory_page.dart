@@ -12,6 +12,7 @@ import 'package:personal_sous_chef/services/business/standard_library_service.da
 import 'package:personal_sous_chef/services/business/household_service.dart';
 import 'package:personal_sous_chef/data/models/leftover.dart';
 import 'package:personal_sous_chef/shared/widgets/cards/leftover_card.dart';
+import 'package:personal_sous_chef/shared/widgets/cards/stop_motion_dismissible.dart'; // 引入定格动画滑动删除组件
 
 class InventoryPage extends StatefulWidget {
   const InventoryPage({super.key});
@@ -629,6 +630,65 @@ class _InventoryPageState extends State<InventoryPage>
             itemCount: _ingredients.length,
             itemBuilder: (context, index) {
               final item = _ingredients[index];
+              
+              // 🔥 使用定格动画滑动删除组件
+              return StopMotionDismissible(
+                dismissKey: item.name + item.expiryDate.toString(),
+                onDismissed: (direction) async {
+                  final deletedItem = item;
+                  if (deletedItem.inventoryId == null) {
+                    // If no inventory_id, just remove from local list
+                    setState(() {
+                      _ingredients.removeAt(index);
+                    });
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('${deletedItem.name} tossed!'),
+                        backgroundColor: const Color(0xFF8D6E63),
+                      ),
+                    );
+                    return;
+                  }
+
+                  // Delete from API
+                  try {
+                    await InventoryApiService.deleteInventory(
+                      inventoryId: deletedItem.inventoryId!,
+                    );
+                    await _loadInventory();
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('${deletedItem.name} tossed!'),
+                        backgroundColor: const Color(0xFF8D6E63),
+                      ),
+                    );
+                  } catch (e) {
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Failed to delete: $e'),
+                        backgroundColor: Colors.red.shade700,
+                        action: SnackBarAction(
+                          label: "UNDO",
+                          textColor: Colors.white,
+                          onPressed: () {
+                            // Reload to restore
+                            _loadInventory();
+                          },
+                        ),
+                      ),
+                    );
+                  }
+                },
+                child: _buildIngredientCard(item),
+              );
+              
+              // =========================================================
+              // 🔥 原有滑动删除代码（已注释，保留作为参考）
+              // =========================================================
+              /*
               return Dismissible(
                 key: ValueKey(
                   item.name + item.expiryDate.toString(),
@@ -799,6 +859,7 @@ class _InventoryPageState extends State<InventoryPage>
                 },
                 child: _buildIngredientCard(item),
               );
+              */
             },
           ),
 
@@ -932,35 +993,6 @@ class _InventoryPageState extends State<InventoryPage>
             },
             child: LeftoverCard(
               item: leftover,
-              onDelete: () async {
-                // Show confirmation dialog
-                final confirmed = await showDialog<bool>(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: const Text('Delete Leftover'),
-                    content: Text(
-                      'Are you sure you want to delete "${leftover.dishName ?? 'Unknown Dish'}"?',
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context, false),
-                        child: const Text('Cancel'),
-                      ),
-                      TextButton(
-                        onPressed: () => Navigator.pop(context, true),
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.red,
-                        ),
-                        child: const Text('Delete'),
-                      ),
-                    ],
-                  ),
-                );
-
-                if (confirmed == true && mounted) {
-                  await _deleteLeftover(leftover);
-                }
-              },
             ),
           );
         },

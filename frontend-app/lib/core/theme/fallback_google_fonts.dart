@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 /// Fallback for GoogleFonts when runtime fetching is disabled or package is removed.
-/// It maps to local font families declared in pubspec.yaml (e.g., Caveat).
+/// It maps to local font families declared in pubspec.yaml (e.g., PatrickHand).
 class GoogleFonts {
   static TextStyle caveat({
     double? fontSize,
@@ -10,7 +10,7 @@ class GoogleFonts {
     double? letterSpacing,
   }) {
     return TextStyle(
-      fontFamily: 'Caveat',
+      fontFamily: 'PatrickHand',
       fontSize: fontSize,
       fontWeight: fontWeight,
       color: color,
@@ -25,7 +25,7 @@ class GoogleFonts {
     double? letterSpacing,
   }) {
     return TextStyle(
-      fontFamily: 'Caveat', // fallback to Caveat since Kalam not packaged
+      fontFamily: 'PatrickHand',
       fontSize: fontSize,
       fontWeight: fontWeight,
       color: color,
@@ -40,7 +40,7 @@ class GoogleFonts {
     double? letterSpacing,
   }) {
     return TextStyle(
-      fontFamily: 'Caveat', // fallback to Caveat since Poppins not packaged
+      fontFamily: 'PatrickHand',
       fontSize: fontSize,
       fontWeight: fontWeight,
       color: color,
@@ -55,7 +55,7 @@ class GoogleFonts {
     double? letterSpacing,
   }) {
     return TextStyle(
-      fontFamily: 'Caveat', // fallback to Caveat since DancingScript not packaged
+      fontFamily: 'PatrickHand',
       fontSize: fontSize,
       fontWeight: fontWeight,
       color: color,

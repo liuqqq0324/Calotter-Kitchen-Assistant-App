@@ -10,7 +10,7 @@ Base URL (dev): `http://<host>:9000`
 
 `POST /api/recipes/generate`
 
-用于一次性生成 5 组选项，每组选项内包含 `generation_settings.dish_count` 道菜。
+用于一次性生成 3 组选项，每组选项内包含 `generation_settings.dish_count` 道菜。
 
 Request body
 ```json
@@ -66,7 +66,7 @@ Response body
 ```
 
 说明
-- 始终返回 `menus` 长度为 5 的数组。
+- 始终返回 `menus` 长度为 3 的数组。
 - `recipes` 长度应等于 `generation_settings.dish_count`。
 - 后端内部调用 AI，失败时会回退到固定示例菜单。
 

@@ -119,6 +119,7 @@ class _QuantitySelectorState extends State<QuantitySelector> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center, // 垂直居中
+      mainAxisAlignment: MainAxisAlignment.start,
       children: [
         // 1. 减号 (实心圆)
         _buildCircleBtn(
@@ -127,95 +128,104 @@ class _QuantitySelectorState extends State<QuantitySelector> {
           onTap: isMin ? () {} : () => _updateValue((_currentValue - 1).clamp(0.0, double.infinity)), // 🔥 支持小数
         ),
 
-        const SizedBox(width: 8),
+        const SizedBox(width: 6),
 
         // 2. 中间输入框 (白色背景 + 手绘感)
-        Container(
-          width: widget.totalWidth, // 🔥 使用传入的宽度
-          height: 32, // 稍微高一点
-          decoration: BoxDecoration(
-            color: Colors.white,
-            // 稍微不规则的圆角，模拟手画的感觉
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: AppStyle.inputBorderColor, width: 1.5),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                offset: const Offset(1, 1),
-                blurRadius: 2,
-              )
-            ],
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Flexible(
-                      child: TextField(
-                        controller: _controller,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true), // 🔥 允许小数输入
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppStyle.inkColorDark, // 深棕色字
-                          // fontFamily: 'Patrick Hand', // 记得加手写字体
-                        ),
-                        decoration: const InputDecoration(
-                          border: InputBorder.none,
-                          isDense: true,
-                          contentPadding: EdgeInsets.only(bottom: 2), // 微调文字位置
-                        ),
-                        onTap: () {
-                          _isTyping = true;
-                          _controller.text = _currentValue.toString();
-                        },
-                        onSubmitted: (val) => _handleInput(val),
-                        onTapOutside: (_) {
-                          if (_isTyping) {
-                            _handleInput(_controller.text);
-                            FocusScope.of(context).unfocus();
-                          }
-                        },
-                        onChanged: (val) {
-                          _isTyping = true;
-                          double? valDouble = double.tryParse(val); // 🔥 改为 double
-                          if (valDouble != null && valDouble >= 0) {
-                            _currentValue = valDouble;
-                            widget.onChanged(valDouble);
-                          }
-                        },
-                      ),
-                    ),
-                    // 🔥 指示器：当 0 < quantity < 1 时显示小红点
-                    if (_showIndicator)
-                      Padding(
-                        padding: const EdgeInsets.only(left: 2),
-                        child: Container(
-                          width: 6,
-                          height: 6,
-                          decoration: const BoxDecoration(
-                            color: Colors.red,
-                            shape: BoxShape.circle,
+        Flexible(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: widget.totalWidth,
+              minWidth: 45, // 最小宽度确保可读性
+            ),
+            child: Container(
+              height: 32, // 稍微高一点
+              decoration: BoxDecoration(
+                color: Colors.white,
+                // 稍微不规则的圆角，模拟手画的感觉
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppStyle.inputBorderColor, width: 1.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    offset: const Offset(1, 1),
+                    blurRadius: 2,
+                  )
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Expanded(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Flexible(
+                          child: TextField(
+                            controller: _controller,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true), // 🔥 允许小数输入
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: AppStyle.inkColorDark, // 深棕色字
+                              // fontFamily: 'Patrick Hand', // 记得加手写字体
+                            ),
+                            decoration: const InputDecoration(
+                              border: InputBorder.none,
+                              isDense: true,
+                              contentPadding: EdgeInsets.only(bottom: 2), // 微调文字位置
+                            ),
+                            onTap: () {
+                              _isTyping = true;
+                              _controller.text = _currentValue.toString();
+                            },
+                            onSubmitted: (val) => _handleInput(val),
+                            onTapOutside: (_) {
+                              if (_isTyping) {
+                                _handleInput(_controller.text);
+                                FocusScope.of(context).unfocus();
+                              }
+                            },
+                            onChanged: (val) {
+                              _isTyping = true;
+                              double? valDouble = double.tryParse(val); // 🔥 改为 double
+                              if (valDouble != null && valDouble >= 0) {
+                                _currentValue = valDouble;
+                                widget.onChanged(valDouble);
+                              }
+                            },
                           ),
                         ),
-                      ),
-                  ],
-                ),
+                        // 🔥 指示器：当 0 < quantity < 1 时显示小红点
+                        if (_showIndicator)
+                          Padding(
+                            padding: const EdgeInsets.only(left: 2),
+                            child: Container(
+                              width: 6,
+                              height: 6,
+                              decoration: const BoxDecoration(
+                                color: Colors.red,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  // 单位显示 (简化版，去掉分割线)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 4),
+                    child: _buildUnitWidget(),
+                  ),
+                ],
               ),
-              // 单位显示 (简化版，去掉分割线)
-              Padding(
-                padding: const EdgeInsets.only(right: 6),
-                child: _buildUnitWidget(),
-              ),
-            ],
+            ),
           ),
         ),
 
-        const SizedBox(width: 8),
+        const SizedBox(width: 6),
 
         // 3. 加号 (实心圆)
         _buildCircleBtn(

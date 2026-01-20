@@ -64,6 +64,15 @@ public class StandardIngredient {
     @Enumerated(EnumType.STRING)
     private StorageLocation defaultLocation;
 
+    /**
+     * 图标/封面图片的 AWS S3 地址
+     * 格式: "https://your-bucket.s3.region.amazonaws.com/ingredients/icons/ingredient_1001.png"
+     * 或相对路径: "ingredients/icons/ingredient_1001.png"
+     * 当前为空，预留用于未来部署到 AWS S3
+     */
+    @Column(name = "icon_url", length = 500)
+    private String iconUrl;
+
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
         name = "ingredient_allergens",

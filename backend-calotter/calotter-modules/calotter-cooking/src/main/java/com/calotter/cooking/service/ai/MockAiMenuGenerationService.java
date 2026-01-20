@@ -20,8 +20,8 @@ public class MockAiMenuGenerationService implements AiMenuGenerationService {
         
         List<MenuDTO> menus = new ArrayList<>();
         
-        // 生成 5 个固定的菜单
-        for (int i = 1; i <= 5; i++) {
+        // 生成 3 个固定的菜单
+        for (int i = 1; i <= 3; i++) {
             MenuDTO menu = createMockMenu(i, filter);
             menus.add(menu);
         }

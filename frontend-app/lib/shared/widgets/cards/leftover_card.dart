@@ -1,36 +1,30 @@
-// lib/widgets/leftover_card.dart
 import 'package:flutter/material.dart';
 import 'package:personal_sous_chef/data/models/leftover.dart';
+import 'package:personal_sous_chef/core/theme/app_style.dart';
+import 'package:personal_sous_chef/shared/widgets/painters/sketchy_box_painter.dart';
 
 class LeftoverCard extends StatelessWidget {
   final Leftover item;
 
   // --- 交互回调 ---
   final VoidCallback? onTap; // 点击卡片本身
-  final VoidCallback? onDelete; // 删除剩菜
 
   const LeftoverCard({
     super.key,
     required this.item,
     this.onTap,
-    this.onDelete,
   });
 
   @override
   Widget build(BuildContext context) {
-    // 计算颜色逻辑（复用 IngredientCard 的逻辑）
-    Color cardColor = Colors.white;
-    Color textColor = Colors.black87;
-    double elevation = 2.0;
+    // 文本颜色（根据状态可能变化）
+    Color textColor = AppStyle.inkColorDark;
 
+    // 如果过期或临期，改变文本颜色
     if (item.isExpired) {
-      cardColor = Colors.red.shade50;
-      textColor = Colors.red;
-      elevation = 5.0;
+      textColor = Colors.red.shade800;
     } else if (item.isExpiringSoon) {
-      cardColor = Colors.orange.shade50;
-      textColor = Colors.orange.shade800;
-      elevation = 3.0;
+      textColor = AppStyle.accentColor;
     }
 
     return GestureDetector(
@@ -41,142 +35,166 @@ class LeftoverCard extends StatelessWidget {
           onTap!();
         }
       },
-      child: Card(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        elevation: elevation,
-        color: cardColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        child: Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // --- 左侧：图片 ---
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade300, width: 1),
-                  borderRadius: BorderRadius.circular(8),
-                  color: Colors.white,
+      child: Container(
+        // 外层 Margin
+        margin: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+        // --- 手工纸张主体（使用图片背景 + 九宫格拉伸）---
+        // 使用 IntrinsicHeight 让容器根据内容自动调整高度
+        child: IntrinsicHeight(
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(40, 20, 25, 35),
+            decoration: BoxDecoration(
+              image: DecorationImage(
+                // 使用手绘纸张背景图片（410px * 410px）
+                image: const AssetImage(
+                  'assets/images/sketch_paper_transparent.png',
                 ),
-                child: item.coverImage != null && item.coverImage!.isNotEmpty
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.network(
-                          item.coverImage!,
-                          width: 60,
-                          height: 60,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            // 如果图片加载失败，显示占位符
-                            return Center(
-                              child: Text(
-                                item.imagePlaceholder ?? '🍽️',
-                                style: const TextStyle(fontSize: 30),
-                              ),
-                            );
-                          },
-                        ),
-                      )
-                    : Center(
-                        child: Text(
-                          item.imagePlaceholder ?? '🍽️',
-                          style: const TextStyle(fontSize: 30),
-                        ),
-                      ),
+                fit: BoxFit.fill,
+                // 🔥 核心计算：
+                // Rect.fromLTWH(左切线, 上切线, 宽, 高)
+                // 注意：这里的值是基于"原图尺寸 410x410"的坐标
+                // 已将预留边缘再减少15px，进一步扩大可拉伸区域
+                // 左边 25px 是毛边（不许拉伸）
+                // 右边 25px 是毛边（不许拉伸）
+                // 上边 15px 是毛边（不许拉伸）
+                // 下边 15px 是毛边（不许拉伸）
+                // 中间剩下的区域（宽360px，高380px）才是可以随便拉伸的
+                centerSlice: const Rect.fromLTWH(25, 15, 360, 380),
               ),
-              const SizedBox(width: 12),
-
-              // --- 中间：信息 ---
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // 1. 菜品名称
-                    Text(
-                      item.dishName ?? 'Unknown Dish',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: textColor,
-                        height: 1.1,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-
-                    // 2. Remaining weight and calories
-                    Row(
-                      children: [
-                        Text(
-                          'Remaining: ${item.formattedWeight}',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[700],
-                          ),
-                        ),
-                        if (item.currentCalories != null) ...[
-                          const SizedBox(width: 8),
-                          Text(
-                            '• ${item.currentCalories} kcal',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // --- 左侧：手绘风图标框 ---
+                Container(
+                  width: 75,
+                  height: 75,
+                  decoration: const BoxDecoration(color: Colors.transparent),
+                  child: CustomPaint(
+                    painter: SketchyBoxPainter(color: const Color(0xFF8D6E63)),
+                    child: item.coverImage != null && item.coverImage!.isNotEmpty
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.network(
+                              item.coverImage!,
+                              width: 75,
+                              height: 75,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                // 如果图片加载失败，显示占位符
+                                return Center(
+                                  child: Text(
+                                    item.imagePlaceholder ?? '🍽️',
+                                    style: const TextStyle(fontSize: 28),
+                                  ),
+                                );
+                              },
+                            ),
+                          )
+                        : Center(
+                            child: Text(
+                              item.imagePlaceholder ?? '🍽️',
+                              style: const TextStyle(fontSize: 28),
                             ),
                           ),
-                        ],
-                      ],
-                    ),
-                    const SizedBox(height: 4),
+                  ),
+                ),
 
-                    // 3. 制作时间/剩余天数
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.access_time,
-                          size: 14,
-                          color: item.isExpired
-                              ? Colors.red
-                              : (item.isExpiringSoon
-                                    ? Colors.orange
-                                    : Colors.grey[600]),
+                const SizedBox(width: 24),
+
+                // --- 右侧：信息 ---
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // 菜品名称
+                      Text(
+                        item.dishName ?? 'Unknown Dish',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: textColor,
+                          letterSpacing: 0.75,
                         ),
-                        const SizedBox(width: 4),
-                        Text(
-                          item.isExpired
-                              ? 'Expired ${item.daysSinceProduced} days ago'
-                              : (item.isExpiringSoon
-                                    ? 'Expiring soon (${3 - item.daysSinceProduced} days left)'
-                                    : 'Made ${item.daysSinceProduced} days ago'),
-                          style: TextStyle(
-                            fontSize: 12,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      // Remaining weight and calories
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              'Remaining: ${item.formattedWeight}',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey[700],
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (item.currentCalories != null) ...[
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: Text(
+                                '• ${item.currentCalories} kcal',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey[600],
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+
+                      const SizedBox(height: 10),
+
+                      // Production time / days remaining
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.access_time,
+                            size: 16,
                             color: item.isExpired
                                 ? Colors.red
                                 : (item.isExpiringSoon
-                                      ? Colors.orange
-                                      : Colors.grey[600]),
-                            fontWeight: item.isExpired || item.isExpiringSoon
-                                ? FontWeight.w600
-                                : FontWeight.normal,
+                                    ? Colors.orange
+                                    : Colors.grey[600]),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              item.isExpired
+                                  ? 'Expired ${item.daysSinceProduced} days ago'
+                                  : (item.isExpiringSoon
+                                      ? 'Expiring soon (${3 - item.daysSinceProduced} days left)'
+                                      : 'Made ${item.daysSinceProduced} days ago'),
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: item.isExpired
+                                    ? Colors.red
+                                    : (item.isExpiringSoon
+                                        ? Colors.orange
+                                        : Colors.grey[600]),
+                                fontWeight: item.isExpired || item.isExpiringSoon
+                                    ? FontWeight.w600
+                                    : FontWeight.normal,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-
-              // --- Right side: Delete button ---
-              if (onDelete != null)
-                IconButton(
-                  icon: const Icon(Icons.delete_outline, color: Colors.red),
-                  onPressed: onDelete,
-                  tooltip: 'Delete leftover',
-                ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

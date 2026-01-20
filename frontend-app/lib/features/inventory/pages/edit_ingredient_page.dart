@@ -55,6 +55,9 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
     if (!widget.isNew && widget.ingredient.standardIngredientId != null) {
       _loadAllowedUnits(widget.ingredient.standardIngredientId!);
     }
+
+    // ✅ 监听食材名称变化，自动从本地标准食材库查找并更新可用单位
+    _nameController.addListener(_onNameChanged);
   }
 
   /// ✅ 加载允许的单位列表并规范化单位
@@ -123,17 +126,12 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
         setState(() {
           _standardIngredients = ingredients;
           _isLoadingIngredients = false;
-          // 如果当前食材名已存在，尝试匹配对应的ID
-          if (widget.ingredient.name.isNotEmpty) {
-            final matched = ingredients.firstWhere(
-              (ing) => ing['name'] == widget.ingredient.name,
-              orElse: () => {},
-            );
-            if (matched.isNotEmpty && matched['id'] != null) {
-              _selectedStandardIngredientId = matched['id'] as int;
-            }
-          }
         });
+
+        // ✅ 如果当前食材名已存在，触发单位更新（从本地数据查找）
+        if (widget.ingredient.name.isNotEmpty) {
+          _onNameChanged();
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -150,9 +148,70 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
     }
   }
 
+  /// ✅ 监听食材名称变化，从本地标准食材库查找并更新可用单位
+  void _onNameChanged() {
+    final name = _nameController.text.trim();
+    if (name.isEmpty) {
+      // 如果名称为空，恢复默认单位列表
+      setState(() {
+        _allowedUnits = ['g', 'pcs', 'ml'];
+        _selectedStandardIngredientId = null;
+      });
+      return;
+    }
+
+    // 在本地标准食材库中查找完全匹配的食材
+    final matched = _standardIngredients.firstWhere((ing) {
+      final ingName = ing['name'] as String?;
+      if (ingName == null) return false;
+      return ingName.toLowerCase().trim() == name.toLowerCase().trim();
+    }, orElse: () => {});
+
+    if (matched.isNotEmpty && matched['id'] != null) {
+      final standardIngredientId = matched['id'] as int;
+      final primaryUnit = matched['primaryUnit'] as String?;
+      final secondaryUnit = matched['secondaryUnit'] as String?;
+
+      // 构建允许的单位列表（从本地数据提取）
+      List<String> allowedUnits = [];
+      if (primaryUnit != null && primaryUnit.isNotEmpty) {
+        allowedUnits.add(primaryUnit);
+      }
+      if (secondaryUnit != null &&
+          secondaryUnit.isNotEmpty &&
+          secondaryUnit != primaryUnit) {
+        allowedUnits.add(secondaryUnit);
+      }
+
+      // 如果没有找到单位信息，保持默认列表
+      if (allowedUnits.isEmpty) {
+        allowedUnits = ['g', 'pcs', 'ml'];
+      }
+
+      setState(() {
+        _selectedStandardIngredientId = standardIngredientId;
+        _allowedUnits = allowedUnits;
+
+        // 如果是新食材或当前单位不在允许列表中，自动切换为主单位
+        // 编辑模式下，如果单位仍然有效，保持不变
+        if (widget.isNew || !_allowedUnits.contains(_unit)) {
+          _unit = allowedUnits.first;
+        }
+      });
+    } else {
+      // 没有找到匹配的食材，恢复默认单位列表
+      setState(() {
+        _allowedUnits = ['g', 'pcs', 'ml'];
+        _selectedStandardIngredientId = null;
+      });
+    }
+  }
+
   @override
   void dispose() {
+    _nameController.removeListener(_onNameChanged);
     _quantityController.dispose();
+    _nameController.dispose();
 
     super.dispose();
   }
@@ -269,33 +328,30 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
 
                       // ✅ 选中回调：记录选中的标准食材ID，并加载允许的单位列表
                       onSelected: (String selection) {
-                        _nameController.text = selection; // 更新控制器
-                        // 查找对应的标准食材ID
-                        final matched = _standardIngredients.firstWhere(
-                          (ing) => ing['name'] == selection,
-                          orElse: () => {},
-                        );
-                        if (matched.isNotEmpty && matched['id'] != null) {
-                          final standardIngredientId = matched['id'] as int;
-                          setState(() {
-                            _selectedStandardIngredientId =
-                                standardIngredientId;
-                          });
+                        // 1. 更新控制器的文本（虽然 Autocomplete 会做，但我们要确保同步）
+                        _nameController.text = selection;
 
-                          // ✅ 加载允许的单位列表
-                          _loadAllowedUnits(standardIngredientId);
+                        // 2. 🔥 立即手动触发名称变更逻辑，强制更新单位
+                        _onNameChanged();
 
-                          print(
-                            '用户选择了: $selection (ID: $standardIngredientId)',
-                          );
-                        }
+                        // 3. 收起键盘 (可选优化)
+                        FocusScope.of(context).unfocus();
                       },
 
                       // 自定义输入框样式 (伪装成之前的大橙色字体)
                       fieldViewBuilder:
                           (context, controller, focusNode, onEditingComplete) {
-                            // 🔥 关键：把 Autocomplete 的控制器赋值给我们自己的变量，方便最后保存
-                            _nameController = controller;
+                            // ✅ 修复点：正确处理控制器的"偷梁换柱"
+                            // Autocomplete 生成了新控制器，我们必须把监听器转移过去
+                            if (_nameController != controller) {
+                              _nameController.removeListener(
+                                _onNameChanged,
+                              ); // 移除旧的
+                              _nameController = controller; // 替换引用
+                              _nameController.addListener(
+                                _onNameChanged,
+                              ); // 绑定新的
+                            }
 
                             return TextField(
                               controller: controller,

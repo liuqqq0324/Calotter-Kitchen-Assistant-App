@@ -26,7 +26,7 @@ public class SpringAiGeminiMenuGenerationService implements AiMenuGenerationServ
     // Minimal System Prompt (optimized for token reduction: ~30-50 tokens vs ~150 tokens)
     // JSON Schema is automatically handled by Spring AI via .entity() method, not in prompt
     private static final String MINIMAL_SYSTEM_PROMPT = """
-        Diet-focused cooking assistant. Generate EXACTLY 5 menus.
+        Diet-focused cooking assistant. Generate EXACTLY 3 menus.
         Rules: dishCount per menu, WHOLE recipe nutrition, inventory matching, dietary constraints, cooker compatibility.
         """;
     
@@ -86,7 +86,7 @@ public class SpringAiGeminiMenuGenerationService implements AiMenuGenerationServ
             String filterJson = objectMapper.writeValueAsString(filter);
             // Simplified user input: remove redundant explanations since dietary habits are already in System Prompt
             // Saves ~50-80 tokens per request
-            return String.format("Context: %s\nGenerate 5 menus following all constraints.", filterJson);
+            return String.format("Context: %s\nGenerate 3 menus following all constraints.", filterJson);
         } catch (Exception e) {
             throw new RuntimeException("Failed to build user input", e);
         }

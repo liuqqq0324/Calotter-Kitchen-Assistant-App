@@ -46,7 +46,7 @@ public class CookingWorkflowService {
         CookingSession session = new CookingSession();
         session.setHouseholdId(req.getHouseholdId());
         session.setInitiatorId(req.getInitiatorId());
-        session.setMenuId(req.getMenuId()); // 存储 menuId（1-5）
+        session.setMenuId(req.getMenuId()); // 存储 menuId（1-3）
         session.setStatus(CookingSession.SessionStatus.PENDING);
         session.setRemainingRatio(1.0);
 

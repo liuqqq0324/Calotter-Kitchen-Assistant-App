@@ -42,7 +42,7 @@ public class AiMenuService {
     private final RecipeFilterValidationService recipeFilterValidationService;
 
     /**
-     * 调用 AI 生成 5 套菜单
+     * 调用 AI 生成 3 套菜单
      */
     public List<MenuDTO> generateMenus(RecipeGenerationFilter filter, Long householdId) {
         // 如果提供了householdId，自动填充inventory、cookers、seasonings

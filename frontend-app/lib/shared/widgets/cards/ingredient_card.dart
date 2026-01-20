@@ -3,7 +3,6 @@ import 'package:personal_sous_chef/data/models/ingredient.dart';
 import 'package:personal_sous_chef/shared/widgets/forms/quantity_selector.dart';
 import 'package:personal_sous_chef/shared/widgets/tags/expiry_tag.dart';
 import 'package:personal_sous_chef/core/theme/app_style.dart';
-import 'package:personal_sous_chef/shared/widgets/painters/watercolor_tape_painter.dart';
 import 'package:personal_sous_chef/shared/widgets/painters/sketchy_box_painter.dart';
 
 class IngredientCard extends StatelessWidget {
@@ -48,7 +47,6 @@ class IngredientCard extends StatelessWidget {
       }
     }
 
-    // 整个卡片是一个 Stack，为了放置左侧的胶带
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () {
@@ -58,130 +56,111 @@ class IngredientCard extends StatelessWidget {
         }
       },
       child: Container(
-        // 外层 Margin：左侧留出更多空间给胶带
-        margin: const EdgeInsets.fromLTRB(20, 12, 16, 12),
-        child: Stack(
-          clipBehavior: Clip.none, // 允许胶带超出边界
-          alignment: Alignment.centerLeft,
-          children: [
-            // --- 1. 手工纸张主体（使用图片背景 + 九宫格拉伸）---
-            // 使用 IntrinsicHeight 让容器根据内容自动调整高度
-            IntrinsicHeight(
-              child: Container(
-                // 必须设置 padding，防止内容盖住图片边缘的毛边
-                // 左侧稍微多留一点空间给胶带
-                padding: const EdgeInsets.fromLTRB(30, 20, 20, 20),
-                decoration: BoxDecoration(
-                  image: DecorationImage(
-                    // 使用卡片显示图片
-                    image: const AssetImage(
-                      'assets/component/card_dispaly.png',
-                    ),
-                    fit: BoxFit.fill,
-                    // 🔥 核心计算：
-                    // Rect.fromLTWH(左切线, 上切线, 宽, 高)
-                    // 注意：这里的值是基于"原图尺寸"的坐标
-                    // 左边 100px 是毛边（不许拉伸）
-                    // 右边 100px 是毛边（不许拉伸）
-                    // 上边 40px 是毛边（不许拉伸）
-                    // 下边 40px 是毛边（不许拉伸）
-                    // 中间剩下的区域（宽550px，高168px）才是可以随便拉伸的
-                    centerSlice: const Rect.fromLTWH(100, 40, 550, 168),
-                  ),
+        // 外层 Margin：左侧不再需要为胶带留空间
+        margin: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+        // --- 手工纸张主体（使用图片背景 + 九宫格拉伸）---
+        // 使用 IntrinsicHeight 让容器根据内容自动调整高度
+        child: IntrinsicHeight(
+          child: Container(
+            // 必须设置 padding，防止内容盖住图片边缘的毛边
+            // 根据新的图片尺寸（410x410）和毛边区域（左60、右60、上50、下50）调整
+            // top: 28 - 内容整体下移，使布局更平衡
+            // bottom: 40 - 减小底部留白，因为日期标签上移了
+            // 左侧空间已减小以适应更紧凑的布局
+            padding: const EdgeInsets.fromLTRB(40, 20, 25, 35),
+            decoration: BoxDecoration(
+              image: DecorationImage(
+                // 使用手绘纸张背景图片（410px * 410px）
+                image: const AssetImage(
+                  'assets/images/sketch_paper_transparent.png',
                 ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    // --- 左侧：手绘风图标框 ---
-                    Container(
-                      width: 60,
-                      height: 60,
-                      decoration: const BoxDecoration(
-                        color: Colors.transparent,
-                      ),
-                      child: CustomPaint(
-                        painter: SketchyBoxPainter(
-                          color: const Color(0xFF8D6E63),
-                        ),
-                        child: Center(
-                          child: Text(
-                            item.imagePlaceholder,
-                            style: const TextStyle(fontSize: 28),
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(width: 16),
-
-                    // --- 右侧：信息 ---
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // 标题
-                          Text(
-                            item.name,
-                            style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                              color: textColor,
-                              letterSpacing: 0.5,
-                              // fontFamily: 'Patrick Hand', // 建议在 pubspec.yaml 中引入
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-
-                          const SizedBox(height: 8),
-
-                          // 数量选择器
-                          GestureDetector(
-                            onTap: () {}, // 拦截点击穿透
-                            child: QuantitySelector(
-                              initialValue: item.quantity,
-                              unit: item.unit,
-                              unitOptions: unitOptions,
-                              onUnitChanged: onUnitChanged,
-                              onChanged: onQuantityChanged,
-                              totalWidth: unitOptions != null ? 95 : 70,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+                fit: BoxFit.fill,
+                // 🔥 核心计算：
+                // Rect.fromLTWH(左切线, 上切线, 宽, 高)
+                // 注意：这里的值是基于"原图尺寸 410x410"的坐标
+                // 已将预留边缘再减少15px，进一步扩大可拉伸区域
+                // 左边 25px 是毛边（不许拉伸）
+                // 右边 25px 是毛边（不许拉伸）
+                // 上边 15px 是毛边（不许拉伸）
+                // 下边 15px 是毛边（不许拉伸）
+                // 中间剩下的区域（宽360px，高380px）才是可以随便拉伸的
+                centerSlice: const Rect.fromLTWH(25, 15, 360, 380),
               ),
             ),
-
-            // --- 2. 底部日期 (手绘风格) ---
-            Positioned(
-              bottom: 12,
-              right: 16, // 放在右下角
-              child: ExpiryTag(
-                expiryDate: item.expiryDate,
-                useStatusColors: useStatusColors,
-                onTap: onExpiryTap,
-              ),
-            ),
-
-            // --- 3. 蓝色水彩胶带装饰 (Watercolor Tape) ---
-            Positioned(
-              left: -8, // 往左探出
-              top: 15,
-              child: IgnorePointer(
-                child: Transform.rotate(
-                  angle: -0.03, // 微微倾斜
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // --- 左侧：手绘风图标框 ---
+                Container(
+                  width: 75,
+                  height: 75,
+                  decoration: const BoxDecoration(color: Colors.transparent),
                   child: CustomPaint(
-                    size: const Size(40, 90), // 扁平胶带
-                    painter: WatercolorTapePainter(tearHeight: 2.0),
+                    painter: SketchyBoxPainter(color: const Color(0xFF8D6E63)),
+                    child: Center(
+                      child: Text(
+                        item.imagePlaceholder,
+                        style: const TextStyle(fontSize: 28),
+                      ),
+                    ),
                   ),
                 ),
-              ),
+
+                const SizedBox(width: 24),
+
+                // --- 右侧：信息 ---
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // 标题
+                      Text(
+                        item.name,
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: textColor,
+                          letterSpacing: 0.75,
+                          // fontFamily: 'Patrick Hand', // 建议在 pubspec.yaml 中引入
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      // 数量选择器
+                      GestureDetector(
+                        onTap: () {}, // 拦截点击穿透
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: QuantitySelector(
+                            initialValue: item.quantity,
+                            unit: item.unit,
+                            unitOptions: unitOptions,
+                            onUnitChanged: onUnitChanged,
+                            onChanged: onQuantityChanged,
+                            totalWidth: unitOptions != null ? 75 : 60,
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 10),
+
+                      // 过期时间标签
+                      ExpiryTag(
+                        expiryDate: item.expiryDate,
+                        useStatusColors: useStatusColors,
+                        onTap: onExpiryTap,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
