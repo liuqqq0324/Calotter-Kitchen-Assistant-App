@@ -1,10 +1,12 @@
 // lib/pages/recipes/recipe_instruction_page.dart
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:personal_sous_chef/data/stores/collected_recipes_store.dart';
 import 'package:personal_sous_chef/data/models/recipe_models.dart';
 import 'package:personal_sous_chef/features/recipes/pages/recipe_meal_summary_page.dart';
 import 'package:personal_sous_chef/services/cooking/cooking_api_service.dart';
+import 'package:personal_sous_chef/services/cooking/cooking_voice_assistant.dart';
 import 'package:personal_sous_chef/services/business/household_service.dart';
 
 class RecipeInstructionPage extends StatefulWidget {
@@ -36,6 +38,10 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
   bool _sessionCreated = false;
 
   int _currentFocusedStepNumber = 1; // Current focused step number
+
+  // Voice assistant
+  final CookingVoiceAssistant _voiceAssistant = CookingVoiceAssistant();
+  bool _isVoiceModeActive = false;
 
   String _stepKey(int dishIndex, int stepNumber) => '$dishIndex:$stepNumber';
 
@@ -125,6 +131,7 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
     for (final t in _runningTimers.values) {
       t.cancel();
     }
+    _voiceAssistant.dispose();
     debugPrint('[RecipePage] Recipe instruction page disposed');
     super.dispose();
   }
@@ -324,12 +331,285 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
     }
   }
 
-  void _toggleVoiceMode() {
-    debugPrint('[RecipePage] Voice mode toggle - stub implementation');
+  /// 处理语音命令
+  Future<void> _handleVoiceCommand(String commandText) async {
+    final commandType = _voiceAssistant.recognizeCommand(commandText);
+    final recipe = widget.menu.recipes[_currentIndex];
+
+    switch (commandType) {
+      case VoiceCommandType.nextStep:
+        final nextStep = _getNextStep();
+        if (nextStep != null) {
+          setState(() {
+            _currentFocusedStepNumber = nextStep.stepNumber;
+          });
+          await _voiceAssistant.speakStep(nextStep);
+        } else {
+          await _voiceAssistant.speak('This is already the last step');
+        }
+        break;
+
+      case VoiceCommandType.previousStep:
+        final prevStep = _getPreviousStep();
+        if (prevStep != null) {
+          setState(() {
+            _currentFocusedStepNumber = prevStep.stepNumber;
+          });
+          await _voiceAssistant.speakStep(prevStep);
+        } else {
+          await _voiceAssistant.speak('This is already the first step');
+        }
+        break;
+
+      case VoiceCommandType.repeatStep:
+        final currentStep = _getFocusedStep();
+        if (currentStep != null) {
+          await _voiceAssistant.speakStep(currentStep);
+        }
+        break;
+
+      case VoiceCommandType.jumpToStep:
+        final stepNumber = _voiceAssistant.extractStepNumber(commandText);
+        if (stepNumber != null &&
+            stepNumber >= 1 &&
+            stepNumber <= _currentSteps.length) {
+          final targetStep = _currentSteps[stepNumber - 1];
+          setState(() {
+            _currentFocusedStepNumber = stepNumber;
+          });
+          await _voiceAssistant.speakStep(targetStep);
+        } else {
+          await _voiceAssistant.speak('Invalid step number');
+        }
+        break;
+
+      case VoiceCommandType.startTimer:
+        final currentStep = _getFocusedStep();
+        if (currentStep != null && currentStep.stepTimeMin > 0) {
+          _startTimerForStep(
+            _currentIndex,
+            currentStep.stepNumber,
+            currentStep.stepTimeMin,
+          );
+          await _voiceAssistant.speak(
+            'Timer started, ${currentStep.stepTimeMin} minutes',
+          );
+        } else {
+          await _voiceAssistant.speak('No time set for current step');
+        }
+        break;
+
+      case VoiceCommandType.pauseTimer:
+        final currentStep = _getFocusedStep();
+        if (currentStep != null) {
+          _pauseTimer(_currentIndex, currentStep.stepNumber);
+          await _voiceAssistant.speak('Timer paused');
+        }
+        break;
+
+      case VoiceCommandType.resumeTimer:
+        final currentStep = _getFocusedStep();
+        if (currentStep != null && currentStep.stepTimeMin > 0) {
+          final key = _stepKey(_currentIndex, currentStep.stepNumber);
+          if (_pausedSteps[key] == true) {
+            _startTimerForStep(
+              _currentIndex,
+              currentStep.stepNumber,
+              currentStep.stepTimeMin,
+            );
+            await _voiceAssistant.speak('Timer resumed');
+          } else {
+            await _voiceAssistant.speak('Timer is not paused');
+          }
+        }
+        break;
+
+      case VoiceCommandType.stopTimer:
+        final currentStep = _getFocusedStep();
+        if (currentStep != null) {
+          _stopTimerForStep(_currentIndex, currentStep.stepNumber);
+          await _voiceAssistant.speak('Timer stopped');
+        }
+        break;
+
+      case VoiceCommandType.completeStep:
+        final currentStep = _getFocusedStep();
+        if (currentStep != null) {
+          _stopAndCompleteStep(_currentIndex, currentStep.stepNumber);
+          await _voiceAssistant.speak('Step completed');
+        }
+        break;
+
+      case VoiceCommandType.nextDish:
+        if (_currentIndex < _totalDishes - 1) {
+          setState(() {
+            _currentIndex++;
+            _currentFocusedStepNumber = 1;
+          });
+          await _voiceAssistant.speak(
+            'Switched to next dish: ${widget.menu.recipes[_currentIndex].title}',
+          );
+        } else {
+          await _voiceAssistant.speak('This is already the last dish');
+        }
+        break;
+
+      case VoiceCommandType.previousDish:
+        if (_currentIndex > 0) {
+          setState(() {
+            _currentIndex--;
+            _currentFocusedStepNumber = 1;
+          });
+          await _voiceAssistant.speak(
+            'Switched to previous dish: ${widget.menu.recipes[_currentIndex].title}',
+          );
+        } else {
+          await _voiceAssistant.speak('This is already the first dish');
+        }
+        break;
+
+      case VoiceCommandType.currentStepInfo:
+        final currentStep = _getFocusedStep();
+        if (currentStep != null) {
+          await _voiceAssistant.speakStep(currentStep);
+        }
+        break;
+
+      case VoiceCommandType.timerStatus:
+        final currentStep = _getFocusedStep();
+        if (currentStep != null) {
+          final key = _stepKey(_currentIndex, currentStep.stepNumber);
+          final remaining = _remainingSeconds[key];
+          if (remaining != null) {
+            final minutes = remaining ~/ 60;
+            final seconds = remaining % 60;
+            if (remaining >= 0) {
+              await _voiceAssistant.speak(
+                '$minutes minutes $seconds seconds remaining',
+              );
+            } else {
+              await _voiceAssistant.speak(
+                'Overdue by ${-minutes} minutes ${-seconds} seconds',
+              );
+            }
+          } else {
+            await _voiceAssistant.speak('No running timer for current step');
+          }
+        }
+        break;
+
+      case VoiceCommandType.ingredientsList:
+        final ingredients = recipe.ingredients;
+        if (ingredients.isEmpty) {
+          await _voiceAssistant.speak('No ingredients list');
+        } else {
+          String text = 'You need the following ingredients: ';
+          for (var ing in ingredients) {
+            text += '${ing.name} ${ing.amountValue} ${ing.amountUnit}, ';
+          }
+          await _voiceAssistant.speak(text);
+        }
+        break;
+
+      case VoiceCommandType.exitVoiceMode:
+        _toggleVoiceMode();
+        await _voiceAssistant.speak('Voice mode exited');
+        break;
+
+      case VoiceCommandType.help:
+        await _voiceAssistant.speak(_voiceAssistant.getHelpText());
+        break;
+
+      case VoiceCommandType.unknown:
+        await _voiceAssistant.speak(
+          'Sorry, I did not understand. Please say again',
+        );
+        break;
+    }
+  }
+
+  /// 切换语音模式（带权限检查）
+  Future<void> _toggleVoiceMode() async {
+    // 如果开启语音模式，先检查权限
+    if (!_isVoiceModeActive) {
+      // 检查权限
+      final hasPermission = await _voiceAssistant.checkAndRequestPermission();
+      if (!hasPermission) {
+        if (mounted) {
+          // 检查是否被永久拒绝
+          final status = await Permission.microphone.status;
+          final isPermanentlyDenied = status.isPermanentlyDenied;
+
+          ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(
+              SnackBar(
+                content: Text(
+                  isPermanentlyDenied
+                      ? 'Microphone permission is required for voice control. Please enable it in settings'
+                      : 'Microphone permission is required for voice control',
+                ),
+                action: isPermanentlyDenied
+                    ? SnackBarAction(
+                        label: 'Go to Settings',
+                        onPressed: () {
+                          openAppSettings();
+                        },
+                      )
+                    : null,
+                duration: const Duration(seconds: 5),
+              ),
+            );
+        }
+        return;
+      }
+    }
+
+    setState(() {
+      _isVoiceModeActive = !_isVoiceModeActive;
+      if (_isVoiceModeActive) {
+        // 如果之前初始化失败，先重置状态再尝试
+        if (_voiceAssistant.isInitializationFailed) {
+          debugPrint('[RecipePage] 检测到之前的初始化失败，重置状态后重试');
+          _voiceAssistant.resetInitializationState();
+        }
+        _startVoiceListening();
+      } else {
+        _stopVoiceListening();
+      }
+    });
   }
 
   void _toggleGestureMode() {
     debugPrint('[RecipePage] Gesture mode toggle - stub implementation');
+  }
+
+  /// 开始语音监听
+  void _startVoiceListening() {
+    _voiceAssistant.startListening(
+      onResult: (text) {
+        debugPrint('[RecipePage] 识别到语音: $text');
+        _handleVoiceCommand(text);
+      },
+      onError: (error) {
+        debugPrint('[RecipePage] 语音识别错误: $error');
+        if (mounted) {
+          ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(
+              SnackBar(
+                content: Text('Voice recognition error: $error'),
+                duration: const Duration(seconds: 2),
+              ),
+            );
+        }
+      },
+    );
+  }
+
+  /// 停止语音监听
+  void _stopVoiceListening() {
+    _voiceAssistant.stopListening();
   }
 
   @override
