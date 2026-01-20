@@ -45,6 +45,9 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
   // Gesture control
   final CookingGestureControl _gestureControl = CookingGestureControl();
   bool _isGestureModeActive = false;
+  
+  // Ingredients list expansion state
+  bool _isIngredientsExpanded = true; // 默认展开
 
   String _stepKey(int dishIndex, int stepNumber) => '$dishIndex:$stepNumber';
 
@@ -814,52 +817,89 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
 
               const SizedBox(height: 20),
 
-              Text(
-                'Ingredients',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
+              // 可折叠的原材料列表
+              Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Theme(
+                  data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                  child: ExpansionTile(
+                    initiallyExpanded: _isIngredientsExpanded,
+                    onExpansionChanged: (expanded) {
+                      setState(() {
+                        _isIngredientsExpanded = expanded;
+                      });
+                    },
+                    leading: Icon(
+                      Icons.restaurant_menu,
+                      color: Colors.orange.shade600,
+                    ),
+                    title: Text(
+                      'Ingredients',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    subtitle: _isIngredientsExpanded
+                        ? null
+                        : Text(
+                            '${recipe.ingredients.length} items',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                    children: [
+                      if (recipe.ingredients.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Text(
+                            'No ingredients listed.',
+                            style: theme.textTheme.bodySmall
+                                ?.copyWith(color: Colors.grey[600]),
+                          ),
+                        )
+                      else
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                          child: Column(
+                            children: recipe.ingredients.map((ing) {
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 6.0),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        ing.name,
+                                        style: theme.textTheme.bodyMedium,
+                                      ),
+                                    ),
+                                    Text(
+                                      '${ing.amountValue} ${ing.amountUnit}',
+                                      style: theme.textTheme.bodySmall?.copyWith(
+                                        color: Colors.grey[700],
+                                      ),
+                                    ),
+                                    if (ing.isOptional) ...[
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'optional',
+                                        style: theme.textTheme.bodySmall?.copyWith(
+                                          color: Colors.orange,
+                                        ),
+                                      ),
+                                    ]
+                                  ],
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(height: 8),
-              if (recipe.ingredients.isEmpty)
-                Text(
-                  'No ingredients listed.',
-                  style: theme.textTheme.bodySmall
-                      ?.copyWith(color: Colors.grey[600]),
-                )
-              else
-                Column(
-                  children: recipe.ingredients.map((ing) {
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 6.0),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              ing.name,
-                              style: theme.textTheme.bodyMedium,
-                            ),
-                          ),
-                          Text(
-                            '${ing.amountValue} ${ing.amountUnit}',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: Colors.grey[700],
-                            ),
-                          ),
-                          if (ing.isOptional) ...[
-                            const SizedBox(width: 8),
-                            Text(
-                              'optional',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: Colors.orange,
-                              ),
-                            ),
-                          ]
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                ),
 
               const SizedBox(height: 16),
 

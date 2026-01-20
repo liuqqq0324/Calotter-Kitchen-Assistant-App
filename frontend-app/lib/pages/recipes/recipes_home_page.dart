@@ -114,10 +114,17 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
     final theme = Theme.of(context);
     final summaryText = _filterSummary;
 
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        child: Column(
+    return Container(
+      decoration: const BoxDecoration(
+        image: DecorationImage(
+          image: AssetImage('assets/wood_background.png'),
+          fit: BoxFit.cover,
+        ),
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // 顶部标题 + Filter 按钮 - 手绘风格
@@ -238,26 +245,17 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                   return Column(
                     children: [
                       Expanded(
-                        child: ListView.separated(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          itemCount: favorites.length + 1,
-                          separatorBuilder: (_, __) =>
-                              const SizedBox(height: 12),
+                        child: GridView.builder(
+                          padding: const EdgeInsets.only(bottom: 8, top: 12),
+                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            childAspectRatio: 0.75,
+                            crossAxisSpacing: 16,
+                            mainAxisSpacing: 24,
+                          ),
+                          itemCount: favorites.length,
                           itemBuilder: (context, index) {
-                            if (index == 0) {
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 4),
-                                child: Text(
-                                  'Collected recipes',
-                                  style: GoogleFonts.caveat(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              );
-                            }
-
-                            final recipe = favorites[index - 1];
+                            final recipe = favorites[index];
                             final selected =
                                 _selectedFavoriteIds.contains(recipe.id);
                             return _buildCollectedCard(
@@ -345,6 +343,7 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
           ],
         ),
       ),
+    ),
     );
   }
 
@@ -354,195 +353,133 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
     ThemeData theme,
     {required bool selected, required VoidCallback onToggleSelect}
   ) {
-    String difficultyLabel = recipe.difficulty;
-    Color difficultyColor;
-    switch (difficultyLabel) {
-      case 'hard':
-        difficultyColor = Colors.redAccent;
-        break;
-      case 'medium':
-        difficultyColor = Colors.orange;
-        break;
-      default:
-        difficultyColor = Colors.green;
-    }
-
     return GestureDetector(
-      child: SketchyCard(
-        backgroundColor: Colors.white,
-        borderColor: Colors.black87,
-        borderWidth: 2.0,
-        margin: EdgeInsets.zero,
-        padding: const EdgeInsets.all(14.0),
-        child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 左侧：emoji 圆卡片
-              Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  color: Colors.orange.shade50,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Center(
-                  child: Text(
-                    recipe.emoji,
-                    style: const TextStyle(fontSize: 34),
+      onTap: () {
+        final tempMenu = RecipeMenuModel(
+          menuId: 0,
+          recipes: [recipe],
+        );
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => RecipeInstructionPage(
+              menu: tempMenu,
+              initialRecipeIndex: 0,
+              filter: _currentFilter,
+            ),
+          ),
+        );
+      },
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          // 拍立得相框样式（手绘风格）
+          SketchyCard(
+            backgroundColor: Colors.white,
+            borderColor: Colors.black87,
+            borderWidth: 2.5,
+            margin: EdgeInsets.zero,
+            padding: const EdgeInsets.all(12.0),
+            child: Column(
+              children: [
+                // 上部分：淡黄色图片区域
+                Expanded(
+                  flex: 7,
+                  child: Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF5E6D3), // 淡黄色背景
+                      border: Border.all(
+                        color: Colors.black87,
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Center(
+                      child: Text(
+                        recipe.emoji,
+                        style: const TextStyle(fontSize: 56),
+                      ),
+                    ),
                   ),
                 ),
+                // 下部分：白色区域显示菜名
+                Expanded(
+                  flex: 3,
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    child: Center(
+                      child: Text(
+                        recipe.title,
+                        style: GoogleFonts.kalam(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // 回形针装饰（左上角）
+          Positioned(
+            top: -12,
+            left: 8,
+            child: Transform.rotate(
+              angle: -0.3,
+              child: Icon(
+                Icons.attach_file,
+                size: 38,
+                color: Colors.grey.shade600,
+                shadows: [
+                  Shadow(
+                    color: Colors.black.withOpacity(0.25),
+                    blurRadius: 3,
+                    offset: const Offset(1, 2),
+                  ),
+                ],
               ),
-              const SizedBox(width: 12),
-
-              // 右侧：菜单信息
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 第一行：菜单名 + 难度标签
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Wrap(
-                            crossAxisAlignment: WrapCrossAlignment.center,
-                            spacing: 8,
-                            runSpacing: 4,
-                            children: [
-                              Text(
-                                recipe.title,
-                                style: GoogleFonts.caveat(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: difficultyColor.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Text(
-                                  difficultyLabel.toUpperCase(),
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    color: difficultyColor,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Flexible(
-                          fit: FlexFit.loose,
-                          child: InkWell(
-                            onTap: onToggleSelect,
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  selected
-                                      ? Icons.check_box
-                                      : Icons.check_box_outline_blank,
-                                  size: 18,
-                                  color: selected
-                                      ? Colors.orange
-                                      : Colors.grey.shade600,
-                                ),
-                                const SizedBox(width: 4),
-                                Flexible(
-                                  child: Text(
-                                    selected ? 'Selected' : 'Select',
-                                    style: GoogleFonts.kalam(
-                                      fontSize: 12,
-                                      color: selected
-                                          ? Colors.orange
-                                          : Colors.grey.shade700,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                    softWrap: false,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-
-                    // 简短描述
-                    Text(
-                      recipe.shortDescription,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.kalam(
-                        fontSize: 14,
-                        color: Colors.grey[700],
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-
-                    // 底部：时间 + 卡路里
-                    Row(
-                      children: [
-                        Icon(Icons.access_time,
-                            size: 14, color: Colors.grey[600]),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${recipe.cookingTimeMin} min',
-                          style: GoogleFonts.kalam(
-                            fontSize: 12,
-                            color: Colors.grey[700],
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Icon(Icons.local_fire_department,
-                            size: 14, color: Colors.grey[600]),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${recipe.totalCaloriesEstimate.toStringAsFixed(0)} kcal',
-                          style: GoogleFonts.kalam(
-                            fontSize: 12,
-                            color: Colors.grey[700],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: OutlinedButton.icon(
-                        onPressed: () {
-                          final tempMenu = RecipeMenuModel(
-                            menuId: 0,
-                            recipes: [recipe],
-                          );
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => RecipeInstructionPage(
-                                menu: tempMenu,
-                                initialRecipeIndex: 0,
-                                filter: _currentFilter,
-                              ),
-                            ),
-                          );
-                        },
-                        icon: const Icon(Icons.menu_book),
-                        label: const Text('View steps'),
-                      ),
+            ),
+          ),
+          // 选择框（右上角）
+          Positioned(
+            top: 6,
+            right: 6,
+            child: GestureDetector(
+              onTap: onToggleSelect,
+              child: Container(
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.9),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: selected ? Colors.orange : Colors.grey.shade400,
+                    width: 2,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.15),
+                      blurRadius: 3,
                     ),
                   ],
                 ),
+                child: Icon(
+                  selected ? Icons.check : Icons.circle_outlined,
+                  size: 20,
+                  color: selected ? Colors.orange : Colors.grey.shade400,
+                ),
               ),
-            ],
-        ),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -98,6 +98,7 @@ flutter:
   assets:
     - assets/videos/
     - assets/sketch.png
+    - assets/wood_background.png
     - assets/fonts/
     - assets/fonts/caveat/
     - assets/models/
