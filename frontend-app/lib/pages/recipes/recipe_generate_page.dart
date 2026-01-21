@@ -96,10 +96,13 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
     if (maxTime != null) {
       parts.add('≤ $maxTime min / dish');
     }
+    // 只在 difficulty 有效且非空时才显示
     if (difficulty != null) {
-      if (difficulty is List && difficulty.isNotEmpty) {
-        parts.add('difficulty: ${difficulty.join("/")}');
-      } else if (difficulty.toString().isNotEmpty) {
+      if (difficulty is List) {
+        if (difficulty.isNotEmpty) {
+          parts.add('difficulty: ${difficulty.join("/")}');
+        }
+      } else if (difficulty.toString().trim().isNotEmpty) {
         parts.add('difficulty: $difficulty');
       }
     }
@@ -478,6 +481,7 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
                             menu: menu,
                             initialRecipeIndex: 0,
                             filter: widget.filter,
+                            isViewMode: true, // 只读模式：只看信息，不显示烹饪按钮
                           ),
                         ),
                       );

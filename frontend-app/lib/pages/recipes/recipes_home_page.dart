@@ -180,10 +180,13 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
     if (maxTime != null) {
       parts.add('≤ $maxTime min / dish');
     }
+    // 只在 difficulty 有效且非空时才显示
     if (difficulty != null) {
-      if (difficulty is List && difficulty.isNotEmpty) {
-        parts.add('difficulty: ${difficulty.join("/")}');
-      } else if (difficulty.toString().isNotEmpty) {
+      if (difficulty is List) {
+        if (difficulty.isNotEmpty) {
+          parts.add('difficulty: ${difficulty.join("/")}');
+        }
+      } else if (difficulty.toString().trim().isNotEmpty) {
         parts.add('difficulty: $difficulty');
       }
     }
@@ -467,8 +470,8 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
       right: isEven ? 40 : 12,
     );
     
-    // 淡蓝色胶带和位置
-    final tapeColor = Colors.blue.shade200.withOpacity(0.6);
+    // 海浪色胶带和位置 - 更接近背景图的海浪颜色
+    final tapeColor = const Color(0xFF8CB4D4).withOpacity(0.5); // 柔和的海洋蓝绿色
     final tapeLeft = isEven ? 20.0 : 60.0;
     
     return Transform.rotate(
@@ -598,22 +601,22 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                   ),
                 ),
               ),
-              // 和纸胶带（顶部）- 更随机的锯齿，淡蓝色撕拉感
+              // 和纸胶带（顶部）- 更短更自然的海浪色胶带
               Positioned(
-                top: -6,
+                top: -5,
                 left: tapeLeft,
                 child: ClipPath(
                   clipper: JaggedEdgeClipper(seed: index + 100),
                   child: Container(
-                    width: 80,
-                    height: 25,
+                    width: 55, // 缩短胶带宽度 (从80改为55)
+                    height: 20, // 稍微降低高度 (从25改为20)
                     decoration: BoxDecoration(
                       color: tapeColor,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.blue.shade300.withOpacity(0.3),
-                          blurRadius: 3,
-                          offset: const Offset(0, 2),
+                          color: const Color(0xFF8CB4D4).withOpacity(0.25),
+                          blurRadius: 2,
+                          offset: const Offset(0, 1),
                         ),
                       ],
                     ),
