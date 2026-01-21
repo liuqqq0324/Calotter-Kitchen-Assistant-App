@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:personal_sous_chef/navigation/bottom_nav_config.dart';
 import 'package:personal_sous_chef/core/theme/fallback_google_fonts.dart';
+import 'package:personal_sous_chef/navigation/otter_tooltip.dart';
+import 'package:personal_sous_chef/navigation/otter_tooltip_manager.dart';
 import 'dart:math' as math;
 
 /// 海獭浮动导航组件
@@ -28,6 +30,11 @@ class _OtterFloatingNavState extends State<OtterFloatingNav>
   
   // 🔥 添加位置状态，支持拖动
   Offset _position = Offset.zero; // 相对于初始位置的偏移
+  
+  // 🦦 提示相关状态
+  String? _currentTooltipId;
+  String? _currentTooltipMessage;
+  OtterTooltipType _currentTooltipType = OtterTooltipType.guide;
 
   @override
   void initState() {
@@ -40,6 +47,91 @@ class _OtterFloatingNavState extends State<OtterFloatingNav>
       parent: _animationController,
       curve: Curves.easeInOutCubic,
     );
+    
+    // 初始化时检查并显示提示
+    _checkAndShowTooltip();
+  }
+  
+  /// 检查并显示提示
+  Future<void> _checkAndShowTooltip() async {
+    // 根据当前页面显示不同的提示
+    final tooltipId = _getTooltipIdForPage(widget.selectedIndex);
+    if (tooltipId != null) {
+      final hasShown = await OtterTooltipManager.hasShown(tooltipId);
+      if (!hasShown && mounted) {
+        setState(() {
+          _currentTooltipId = tooltipId;
+          _currentTooltipMessage = _getTooltipMessageForPage(widget.selectedIndex);
+          _currentTooltipType = _getTooltipTypeForPage(widget.selectedIndex);
+        });
+      }
+    }
+  }
+  
+  /// 根据页面获取提示ID
+  String? _getTooltipIdForPage(int index) {
+    switch (index) {
+      case 0:
+        return OtterTooltipIds.homePageHint;
+      case 1:
+        return OtterTooltipIds.recipesPageHint;
+      case 2:
+        return OtterTooltipIds.addItemHint;
+      case 3:
+        return OtterTooltipIds.kitchenPageHint;
+      case 4:
+        return OtterTooltipIds.profilePageHint;
+      default:
+        return null;
+    }
+  }
+  
+  /// 根据页面获取提示消息
+  String _getTooltipMessageForPage(int index) {
+    switch (index) {
+      case 0:
+        return 'Welcome to Home! 🏠\nClick me to explore features';
+      case 1:
+        return 'Browse recipes here! 📖\nFind your favorite dishes';
+      case 2:
+        return 'Add items to your kitchen! ➕\nTrack your ingredients';
+      case 3:
+        return 'Manage your kitchen! 🍳\nSee what you have';
+      case 4:
+        return 'Your profile! 👤\nManage your settings';
+      default:
+        return 'Click me to explore! 🦦';
+    }
+  }
+  
+  /// 根据页面获取提示类型
+  OtterTooltipType _getTooltipTypeForPage(int index) {
+    switch (index) {
+      case 0:
+        return OtterTooltipType.welcome;
+      default:
+        return OtterTooltipType.pageHint;
+    }
+  }
+  
+  /// 隐藏当前提示
+  void _hideTooltip() {
+    if (_currentTooltipId != null) {
+      OtterTooltipManager.markAsShown(_currentTooltipId!);
+    }
+    setState(() {
+      _currentTooltipId = null;
+      _currentTooltipMessage = null;
+    });
+  }
+
+  @override
+  void didUpdateWidget(OtterFloatingNav oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 页面切换时检查并显示新提示
+    if (oldWidget.selectedIndex != widget.selectedIndex) {
+      _checkAndShowTooltip();
+    }
   }
 
   @override
@@ -53,6 +145,8 @@ class _OtterFloatingNavState extends State<OtterFloatingNav>
       _isExpanded = !_isExpanded;
       if (_isExpanded) {
         _animationController.forward();
+        // 展开菜单时隐藏提示
+        _hideTooltip();
       } else {
         _animationController.reverse();
       }
@@ -82,6 +176,25 @@ class _OtterFloatingNavState extends State<OtterFloatingNav>
               builder: (context, child) {
                 return _buildExpandedMenu(screenSize, safeArea);
               },
+            ),
+          
+          // 🦦 提示气泡（在海獭按钮上方）
+          if (_currentTooltipMessage != null)
+            Positioned(
+              right: 16 + _position.dx - 120, // 调整位置，使气泡在海獭按钮上方居中（气泡宽度约240）
+              bottom: 16 + _position.dy + 80, // 在海獭按钮上方
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: screenSize.width * 0.7, // 最大宽度为屏幕的70%
+                ),
+                child: OtterTooltipWithArrow(
+                  message: _currentTooltipMessage!,
+                  type: _currentTooltipType,
+                  arrowPosition: ArrowPosition.bottom,
+                  onDismiss: _hideTooltip,
+                  autoHideDuration: const Duration(seconds: 5),
+                ),
+              ),
             ),
           
           // 🔥 海獭浮动按钮 - 支持拖动
