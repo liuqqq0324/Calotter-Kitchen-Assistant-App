@@ -26,10 +26,10 @@ class _OtterFloatingNavState extends State<OtterFloatingNav>
   bool _isExpanded = false;
   late AnimationController _animationController;
   late Animation<double> _expandAnimation;
-  
+
   // 🔥 添加位置状态，支持拖动
   Offset _position = Offset.zero; // 相对于初始位置的偏移
-  
+
   // 🦦 提示相关状态
   String? _currentTooltipMessage;
   OtterTooltipType _currentTooltipType = OtterTooltipType.guide;
@@ -45,11 +45,11 @@ class _OtterFloatingNavState extends State<OtterFloatingNav>
       parent: _animationController,
       curve: Curves.easeInOutCubic,
     );
-    
+
     // 初始化时检查并显示提示
     _checkAndShowTooltip();
   }
-  
+
   /// 检查并显示提示
   Future<void> _checkAndShowTooltip() async {
     // 根据当前页面显示不同的提示
@@ -57,12 +57,14 @@ class _OtterFloatingNavState extends State<OtterFloatingNav>
     if (tooltipId != null && mounted) {
       // ✅ 需求：只要跳转到新页面就显示提示（不做“只弹一次”拦截）
       setState(() {
-        _currentTooltipMessage = _getTooltipMessageForPage(widget.selectedIndex);
+        _currentTooltipMessage = _getTooltipMessageForPage(
+          widget.selectedIndex,
+        );
         _currentTooltipType = _getTooltipTypeForPage(widget.selectedIndex);
       });
     }
   }
-  
+
   /// 根据页面获取提示ID
   String? _getTooltipIdForPage(int index) {
     switch (index) {
@@ -80,7 +82,7 @@ class _OtterFloatingNavState extends State<OtterFloatingNav>
         return null;
     }
   }
-  
+
   /// 根据页面获取提示消息
   String _getTooltipMessageForPage(int index) {
     switch (index) {
@@ -98,7 +100,7 @@ class _OtterFloatingNavState extends State<OtterFloatingNav>
         return 'Click me to explore! 🦦';
     }
   }
-  
+
   /// 根据页面获取提示类型
   OtterTooltipType _getTooltipTypeForPage(int index) {
     switch (index) {
@@ -108,7 +110,7 @@ class _OtterFloatingNavState extends State<OtterFloatingNav>
         return OtterTooltipType.pageHint;
     }
   }
-  
+
   /// 隐藏当前提示
   void _hideTooltip() {
     setState(() {
@@ -153,7 +155,7 @@ class _OtterFloatingNavState extends State<OtterFloatingNav>
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
     final safeArea = MediaQuery.of(context).padding;
-    
+
     return SizedBox(
       width: screenSize.width,
       height: screenSize.height,
@@ -168,7 +170,7 @@ class _OtterFloatingNavState extends State<OtterFloatingNav>
                 return _buildExpandedMenu(screenSize, safeArea);
               },
             ),
-          
+
           // 🦦 提示气泡（在海獭按钮上方）
           if (_currentTooltipMessage != null)
             Positioned(
@@ -187,62 +189,62 @@ class _OtterFloatingNavState extends State<OtterFloatingNav>
                 ),
               ),
             ),
-          
+
           // 🔥 海獭浮动按钮 - 支持拖动
           Positioned(
             right: 16 + _position.dx,
             bottom: 16 + _position.dy,
             child: GestureDetector(
               onTap: _toggleMenu,
-            // 🔥 使用 onPanUpdate 替代 onVerticalDragUpdate，支持任意方向拖动
-            onPanUpdate: (details) {
-              setState(() {
-                // 限制拖动范围，不超出屏幕
-                // 🔥 修复：反转 delta.dx，因为 right 是距离右边的距离
-                final newDx = _position.dx - details.delta.dx; // 反转 X 轴
-                final newDy = _position.dy - details.delta.dy; // Y轴反向（Flutter坐标系）
-                
-                // 计算边界（按钮大小64 + 边距16）
-                final buttonSize = 64.0;
-                final maxDx = screenSize.width - buttonSize - 16;
-                final maxDy = screenSize.height - safeArea.bottom - buttonSize - 16;
-                
-                _position = Offset(
-                  newDx.clamp(-16.0, maxDx),
-                  newDy.clamp(-16.0, maxDy),
-                );
-              });
-            },
-            // 🔥 检测向上滑动展开菜单
-            onPanEnd: (details) {
-              final velocity = details.velocity.pixelsPerSecond;
-              // 向上滑动且速度足够快时展开菜单
-              if (velocity.dy < -500 && !_isExpanded) {
-                _toggleMenu();
-              }
-              // 向下滑动且速度足够快时收起菜单
-              else if (velocity.dy > 500 && _isExpanded) {
-                _toggleMenu();
-              }
-            },
-            child: Container(
-              width: 64,
-              height: 64,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.brown.shade300,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.3),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
+              // 🔥 使用 onPanUpdate 替代 onVerticalDragUpdate，支持任意方向拖动
+              onPanUpdate: (details) {
+                setState(() {
+                  // 限制拖动范围，不超出屏幕
+                  // 🔥 修复：反转 delta.dx，因为 right 是距离右边的距离
+                  final newDx = _position.dx - details.delta.dx; // 反转 X 轴
+                  final newDy =
+                      _position.dy - details.delta.dy; // Y轴反向（Flutter坐标系）
+
+                  // 计算边界（按钮大小64 + 边距16）
+                  final buttonSize = 64.0;
+                  final maxDx = screenSize.width - buttonSize - 16;
+                  final maxDy =
+                      screenSize.height - safeArea.bottom - buttonSize - 16;
+
+                  _position = Offset(
+                    newDx.clamp(-16.0, maxDx),
+                    newDy.clamp(-16.0, maxDy),
+                  );
+                });
+              },
+              // 🔥 检测向上滑动展开菜单
+              onPanEnd: (details) {
+                final velocity = details.velocity.pixelsPerSecond;
+                // 向上滑动且速度足够快时展开菜单
+                if (velocity.dy < -500 && !_isExpanded) {
+                  _toggleMenu();
+                }
+                // 向下滑动且速度足够快时收起菜单
+                else if (velocity.dy > 500 && _isExpanded) {
+                  _toggleMenu();
+                }
+              },
+              child: Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.brown.shade300,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: ClipOval(child: _buildOtterImage()),
               ),
-              child: ClipOval(
-                child: _buildOtterImage(),
-              ),
-            ),
             ),
           ),
         ],
@@ -257,12 +259,7 @@ class _OtterFloatingNavState extends State<OtterFloatingNav>
         color: Colors.brown.shade200,
         shape: BoxShape.circle,
       ),
-      child: Center(
-        child: Text(
-          '🦦',
-          style: const TextStyle(fontSize: 40),
-        ),
-      ),
+      child: Center(child: Text('🦦', style: const TextStyle(fontSize: 40))),
     );
     // 后续替换为：
     // return Image.asset(
@@ -277,114 +274,191 @@ class _OtterFloatingNavState extends State<OtterFloatingNav>
     final buttonSize = 64.0;
     final buttonRight = 16.0 + _position.dx;
     final buttonBottom = 16.0 + _position.dy;
-    
+
     // 按钮中心位置（相对于屏幕）
     final buttonCenterX = screenSize.width - buttonRight - buttonSize / 2;
-    final buttonCenterY = screenSize.height - safeArea.bottom - buttonBottom - buttonSize / 2;
-    
-    // 菜单半径（固定值，简化计算）
-    final radius = 100.0;
+    final buttonCenterY =
+        screenSize.height - safeArea.bottom - buttonBottom - buttonSize / 2;
+
+    final buttonCenter = Offset(buttonCenterX, buttonCenterY);
     final itemSize = 56.0;
-    final itemRadius = radius * 0.75; // 菜单项距离中心的距离
-    final centerAngle = -math.pi / 2; // 从上方开始（12点方向）
-    
-    // 菜单容器大小
-    final menuContainerSize = radius * 2;
-    
-    // 🔥 计算菜单容器的位置（确保不超出屏幕）
-    final menuLeft = (buttonCenterX - radius).clamp(
+    final itemHalf = itemSize / 2;
+
+    // 安全显示区域（不包含系统安全区）
+    final safeRect = Rect.fromLTWH(
       safeArea.left,
-      screenSize.width - menuContainerSize - safeArea.right,
-    );
-    final menuTop = (buttonCenterY - radius).clamp(
       safeArea.top,
-      screenSize.height - safeArea.bottom - menuContainerSize,
+      screenSize.width - safeArea.left - safeArea.right,
+      screenSize.height - safeArea.top - safeArea.bottom,
     );
 
-    return Positioned(
-      left: menuLeft,
-      top: menuTop,
-      child: IgnorePointer(
-        ignoring: false,
-        child: Container(
-          width: menuContainerSize,
-          height: menuContainerSize,
-          child: Stack(
-            children: List.generate(destinations.length, (index) {
-              // 🔥 修复：计算每个菜单项相对于容器左上角的位置（扇形分布）
-              final angle = centerAngle + (index * 2 * math.pi / destinations.length);
-              final x = radius + itemRadius * math.cos(angle);
-              final y = radius + itemRadius * math.sin(angle);
+    // ✅ 关键：即使靠边，也要保证圆形菜单项与海獭按钮“完全不遮挡”
+    final minDistanceFromButton =
+        (buttonSize / 2) + (itemSize / 2) + 10; // 10px gap
 
-              final isSelected = widget.selectedIndex == index;
+    // 菜单尽量朝向屏幕中心展开（通常空间更大）
+    final screenCenter = Offset(screenSize.width / 2, screenSize.height / 2);
+    final towardCenterAngle = math.atan2(
+      screenCenter.dy - buttonCenter.dy,
+      screenCenter.dx - buttonCenter.dx,
+    );
 
-              return Positioned(
-                left: x - itemSize / 2,
-                top: y - itemSize / 2,
-                child: GestureDetector(
-                  onTap: () => _handleItemTap(index),
-                  child: AnimatedScale(
-                    scale: _expandAnimation.value,
-                    duration: Duration(milliseconds: 100 + index * 50),
-                    curve: Curves.easeOutBack,
-                    child: Container(
-                      width: itemSize,
-                      height: itemSize,
-                      decoration: BoxDecoration(
-                        color: isSelected 
-                            ? Colors.brown.shade200 
-                            : Colors.white,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: isSelected 
-                              ? Colors.brown.shade600 
-                              : Colors.brown.shade300,
-                          width: 2,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // 使用 NavigationDestination 的 icon 或 selectedIcon
-                          SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: isSelected && destinations[index].selectedIcon != null
-                                ? destinations[index].selectedIcon!
-                                : destinations[index].icon,
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            destinations[index].label,
-                            style: GoogleFonts.kalam(
-                              fontSize: 9,
-                              fontWeight: isSelected 
-                                  ? FontWeight.bold 
-                                  : FontWeight.normal,
-                              color: isSelected 
-                                  ? Colors.brown.shade900 
-                                  : Colors.brown.shade700,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
+    List<Offset> candidateCenters({
+      required double radius,
+      required double spreadRadians,
+    }) {
+      final count = destinations.length;
+      if (count == 1) {
+        final c =
+            buttonCenter +
+            Offset(math.cos(towardCenterAngle), math.sin(towardCenterAngle)) *
+                radius;
+        return [c];
+      }
+
+      // 在一个扇形弧线上均匀分布
+      return List.generate(count, (i) {
+        final t = (count == 1) ? 0.0 : (i / (count - 1)) - 0.5; // [-0.5, 0.5]
+        final angle = towardCenterAngle + t * spreadRadians;
+        return buttonCenter + Offset(math.cos(angle), math.sin(angle)) * radius;
+      });
+    }
+
+    bool centersFit(List<Offset> centers) {
+      // 1) 全部在屏幕可点击区域内
+      for (final c in centers) {
+        final left = c.dx - itemHalf;
+        final top = c.dy - itemHalf;
+        final right = c.dx + itemHalf;
+        final bottom = c.dy + itemHalf;
+        if (left < safeRect.left ||
+            top < safeRect.top ||
+            right > safeRect.right ||
+            bottom > safeRect.bottom) {
+          return false;
+        }
+        // 2) 与按钮中心保持最小距离（防遮挡）
+        if ((c - buttonCenter).distance < minDistanceFromButton) {
+          return false;
+        }
+      }
+
+      // 3) 菜单项之间不要挤在一起（避免重叠）
+      final minBetweenItems = itemSize * 0.9;
+      for (int i = 0; i < centers.length; i++) {
+        for (int j = i + 1; j < centers.length; j++) {
+          if ((centers[i] - centers[j]).distance < minBetweenItems) {
+            return false;
+          }
+        }
+      }
+      return true;
+    }
+
+    // 尝试几组半径/扇形角度，找到一组“既不出界又不遮挡按钮”的布局
+    final radii = <double>[120, 105, 92, 82];
+    final spreads = <double>[3.6, 3.1, 2.6, 2.2]; // radians
+    List<Offset> centers = const [];
+    bool found = false;
+    for (final r in radii) {
+      for (final s in spreads) {
+        final c = candidateCenters(radius: r, spreadRadians: s);
+        if (centersFit(c)) {
+          centers = c;
+          found = true;
+          break;
+        }
+      }
+      if (found) break;
+    }
+
+    // 兜底：如果极端位置实在放不下，就把点“夹在安全区内”，并确保远离按钮
+    if (!found) {
+      centers = candidateCenters(radius: 92, spreadRadians: 2.6).map((c) {
+        final clamped = Offset(
+          c.dx.clamp(safeRect.left + itemHalf, safeRect.right - itemHalf),
+          c.dy.clamp(safeRect.top + itemHalf, safeRect.bottom - itemHalf),
+        );
+        final v = clamped - buttonCenter;
+        if (v.distance >= minDistanceFromButton) return clamped;
+        final pushDir = (v.distance == 0)
+            ? const Offset(1, 0)
+            : (v / v.distance);
+        return buttonCenter + pushDir * minDistanceFromButton;
+      }).toList();
+    }
+
+    return Positioned.fill(
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: List.generate(destinations.length, (index) {
+          final isSelected = widget.selectedIndex == index;
+          final c = centers[index];
+
+          return Positioned(
+            left: c.dx - itemHalf,
+            top: c.dy - itemHalf,
+            child: GestureDetector(
+              onTap: () => _handleItemTap(index),
+              child: AnimatedScale(
+                scale: _expandAnimation.value,
+                duration: Duration(milliseconds: 100 + index * 50),
+                curve: Curves.easeOutBack,
+                child: Container(
+                  width: itemSize,
+                  height: itemSize,
+                  decoration: BoxDecoration(
+                    color: isSelected ? Colors.brown.shade200 : Colors.white,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isSelected
+                          ? Colors.brown.shade600
+                          : Colors.brown.shade300,
+                      width: 2,
                     ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
+                        width: 24,
+                        height: 24,
+                        child:
+                            isSelected &&
+                                destinations[index].selectedIcon != null
+                            ? destinations[index].selectedIcon!
+                            : destinations[index].icon,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        destinations[index].label,
+                        style: GoogleFonts.kalam(
+                          fontSize: 9,
+                          fontWeight: isSelected
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                          color: isSelected
+                              ? Colors.brown.shade900
+                              : Colors.brown.shade700,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ),
                 ),
-              );
-            }),
-          ),
-        ),
+              ),
+            ),
+          );
+        }),
       ),
     );
   }

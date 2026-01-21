@@ -353,53 +353,46 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
 
   Widget _buildGoalTypeOption(String value, String label, Color color) {
     final isSelected = _selectedGoalType == value;
-    return InkWell(
+    return SketchyCard(
+      // ✅ 统一风格：与 Nutrition Targets 使用同样的手绘黑色边框
+      backgroundColor: isSelected ? color.withOpacity(0.10) : Colors.white,
+      borderColor: Colors.black87,
+      borderWidth: 2.0,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       onTap: () {
         setState(() {
           _selectedGoalType = value;
         });
       },
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.15) : Colors.grey.shade50,
-          border: Border.all(
-            color: isSelected ? color : Colors.grey.shade300,
-            width: isSelected ? 2.5 : 1.5,
+      child: Row(
+        children: [
+          Container(
+            width: 20,
+            height: 20,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: isSelected ? color : Colors.transparent,
+              border: Border.all(
+                color: isSelected ? color : Colors.grey.shade500,
+                width: 2.5,
+              ),
+            ),
+            child: isSelected
+                ? const Icon(Icons.check, size: 14, color: Colors.white)
+                : null,
           ),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 20,
-              height: 20,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: isSelected ? color : Colors.transparent,
-                border: Border.all(
-                  color: isSelected ? color : Colors.grey.shade400,
-                  width: 2.5,
-                ),
-              ),
-              child: isSelected
-                  ? const Icon(Icons.check, size: 14, color: Colors.white)
-                  : null,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                label,
-                style: GoogleFonts.kalam(
-                  fontSize: 15,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  color: isSelected ? color : Colors.black87,
-                ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              label,
+              style: GoogleFonts.kalam(
+                fontSize: 15,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                color: isSelected ? color : Colors.black87,
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
