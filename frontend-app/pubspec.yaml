@@ -105,6 +105,8 @@ flutter:
     - assets/images/tape.png
     - assets/images/clip.png
     - assets/images/sketch_paper_transparent.png
+    - assets/images/dish_intake_icon.png
+    - assets/images/add_food_icon.png
     - lib/pages/背景图.png
     - assets/fonts/
     - assets/fonts/caveat/
