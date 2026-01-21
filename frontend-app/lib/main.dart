@@ -61,6 +61,8 @@ class MainScaffold extends StatefulWidget {
 // 🔥 修复点 4: 确保类名是 MainScaffoldState (公有，没下划线)，方便外部引用
 class MainScaffoldState extends State<MainScaffold> {
   late int _selectedIndex;
+  int _profileAnimationKey = 0; // 用于触发封面动画的key
+  bool _shouldAnimateProfile = false; // 是否应该显示封面动画
 
   @override
   void initState() {
@@ -79,7 +81,11 @@ class MainScaffoldState extends State<MainScaffold> {
     InventoryPage(key: inventoryPageKey),
     // Modified by Chase: Replaced BackendTestPage with ProfileViewPage / 由 Chase 修改：将测试页面替换为用户资料页面
     // This matches the "Me" navigation label / 这符合导航栏的 "Me" 标签
-    const ProfileViewPage(),
+    // 使用key来强制重建，以便触发封面动画
+    ProfileViewPage(
+      key: ValueKey(_profileAnimationKey),
+      shouldAnimateCover: _shouldAnimateProfile, // 是否显示封面动画
+    ),
   ];
 
   // 公开的切换方法
@@ -114,9 +120,28 @@ class MainScaffoldState extends State<MainScaffold> {
       return;
     }
 
-    setState(() {
-      _selectedIndex = index;
-    });
+    // 如果切换到Profile页面（index 4），触发封面动画
+    if (index == 4 && _selectedIndex != 4) {
+      setState(() {
+        _shouldAnimateProfile = true; // 标记需要显示动画
+        _profileAnimationKey++; // 增加key值，强制重建ProfileViewPage以触发动画
+        _selectedIndex = index;
+      });
+      // 动画播放后重置标志
+      Future.delayed(const Duration(milliseconds: 1200), () {
+        if (mounted) {
+          setState(() {
+            _shouldAnimateProfile = false;
+          });
+        }
+      });
+    } else {
+      setState(() {
+        _selectedIndex = index;
+        _shouldAnimateProfile = false; // 切换到其他页面时重置
+      });
+    }
+    
     // 🔥 如果切换到 InventoryPage（index 3），刷新数据
     if (index == 3) {
       _refreshInventoryPage();

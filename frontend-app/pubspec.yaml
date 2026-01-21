@@ -99,6 +99,7 @@ flutter:
   assets:
     - assets/videos/
     - assets/sketch.png
+    - assets/profile_passport/
     - assets/fonts/
     - assets/fonts/caveat/
     - assets/models/
