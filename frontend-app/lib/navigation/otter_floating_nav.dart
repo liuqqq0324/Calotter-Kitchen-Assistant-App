@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:personal_sous_chef/navigation/bottom_nav_config.dart';
 import 'package:personal_sous_chef/core/theme/fallback_google_fonts.dart';
 import 'package:personal_sous_chef/navigation/otter_tooltip.dart';
-import 'package:personal_sous_chef/navigation/otter_tooltip_manager.dart';
 import 'dart:math' as math;
 
 /// 海獭浮动导航组件
@@ -32,7 +31,6 @@ class _OtterFloatingNavState extends State<OtterFloatingNav>
   Offset _position = Offset.zero; // 相对于初始位置的偏移
   
   // 🦦 提示相关状态
-  String? _currentTooltipId;
   String? _currentTooltipMessage;
   OtterTooltipType _currentTooltipType = OtterTooltipType.guide;
 
@@ -56,15 +54,12 @@ class _OtterFloatingNavState extends State<OtterFloatingNav>
   Future<void> _checkAndShowTooltip() async {
     // 根据当前页面显示不同的提示
     final tooltipId = _getTooltipIdForPage(widget.selectedIndex);
-    if (tooltipId != null) {
-      final hasShown = await OtterTooltipManager.hasShown(tooltipId);
-      if (!hasShown && mounted) {
-        setState(() {
-          _currentTooltipId = tooltipId;
-          _currentTooltipMessage = _getTooltipMessageForPage(widget.selectedIndex);
-          _currentTooltipType = _getTooltipTypeForPage(widget.selectedIndex);
-        });
-      }
+    if (tooltipId != null && mounted) {
+      // ✅ 需求：只要跳转到新页面就显示提示（不做“只弹一次”拦截）
+      setState(() {
+        _currentTooltipMessage = _getTooltipMessageForPage(widget.selectedIndex);
+        _currentTooltipType = _getTooltipTypeForPage(widget.selectedIndex);
+      });
     }
   }
   
@@ -72,15 +67,15 @@ class _OtterFloatingNavState extends State<OtterFloatingNav>
   String? _getTooltipIdForPage(int index) {
     switch (index) {
       case 0:
-        return OtterTooltipIds.homePageHint;
+        return 'home_page_hint';
       case 1:
-        return OtterTooltipIds.recipesPageHint;
+        return 'recipes_page_hint';
       case 2:
-        return OtterTooltipIds.addItemHint;
+        return 'add_item_hint';
       case 3:
-        return OtterTooltipIds.kitchenPageHint;
+        return 'kitchen_page_hint';
       case 4:
-        return OtterTooltipIds.profilePageHint;
+        return 'profile_page_hint';
       default:
         return null;
     }
@@ -116,11 +111,7 @@ class _OtterFloatingNavState extends State<OtterFloatingNav>
   
   /// 隐藏当前提示
   void _hideTooltip() {
-    if (_currentTooltipId != null) {
-      OtterTooltipManager.markAsShown(_currentTooltipId!);
-    }
     setState(() {
-      _currentTooltipId = null;
       _currentTooltipMessage = null;
     });
   }
