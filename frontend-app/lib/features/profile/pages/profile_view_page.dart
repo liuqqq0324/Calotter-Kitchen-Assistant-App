@@ -13,12 +13,19 @@ import '../../../data/models/user_profile.dart';
 import '../../../shared/widgets/common/sketchy_card.dart';
 import '../../../shared/widgets/common/sketchy_button.dart';
 import '../../../shared/widgets/common/sketchy_border.dart';
+import '../../../shared/widgets/common/passport_page_view.dart';
+import '../../../shared/widgets/common/otter_approved_stamp.dart';
 import '../../../services/business/user_service.dart';
 import '../../household/pages/household_manage_page.dart';
 
 // Modified by Chase: Changed to StatefulWidget to support refresh after edit / 由 Chase 修改：改为 StatefulWidget 以支持编辑后刷新
 class ProfileViewPage extends StatefulWidget {
-  const ProfileViewPage({super.key});
+  final bool shouldAnimateCover; // 是否显示封面打开动画
+  
+  const ProfileViewPage({
+    super.key,
+    this.shouldAnimateCover = false,
+  });
 
   @override
   State<ProfileViewPage> createState() => _ProfileViewPageState();
@@ -710,19 +717,20 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    // Use API data if available, otherwise fallback to static data
-    final user = _userData != null
+  // Helper method to get user profile data
+  UserProfile _getUserProfile() {
+    return _userData != null
         ? UserProfile.fromApiData(_userData!)
         : kCurrentUser;
+  }
 
-    // Calculate age from birthdate if available
+  // Helper method to calculate age and birthdate
+  Map<String, String> _calculateAgeAndBirthdate(String ageStr) {
     String displayAge = '';
     String displayBirthdate = '';
-    if (user.age.isNotEmpty) {
+    if (ageStr.isNotEmpty) {
       try {
-        final birthdate = DateTime.parse(user.age);
+        final birthdate = DateTime.parse(ageStr);
         final now = DateTime.now();
         final age = now.year - birthdate.year;
         final monthDiff = now.month - birthdate.month;
@@ -734,16 +742,438 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
         displayBirthdate =
             '${birthdate.year}-${birthdate.month.toString().padLeft(2, '0')}-${birthdate.day.toString().padLeft(2, '0')}';
       } catch (e) {
-        // If parsing fails, treat as age number
-        displayAge = user.age;
+        displayAge = ageStr;
         displayBirthdate = '';
       }
     }
+    return {'age': displayAge, 'birthdate': displayBirthdate};
+  }
 
+  // Build Profile Page (Page 0)
+  Widget _buildProfilePage(BuildContext context) {
+    final user = _getUserProfile();
+    final ageData = _calculateAgeAndBirthdate(user.age);
+
+    return RefreshIndicator(
+      onRefresh: _loadUserData,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
+        child: Stack(
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header: 用户信息 + 简要资料
+                SketchyCard(
+                  backgroundColor: Colors.grey.shade100,
+                  borderColor: Colors.black87,
+                  borderWidth: 2.0,
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          SketchyBorder(
+                            borderColor: Colors.black87,
+                            borderWidth: 2.0,
+                            borderRadius: 40,
+                            roughness: 2.0,
+                            child: const CircleAvatar(
+                              radius: 38,
+                              backgroundColor: Colors.grey,
+                              child: Icon(
+                                Icons.person,
+                                size: 40,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  user.username,
+                                  style: GoogleFonts.caveat(
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  user.email,
+                                  style: GoogleFonts.kalam(
+                                    fontSize: 14,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          SketchyButton(
+                            text: 'Invite',
+                            backgroundColor: Colors.orange.shade100,
+                            borderColor: Colors.orange.shade700,
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const HouseholdManagePage(),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Wrap(
+                        spacing: 16,
+                        runSpacing: 12,
+                        children: [
+                          SizedBox(
+                            width: 160,
+                            child: _buildMiniInfo('Birthdate', ageData['birthdate']!),
+                          ),
+                          if (ageData['age']!.isNotEmpty)
+                            SizedBox(
+                              width: 120,
+                              child: _buildMiniInfo('Age', '${ageData['age']} years'),
+                            ),
+                          SizedBox(
+                            width: 140,
+                            child: _buildMiniInfo('Gender', user.gender),
+                          ),
+                          SizedBox(
+                            width: 140,
+                            child: _buildMiniInfo('Height', user.height),
+                          ),
+                          SizedBox(
+                            width: 140,
+                            child: _buildMiniInfo('Weight', user.weight),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 40),
+                // Settings 按钮 - 手绘风格
+                Center(
+                  child: SketchyButton(
+                    text: 'settings',
+                    backgroundColor: Colors.grey.shade400,
+                    borderColor: Colors.grey.shade700,
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const SettingsPage(),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+            // 参考图元素：精准裁剪的红色爪印 + 代码生成的艺术字印章（半透明，不挡信息）
+            Positioned(
+              top: 120,
+              right: -4,
+              child: IgnorePointer(
+                child: Opacity(
+                  opacity: 0.38,
+                  child: Image.asset(
+                    'assets/profile_passport/paw.png',
+                    width: 160,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              top: 258,
+              right: -18,
+              child: IgnorePointer(
+                child: OtterApprovedStamp(
+                  width: 240,
+                  opacity: 0.52,
+                  rotation: -0.20,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Build Health Page (Page 1)
+  Widget _buildHealthPage(BuildContext context) {
+    final user = _getUserProfile();
+
+    return RefreshIndicator(
+      onRefresh: _loadUserData,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _sectionTitle('Health'),
+            SketchyCard(
+              backgroundColor: Colors.white,
+              borderColor: Colors.black87,
+              borderWidth: 2.0,
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // BMI显示
+                  Builder(
+                    builder: (context) {
+                      dynamic bmiValue = _healthInfo?['bmi'];
+                      if (bmiValue == null &&
+                          user.height.isNotEmpty &&
+                          user.weight.isNotEmpty) {
+                        try {
+                          final height = double.tryParse(
+                            user.height.replaceAll(' cm', '').trim(),
+                          );
+                          final weight = double.tryParse(
+                            user.weight.replaceAll(' kg', '').trim(),
+                          );
+                          if (height != null && weight != null && height > 0) {
+                            final heightM = height / 100.0;
+                            bmiValue = weight / (heightM * heightM);
+                          }
+                        } catch (e) {
+                          // Ignore
+                        }
+                      }
+
+                      return Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.blue.shade200,
+                            width: 2,
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'BMI',
+                              style: GoogleFonts.kalam(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              _formatBmi(bmiValue),
+                              style: GoogleFonts.caveat(
+                                fontSize: 32,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue[800],
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Health Goal',
+                    style: GoogleFonts.kalam(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey[800],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildGoalTypeSelector(),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: _isSavingGoal
+                        ? const Center(child: CircularProgressIndicator())
+                        : SketchyButton(
+                            text: 'Save Goal',
+                            backgroundColor: Colors.green.shade100,
+                            borderColor: Colors.green.shade700,
+                            onPressed: () {
+                              _saveHealthGoal();
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Build Nutrition Page (Page 2)
+  Widget _buildNutritionPage(BuildContext context) {
+    return RefreshIndicator(
+      onRefresh: _loadUserData,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _sectionTitle('Nutrition'),
+            if (_healthInfo != null &&
+                (_healthInfo!['dailyEnergy'] != null ||
+                    _healthInfo!['dailyProtein'] != null ||
+                    _healthInfo!['dailyFat'] != null ||
+                    _healthInfo!['dailyCarbohydrates'] != null ||
+                    _healthInfo!['dailyFiber'] != null))
+              _buildNutritionTargets()
+            else
+              SketchyCard(
+                backgroundColor: Colors.white,
+                borderColor: Colors.black87,
+                borderWidth: 2.0,
+                padding: const EdgeInsets.all(16),
+                child: Center(
+                  child: Text(
+                    'Set a health goal to see nutrition targets',
+                    style: GoogleFonts.kalam(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Build Preferences Page (Page 3)
+  Widget _buildPreferencesPage(BuildContext context) {
+    return RefreshIndicator(
+      onRefresh: _loadUserData,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _sectionTitle('Preferences'),
+            SketchyCard(
+              backgroundColor: Colors.white,
+              borderColor: Colors.black87,
+              borderWidth: 2.0,
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                      'Preferences',
+                      style: GoogleFonts.kalam(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 8),
+                        _buildPreferencesSummary(),
+                      ],
+                    ),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const PreferencesListPage(),
+                        ),
+                      );
+                      await _loadListsData();
+                      setState(() {});
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  Divider(color: Colors.grey.shade300, height: 1),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                      'Diet Habits',
+                      style: GoogleFonts.kalam(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    subtitle: _buildItemsSummary(kCurrentUser.dietHabits),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const DietHabitsListPage(),
+                        ),
+                      );
+                      await _loadListsData();
+                      setState(() {});
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  Divider(color: Colors.grey.shade300, height: 1),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                      'Allergies',
+                      style: GoogleFonts.kalam(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    subtitle: _buildItemsSummary(kCurrentUser.allergies),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const AllergiesListPage(),
+                        ),
+                      );
+                      await _loadListsData();
+                      setState(() {});
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
         appBar: AppBar(
-          automaticallyImplyLeading: false, // 去掉返回箭头
+          automaticallyImplyLeading: false,
           title: Text(
             'Profile',
             style: GoogleFonts.caveat(
@@ -758,7 +1188,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
 
     return Scaffold(
       appBar: AppBar(
-        automaticallyImplyLeading: false, // 去掉返回箭头
+        automaticallyImplyLeading: false,
         title: Text(
           'Profile',
           style: GoogleFonts.caveat(fontSize: 28, fontWeight: FontWeight.bold),
@@ -766,16 +1196,14 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
         actions: [
           TextButton(
             onPressed: () async {
-              // Modified by Chase: Wait for result and refresh if data was saved / 由 Chase 修改：等待结果，如果数据已保存则刷新
               final result = await Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (context) => const ProfileEditPage(),
                 ),
               );
-              // Modified by Chase: Refresh page if edit was saved / 由 Chase 修改：如果编辑已保存则刷新页面
               if (result == true) {
-                _loadUserData(); // Reload from API
+                _loadUserData();
               }
             },
             child: Text(
@@ -803,340 +1231,16 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
           ),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: _loadUserData,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header: 用户信息 + 简要资料（不改变风格，只调整布局层级）
-              SketchyCard(
-                backgroundColor: Colors.grey.shade100,
-                borderColor: Colors.black87,
-                borderWidth: 2.0,
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        SketchyBorder(
-                          borderColor: Colors.black87,
-                          borderWidth: 2.0,
-                          borderRadius: 40,
-                          roughness: 2.0,
-                          child: const CircleAvatar(
-                            radius: 38,
-                            backgroundColor: Colors.grey,
-                            child: Icon(
-                              Icons.person,
-                              size: 40,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                user.username,
-                                style: GoogleFonts.caveat(
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                user.email,
-                                style: GoogleFonts.kalam(
-                                  fontSize: 14,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        SketchyButton(
-                          text: 'Invite',
-                          backgroundColor: Colors.orange.shade100,
-                          borderColor: Colors.orange.shade700,
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    const HouseholdManagePage(),
-                              ),
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Wrap(
-                      spacing: 16,
-                      runSpacing: 12,
-                      children: [
-                        SizedBox(
-                          width: 160,
-                          child: _buildMiniInfo('Birthdate', displayBirthdate),
-                        ),
-                        if (displayAge.isNotEmpty)
-                          SizedBox(
-                            width: 120,
-                            child: _buildMiniInfo('Age', '$displayAge years'),
-                          ),
-                        SizedBox(
-                          width: 140,
-                          child: _buildMiniInfo('Gender', user.gender),
-                        ),
-                        SizedBox(
-                          width: 140,
-                          child: _buildMiniInfo('Height', user.height),
-                        ),
-                        SizedBox(
-                          width: 140,
-                          child: _buildMiniInfo('Weight', user.weight),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              _sectionTitle('Health'),
-              SketchyCard(
-                backgroundColor: Colors.white,
-                borderColor: Colors.black87,
-                borderWidth: 2.0,
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // BMI显示 - 更突出的设计
-                    // 只要有身高和体重数据，就应该显示BMI（即使没有健康目标）
-                    Builder(
-                      builder: (context) {
-                        // 尝试从多个来源获取BMI
-                        dynamic bmiValue = _healthInfo?['bmi'];
-
-                        // 如果BMI为null，但用户有身高和体重，尝试计算BMI
-                        if (bmiValue == null &&
-                            user.height.isNotEmpty &&
-                            user.weight.isNotEmpty) {
-                          try {
-                            final height = double.tryParse(
-                              user.height.replaceAll(' cm', '').trim(),
-                            );
-                            final weight = double.tryParse(
-                              user.weight.replaceAll(' kg', '').trim(),
-                            );
-                            if (height != null &&
-                                weight != null &&
-                                height > 0) {
-                              final heightM = height / 100.0;
-                              bmiValue = weight / (heightM * heightM);
-                              print('Calculated BMI from user data: $bmiValue');
-                            }
-                          } catch (e) {
-                            print('Failed to calculate BMI from user data: $e');
-                          }
-                        }
-
-                        return Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.blue.shade50,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: Colors.blue.shade200,
-                              width: 2,
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'BMI',
-                                style: GoogleFonts.kalam(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                _formatBmi(bmiValue),
-                                style: GoogleFonts.caveat(
-                                  fontSize: 32,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.blue[800],
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 20),
-                    // 健康目标选择
-                    Text(
-                      'Health Goal',
-                      style: GoogleFonts.kalam(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey[800],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    // 目标类型选择器
-                    _buildGoalTypeSelector(),
-                    const SizedBox(height: 16),
-                    // 保存按钮
-                    SizedBox(
-                      width: double.infinity,
-                      child: _isSavingGoal
-                          ? const Center(child: CircularProgressIndicator())
-                          : SketchyButton(
-                              text: 'Save Goal',
-                              backgroundColor: Colors.green.shade100,
-                              borderColor: Colors.green.shade700,
-                              onPressed: () {
-                                _saveHealthGoal();
-                              },
-                            ),
-                    ),
-                  ],
-                ),
-              ),
-
-              if (_healthInfo != null &&
-                  (_healthInfo!['dailyEnergy'] != null ||
-                      _healthInfo!['dailyProtein'] != null ||
-                      _healthInfo!['dailyFat'] != null ||
-                      _healthInfo!['dailyCarbohydrates'] != null ||
-                      _healthInfo!['dailyFiber'] != null)) ...[
-                const SizedBox(height: 24),
-                _sectionTitle('Nutrition'),
-                _buildNutritionTargets(),
-              ],
-
-              const SizedBox(height: 24),
-              _sectionTitle('Preferences'),
-              // 偏好 / diet habits / allergies 合并为一个卡片，减少"卡片堆叠感"
-              SketchyCard(
-                backgroundColor: Colors.white,
-                borderColor: Colors.black87,
-                borderWidth: 2.0,
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(
-                        'Preferences',
-                        style: GoogleFonts.kalam(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const SizedBox(height: 8),
-                          _buildPreferencesSummary(),
-                        ],
-                      ),
-                      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                      onTap: () async {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const PreferencesListPage(),
-                          ),
-                        );
-                        await _loadListsData();
-                        setState(() {});
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    Divider(color: Colors.grey.shade300, height: 1),
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(
-                        'Diet Habits',
-                        style: GoogleFonts.kalam(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      subtitle: _buildItemsSummary(kCurrentUser.dietHabits),
-                      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                      onTap: () async {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const DietHabitsListPage(),
-                          ),
-                        );
-                        await _loadListsData();
-                        setState(() {});
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    Divider(color: Colors.grey.shade300, height: 1),
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(
-                        'Allergies',
-                        style: GoogleFonts.kalam(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      subtitle: _buildItemsSummary(kCurrentUser.allergies),
-                      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                      onTap: () async {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const AllergiesListPage(),
-                          ),
-                        );
-                        await _loadListsData();
-                        setState(() {});
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 40),
-              // Settings 按钮 - 手绘风格
-              Center(
-                child: SketchyButton(
-                  text: 'settings',
-                  backgroundColor: Colors.grey.shade400,
-                  borderColor: Colors.grey.shade700,
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const SettingsPage(),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
+      body: PassportPageView(
+        pages: [
+          _buildProfilePage(context),
+          _buildHealthPage(context),
+          _buildNutritionPage(context),
+          _buildPreferencesPage(context),
+        ],
+        pageLabels: const ['Profile', 'Health', 'Nutrition', 'Preferences'],
+        initialPage: 0,
+        shouldAnimateCover: widget.shouldAnimateCover, // 启用封面动画
       ),
     );
   }

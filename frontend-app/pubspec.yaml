@@ -99,20 +99,14 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/videos/
-    - assets/sketch.png
     - assets/
     - assets/icons/
-    - assets/images/tape.png
-    - assets/images/clip.png
     - assets/images/sketch_paper_transparent.png
-    - assets/images/background.png
     - assets/images/frame_0.png
-    - assets/images/frame_1.png
     - assets/images/frame_2.png
-    - assets/images/inventory_dec.png
     - assets/images/inventory_container.png
-    - assets/background/inventory_bg.png
     - assets/wood_background.png
+    - assets/profile_passport/
     - assets/fonts/
     - assets/fonts/caveat/
     - assets/models/
