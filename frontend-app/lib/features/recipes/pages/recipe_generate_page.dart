@@ -1,10 +1,14 @@
 // lib/pages/recipes/recipe_generate_page.dart
 import 'package:flutter/material.dart';
+import 'package:personal_sous_chef/core/theme/fallback_google_fonts.dart';
 import 'package:personal_sous_chef/data/models/recipe_models.dart';
 import 'package:personal_sous_chef/features/recipes/pages/recipe_filter_page.dart';
 import 'package:personal_sous_chef/features/recipes/pages/recipe_instruction_page.dart';
 import 'package:personal_sous_chef/services/api/recipe_api_service.dart';
 import 'package:personal_sous_chef/services/business/household_service.dart';
+import 'package:personal_sous_chef/shared/widgets/common/sketchy_card.dart';
+import 'package:personal_sous_chef/shared/widgets/common/programmatic_sketchy_widgets.dart';
+import 'package:personal_sous_chef/shared/widgets/painters/sketchy_box_painter.dart';
 
 class RecipeGeneratePage extends StatefulWidget {
   /// 从 RecipesHomePage 传过来的筛选条件（可为空）
@@ -110,6 +114,8 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final summaryText = filterSummary; // 顶部那条 summary 用
+    const terracotta = Color(0xFFD68C5E);
+    const terracottaDeep = Color(0xFF8C5E4A);
 
     return Container(
       decoration: const BoxDecoration(
@@ -121,7 +127,14 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(
-          title: const Text('Generated Menus'),
+          title: Text(
+            'Generated Menus',
+            style: GoogleFonts.caveat(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: terracottaDeep,
+            ),
+          ),
           backgroundColor: Colors.transparent,
           elevation: 0,
           scrolledUnderElevation: 0,
@@ -129,7 +142,7 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
           actions: [
             IconButton(
               onPressed: _openFilter,
-              icon: const Icon(Icons.filter_list),
+              icon: const Icon(Icons.filter_list, color: terracottaDeep),
               tooltip: 'Filter',
             ),
           ],
@@ -140,26 +153,22 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
           if (summaryText != null) ...[
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.06),
-                  borderRadius: BorderRadius.circular(12),
-                ),
+              child: SketchyCard(
+                backgroundColor: terracotta.withOpacity(0.12),
+                borderColor: terracottaDeep,
+                borderWidth: 2.0,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 child: Row(
                   children: [
-                    const Icon(Icons.tune, size: 18, color: Colors.deepOrange),
+                    const Icon(Icons.tune, size: 18, color: terracottaDeep),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         summaryText,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: Colors.deepOrange.shade700,
-                          fontWeight: FontWeight.w500,
+                        style: GoogleFonts.kalam(
+                          fontSize: 14,
+                          color: terracottaDeep,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
@@ -181,7 +190,7 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
                     itemCount: _menus.length,
                     itemBuilder: (context, index) {
                       final menu = _menus[index];
-                      return _buildMenuCard(context, menu, theme);
+                      return _buildMenuCard(context, menu);
                     },
                   ),
           ),
@@ -262,7 +271,6 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
   Widget _buildMenuCard(
     BuildContext context,
     RecipeMenuModel menu,
-    ThemeData theme,
   ) {
     final recipes = menu.recipes;
     if (recipes.isEmpty) return const SizedBox.shrink();
@@ -285,235 +293,272 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
 
     final isSelected = _selectedMenuId == menu.menuId;
 
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      elevation: 3,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: isSelected ? Colors.orange : Colors.transparent,
-          width: 1.4,
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(14.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 左侧：emoji 圆卡片
-                Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    color: Colors.orange.shade50,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Center(
-                    child: Text(
-                      primaryRecipe.emoji,
-                      style: const TextStyle(fontSize: 34),
+    const terracotta = Color(0xFFD68C5E);
+    const terracottaDeep = Color(0xFF8C5E4A);
+    const ink = Color(0xFF6B4F4F);
+
+    return ProgrammaticSketchyPaper(
+      inkColor: isSelected ? terracottaDeep : ink,
+      paperColor: const Color(0xFFFFFFF0),
+      onTap: () {
+        setState(() {
+          _selectedMenuId =
+              _selectedMenuId == menu.menuId ? null : menu.menuId;
+        });
+      },
+      child: Stack(
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 左侧：手绘框图标
+                  SizedBox(
+                    width: 68,
+                    height: 68,
+                    child: CustomPaint(
+                      painter: SketchyBoxPainter(color: terracottaDeep),
+                      child: Center(
+                        child: Text(
+                          primaryRecipe.emoji,
+                          style: const TextStyle(fontSize: 34),
+                        ),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 12),
+                  const SizedBox(width: 12),
 
-                // 右侧：菜单信息
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            'Menu ${menu.menuId}',
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          InkWell(
-                            onTap: () {
-                              setState(() {
-                                // Toggle: 如果已选中，点击取消；否则选中
-                                _selectedMenuId = _selectedMenuId == menu.menuId
-                                    ? null
-                                    : menu.menuId;
-                              });
-                            },
-                            child: Row(
-                              children: [
-                                Icon(
-                                  isSelected
-                                      ? Icons.radio_button_checked
-                                      : Icons.radio_button_off,
-                                  size: 18,
-                                  color: isSelected
-                                      ? Colors.orange
-                                      : Colors.grey[500],
+                  // 右侧：菜单信息
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Menu ${menu.menuId}',
+                                style: GoogleFonts.caveat(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: ink,
                                 ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  isSelected ? 'Selected' : 'Select',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: isSelected
-                                        ? Colors.orange
-                                        : Colors.grey[600],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: difficultyColor.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              difficultyLabel.toUpperCase(),
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: difficultyColor,
-                                fontWeight: FontWeight.w600,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        primaryRecipe.shortDescription,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: Colors.grey[700],
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      if (recipeTitles.length == 1)
-                        Text(
-                          recipeTitles.first,
-                          style: theme.textTheme.bodyMedium,
-                        )
-                      else
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: recipeTitles.map((title) {
-                            return Row(
-                              children: [
-                                const Icon(Icons.circle, size: 6),
-                                const SizedBox(width: 6),
-                                Expanded(
-                                  child: Text(
-                                    title,
-                                    style: theme.textTheme.bodyMedium,
-                                    overflow: TextOverflow.ellipsis,
+                            const SizedBox(width: 8),
+                            InkWell(
+                              onTap: () {
+                                setState(() {
+                                  _selectedMenuId = _selectedMenuId == menu.menuId
+                                      ? null
+                                      : menu.menuId;
+                                });
+                              },
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    isSelected
+                                        ? Icons.radio_button_checked
+                                        : Icons.radio_button_off,
+                                    size: 18,
+                                    color: isSelected
+                                        ? terracottaDeep
+                                        : Colors.grey[600],
                                   ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    isSelected ? 'Selected' : 'Select',
+                                    style: GoogleFonts.kalam(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: isSelected
+                                          ? terracottaDeep
+                                          : Colors.grey[700],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: difficultyColor.withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                difficultyLabel.toUpperCase(),
+                                style: GoogleFonts.kalam(
+                                  fontSize: 10,
+                                  color: difficultyColor,
+                                  fontWeight: FontWeight.w700,
                                 ),
-                              ],
-                            );
-                          }).toList(),
+                              ),
+                            ),
+                          ],
                         ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.access_time,
-                            size: 14,
-                            color: Colors.grey[600],
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '~ ${menu.totalCookingTimeMin} min',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: Colors.grey[700],
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Icon(
-                            Icons.local_fire_department,
-                            size: 14,
-                            color: Colors.grey[600],
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${menu.totalCalories.toStringAsFixed(0)} kcal',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: Colors.grey[700],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () {
-                      setState(() {
-                        // Toggle: 如果已选中，点击取消；否则选中
-                        _selectedMenuId = _selectedMenuId == menu.menuId
-                            ? null
-                            : menu.menuId;
-                      });
-                    },
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(
-                        color: isSelected
-                            ? Colors.orange
-                            : Colors.orange.shade200,
-                      ),
-                      foregroundColor: isSelected
-                          ? Colors.orange
-                          : Colors.orange.shade800,
-                    ),
-                    child: Text(isSelected ? 'Selected' : 'Choose this menu'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => RecipeInstructionPage(
-                            menu: menu,
-                            initialRecipeIndex: 0,
-                            filter: widget.filter,
-                            isViewMode: true, // 只读模式：只看信息，不显示烹饪按钮
+                        const SizedBox(height: 4),
+                        Text(
+                          primaryRecipe.shortDescription,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.kalam(
+                            fontSize: 13,
+                            color: ink.withOpacity(0.75),
                           ),
                         ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.orange,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                        const SizedBox(height: 10),
+                        if (recipeTitles.length == 1)
+                          Text(
+                            recipeTitles.first,
+                            style: GoogleFonts.kalam(
+                              fontSize: 14,
+                              color: ink,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          )
+                        else
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: recipeTitles.map((title) {
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 2),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.circle,
+                                      size: 6,
+                                      color: ink.withOpacity(0.6),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Expanded(
+                                      child: Text(
+                                        title,
+                                        style: GoogleFonts.kalam(
+                                          fontSize: 14,
+                                          color: ink,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.access_time,
+                              size: 14,
+                              color: ink.withOpacity(0.65),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '~ ${menu.totalCookingTimeMin} min',
+                              style: GoogleFonts.kalam(
+                                fontSize: 13,
+                                color: ink.withOpacity(0.8),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Icon(
+                              Icons.local_fire_department,
+                              size: 14,
+                              color: ink.withOpacity(0.65),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${menu.totalCalories.toStringAsFixed(0)} kcal',
+                              style: GoogleFonts.kalam(
+                                fontSize: 13,
+                                color: ink.withOpacity(0.8),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                    icon: const Icon(Icons.menu_book),
-                    label: const Text('View steps'),
                   ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(
+                    child: ProgrammaticSketchyButton(
+                      text: isSelected ? 'Selected' : 'Choose this menu',
+                      onPressed: () {
+                        setState(() {
+                          _selectedMenuId = _selectedMenuId == menu.menuId
+                              ? null
+                              : menu.menuId;
+                        });
+                      },
+                      backgroundColor: isSelected ? terracotta : const Color(0xFFFFFFF0),
+                      textColor: isSelected ? Colors.white : terracottaDeep,
+                      inkColor: terracottaDeep,
+                      expanded: true,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ProgrammaticSketchyButton(
+                      text: 'View steps',
+                      icon: Icons.menu_book,
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => RecipeInstructionPage(
+                              menu: menu,
+                              initialRecipeIndex: 0,
+                              filter: widget.filter,
+                              isViewMode: true,
+                            ),
+                          ),
+                        );
+                      },
+                      backgroundColor: terracotta,
+                      textColor: Colors.white,
+                      inkColor: terracottaDeep,
+                      expanded: true,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          if (isSelected)
+            Positioned(
+              top: 0,
+              right: 0,
+              child: Container(
+                width: 26,
+                height: 26,
+                decoration: BoxDecoration(
+                  color: terracottaDeep,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: terracottaDeep.withOpacity(0.25),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
-              ],
+                child: const Icon(Icons.check, size: 16, color: Colors.white),
+              ),
             ),
-          ],
-        ),
+        ],
       ),
     );
   }
