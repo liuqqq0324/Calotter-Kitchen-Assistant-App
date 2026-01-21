@@ -644,7 +644,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
         Text(
           label,
           style: GoogleFonts.kalam(
-            fontSize: 12,
+            fontSize: 16,
             fontWeight: FontWeight.bold,
             color: Colors.grey[700],
           ),
@@ -652,7 +652,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
         const SizedBox(height: 4),
         Text(
           value.isNotEmpty ? value : 'Not set',
-          style: GoogleFonts.kalam(fontSize: 14),
+          style: GoogleFonts.kalam(fontSize: 20),
           overflow: TextOverflow.ellipsis,
           maxLines: 1,
         ),
@@ -758,10 +758,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Header: 用户信息 + 简要资料
-                SketchyCard(
-                  backgroundColor: Colors.grey.shade100,
-                  borderColor: Colors.black87,
-                  borderWidth: 2.0,
+                Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -774,11 +771,11 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                             borderRadius: 40,
                             roughness: 2.0,
                             child: const CircleAvatar(
-                              radius: 38,
+                              radius: 40,
                               backgroundColor: Colors.grey,
                               child: Icon(
                                 Icons.person,
-                                size: 40,
+                                size: 42,
                                 color: Colors.white,
                               ),
                             ),
@@ -788,18 +785,23 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  user.username,
-                                  style: GoogleFonts.caveat(
-                                    fontSize: 28,
-                                    fontWeight: FontWeight.bold,
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    user.username,
+                                    style: GoogleFonts.caveat(
+                                      fontSize: 36,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    maxLines: 1,
                                   ),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
                                   user.email,
                                   style: GoogleFonts.kalam(
-                                    fontSize: 14,
+                                    fontSize: 18,
                                     color: Colors.grey[600],
                                   ),
                                 ),
@@ -822,7 +824,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 24),
                       Wrap(
                         spacing: 16,
                         runSpacing: 12,
@@ -874,7 +876,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
             ),
             // 参考图元素：精准裁剪的红色爪印 + 代码生成的艺术字印章（半透明，不挡信息）
             Positioned(
-              top: 120,
+              top: 182,
               right: -4,
               child: IgnorePointer(
                 child: Opacity(
@@ -888,7 +890,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
               ),
             ),
             Positioned(
-              top: 258,
+              top: 320,
               right: -18,
               child: IgnorePointer(
                 child: OtterApprovedStamp(
