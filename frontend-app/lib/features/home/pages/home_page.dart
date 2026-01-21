@@ -523,7 +523,9 @@ class _HomePageState extends State<HomePage> {
                         _nutritionPageIndex == 0
                             ? "Daily Nutrition Dashboard"
                             : "Weekly Nutrition Dashboard",
-                        style: SketchyTextStyle.heading(context),
+                        style: SketchyTextStyle.heading(context).copyWith(
+                          color: const Color(0xFF6B4F4F), // River Deep Brown - 与 greeting 一致
+                        ),
                       ),
                       const SizedBox(height: 15),
 
