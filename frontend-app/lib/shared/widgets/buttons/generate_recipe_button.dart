@@ -1,83 +1,190 @@
 // lib/widgets/generate_recipe_button.dart
 
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:personal_sous_chef/theme/fallback_google_fonts.dart';
+
+/// Custom clipper for torn paper edges
+class TornPaperClipper extends CustomClipper<Path> {
+  final int seed;
+  
+  TornPaperClipper({this.seed = 42});
+  
+  @override
+  Path getClip(Size size) {
+    final random = math.Random(seed);
+    final Path path = Path();
+    
+    // Start from top-left with slight irregularity
+    double x = 0;
+    double y = 2 + random.nextDouble() * 2;
+    path.moveTo(x, y);
+    
+    // Top edge (torn)
+    while (x < size.width) {
+      x += 8 + random.nextDouble() * 6;
+      y = 1 + random.nextDouble() * 3;
+      path.lineTo(x, y);
+    }
+    
+    // Right edge
+    x = size.width - 1 - random.nextDouble() * 2;
+    y = 0;
+    while (y < size.height) {
+      y += 8 + random.nextDouble() * 6;
+      x = size.width - 1 - random.nextDouble() * 2;
+      path.lineTo(x, y);
+    }
+    
+    // Bottom edge (torn)
+    y = size.height - 2 - random.nextDouble() * 2;
+    while (x > 0) {
+      x -= 8 + random.nextDouble() * 6;
+      y = size.height - 1 - random.nextDouble() * 3;
+      path.lineTo(x, y);
+    }
+    
+    // Left edge
+    x = 1 + random.nextDouble() * 2;
+    while (y > 0) {
+      y -= 8 + random.nextDouble() * 6;
+      x = 1 + random.nextDouble() * 2;
+      path.lineTo(x, y);
+    }
+    
+    path.close();
+    return path;
+  }
+  
+  @override
+  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
+}
 
 class GenerateRecipeButton extends StatelessWidget {
   final VoidCallback onPressed;
   final String label;
   final IconData icon;
-  final bool isFullWidth; // 新增控制：是否撑满宽度 (用于不同场景)
+  final bool isFullWidth;
 
   const GenerateRecipeButton({
     super.key,
     required this.onPressed,
-    this.label = "Generate Recipes", // 默认文案
-    this.icon = Icons.auto_awesome, // 默认图标 (AI 魔法棒)
-    this.isFullWidth = false, // 默认是胶囊形状 (不撑满)
+    this.label = "Generate Recipes",
+    this.icon = Icons.auto_awesome,
+    this.isFullWidth = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    // 按钮主体
-    Widget buttonContent = Container(
-      height: 56, // 标准 FAB 高度
-      decoration: BoxDecoration(
-        // 统一的橙色渐变风格
-        gradient: LinearGradient(
-          colors: [Colors.orange.shade400, Colors.deepOrange.shade600],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(28), // 完全圆角 (胶囊形)
-        // 统一的阴影效果
-        boxShadow: [
-          BoxShadow(
-            color: Colors.orange.withOpacity(0.4),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent, // 必须透明，否则会挡住渐变
-        child: InkWell(
-          onTap: onPressed,
-          borderRadius: BorderRadius.circular(28),
-          // 触摸反馈色
-          splashColor: Colors.white.withOpacity(0.2),
-          highlightColor: Colors.white.withOpacity(0.1),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: Row(
-              mainAxisSize: isFullWidth
-                  ? MainAxisSize.max
-                  : MainAxisSize.min, // 关键：控制宽度
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(icon, color: Colors.white),
-                const SizedBox(width: 12),
-                Text(
-                  label,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.5,
-                  ),
+    Widget buttonContent = Stack(
+      clipBehavior: Clip.none,
+      children: [
+        // Main torn paper label
+        ClipPath(
+          clipper: TornPaperClipper(seed: 42),
+          child: Container(
+            height: 56,
+            decoration: BoxDecoration(
+              // Muted terracotta/kraft paper color
+              color: const Color(0xFFD4A574), // Warm brownish-orange
+              boxShadow: [
+                // Subtle shadow to lift off background
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.15),
+                  blurRadius: 8,
+                  offset: const Offset(2, 4),
                 ),
               ],
             ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: onPressed,
+                splashColor: Colors.black.withOpacity(0.05),
+                highlightColor: Colors.black.withOpacity(0.02),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  child: Row(
+                    mainAxisSize: isFullWidth ? MainAxisSize.max : MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        icon,
+                        color: const Color(0xFF5D4E37), // Dark brown for contrast
+                        size: 22,
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        label,
+                        style: GoogleFonts.caveat(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF5D4E37), // Dark brown
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           ),
         ),
-      ),
+        
+        // Left tape accent
+        Positioned(
+          left: 12,
+          top: -4,
+          child: Transform.rotate(
+            angle: -0.05,
+            child: Container(
+              width: 32,
+              height: 16,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(2),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: 2,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        
+        // Right tape accent
+        Positioned(
+          right: 12,
+          top: -4,
+          child: Transform.rotate(
+            angle: 0.05,
+            child: Container(
+              width: 32,
+              height: 16,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(2),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: 2,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
 
-    // 如果不需要撑满宽度，就直接返回
     if (!isFullWidth) {
       return buttonContent;
     }
 
-    // 如果需要撑满，外面不需要额外包 Center，由父级布局决定
     return buttonContent;
   }
 }

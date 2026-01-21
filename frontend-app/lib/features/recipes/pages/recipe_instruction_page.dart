@@ -7,27 +7,32 @@ import 'package:personal_sous_chef/data/models/recipe_models.dart';
 import 'package:personal_sous_chef/features/recipes/pages/recipe_meal_summary_page.dart';
 import 'package:personal_sous_chef/services/cooking/cooking_api_service.dart';
 import 'package:personal_sous_chef/services/cooking/cooking_voice_assistant.dart';
+import 'package:personal_sous_chef/services/cooking/cooking_gesture_control.dart';
 import 'package:personal_sous_chef/services/business/household_service.dart';
 
 class RecipeInstructionPage extends StatefulWidget {
   final RecipeMenuModel menu;
   final int initialRecipeIndex;
   final Map<String, dynamic>? filter;
+  final bool isViewMode; // true: 只看模式, false: 烹饪模式
 
   const RecipeInstructionPage({
     super.key,
     required this.menu,
     this.initialRecipeIndex = 0,
     this.filter,
+    this.isViewMode = false, // 默认为烹饪模式
   });
 
   @override
   State<RecipeInstructionPage> createState() => _RecipeInstructionPageState();
 }
 
-class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
+class _RecipeInstructionPageState extends State<RecipeInstructionPage>
+    with SingleTickerProviderStateMixin {
   late int _currentIndex;
   late Set<int> _completedDishes;
+  late TabController _tabController;
   // Timers/steps must be keyed per dish + per step.
   // Otherwise stepNumber=1 in dish A collides with stepNumber=1 in dish B/C and all appear to start together.
   final Map<String, int> _remainingSeconds = {};
@@ -43,6 +48,13 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
   final CookingVoiceAssistant _voiceAssistant = CookingVoiceAssistant();
   bool _isVoiceModeActive = false;
 
+  // Gesture control
+  final CookingGestureControl _gestureControl = CookingGestureControl();
+  bool _isGestureModeActive = false;
+
+  // Ingredients list expansion state
+  bool _isIngredientsExpanded = true; // 默认展开
+
   String _stepKey(int dishIndex, int stepNumber) => '$dishIndex:$stepNumber';
 
   @override
@@ -51,7 +63,65 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
     debugPrint('[RecipePage] Recipe instruction page initialized');
     _currentIndex = widget.initialRecipeIndex;
     _completedDishes = <int>{};
-    _createCookingSession();
+
+    // ✅ Initialize TabController for multi-dish navigation
+    _tabController = TabController(
+      length: widget.menu.recipes.length,
+      vsync: this,
+      initialIndex: widget.initialRecipeIndex,
+    );
+
+    // Listen to tab changes and update current index
+    _tabController.addListener(() {
+      if (_tabController.indexIsChanging) {
+        return; // Skip during animation
+      }
+      if (_tabController.index != _currentIndex) {
+        setState(() {
+          _currentIndex = _tabController.index;
+          _currentFocusedStepNumber = 1; // Reset to first step
+        });
+      }
+    });
+
+    // 只在烹饪模式下创建会话和初始化控制
+    if (!widget.isViewMode) {
+      debugPrint('[RecipePage] 创建烹饪会话...');
+      _createCookingSession();
+      debugPrint('[RecipePage] 初始化语音助手...');
+      _initializeVoiceAssistant();
+    } else {
+      debugPrint('[RecipePage] View Mode: 跳过会话创建和语音初始化');
+    }
+    debugPrint('[RecipePage] ===== initState() 完成 =====');
+  }
+
+  Future<void> _initializeVoiceAssistant() async {
+    debugPrint('[RecipePage] _initializeVoiceAssistant() 开始');
+    try {
+      final result = await _voiceAssistant.initialize();
+      debugPrint('[RecipePage] 语音助手初始化结果: $result');
+      if (result) {
+        debugPrint('[RecipePage] ✅ 语音助手初始化成功');
+      } else {
+        debugPrint('[RecipePage] ❌ 语音助手初始化失败');
+      }
+    } catch (e, stackTrace) {
+      debugPrint('[RecipePage] ❌ 语音助手初始化异常: $e');
+      debugPrint('[RecipePage] 异常类型: ${e.runtimeType}');
+      debugPrint('[RecipePage] 堆栈跟踪:');
+      debugPrint(stackTrace.toString());
+    }
+    debugPrint('[RecipePage] _initializeVoiceAssistant() 完成');
+  }
+
+  Future<void> _initializeGestureControl() async {
+    await _gestureControl.initialize();
+    // 设置手势检测回调
+    _gestureControl.onGestureDetected = (gestureType) {
+      debugPrint('[RecipePage] Gesture detected: $gestureType');
+      // TODO: 实现手势处理逻辑
+    };
   }
 
   /// 创建烹饪session（传入整个 Menu）
@@ -132,6 +202,7 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
       t.cancel();
     }
     _voiceAssistant.dispose();
+    _tabController.dispose(); // ✅ Dispose TabController
     debugPrint('[RecipePage] Recipe instruction page disposed');
     super.dispose();
   }
@@ -197,19 +268,13 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
 
   void _goToNextDish() {
     if (_currentIndex < _totalDishes - 1) {
-      setState(() {
-        _currentIndex++;
-        _currentFocusedStepNumber = 1; // 重置到第一步
-      });
+      _tabController.animateTo(_currentIndex + 1);
     }
   }
 
   void _goToPrevDish() {
     if (_currentIndex > 0) {
-      setState(() {
-        _currentIndex--;
-        _currentFocusedStepNumber = 1; // 重置到第一步
-      });
+      _tabController.animateTo(_currentIndex - 1);
     }
   }
 
@@ -285,7 +350,12 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
 
   void _stopAndCompleteStep(int dishIndex, int stepNumber) {
     final key = _stepKey(dishIndex, stepNumber);
-    _stopTimerForStep(dishIndex, stepNumber);
+    // ✅ Pause timer instead of stopping it (preserve the time)
+    if (_runningTimers.containsKey(key)) {
+      _runningTimers[key]?.cancel();
+      _runningTimers.remove(key);
+      _pausedSteps[key] = true; // Mark as paused, not reset
+    }
     setState(() {
       _completedSteps.add(key);
     });
@@ -621,7 +691,67 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(recipe.title),
+        // ✅ Add TabBar below title when there are multiple dishes
+        bottom: _totalDishes > 1
+            ? TabBar(
+                controller: _tabController,
+                isScrollable: true,
+                indicatorColor: Colors.orange,
+                labelColor: Colors.orange,
+                unselectedLabelColor: Colors.grey,
+                tabs: widget.menu.recipes.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final r = entry.value;
+                  final isDone = _completedDishes.contains(index);
+                  return Tab(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (isDone)
+                          Icon(
+                            Icons.check_circle,
+                            size: 16,
+                            color: Colors.green,
+                          )
+                        else
+                          Text('${r.emoji}'),
+                        const SizedBox(width: 6),
+                        Text(
+                          r.title.length > 20
+                              ? '${r.title.substring(0, 20)}...'
+                              : r.title,
+                          style: const TextStyle(fontSize: 13),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              )
+            : null,
         actions: [
+          // View Mode: 只显示收藏按钮
+          // Cooking Mode: 显示语音/手势控制 + 收藏按钮
+          if (!widget.isViewMode) ...[
+            // Gesture control button
+            IconButton(
+              onPressed: _toggleGestureMode,
+              icon: Icon(
+                _isGestureModeActive ? Icons.gesture : Icons.gesture_outlined,
+                color: _isGestureModeActive ? Colors.blue : null,
+              ),
+              tooltip: _isGestureModeActive ? '退出手势模式' : '开启手势模式',
+            ),
+            // Voice control button
+            IconButton(
+              onPressed: _toggleVoiceMode,
+              icon: Icon(
+                _isVoiceModeActive ? Icons.mic : Icons.mic_none,
+                color: _isVoiceModeActive ? Colors.red : null,
+              ),
+              tooltip: _isVoiceModeActive ? '退出语音模式' : '开启语音模式',
+            ),
+          ],
+          // 收藏按钮（两种模式都显示）
           ValueListenableBuilder<List<RecipeModel>>(
             valueListenable: CollectedRecipesStore.favorites,
             builder: (context, favorites, _) {
@@ -720,53 +850,88 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
 
               const SizedBox(height: 20),
 
-              Text(
-                'Ingredients',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
+              // 可折叠的原材料列表
+              Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Theme(
+                  data: Theme.of(
+                    context,
+                  ).copyWith(dividerColor: Colors.transparent),
+                  child: ExpansionTile(
+                    initiallyExpanded: _isIngredientsExpanded,
+                    onExpansionChanged: (expanded) {
+                      setState(() {
+                        _isIngredientsExpanded = expanded;
+                      });
+                    },
+                    leading: Icon(
+                      Icons.restaurant_menu,
+                      color: Colors.orange.shade600,
+                    ),
+                    title: Text(
+                      'Ingredients',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    subtitle: _isIngredientsExpanded
+                        ? null
+                        : Text(
+                            '${recipe.ingredients.length} items',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                    children: [
+                      if (recipe.ingredients.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.all(16.0),
+                          child: Text('No ingredients listed.'),
+                        )
+                      else
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: recipe.ingredients.map((ing) {
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 4.0,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        ing.name,
+                                        style: theme.textTheme.bodyMedium,
+                                      ),
+                                    ),
+                                    Text(
+                                      '${ing.amountValue} ${ing.amountUnit}',
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(color: Colors.grey[700]),
+                                    ),
+                                    if (ing.isOptional) ...[
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'optional',
+                                        style: theme.textTheme.bodySmall
+                                            ?.copyWith(color: Colors.orange),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(height: 8),
-              if (recipe.ingredients.isEmpty)
-                Text(
-                  'No ingredients listed.',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: Colors.grey[600],
-                  ),
-                )
-              else
-                Column(
-                  children: recipe.ingredients.map((ing) {
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 6.0),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              ing.name,
-                              style: theme.textTheme.bodyMedium,
-                            ),
-                          ),
-                          Text(
-                            '${ing.amountValue} ${ing.amountUnit}',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: Colors.grey[700],
-                            ),
-                          ),
-                          if (ing.isOptional) ...[
-                            const SizedBox(width: 8),
-                            Text(
-                              'optional',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: Colors.orange,
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                ),
 
               const SizedBox(height: 16),
 
@@ -819,7 +984,11 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
           ),
         ),
       ),
-      bottomNavigationBar: _buildBottomControls(context),
+      // View Mode: 不显示底部控制栏
+      // Cooking Mode: 显示完整的底部控制栏
+      bottomNavigationBar: widget.isViewMode
+          ? null
+          : _buildBottomControls(context),
     );
   }
 
@@ -828,132 +997,278 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage> {
     final key = _stepKey(_currentIndex, step.stepNumber);
     final remaining = _remainingSeconds[key];
     final isRunning = _runningTimers.containsKey(key);
-    final isOvertime = remaining != null && remaining < 0;
-    final isPaused = _pausedSteps[key] == true;
+    final isOvertime = remaining != null && remaining <= 0;
+    final isPaused =
+        _pausedSteps[key] == true && remaining != null && remaining > 0;
     final isCompleted = _completedSteps.contains(key);
+
+    // Determine timer state for visual styling
+    String timerState =
+        'inactive'; // inactive, running, paused, overtime, completed
+    if (isCompleted) {
+      // ✅ Show frozen state when completed
+      if (remaining != null) {
+        timerState = 'completed'; // Has recorded time
+      } else {
+        timerState = 'inactive'; // Never started
+      }
+    } else if (remaining != null) {
+      if (remaining <= 0) {
+        timerState = 'overtime';
+      } else if (isRunning) {
+        timerState = 'running';
+      } else if (isPaused) {
+        timerState = 'paused';
+      }
+    }
+
+    // Handler for toggling completion
+    void toggleCompletion() {
+      if (widget.isViewMode) return;
+
+      if (isCompleted) {
+        setState(() {
+          _completedSteps.remove(key);
+        });
+      } else {
+        _stopAndCompleteStep(_currentIndex, step.stepNumber);
+      }
+    }
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 左边圆圈步骤号
-          Container(
-            width: 28,
-            height: 28,
-            decoration: BoxDecoration(
-              color: Colors.orange.shade100,
-              shape: BoxShape.circle,
-            ),
-            child: Center(
-              child: Text(
-                step.stepNumber.toString(),
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ✅ Target A: Circle - Tappable for toggling completion
+            GestureDetector(
+              onTap: toggleCompletion,
+              child: Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: isCompleted ? Colors.green : Colors.orange.shade100,
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: isCompleted
+                      ? const Icon(Icons.check, size: 16, color: Colors.white)
+                      : Text(
+                          step.stepNumber.toString(),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: isCompleted ? Colors.white : Colors.black87,
+                          ),
+                        ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(width: 12),
-          // 右边文字
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(step.instruction, style: theme.textTheme.bodyMedium),
-                if (step.stepTimeMin > 0) ...[
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Text(
-                        '~ ${step.stepTimeMin} min',
+            const SizedBox(width: 12),
+            // Right side: Instruction text + Timer chip
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // ✅ Target A: Text Area - Tappable for toggling completion
+                  GestureDetector(
+                    onTap: toggleCompletion,
+                    child: Text(
+                      step.instruction,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: isCompleted ? Colors.grey[400] : null,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  // ✅ Target B: Timer Chip - Independent interaction
+                  if (!widget.isViewMode && step.stepTimeMin > 0)
+                    _buildTimerChip(
+                      step: step,
+                      timerState: timerState,
+                      remaining: remaining,
+                      theme: theme,
+                      isCompleted: isCompleted,
+                    ),
+                  // View Mode: 只显示时间信息
+                  if (widget.isViewMode && step.stepTimeMin > 0)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        '⏱️ ~ ${step.stepTimeMin} min',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: Colors.grey[600],
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      if (remaining != null)
-                        Text(
-                          remaining >= 0
-                              ? 'Left ${remaining ~/ 60}:${(remaining % 60).toString().padLeft(2, '0')}'
-                              : 'Over by ${(-remaining) ~/ 60}:${((-remaining) % 60).toString().padLeft(2, '0')}',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: isOvertime ? Colors.red : Colors.green,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 4,
-                    children: [
-                      OutlinedButton.icon(
-                        onPressed: isRunning
-                            ? () => _pauseTimer(_currentIndex, step.stepNumber)
-                            : () => _startTimerForStep(
-                                _currentIndex,
-                                step.stepNumber,
-                                step.stepTimeMin,
-                              ),
-                        icon: Icon(
-                          isRunning
-                              ? Icons.pause_circle
-                              : (isPaused
-                                    ? Icons.play_circle
-                                    : Icons.timer_outlined),
-                          size: 16,
-                          color: isRunning
-                              ? Colors.orange
-                              : (isOvertime ? Colors.red : Colors.orange),
-                        ),
-                        label: Text(
-                          isRunning
-                              ? 'Pause'
-                              : (isPaused ? 'Resume' : 'Start timer'),
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          side: BorderSide(
-                            color: isOvertime ? Colors.red : Colors.orange,
-                          ),
-                        ),
-                      ),
-                      OutlinedButton.icon(
-                        onPressed: () => _stopAndCompleteStep(
-                          _currentIndex,
-                          step.stepNumber,
-                        ),
-                        icon: Icon(
-                          Icons.check_circle,
-                          size: 16,
-                          color: Colors.green,
-                        ),
-                        label: const Text('Mark step done'),
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Colors.green),
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (isCompleted)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text(
-                        'Step completed',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: Colors.green,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
                     ),
                 ],
-              ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Build Timer Chip with 4 States: Running, Paused, Overtime, Completed
+  Widget _buildTimerChip({
+    required RecipeStepModel step,
+    required String timerState,
+    required int? remaining,
+    required ThemeData theme,
+    required bool isCompleted,
+  }) {
+    // State-specific styling
+    Color backgroundColor;
+    Color borderColor;
+    Color iconColor;
+    Color textColor;
+    IconData icon;
+    String displayText;
+    bool isInteractive = true;
+
+    switch (timerState) {
+      case 'running':
+        // State 1: Running (Counting Down)
+        backgroundColor = Colors.green.shade50;
+        borderColor = Colors.green.shade600;
+        iconColor = Colors.green.shade700;
+        textColor = Colors.green.shade700;
+        icon = Icons.pause;
+        final minutes = (remaining ?? 0) ~/ 60;
+        final seconds = (remaining ?? 0) % 60;
+        displayText = '$minutes:${seconds.toString().padLeft(2, '0')}';
+        break;
+
+      case 'paused':
+        // State 2: Paused (User Interrupted)
+        backgroundColor = Colors.amber.shade50;
+        borderColor = Colors.amber.shade600;
+        iconColor = Colors.amber.shade700;
+        textColor = Colors.amber.shade700;
+        icon = Icons.play_arrow;
+        final minutes = (remaining ?? 0) ~/ 60;
+        final seconds = (remaining ?? 0) % 60;
+        displayText = '$minutes:${seconds.toString().padLeft(2, '0')}';
+        break;
+
+      case 'overtime':
+        // State 3: Overtime (Counting Up)
+        backgroundColor = Colors.red.shade50;
+        borderColor = Colors.red.shade600;
+        iconColor = Colors.red.shade700;
+        textColor = Colors.red.shade700;
+        icon = Icons.alarm;
+        final overtimeSeconds = -(remaining ?? 0);
+        final minutes = overtimeSeconds ~/ 60;
+        final seconds = overtimeSeconds % 60;
+        displayText = '+ $minutes:${seconds.toString().padLeft(2, '0')}';
+        break;
+
+      case 'completed':
+        // ✅ State 4: Completed (Frozen/Finalized)
+        backgroundColor = Colors.grey.shade100;
+        borderColor = Colors.grey.shade400;
+        iconColor = Colors.grey.shade600;
+        textColor = Colors.grey.shade700;
+        icon = Icons.timer_off;
+        isInteractive = false; // No more interaction when completed
+
+        if (remaining != null) {
+          if (remaining <= 0) {
+            // Was overtime when completed
+            final overtimeSeconds = -remaining;
+            final minutes = overtimeSeconds ~/ 60;
+            final seconds = overtimeSeconds % 60;
+            displayText = '+ $minutes:${seconds.toString().padLeft(2, '0')}';
+          } else {
+            // Was paused/running when completed
+            final minutes = remaining ~/ 60;
+            final seconds = remaining % 60;
+            displayText = '$minutes:${seconds.toString().padLeft(2, '0')}';
+          }
+        } else {
+          displayText = '~ ${step.stepTimeMin} min';
+        }
+        break;
+
+      default:
+        // Inactive state (not started yet)
+        backgroundColor = Colors.grey.shade200;
+        borderColor = Colors.grey.shade400;
+        iconColor = Colors.grey.shade700;
+        textColor = Colors.grey.shade700;
+        icon = Icons.timer_outlined;
+        displayText = '~ ${step.stepTimeMin} min';
+    }
+
+    Widget chipContent = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: borderColor, width: 1.5),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: iconColor),
+          const SizedBox(width: 4),
+          Text(
+            displayText,
+            style: theme.textTheme.bodySmall?.copyWith(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: textColor,
             ),
           ),
         ],
       ),
+    );
+
+    // Add pulse animation for overtime state (only when not completed)
+    if (timerState == 'overtime' && !isCompleted) {
+      chipContent = TweenAnimationBuilder<double>(
+        tween: Tween(begin: 1.0, end: 1.1),
+        duration: const Duration(milliseconds: 600),
+        curve: Curves.easeInOut,
+        builder: (context, scale, child) {
+          return Transform.scale(scale: scale, child: child);
+        },
+        onEnd: () {
+          // Trigger rebuild to restart animation (creates pulsing effect)
+          if (mounted && timerState == 'overtime' && !isCompleted) {
+            setState(() {});
+          }
+        },
+        child: chipContent,
+      );
+    }
+
+    // ✅ Wrap in GestureDetector with behavior to prevent event propagation
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque, // Capture events, don't propagate
+      onTap: isInteractive
+          ? () {
+              if (timerState == 'overtime') {
+                // In overtime, tapping stops and completes the step
+                _stopAndCompleteStep(_currentIndex, step.stepNumber);
+              } else if (timerState == 'running') {
+                // Pause the timer
+                _pauseTimer(_currentIndex, step.stepNumber);
+              } else {
+                // Start or resume the timer
+                _startTimerForStep(
+                  _currentIndex,
+                  step.stepNumber,
+                  step.stepTimeMin,
+                );
+              }
+            }
+          : null,
+      child: chipContent,
     );
   }
 

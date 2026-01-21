@@ -109,6 +109,7 @@ flutter:
     - assets/images/frame_0.png
     - assets/images/frame_1.png
     - assets/images/frame_2.png
+    - assets/wood_background.png
     - assets/fonts/
     - assets/fonts/caveat/
     - assets/models/
