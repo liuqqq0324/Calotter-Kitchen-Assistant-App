@@ -205,8 +205,8 @@ class _OtterFloatingNavState extends State<OtterFloatingNav>
                   final newDy =
                       _position.dy - details.delta.dy; // Y轴反向（Flutter坐标系）
 
-                  // 计算边界（按钮大小64 + 边距16）
-                  final buttonSize = 64.0;
+                  // 计算边界（按钮大小120 + 边距16）
+                  final buttonSize = 120.0;
                   final maxDx = screenSize.width - buttonSize - 16;
                   final maxDy =
                       screenSize.height - safeArea.bottom - buttonSize - 16;
@@ -229,21 +229,10 @@ class _OtterFloatingNavState extends State<OtterFloatingNav>
                   _toggleMenu();
                 }
               },
-              child: Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.brown.shade300,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.3),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: ClipOval(child: _buildOtterImage()),
+              child: SizedBox(
+                width: 120,
+                height: 120,
+                child: _buildOtterImage(),
               ),
             ),
           ),
@@ -253,25 +242,26 @@ class _OtterFloatingNavState extends State<OtterFloatingNav>
   }
 
   Widget _buildOtterImage() {
-    // TODO: 替换为从参考图抠出的海獭形象
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.brown.shade200,
-        shape: BoxShape.circle,
-      ),
-      child: Center(child: Text('🦦', style: const TextStyle(fontSize: 40))),
+    return Image.asset(
+      'assets/images/otter_floating_transparent.png',
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) {
+        // Fallback to emoji if image fails to load
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.brown.shade200,
+            shape: BoxShape.circle,
+          ),
+          child: Center(child: Text('🦦', style: const TextStyle(fontSize: 40))),
+        );
+      },
     );
-    // 后续替换为：
-    // return Image.asset(
-    //   'assets/profile_passport/otter_floating.png',
-    //   fit: BoxFit.cover,
-    // );
   }
 
   // 🔥 修复：简化菜单位置计算，确保正确显示
   Widget _buildExpandedMenu(Size screenSize, EdgeInsets safeArea) {
     final destinations = BottomNavConfig.destinations;
-    final buttonSize = 64.0;
+    final buttonSize = 120.0;
     final buttonRight = 16.0 + _position.dx;
     final buttonBottom = 16.0 + _position.dy;
 

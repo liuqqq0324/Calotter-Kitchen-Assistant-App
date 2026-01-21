@@ -99,7 +99,6 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/videos/
-    - assets/sketch.png
     - assets/
     - assets/icons/
     - assets/images/sketch_paper_transparent.png
@@ -114,6 +113,8 @@ flutter:
     - assets/profile_passport/
     - assets/images/dish_intake_icon.png
     - assets/images/add_food_icon.png
+    - assets/images/navigation_logo_transparent.png
+    - assets/images/otter_floating_transparent.png
     - assets/fonts/
     - assets/fonts/caveat/
     - assets/models/
