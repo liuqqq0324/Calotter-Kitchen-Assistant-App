@@ -141,9 +141,9 @@ class _AddItemPageState extends State<AddItemPage> {
               child: Image.asset(
                 'assets/wood_background.png',
                 fit: BoxFit.cover,
-                // 如果背景图路径不对/资源未打包，先用现有的 sketch.png 兜底，避免崩溃
-                errorBuilder: (context, error, stackTrace) =>
-                    Image.asset('assets/sketch.png', fit: BoxFit.cover),
+                // 如果背景图路径不对/资源未打包，先用现有的 sketch_paper_transparent.png 兜底，避免崩溃
+                    errorBuilder: (context, error, stackTrace) =>
+                    Image.asset('assets/images/sketch_paper_transparent.png', fit: BoxFit.cover),
               ),
             ),
             // 可选：加一层轻薄的"纸张泛黄"蒙版，让内容更易读

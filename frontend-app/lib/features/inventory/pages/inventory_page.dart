@@ -570,7 +570,7 @@ class _InventoryPageState extends State<InventoryPage>
               fit: BoxFit.cover,
               // 如果背景图路径不对/资源未打包，使用错误处理
               errorBuilder: (context, error, stackTrace) =>
-                  Image.asset('assets/sketch.png', fit: BoxFit.cover),
+                  Image.asset('assets/images/sketch_paper_transparent.png', fit: BoxFit.cover),
             ),
           ),
 
