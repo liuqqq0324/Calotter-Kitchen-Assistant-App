@@ -113,6 +113,8 @@ flutter:
     - assets/profile_passport/
     - assets/images/dish_intake_icon.png
     - assets/images/add_food_icon.png
+    - assets/images/navigation_logo_transparent.png
+    - assets/images/otter_floating_transparent.png
     - assets/fonts/
     - assets/fonts/caveat/
     - assets/models/
