@@ -4,7 +4,6 @@ import 'package:personal_sous_chef/data/models/ingredient.dart';
 import 'package:personal_sous_chef/features/inventory/pages/edit_ingredient_page.dart';
 import 'package:personal_sous_chef/shared/widgets/cards/ingredient_card.dart';
 import 'package:personal_sous_chef/features/add_item/pages/add_item_page.dart';
-import 'package:personal_sous_chef/shared/widgets/buttons/generate_recipe_button.dart'; // 引入复用按钮
 import 'package:personal_sous_chef/navigation/main_scaffold.dart'; // ⚠️ 已更新：MainScaffoldState 从 main.dart 移至 navigation/main_scaffold.dart
 import 'package:personal_sous_chef/data/models/cookware.dart';
 import 'package:personal_sous_chef/shared/widgets/forms/item_toggle_grid.dart';
@@ -671,28 +670,11 @@ class _InventoryPageState extends State<InventoryPage>
                 ),
               ),
 
-            // 底部生成按钮
-            if (!_isExpanded && _tabController.index == 0)
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 20,
-                child: Center(
-                  child: GenerateRecipeButton(
-                    onPressed: () {
-                      context
-                          .findAncestorStateOfType<MainScaffoldState>()
-                          ?.switchTab(1);
-                    },
-                  ),
-                ),
-              ),
-
             // 浮动菜单
             if (_tabController.index == 0) // 只在第一个Tab显示
               Positioned(
                 right: 16,
-                bottom: 100,
+                bottom: 20,
                 child: _buildExpandableFab(),
               ),
           ],

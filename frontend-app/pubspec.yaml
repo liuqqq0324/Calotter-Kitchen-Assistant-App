@@ -105,8 +105,11 @@ flutter:
     - assets/images/frame_0.png
     - assets/images/frame_2.png
     - assets/images/inventory_container.png
+    - assets/images/title.png
     - assets/wood_background.png
     - assets/profile_passport/
+    - assets/images/dish_intake_icon.png
+    - assets/images/add_food_icon.png
     - assets/fonts/
     - assets/fonts/caveat/
     - assets/models/
