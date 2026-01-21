@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:personal_sous_chef/core/theme/fallback_google_fonts.dart';
 import 'package:personal_sous_chef/data/models/ingredient.dart';
 import 'package:personal_sous_chef/features/inventory/pages/edit_ingredient_page.dart';
 import 'package:personal_sous_chef/shared/widgets/cards/ingredient_card.dart';
@@ -13,7 +14,6 @@ import 'package:personal_sous_chef/services/business/household_service.dart';
 import 'package:personal_sous_chef/data/models/leftover.dart';
 import 'package:personal_sous_chef/shared/widgets/cards/leftover_card.dart';
 import 'package:personal_sous_chef/shared/widgets/cards/stop_motion_dismissible.dart'; // 引入定格动画滑动删除组件
-import 'package:personal_sous_chef/shared/widgets/layouts/layered_inventory_layout.dart'; // 引入分层布局组件
 
 class InventoryPage extends StatefulWidget {
   const InventoryPage({super.key});
@@ -57,7 +57,9 @@ class _InventoryPageState extends State<InventoryPage>
     // 🔥 新增：初始化Tab控制器
     _tabController = TabController(length: 4, vsync: this);
     _tabController.addListener(() {
-      setState(() {}); // 更新UI以反映Tab切换
+      if (_tabController.indexIsChanging) {
+        setState(() {}); // 触发重绘以更新书签状态
+      }
     });
 
     _loadInventory();
@@ -555,123 +557,252 @@ class _InventoryPageState extends State<InventoryPage>
   Widget build(BuildContext context) {
     // Data is loaded from API in initState and _loadInventory
 
-    return Scaffold(
-      backgroundColor: Colors.transparent, // 透明背景，让分层布局显示
-      body: LayeredInventoryLayout(
-        selectedTabIndex: _tabController.index,
-        onTabChanged: (index) {
-          _tabController.animateTo(index);
-        },
-        // 所有书签数据
-        bookmarkTabs: [
-          BookmarkTabData(
-            imagePath: 'assets/icons/inventory.png',
-            label: 'Ingredients',
-          ),
-          BookmarkTabData(
-            imagePath: 'assets/icons/seasonings.png',
-            label: 'Seasonings',
-          ),
-          BookmarkTabData(
-            imagePath: 'assets/icons/cookware.png',
-            label: 'Cookware',
-          ),
-          BookmarkTabData(
-            imagePath: 'assets/icons/dish.png',
-            label: 'Leftovers',
-          ),
-        ],
-        // 主容器层的内容
-        mainContent: TabBarView(
-          controller: _tabController,
-          physics: const BouncingScrollPhysics(), // 🔥 允许横向滑动切换
+    return Container(
+      decoration: const BoxDecoration(
+        image: DecorationImage(
+          image: AssetImage('assets/wood_background.png'),
+          fit: BoxFit.cover,
+        ),
+      ),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        // Stack 是实现分层效果的关键
+        body: Stack(
           children: [
-            _buildIngredientPage(),
-            // ✅ 调料页面（从API加载）
-            _isLoadingSeasonings
-                ? const Center(child: CircularProgressIndicator())
-                : Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 16,
-                    ),
-                    child: ItemToggleGrid(
-                      items: _seasonings,
-                      onToggle: _handleItemToggle,
-                    ),
-                  ),
+            // =========================================
+            // 层级 1 (底层): 内容区域 (TabBarView)
+            // =========================================
+            Positioned.fill(
+              // 顶部留出空间给书签和标题
+              top: 140, // 上移位置，适配缩小的书签区域（表头在90，高度约40-50px）
+              child: TabBarView(
+                controller: _tabController,
+                physics: const BouncingScrollPhysics(),
+                children: [
+                  _buildIngredientPage(),
+                  _buildSeasoningsPage(),
+                  _buildCookwarePage(),
+                  _buildLeftoversPage(),
+                ],
+              ),
+            ),
 
-            // ✅ 厨具页面（从API加载）
-            _isLoadingCookware
-                ? const Center(child: CircularProgressIndicator())
-                : Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 16,
-                    ),
-                    child: ItemToggleGrid(
-                      items: _cookwares,
-                      onToggle: _handleItemToggle,
-                    ),
+            // =========================================
+            // 层级 2 (中间层): 悬挂的书签 (Bookmarks)
+            // =========================================
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: SafeArea(
+                bottom: false,
+                child: Container(
+                  height: 80, // 书签区域高度（缩小20%）
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  alignment: Alignment.topCenter,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildHangingBookmark(
+                        0,
+                        'Ingredients',
+                        'assets/icons/Ingredients.png',
+                        Colors.orange.shade300,
+                      ),
+                      _buildHangingBookmark(
+                        1,
+                        'Seasonings',
+                        'assets/icons/Seasonings.png',
+                        Colors.green.shade300,
+                      ),
+                      _buildHangingBookmark(
+                        2,
+                        'Cookware',
+                        'assets/icons/Cookwares.png',
+                        Colors.blue.shade300,
+                      ),
+                      _buildHangingBookmark(
+                        3,
+                        'Dish',
+                        'assets/icons/Dishes.png',
+                        Colors.yellow.shade300,
+                      ),
+                    ],
                   ),
+                ),
+              ),
+            ),
 
-            // ✅ 剩菜页面（从API加载）
-            _buildLeftoversPage(),
+            // =========================================
+            // 层级 3 (顶层): My Kitchen 标题
+            // =========================================
+            Positioned(
+              top: 90, // 上移位置，适配缩小的书签区域（书签选中时高度76）
+              left: 20,
+              child: SafeArea(
+                child: Text(
+                  'My Kitchen',
+                  style: GoogleFonts.caveat(
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.brown.shade800,
+                  ).copyWith(
+                    shadows: [
+                      const Shadow(
+                        offset: Offset(1, 1),
+                        color: Colors.white,
+                        blurRadius: 2,
+                      )
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // =========================================
+            // 层级 4 (浮动层): 按钮与遮罩
+            // =========================================
+            if (_isExpanded)
+              Positioned.fill(
+                child: GestureDetector(
+                  onTap: _toggleExpand,
+                  child: Container(color: Colors.black54),
+                ),
+              ),
+
+            // 底部生成按钮
+            if (!_isExpanded && _tabController.index == 0)
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 20,
+                child: Center(
+                  child: GenerateRecipeButton(
+                    onPressed: () {
+                      context
+                          .findAncestorStateOfType<MainScaffoldState>()
+                          ?.switchTab(1);
+                    },
+                  ),
+                ),
+              ),
+
+            // 浮动菜单
+            if (_tabController.index == 0) // 只在第一个Tab显示
+              Positioned(
+                right: 16,
+                bottom: 100,
+                child: _buildExpandableFab(),
+              ),
           ],
         ),
-        // 第5层：浮动层（浮动按钮等）
-        floatingContent: _buildFloatingLayer(),
       ),
     );
   }
 
-  // =========================================================
-  // 🔥 新增：构建浮动层（浮动按钮等）
-  // =========================================================
-  Widget? _buildFloatingLayer() {
-    // 只在 Ingredients Tab 显示浮动按钮
-    if (_tabController.index != 0) {
-      return null;
-    }
+  // 🔥 核心逻辑：构建悬挂式书签
+  Widget _buildHangingBookmark(
+    int index,
+    String label,
+    String imagePath,
+    Color baseColor,
+  ) {
+    final bool isSelected = _tabController.index == index;
 
-    return Stack(
-      children: [
-        // 展开菜单时的半透明遮罩
-        if (_isExpanded)
-          GestureDetector(
-            onTap: _toggleExpand,
-            child: Container(
-              color: Colors.black54,
-              width: double.infinity,
-              height: double.infinity,
-            ),
+    // 动画参数
+    // 选中时：书签变长 (76)，向下伸出
+    // 未选时：书签变短 (56)，向上收起，且颜色变暗
+    final double height = isSelected ? 76.0 : 56.0; // 缩小20%
+    final double width = 65.0;
+    final double topMargin = isSelected ? 0.0 : -8.0; // 未选中时稍微往上缩一点（缩小20%）
+
+    return GestureDetector(
+      onTap: () {
+        _tabController.animateTo(index);
+        setState(() {});
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutBack, // 使用弹簧曲线，更有物理感
+        transform: Matrix4.translationValues(0, topMargin, 0),
+        width: width,
+        height: height,
+        decoration: BoxDecoration(
+          // 使用图片作为背景
+          image: DecorationImage(
+            image: AssetImage(imagePath),
+            fit: BoxFit.cover,
+            opacity: isSelected ? 1.0 : 0.7,
+            colorFilter: isSelected
+                ? null
+                : const ColorFilter.mode(Colors.black26, BlendMode.darken),
           ),
-
-        // 🔥 底部"生成食谱"按钮
-        if (!_isExpanded)
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 20,
-            child: Center(
-              child: GenerateRecipeButton(
-                onPressed: () {
-                  // 跳转逻辑：查找 MainScaffoldState 并切换 Tab
-                  context
-                      .findAncestorStateOfType<MainScaffoldState>()
-                      ?.switchTab(1);
-                },
+          // 保留颜色叠加效果
+          color: isSelected
+              ? baseColor.withOpacity(0.3)
+              : baseColor.withOpacity(0.2), // 未选中变暗
+          borderRadius: const BorderRadius.only(
+            bottomLeft: Radius.circular(10),
+            bottomRight: Radius.circular(10),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 4,
+              offset: const Offset(2, 2),
+            )
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.end, // 内容靠下
+          children: [
+            // 文字
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8.0),
+              child: Text(
+                label,
+                style: GoogleFonts.caveat(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: isSelected ? Colors.black87 : Colors.white70,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
-          ),
-
-        // 展开式浮动按钮组
-        Positioned(
-          right: 16,
-          bottom: _isExpanded ? 100 : 100, // 根据展开状态调整位置
-          child: _buildExpandableFab(),
+          ],
         ),
-      ],
+      ),
+    );
+  }
+
+  // 辅助构建方法：封装调料页面
+  Widget _buildSeasoningsPage() {
+    if (_isLoadingSeasonings) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      child: ItemToggleGrid(
+        items: _seasonings,
+        onToggle: _handleItemToggle,
+      ),
+    );
+  }
+
+  // 辅助构建方法：封装厨具页面
+  Widget _buildCookwarePage() {
+    if (_isLoadingCookware) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      child: ItemToggleGrid(
+        items: _cookwares,
+        onToggle: _handleItemToggle,
+      ),
     );
   }
 
@@ -819,7 +950,7 @@ class _InventoryPageState extends State<InventoryPage>
 
         // 🔥 使用定格动画滑动删除组件
         return StopMotionDismissible(
-          dismissKey: leftover.id!,
+          dismissKey: leftover.id,
           onDismissed: (direction) async {
             final deletedLeftover = leftover;
             try {
