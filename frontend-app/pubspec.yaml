@@ -115,6 +115,9 @@ flutter:
     - assets/images/add_food_icon.png
     - assets/images/navigation_logo_transparent.png
     - assets/images/otter_floating_transparent.png
+    - assets/images/Shell_transparent.png
+    - assets/images/Shell_transparent_cropped.png
+    - assets/images/Shell_transparent_final.png
     - assets/fonts/
     - assets/fonts/caveat/
     - assets/models/
