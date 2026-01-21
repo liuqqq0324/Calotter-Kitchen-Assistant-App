@@ -6,7 +6,8 @@ import 'package:personal_sous_chef/features/inventory/pages/inventory_page.dart'
 import 'package:personal_sous_chef/features/add_item/pages/add_item_page.dart';
 import 'package:personal_sous_chef/features/recipes/pages/recipes_home_page.dart';
 import 'package:personal_sous_chef/features/profile/pages/profile_view_page.dart';
-import 'package:personal_sous_chef/navigation/bottom_nav_config.dart';
+// import 'package:personal_sous_chef/navigation/bottom_nav_config.dart'; // 🔥 保留但注释，因为原有导航栏代码被注释了
+import 'package:personal_sous_chef/navigation/otter_floating_nav.dart';
 
 // 主框架 Scaffold
 // 已从 main.dart 拆分出来
@@ -156,13 +157,21 @@ class MainScaffoldState extends State<MainScaffold> {
         body: _selectedIndex < _pages.length
             ? _pages[_selectedIndex]
             : _pages[0],
-
-        bottomNavigationBar: NavigationBar(
-          onDestinationSelected: _onItemTapped,
+        
+        // 🦦 新的海獭浮动导航 - 放在 Scaffold 顶层，不会被页面内容遮挡
+        floatingActionButton: OtterFloatingNav(
           selectedIndex: _selectedIndex,
-          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-          destinations: BottomNavConfig.destinations,
+          onItemTapped: _onItemTapped,
         ),
+        floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+
+        // 🔥 原有导航栏代码保留但不启用（注释掉）
+        // bottomNavigationBar: NavigationBar(
+        //   onDestinationSelected: _onItemTapped,
+        //   selectedIndex: _selectedIndex,
+        //   labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        //   destinations: BottomNavConfig.destinations,
+        // ),
       ),
     );
   }
