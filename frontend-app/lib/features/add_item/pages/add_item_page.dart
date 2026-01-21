@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart'; // 🔥 1. 引入图片选择库
@@ -142,13 +141,17 @@ class _AddItemPageState extends State<AddItemPage> {
                 'assets/wood_background.png',
                 fit: BoxFit.cover,
                 // 如果背景图路径不对/资源未打包，先用现有的 sketch_paper_transparent.png 兜底，避免崩溃
-                    errorBuilder: (context, error, stackTrace) =>
-                    Image.asset('assets/images/sketch_paper_transparent.png', fit: BoxFit.cover),
+                errorBuilder: (context, error, stackTrace) => Image.asset(
+                  'assets/images/sketch_paper_transparent.png',
+                  fit: BoxFit.cover,
+                ),
               ),
             ),
             // 可选：加一层轻薄的"纸张泛黄"蒙版，让内容更易读
             Positioned.fill(
-              child: Container(color: const Color(0xFFF3E5AB).withOpacity(0.35)),
+              child: Container(
+                color: const Color(0xFFF3E5AB).withOpacity(0.35),
+              ),
             ),
             // 内容层
             Scaffold(
@@ -176,7 +179,10 @@ class _AddItemPageState extends State<AddItemPage> {
                 bottom: PreferredSize(
                   preferredSize: const Size.fromHeight(50),
                   child: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 10,
+                    ),
                     height: 40,
                     decoration: BoxDecoration(
                       color: const Color(0xFF6B4F4F).withOpacity(0.1),
@@ -196,7 +202,9 @@ class _AddItemPageState extends State<AddItemPage> {
                         ],
                       ),
                       labelColor: Colors.white,
-                      unselectedLabelColor: const Color(0xFF6B4F4F).withOpacity(0.6),
+                      unselectedLabelColor: const Color(
+                        0xFF6B4F4F,
+                      ).withOpacity(0.6),
                       labelStyle: _pangolin(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
@@ -223,7 +231,8 @@ class _AddItemPageState extends State<AddItemPage> {
                       // 1. Photo Tab
                       _buildUploadView(
                         title: "Upload Photo",
-                        instruction: "Tap to take a photo or upload from gallery",
+                        instruction:
+                            "Tap to take a photo or upload from gallery",
                         icon: Icons.add_a_photo_outlined,
                         btnText: "Take Photo / Upload",
                         onTap: () => _showPickerOptions(context), // 🔥 绑定点击事件
@@ -232,7 +241,8 @@ class _AddItemPageState extends State<AddItemPage> {
                       // 2. Video Tab (逻辑类似，暂时也绑一样的方法，或者后续你单独处理)
                       _buildUploadView(
                         title: "Upload Video",
-                        instruction: "Select a video file to analyze ingredients",
+                        instruction:
+                            "Select a video file to analyze ingredients",
                         icon: Icons.video_file_outlined,
                         btnText: "Upload Video",
                         onTap: () => _showPickerOptions(context),
@@ -252,7 +262,9 @@ class _AddItemPageState extends State<AddItemPage> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             CircularProgressIndicator(
-                              color: const Color(0xFF6B4F4F), // River Deep Brown
+                              color: const Color(
+                                0xFF6B4F4F,
+                              ), // River Deep Brown
                             ),
                             const SizedBox(height: 20),
                             Text(
@@ -336,7 +348,9 @@ class _AddItemPageState extends State<AddItemPage> {
               child: Container(
                 width: double.infinity,
                 decoration: ShapeDecoration(
-                  color: const Color(0xFFFFFFF0).withOpacity(0.8), // Off-white/cream color
+                  color: const Color(
+                    0xFFFFFFF0,
+                  ).withOpacity(0.8), // Off-white/cream color
                   shape: const SketchyRectBorder(
                     borderWidth: 2.0,
                     wobbleAmount: 2.5,

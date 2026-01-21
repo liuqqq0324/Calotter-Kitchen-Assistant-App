@@ -354,9 +354,9 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
   Widget _buildGoalTypeOption(String value, String label, Color color) {
     final isSelected = _selectedGoalType == value;
     return SketchyCard(
-      // ✅ 统一风格：与 Nutrition Targets 使用同样的手绘黑色边框
+      // ✅ 统一风格：与出生日期颜色一致的边框
       backgroundColor: isSelected ? color.withOpacity(0.10) : Colors.white,
-      borderColor: Colors.black87,
+      borderColor: const Color(0xFF6B4F4F), // River Deep Brown - 与出生日期一致
       borderWidth: 2.0,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       onTap: () {
@@ -388,7 +388,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
               style: GoogleFonts.kalam(
                 fontSize: 15,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected ? color : Colors.black87,
+                color: isSelected ? color : const Color(0xFF6B4F4F), // River Deep Brown - 与 Profile 页面一致
               ),
             ),
           ),
@@ -453,7 +453,9 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
           icon: Icons.local_fire_department,
           label: 'Energy',
           valueText: '${dailyEnergy.toInt()} kcal',
-          accent: Colors.orange,
+          accent: const Color(0xFFF0B27A), // Appetite Orange - 与 homepage 一致
+          labelColor: const Color(0xFF6B4F4F), // River Deep Brown - 与 homepage 一致
+          valueColor: const Color(0xFF6B4F4F).withOpacity(0.8), // River Deep Brown - 与 homepage 一致
         ),
       if (dailyProtein != null)
         _buildNutritionStatCard(
@@ -485,36 +487,30 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
         ),
     ];
 
-    return SketchyCard(
-      backgroundColor: Colors.orange.shade50,
-      borderColor: Colors.black87,
-      borderWidth: 2.0,
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Daily Nutrition Targets',
-            style: GoogleFonts.kalam(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey[800],
-            ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Daily Nutrition Targets',
+          style: GoogleFonts.kalam(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: const Color(0xFF6B4F4F), // River Deep Brown - 与 Profile 页面一致
           ),
-          const SizedBox(height: 12),
-          GridView.count(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: 2,
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
-            // ✅ 修复：减小 childAspectRatio 以增加每个 item 的高度，避免溢出
-            // childAspectRatio = width / height，值越小，高度越大
-            childAspectRatio: 1.8, // 从 2.2 改为 1.8，增加高度
-            children: items,
-          ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 12),
+        GridView.count(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisCount: 2,
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
+          // ✅ 修复：减小 childAspectRatio 以增加每个 item 的高度，避免溢出
+          // childAspectRatio = width / height，值越小，高度越大
+          childAspectRatio: 1.8, // 从 2.2 改为 1.8，增加高度
+          children: items,
+        ),
+      ],
     );
   }
 
@@ -524,7 +520,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
         'No preferences set. Tap "Edit" to add preferences.',
         style: GoogleFonts.kalam(
           fontSize: 14,
-          color: Colors.grey[600],
+          color: const Color(0xFF6B4F4F).withOpacity(0.8), // River Deep Brown - 与 Profile 页面一致
         ).copyWith(fontStyle: FontStyle.italic),
       );
     }
@@ -542,7 +538,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
             style: GoogleFonts.kalam(
               fontSize: 13,
               fontWeight: FontWeight.bold,
-              color: Colors.grey[700],
+              color: const Color(0xFF6B4F4F), // River Deep Brown - 与 Profile 页面一致
             ),
           ),
           const SizedBox(height: 8),
@@ -555,7 +551,10 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                   backgroundColor: Colors.grey.shade200,
                   label: Text(
                     _formatToTitleCase(v),
-                    style: GoogleFonts.kalam(fontSize: 12),
+                    style: GoogleFonts.kalam(
+                      fontSize: 12,
+                      color: const Color(0xFF6B4F4F).withOpacity(0.8), // River Deep Brown - 与 Profile 页面一致
+                    ),
                   ),
                   side: BorderSide(color: Colors.grey.shade400),
                 ),
@@ -565,7 +564,10 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                   backgroundColor: Colors.grey.shade200,
                   label: Text(
                     '+$remaining',
-                    style: GoogleFonts.kalam(fontSize: 12),
+                    style: GoogleFonts.kalam(
+                      fontSize: 12,
+                      color: const Color(0xFF6B4F4F).withOpacity(0.8), // River Deep Brown - 与 Profile 页面一致
+                    ),
                   ),
                   side: BorderSide(color: Colors.grey.shade400),
                 ),
@@ -591,7 +593,10 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
     if (items.isEmpty) {
       return Text(
         'No items',
-        style: GoogleFonts.kalam(fontSize: 12, color: Colors.grey[600]),
+        style: GoogleFonts.kalam(
+          fontSize: 12,
+          color: const Color(0xFF6B4F4F).withOpacity(0.8), // River Deep Brown - 与 Profile 页面一致
+        ),
       );
     }
 
@@ -607,7 +612,10 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
             backgroundColor: Colors.grey.shade200,
             label: Text(
               _formatToTitleCase(item),
-              style: GoogleFonts.kalam(fontSize: 12),
+              style: GoogleFonts.kalam(
+                fontSize: 12,
+                color: const Color(0xFF6B4F4F).withOpacity(0.8), // River Deep Brown - 与 Profile 页面一致
+              ),
             ),
             side: BorderSide(color: Colors.grey.shade400),
           ),
@@ -615,7 +623,13 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
         if (remaining > 0)
           Chip(
             backgroundColor: Colors.grey.shade200,
-            label: Text('+$remaining', style: GoogleFonts.kalam(fontSize: 12)),
+            label: Text(
+              '+$remaining',
+              style: GoogleFonts.kalam(
+                fontSize: 12,
+                color: const Color(0xFF6B4F4F).withOpacity(0.8), // River Deep Brown - 与 Profile 页面一致
+              ),
+            ),
             side: BorderSide(color: Colors.grey.shade400),
           ),
       ],
@@ -630,7 +644,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
         style: GoogleFonts.kalam(
           fontSize: 18,
           fontWeight: FontWeight.bold,
-          color: Colors.black87,
+          color: const Color(0xFF6B4F4F), // River Deep Brown - 与 Profile 页面一致
         ),
       ),
     );
@@ -644,15 +658,18 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
         Text(
           label,
           style: GoogleFonts.kalam(
-            fontSize: 12,
+            fontSize: 16,
             fontWeight: FontWeight.bold,
-            color: Colors.grey[700],
+            color: const Color(0xFF6B4F4F), // River Deep Brown - 与 homepage 一致
           ),
         ),
         const SizedBox(height: 4),
         Text(
           value.isNotEmpty ? value : 'Not set',
-          style: GoogleFonts.kalam(fontSize: 14),
+          style: GoogleFonts.kalam(
+            fontSize: 20,
+            color: const Color(0xFF6B4F4F).withOpacity(0.8), // River Deep Brown - 与 homepage 一致
+          ),
           overflow: TextOverflow.ellipsis,
           maxLines: 1,
         ),
@@ -665,10 +682,12 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
     required String label,
     required String valueText,
     required Color accent,
+    Color? labelColor,
+    Color? valueColor,
   }) {
     return SketchyCard(
       backgroundColor: Colors.white,
-      borderColor: Colors.black87,
+      borderColor: const Color(0xFF6B4F4F), // River Deep Brown - 与出生日期一致
       borderWidth: 2.0,
       padding: const EdgeInsets.all(10), // ✅ 修复：减小 padding 从 12 到 10
       child: Row(
@@ -686,7 +705,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                   style: GoogleFonts.kalam(
                     fontSize: 11, // ✅ 修复：减小字体从 12 到 11
                     fontWeight: FontWeight.bold,
-                    color: Colors.grey[800],
+                    color: labelColor ?? Colors.grey[800],
                   ),
                   overflow: TextOverflow.ellipsis,
                   maxLines: 1,
@@ -697,7 +716,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                   style: GoogleFonts.kalam(
                     fontSize: 12, // ✅ 修复：减小字体从 13 到 12
                     fontWeight: FontWeight.bold,
-                    color: accent,
+                    color: valueColor ?? accent,
                   ),
                   overflow: TextOverflow.ellipsis,
                   maxLines: 1,
@@ -758,10 +777,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Header: 用户信息 + 简要资料
-                SketchyCard(
-                  backgroundColor: Colors.grey.shade100,
-                  borderColor: Colors.black87,
-                  borderWidth: 2.0,
+                Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -774,11 +790,11 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                             borderRadius: 40,
                             roughness: 2.0,
                             child: const CircleAvatar(
-                              radius: 38,
+                              radius: 40,
                               backgroundColor: Colors.grey,
                               child: Icon(
                                 Icons.person,
-                                size: 40,
+                                size: 42,
                                 color: Colors.white,
                               ),
                             ),
@@ -788,18 +804,24 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  user.username,
-                                  style: GoogleFonts.caveat(
-                                    fontSize: 28,
-                                    fontWeight: FontWeight.bold,
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    user.username,
+                                    style: GoogleFonts.caveat(
+                                      fontSize: 36,
+                                      fontWeight: FontWeight.bold,
+                                      color: const Color(0xFF6B4F4F).withOpacity(0.8), // River Deep Brown - 与出生日期一致
+                                    ),
+                                    maxLines: 1,
                                   ),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
                                   user.email,
                                   style: GoogleFonts.kalam(
-                                    fontSize: 14,
+                                    fontSize: 18,
                                     color: Colors.grey[600],
                                   ),
                                 ),
@@ -822,7 +844,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 24),
                       Wrap(
                         spacing: 16,
                         runSpacing: 12,
@@ -853,28 +875,50 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 40),
-                // Settings 按钮 - 手绘风格
+                const SizedBox(height: 80), // 增加间距，避免与印章重叠
+                // Edit 和 Settings 按钮 - 手绘风格
                 Center(
-                  child: SketchyButton(
-                    text: 'settings',
-                    backgroundColor: Colors.grey.shade400,
-                    borderColor: Colors.grey.shade700,
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const SettingsPage(),
-                        ),
-                      );
-                    },
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SketchyButton(
+                        text: 'Edit',
+                        backgroundColor: Colors.orange.shade100,
+                        borderColor: Colors.orange.shade700,
+                        onPressed: () async {
+                          final result = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const ProfileEditPage(),
+                            ),
+                          );
+                          if (result == true) {
+                            _loadUserData();
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      SketchyButton(
+                        text: 'settings',
+                        backgroundColor: Colors.grey.shade400,
+                        borderColor: Colors.grey.shade700,
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const SettingsPage(),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
             // 参考图元素：精准裁剪的红色爪印 + 代码生成的艺术字印章（半透明，不挡信息）
             Positioned(
-              top: 120,
+              top: 182,
               right: -4,
               child: IgnorePointer(
                 child: Opacity(
@@ -888,7 +932,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
               ),
             ),
             Positioned(
-              top: 258,
+              top: 320,
               right: -18,
               child: IgnorePointer(
                 child: OtterApprovedStamp(
@@ -917,99 +961,90 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _sectionTitle('Health'),
-            SketchyCard(
-              backgroundColor: Colors.white,
-              borderColor: Colors.black87,
-              borderWidth: 2.0,
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // BMI显示
-                  Builder(
-                    builder: (context) {
-                      dynamic bmiValue = _healthInfo?['bmi'];
-                      if (bmiValue == null &&
-                          user.height.isNotEmpty &&
-                          user.weight.isNotEmpty) {
-                        try {
-                          final height = double.tryParse(
-                            user.height.replaceAll(' cm', '').trim(),
-                          );
-                          final weight = double.tryParse(
-                            user.weight.replaceAll(' kg', '').trim(),
-                          );
-                          if (height != null && weight != null && height > 0) {
-                            final heightM = height / 100.0;
-                            bmiValue = weight / (heightM * heightM);
-                          }
-                        } catch (e) {
-                          // Ignore
-                        }
-                      }
+            // BMI显示
+            Builder(
+              builder: (context) {
+                dynamic bmiValue = _healthInfo?['bmi'];
+                if (bmiValue == null &&
+                    user.height.isNotEmpty &&
+                    user.weight.isNotEmpty) {
+                  try {
+                    final height = double.tryParse(
+                      user.height.replaceAll(' cm', '').trim(),
+                    );
+                    final weight = double.tryParse(
+                      user.weight.replaceAll(' kg', '').trim(),
+                    );
+                    if (height != null && weight != null && height > 0) {
+                      final heightM = height / 100.0;
+                      bmiValue = weight / (heightM * heightM);
+                    }
+                  } catch (e) {
+                    // Ignore
+                  }
+                }
 
-                      return Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.shade50,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: Colors.blue.shade200,
-                            width: 2,
+                return SketchyBorder(
+                  borderColor: const Color(0xFF6B4F4F), // River Deep Brown - 与出生日期一致
+                  borderWidth: 2.0,
+                  borderRadius: 12,
+                  roughness: 2.0,
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'BMI',
+                          style: GoogleFonts.kalam(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF6B4F4F), // River Deep Brown - 与 Profile 页面一致
                           ),
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'BMI',
-                              style: GoogleFonts.kalam(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              _formatBmi(bmiValue),
-                              style: GoogleFonts.caveat(
-                                fontSize: 32,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.blue[800],
-                              ),
-                            ),
-                          ],
+                        const SizedBox(height: 4),
+                        Text(
+                          _formatBmi(bmiValue),
+                          style: GoogleFonts.caveat(
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF6B4F4F).withOpacity(0.8), // River Deep Brown - 与 Profile 页面一致
+                          ),
                         ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
-                    'Health Goal',
-                    style: GoogleFonts.kalam(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey[800],
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  _buildGoalTypeSelector(),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    child: _isSavingGoal
-                        ? const Center(child: CircularProgressIndicator())
-                        : SketchyButton(
-                            text: 'Save Goal',
-                            backgroundColor: Colors.green.shade100,
-                            borderColor: Colors.green.shade700,
-                            onPressed: () {
-                              _saveHealthGoal();
-                            },
-                          ),
-                  ),
-                ],
+                );
+              },
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Health Goal',
+              style: GoogleFonts.kalam(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFF6B4F4F), // River Deep Brown - 与 Profile 页面一致
               ),
+            ),
+            const SizedBox(height: 12),
+            _buildGoalTypeSelector(),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: _isSavingGoal
+                  ? const Center(child: CircularProgressIndicator())
+                  : SketchyButton(
+                      text: 'Save Goal',
+                      backgroundColor: Colors.green.shade100,
+                      borderColor: Colors.green.shade700,
+                      onPressed: () {
+                        _saveHealthGoal();
+                      },
+                    ),
             ),
           ],
         ),
@@ -1036,17 +1071,14 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                     _healthInfo!['dailyFiber'] != null))
               _buildNutritionTargets()
             else
-              SketchyCard(
-                backgroundColor: Colors.white,
-                borderColor: Colors.black87,
-                borderWidth: 2.0,
-                padding: const EdgeInsets.all(16),
-                child: Center(
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
                   child: Text(
                     'Set a health goal to see nutrition targets',
                     style: GoogleFonts.kalam(
                       fontSize: 14,
-                      color: Colors.grey[600],
+                      color: const Color(0xFF6B4F4F).withOpacity(0.8), // River Deep Brown - 与 Profile 页面一致
                     ),
                   ),
                 ),
@@ -1068,92 +1100,89 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _sectionTitle('Preferences'),
-            SketchyCard(
-              backgroundColor: Colors.white,
-              borderColor: Colors.black87,
-              borderWidth: 2.0,
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(
-                      'Preferences',
-                      style: GoogleFonts.kalam(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(
+                    'Preferences',
+                    style: GoogleFonts.kalam(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF6B4F4F), // River Deep Brown - 与 Profile 页面一致
                     ),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 8),
-                        _buildPreferencesSummary(),
-                      ],
-                    ),
-                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                    onTap: () async {
-                      await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const PreferencesListPage(),
-                        ),
-                      );
-                      await _loadListsData();
-                      setState(() {});
-                    },
                   ),
-                  const SizedBox(height: 12),
-                  Divider(color: Colors.grey.shade300, height: 1),
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(
-                      'Diet Habits',
-                      style: GoogleFonts.kalam(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    subtitle: _buildItemsSummary(kCurrentUser.dietHabits),
-                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                    onTap: () async {
-                      await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const DietHabitsListPage(),
-                        ),
-                      );
-                      await _loadListsData();
-                      setState(() {});
-                    },
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 8),
+                      _buildPreferencesSummary(),
+                    ],
                   ),
-                  const SizedBox(height: 12),
-                  Divider(color: Colors.grey.shade300, height: 1),
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(
-                      'Allergies',
-                      style: GoogleFonts.kalam(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                  onTap: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const PreferencesListPage(),
                       ),
+                    );
+                    await _loadListsData();
+                    setState(() {});
+                  },
+                ),
+                const SizedBox(height: 12),
+                Divider(color: Colors.grey.shade300, height: 1),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(
+                    'Diet Habits',
+                    style: GoogleFonts.kalam(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF6B4F4F), // River Deep Brown - 与 Profile 页面一致
                     ),
-                    subtitle: _buildItemsSummary(kCurrentUser.allergies),
-                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                    onTap: () async {
-                      await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const AllergiesListPage(),
-                        ),
-                      );
-                      await _loadListsData();
-                      setState(() {});
-                    },
                   ),
-                ],
-              ),
+                  subtitle: _buildItemsSummary(kCurrentUser.dietHabits),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                  onTap: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const DietHabitsListPage(),
+                      ),
+                    );
+                    await _loadListsData();
+                    setState(() {});
+                  },
+                ),
+                const SizedBox(height: 12),
+                Divider(color: Colors.grey.shade300, height: 1),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(
+                    'Allergies',
+                    style: GoogleFonts.kalam(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF6B4F4F), // River Deep Brown - 与 Profile 页面一致
+                    ),
+                  ),
+                  subtitle: _buildItemsSummary(kCurrentUser.allergies),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                  onTap: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const AllergiesListPage(),
+                      ),
+                    );
+                    await _loadListsData();
+                    setState(() {});
+                  },
+                ),
+              ],
             ),
           ],
         ),
@@ -1164,66 +1193,12 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return Scaffold(
-        appBar: AppBar(
-          automaticallyImplyLeading: false,
-          title: Text(
-            'Profile',
-            style: GoogleFonts.caveat(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-        body: const Center(child: CircularProgressIndicator()),
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
       );
     }
 
     return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        title: Text(
-          'Profile',
-          style: GoogleFonts.caveat(fontSize: 28, fontWeight: FontWeight.bold),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () async {
-              final result = await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const ProfileEditPage(),
-                ),
-              );
-              if (result == true) {
-                _loadUserData();
-              }
-            },
-            child: Text(
-              'Edit',
-              style: GoogleFonts.kalam(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const SettingsPage()),
-              );
-            },
-            child: Text(
-              'Settings',
-              style: GoogleFonts.kalam(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
       body: PassportPageView(
         pages: [
           _buildProfilePage(context),

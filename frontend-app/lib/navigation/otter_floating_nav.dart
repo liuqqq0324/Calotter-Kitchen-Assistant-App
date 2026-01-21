@@ -408,7 +408,7 @@ class _OtterFloatingNavState extends State<OtterFloatingNav>
                   width: itemSize,
                   height: itemSize,
                   decoration: BoxDecoration(
-                    color: isSelected ? Colors.brown.shade200 : Colors.white,
+                    color: Colors.transparent, // 透明背景
                     shape: BoxShape.circle,
                     border: Border.all(
                       color: isSelected

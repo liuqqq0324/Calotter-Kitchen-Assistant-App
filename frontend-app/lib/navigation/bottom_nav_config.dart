@@ -17,7 +17,8 @@ class BottomNavConfig {
           label: 'Recipes',
         ),
         NavigationDestination(
-          icon: Icon(Icons.add_circle, size: 40, color: Colors.orange),
+          icon: Icon(Icons.add_outlined, size: 24),
+          selectedIcon: Icon(Icons.add, size: 24),
           label: 'Add',
         ),
         NavigationDestination(
