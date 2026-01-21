@@ -1,17 +1,16 @@
 // lib/config/yolo_labels_config.dart
 //
 // YOLO model labels configuration
-// Labels must strictly match the model's data.yaml configuration (97 classes including '-')
-// Order: 0='-', 1='Apple', 2='Apricot', ..., 96='White-Rice'
+// Labels must strictly match the model's data.yaml configuration (96 classes)
+// Order: 0='Apple', 1='Apricot', 2='Asparagus', ..., 95='White-Rice'
 //
 // Model configuration reference:
-// nc: 97
-// names: ['-', 'Apple', 'Apricot', ..., 'White-Rice']
+// nc: 96
+// names: ['Apple', 'Apricot', 'Asparagus', ..., 'White-Rice']
 
 /// List of all recognizable ingredient labels from the YOLO model
 /// This list must match the model's data.yaml configuration exactly
 const List<String> yoloLabels = [
-  '-',
   'Apple',
   'Apricot',
   'Asparagus',
@@ -42,7 +41,7 @@ const List<String> yoloLabels = [
   'Chickpea',
   'Coconut',
   'Corn',
-  'Courgette',
+  'Zucchini',
   'Crab',
   'Cucumber',
   'Dragon-Fruit',
@@ -110,12 +109,5 @@ const List<String> yoloLabels = [
   'White-Rice',
 ];
 
-/// Total number of classes in the YOLO model (including '-' placeholder)
-const int yoloClassCount = 97;
-
-/// Placeholder class index (should be filtered out during post-processing)
-const int placeholderClassIndex = 0;
-
-/// Placeholder class label
-const String placeholderLabel = '-';
-
+/// Total number of classes in the YOLO model
+const int yoloClassCount = 96;

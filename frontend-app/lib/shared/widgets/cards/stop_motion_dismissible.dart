@@ -80,8 +80,8 @@ class _StopMotionDismissibleState extends State<StopMotionDismissible> {
 
                   // C. 持续旋转 (Rotation)
                   // 随着揉搓，纸团会滚动。逆时针转
-                  // 进度 0.0 -> 1.0，角度 0 -> -0.2弧度 (约 -11.5度)
-                  double rotation = -_progress * 0.1;
+                  // 进度 0.0 -> 1.0，角度 0 -> -0.05弧度 (约 -2.9度)
+                  double rotation = -_progress * 0.05;
 
                   // D. 保持卡片真实高度，使用 centerSlice
                   // 获取子组件的实际高度

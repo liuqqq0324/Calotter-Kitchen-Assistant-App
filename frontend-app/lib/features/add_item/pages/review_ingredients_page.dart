@@ -3,6 +3,7 @@ import 'package:personal_sous_chef/data/models/ingredient.dart';
 import 'package:personal_sous_chef/shared/widgets/cards/ingredient_card.dart';
 import 'package:personal_sous_chef/features/inventory/pages/edit_ingredient_page.dart'; // 🔥 引入编辑页
 import 'package:personal_sous_chef/services/api/inventory_api_service.dart'; // 🔥 引入 API 服务
+import 'package:personal_sous_chef/shared/widgets/cards/stop_motion_dismissible.dart'; // 引入定格动画滑动删除组件
 
 class ReviewIngredientsPage extends StatefulWidget {
   // 🔥 新增：定义一个变量来接收外部传入的数据
@@ -80,10 +81,12 @@ class _ReviewIngredientsPageState extends State<ReviewIngredientsPage> {
   Future<void> _loadAllowedUnitsForIngredient(String ingredientName) async {
     try {
       // 1. 通过名称查找标准食材ID（支持精确匹配）
-      // ✅ 修复：使用原始名称（带连字符）进行查找
+      // ✅ 修复：将名称中的空格替换回连字符，以匹配数据库中的格式
+      // YOLO服务会将 "Bok-Choy" 转换为 "Bok Choy"，需要还原
+      final normalizedName = ingredientName.replaceAll(' ', '-');
       final standardIngredientId =
           await InventoryApiService.findStandardIngredientIdByName(
-            ingredientName,
+            normalizedName,
           );
 
       if (standardIngredientId != null) {
@@ -93,7 +96,7 @@ class _ReviewIngredientsPageState extends State<ReviewIngredientsPage> {
         // 3. 获取标准食材详情（包含 primaryUnit）
         final standardIngredient =
             await InventoryApiService.searchStandardIngredients(
-              name: ingredientName,
+              name: normalizedName,
               fuzzy: false,
             );
 
@@ -180,9 +183,11 @@ class _ReviewIngredientsPageState extends State<ReviewIngredientsPage> {
 
           // 如果没有加载过，尝试通过名称查找
           if (standardIngredientId == null) {
+            // ✅ 修复：将名称中的空格替换回连字符，以匹配数据库中的格式
+            final normalizedName = ingredient.name.replaceAll(' ', '-');
             standardIngredientId =
                 await InventoryApiService.findStandardIngredientIdByName(
-                  ingredient.name,
+                  normalizedName,
                 );
           }
 
@@ -349,8 +354,55 @@ class _ReviewIngredientsPageState extends State<ReviewIngredientsPage> {
         ),
         const SizedBox(height: 10),
 
-        // 2. 列表内容 (保持你的侧滑删除功能)
+        // 2. 列表内容 (使用定格动画滑动删除功能)
         ..._detectedItems.map((item) {
+          // 🔥 使用定格动画滑动删除组件
+          return StopMotionDismissible(
+            dismissKey: ObjectKey(item).toString(),
+            onDismissed: (direction) {
+              final removedItem = item;
+              final index = _detectedItems.indexOf(item);
+              setState(() => _detectedItems.remove(item));
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text("${item.name} removed"),
+                  action: SnackBarAction(
+                    label: "UNDO",
+                    onPressed: () {
+                      // 🔥 安全检查：如果页面已经关了，就别刷新了
+                      if (!mounted) return;
+
+                      setState(() {
+                        // 这里用 insert 插回原位是安全的，
+                        // 因为 Review 页面不像 Inventory 页面那样会实时排序，
+                        // 它是维持用户扫描顺序的，所以插回 index 没问题。
+                        _detectedItems.insert(index, removedItem);
+                      });
+                    },
+                  ),
+                ),
+              );
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: IngredientCard(
+                item: item,
+                useStatusColors: false,
+                // ✅ 使用动态加载的允许单位列表
+                unitOptions:
+                    _ingredientAllowedUnits[item.name] ??
+                    ['g', 'pcs', 'ml'], // 默认单位列表
+                onUnitChanged: (val) => setState(() => item.unit = val),
+                onQuantityChanged: (val) => setState(() => item.quantity = val),
+                onExpiryTap: () => _selectDate(item),
+              ),
+            ),
+          );
+
+          // =========================================================
+          // 🔥 原有滑动删除代码（已注释，保留作为参考）
+          // =========================================================
+          /*
           return Dismissible(
             key: ObjectKey(item),
             direction: DismissDirection.endToStart, // 允许删除
@@ -403,6 +455,7 @@ class _ReviewIngredientsPageState extends State<ReviewIngredientsPage> {
               ),
             ),
           );
+          */
         }),
 
         const SizedBox(height: 30),

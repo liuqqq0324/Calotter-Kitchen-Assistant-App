@@ -70,9 +70,11 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
 
     try {
       // 1. 获取标准食材详情（包含 primaryUnit）
+      // ✅ 修复：将名称中的空格替换回连字符，以匹配数据库中的格式
+      final normalizedName = widget.ingredient.name.replaceAll(' ', '-');
       final standardIngredient =
           await InventoryApiService.searchStandardIngredients(
-            name: widget.ingredient.name,
+            name: normalizedName,
             fuzzy: false,
           );
 
@@ -161,10 +163,15 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
     }
 
     // 在本地标准食材库中查找完全匹配的食材
+    // ✅ 修复：将名称中的空格替换为连字符，以匹配数据库中的格式
+    // 支持用户输入 "Bok Choy" 或 "Bok-Choy" 都能匹配到数据库中的 "Bok-Choy"
+    final normalizedName = name.replaceAll(' ', '-');
     final matched = _standardIngredients.firstWhere((ing) {
       final ingName = ing['name'] as String?;
       if (ingName == null) return false;
-      return ingName.toLowerCase().trim() == name.toLowerCase().trim();
+      // 同时支持空格和连字符的匹配
+      final normalizedIngName = ingName.replaceAll(' ', '-');
+      return normalizedIngName.toLowerCase().trim() == normalizedName.toLowerCase().trim();
     }, orElse: () => {});
 
     if (matched.isNotEmpty && matched['id'] != null) {

@@ -15,10 +15,14 @@
 --
 -- 注意：
 --   1. 此脚本会初始化标准库数据（过敏原、食材、调料、厨具）
---   2. 标准食材库仅包含 YOLO 模型可识别的 96 个标签（排除 '-' 占位符）
---   3. 所有食材的单位和单位转换已规范化
---   4. 使用 ON CONFLICT 确保幂等性，可重复执行
---   5. 不会影响现有用户数据
+--   2. 标准食材库包含：
+--      - YOLO 模型可识别的 96 个标签（ID: 1001-1096，排除 '-' 占位符）
+--      - 欧美家庭常见但模型无法识别的 44 个额外食材（ID: 1097-1140）
+--      总计：140 个标准食材
+--   3. 所有食材的单位和单位转换已规范化（primary_unit, secondary_unit, unit_conversion_factor, standard_unit）
+--   4. 所有食材信息使用英文存储（name, category等）
+--   5. 使用 ON CONFLICT 确保幂等性，可重复执行
+--   6. 不会影响现有用户数据
 --
 -- ============================================
 -- 1. 清空现有标准库数据（可选，谨慎使用）
@@ -59,7 +63,9 @@ SELECT setval('ref_standard_allergens_id_seq', (SELECT MAX(id) FROM ref_standard
 
 -- ============================================
 -- 3. 插入标准食材库（StandardIngredient）
--- Insert Standard Ingredients (96 items, YOLO model labels only, excluding '-' placeholder)
+-- Insert Standard Ingredients (140 items total)
+-- - YOLO model labels: 96 items (ID: 1001-1096)
+-- - Additional Western common ingredients: 44 items (ID: 1097-1140)
 -- 
 -- 单位规范说明：
 -- - 水果/蔬菜（按个计）：primary_unit='pcs', secondary_unit='g', unit_conversion_factor=average_gram_per_unit, standard_unit='g'
@@ -114,7 +120,7 @@ VALUES
   (1039, 'Cauliflower', 'VEG', 25, 2.1, 0.2, 4.6, 1.2, 300, 5, 7, 0, 'FRIDGE', 'pcs', 'g', 300.0, 'g'),
   (1040, 'Celery', 'VEG', 16, 0.7, 0.2, 3.0, 1.6, 100, 7, 14, 0, 'FRIDGE', 'pcs', 'g', 100.0, 'g'),
   (1041, 'Corn', 'VEG', 86, 3.4, 1.2, 19.9, 2.9, 200, 7, 7, 0, 'FRIDGE', 'pcs', 'g', 200.0, 'g'),
-  (1042, 'Courgette', 'VEG', 17, 1.2, 0.3, 3.1, 1.0, 200, 7, 7, 0, 'FRIDGE', 'pcs', 'g', 200.0, 'g'),
+  (1042, 'Zucchini', 'VEG', 17, 1.2, 0.3, 3.1, 1.0, 200, 7, 7, 0, 'FRIDGE', 'pcs', 'g', 200.0, 'g'),
   (1043, 'Cucumber', 'VEG', 16, 0.7, 0.1, 3.6, 0.5, 200, 7, 7, 0, 'FRIDGE', 'pcs', 'g', 200.0, 'g'),
   (1044, 'Eggplant', 'VEG', 25, 1.1, 0.2, 5.4, 1.3, 250, 5, 7, 0, 'FRIDGE', 'pcs', 'g', 250.0, 'g'),
   (1045, 'Garlic', 'VEG', 149, 6.4, 0.5, 33.1, 2.1, 10, 90, 120, 0, 'PANTRY', 'pcs', 'g', 10.0, 'g'),
@@ -182,7 +188,66 @@ VALUES
   (1093, 'Butter', 'DAIRY', 717, 0.5, 81.1, 0.1, 0.0, 50, 30, 90, 0, 'FRIDGE', 'g', 'kg', 0.001, 'g'),
   (1094, 'Milk', 'DAIRY', 54, 3.0, 3.2, 3.4, 0.0, 250, 0, 7, 0, 'FRIDGE', 'ml', 'L', 0.001, 'ml'),
   (1095, 'Sesame-Seeds', 'OTHER', 573, 17.7, 49.7, 23.4, 11.8, 10, 180, 0, 0, 'PANTRY', 'g', 'kg', 0.001, 'g'),
-  (1096, 'Tofu', 'OTHER', 76, 8.1, 4.8, 1.9, 0.3, 300, 0, 7, 0, 'FRIDGE', 'pcs', 'g', 300.0, 'g')
+  (1096, 'Tofu', 'OTHER', 76, 8.1, 4.8, 1.9, 0.3, 300, 0, 7, 0, 'FRIDGE', 'pcs', 'g', 300.0, 'g'),
+
+  -- Additional Common Western Ingredients (Model Cannot Recognize) - ID: 1097-1140
+  -- Additional ingredients commonly found in Western households but not recognized by YOLO model
+  
+  -- Dairy & Cheese (DAIRY)
+  (1097, 'Yogurt', 'DAIRY', 59, 10.0, 0.4, 3.6, 0.0, 250, 0, 14, 0, 'FRIDGE', 'ml', 'L', 0.001, 'ml'),
+  (1098, 'Greek Yogurt', 'DAIRY', 97, 10.0, 5.0, 3.9, 0.0, 200, 0, 14, 0, 'FRIDGE', 'g', 'kg', 0.001, 'g'),
+  (1099, 'Cheddar Cheese', 'DAIRY', 402, 25.0, 33.1, 1.3, 0.0, 100, 30, 60, 90, 'FRIDGE', 'g', 'kg', 0.001, 'g'),
+  (1100, 'Mozzarella Cheese', 'DAIRY', 300, 22.0, 22.0, 2.2, 0.0, 100, 7, 14, 90, 'FRIDGE', 'g', 'kg', 0.001, 'g'),
+  (1101, 'Parmesan Cheese', 'DAIRY', 431, 38.0, 29.0, 4.1, 0.0, 50, 365, 365, 0, 'FRIDGE', 'g', 'kg', 0.001, 'g'),
+  (1102, 'Cream Cheese', 'DAIRY', 342, 6.2, 34.4, 4.1, 0.0, 100, 0, 14, 0, 'FRIDGE', 'g', 'kg', 0.001, 'g'),
+  (1103, 'Sour Cream', 'DAIRY', 198, 2.3, 19.4, 4.6, 0.0, 250, 0, 14, 0, 'FRIDGE', 'ml', 'L', 0.001, 'ml'),
+  (1104, 'Cottage Cheese', 'DAIRY', 98, 11.1, 4.3, 3.4, 0.0, 200, 0, 7, 0, 'FRIDGE', 'g', 'kg', 0.001, 'g'),
+  
+  -- Meat & Deli (MEAT)
+  (1105, 'Bacon', 'MEAT', 541, 37.0, 42.0, 1.4, 0.0, 100, 7, 7, 90, 'FRIDGE', 'g', 'kg', 0.001, 'g'),
+  (1106, 'Ham', 'MEAT', 145, 21.0, 5.5, 1.5, 0.0, 100, 7, 7, 90, 'FRIDGE', 'g', 'kg', 0.001, 'g'),
+  (1107, 'Turkey', 'MEAT', 189, 29.0, 7.0, 0.0, 0.0, 100, 1, 2, 180, 'FRIDGE', 'g', 'kg', 0.001, 'g'),
+  (1108, 'Duck', 'MEAT', 337, 19.0, 28.0, 0.0, 0.0, 100, 1, 2, 180, 'FRIDGE', 'g', 'kg', 0.001, 'g'),
+  (1109, 'Ground Beef', 'MEAT', 250, 26.0, 15.0, 0.0, 0.0, 100, 1, 2, 90, 'FRIDGE', 'g', 'kg', 0.001, 'g'),
+  (1110, 'Ground Turkey', 'MEAT', 189, 29.0, 7.0, 0.0, 0.0, 100, 1, 2, 90, 'FRIDGE', 'g', 'kg', 0.001, 'g'),
+  (1111, 'Ground Pork', 'MEAT', 242, 27.0, 14.0, 0.0, 0.0, 100, 1, 2, 90, 'FRIDGE', 'g', 'kg', 0.001, 'g'),
+  (1112, 'Lobster', 'MEAT', 98, 20.0, 1.0, 1.3, 0.0, 150, 1, 2, 90, 'FRIDGE', 'pcs', 'g', 150.0, 'g'),
+  (1113, 'Clams', 'MEAT', 86, 14.7, 1.0, 3.6, 0.0, 100, 1, 2, 90, 'FRIDGE', 'pcs', 'g', 100.0, 'g'),
+  (1114, 'Oysters', 'MEAT', 68, 7.0, 2.5, 3.9, 0.0, 50, 1, 2, 90, 'FRIDGE', 'pcs', 'g', 50.0, 'g'),
+  
+  -- Vegetables (VEG)
+  (1115, 'Brussels Sprouts', 'VEG', 43, 3.4, 0.3, 9.0, 3.8, 100, 7, 14, 0, 'FRIDGE', 'pcs', 'g', 100.0, 'g'),
+  (1116, 'Artichoke', 'VEG', 47, 3.3, 0.2, 11.0, 5.4, 200, 7, 7, 0, 'FRIDGE', 'pcs', 'g', 200.0, 'g'),
+  (1117, 'Arugula', 'VEG', 25, 2.6, 0.7, 3.7, 1.6, 100, 3, 5, 0, 'FRIDGE', 'pcs', 'g', 100.0, 'g'),
+  (1118, 'Endive', 'VEG', 17, 1.3, 0.2, 3.4, 3.1, 100, 7, 14, 0, 'FRIDGE', 'pcs', 'g', 100.0, 'g'),
+  (1119, 'Fennel', 'VEG', 31, 1.2, 0.2, 7.3, 3.1, 200, 7, 14, 0, 'FRIDGE', 'pcs', 'g', 200.0, 'g'),
+  (1120, 'Collard Greens', 'VEG', 32, 3.0, 0.6, 5.7, 4.0, 200, 3, 7, 0, 'FRIDGE', 'pcs', 'g', 200.0, 'g'),
+  (1121, 'Swiss Chard', 'VEG', 19, 1.8, 0.2, 3.7, 1.6, 200, 3, 7, 0, 'FRIDGE', 'pcs', 'g', 200.0, 'g'),
+  (1122, 'Turnip', 'VEG', 28, 0.9, 0.1, 6.4, 1.8, 150, 14, 30, 0, 'FRIDGE', 'pcs', 'g', 150.0, 'g'),
+  (1123, 'Beans', 'VEG', 31, 1.8, 0.1, 7.0, 2.5, 150, 3, 5, 0, 'FRIDGE', 'g', 'kg', 0.001, 'g'),
+  (1124, 'Green Beans', 'VEG', 31, 1.8, 0.1, 7.0, 2.5, 150, 3, 5, 0, 'FRIDGE', 'g', 'kg', 0.001, 'g'),
+  (1125, 'Peas', 'VEG', 81, 5.4, 0.4, 14.5, 5.1, 100, 3, 5, 0, 'FRIDGE', 'g', 'kg', 0.001, 'g'),
+  (1126, 'Edamame', 'VEG', 122, 11.0, 5.2, 9.9, 5.2, 100, 0, 3, 0, 'FRIDGE', 'g', 'kg', 0.001, 'g'),
+  (1127, 'Bean Sprouts', 'VEG', 30, 3.0, 0.2, 5.9, 1.8, 100, 3, 5, 0, 'FRIDGE', 'g', 'kg', 0.001, 'g'),
+  
+  -- Fruits (FRUIT)
+  (1128, 'Cranberry', 'FRUIT', 46, 0.4, 0.1, 12.2, 4.6, 5, 30, 60, 0, 'FRIDGE', 'pcs', 'g', 5.0, 'g'),
+  (1129, 'Gooseberry', 'FRUIT', 44, 0.9, 0.6, 10.2, 4.3, 5, 7, 14, 0, 'FRIDGE', 'pcs', 'g', 5.0, 'g'),
+  (1130, 'Elderberry', 'FRUIT', 73, 0.7, 0.5, 18.4, 7.0, 5, 3, 7, 0, 'FRIDGE', 'pcs', 'g', 5.0, 'g'),
+  (1131, 'Figs', 'FRUIT', 74, 0.8, 0.3, 19.2, 2.9, 50, 3, 7, 0, 'FRIDGE', 'pcs', 'g', 50.0, 'g'),
+  (1132, 'Dates', 'FRUIT', 282, 2.5, 0.4, 75.0, 8.0, 10, 90, 180, 0, 'PANTRY', 'pcs', 'g', 10.0, 'g'),
+  
+  -- Condiments & Sauces (OTHER)
+  (1133, 'Olives', 'OTHER', 115, 0.8, 10.7, 6.0, 3.2, 10, 180, 365, 0, 'PANTRY', 'pcs', 'g', 10.0, 'g'),
+  (1134, 'Capers', 'OTHER', 23, 2.4, 0.9, 5.0, 3.2, 10, 365, 365, 0, 'PANTRY', 'g', 'kg', 0.001, 'g'),
+  (1135, 'Sun-Dried Tomatoes', 'OTHER', 258, 14.1, 2.9, 55.8, 12.3, 50, 365, 365, 0, 'PANTRY', 'g', 'kg', 0.001, 'g'),
+  (1136, 'Roasted Red Peppers', 'OTHER', 31, 1.0, 0.3, 7.4, 1.5, 100, 7, 30, 0, 'FRIDGE', 'g', 'kg', 0.001, 'g'),
+  
+  -- Frozen & Prepared (OTHER)
+  (1137, 'Frozen Vegetables', 'OTHER', 65, 3.0, 0.4, 13.0, 4.0, 100, 0, 0, 270, 'FREEZER', 'g', 'kg', 0.001, 'g'),
+  (1138, 'Frozen Fruits', 'OTHER', 57, 0.7, 0.3, 14.5, 2.4, 100, 0, 0, 270, 'FREEZER', 'g', 'kg', 0.001, 'g'),
+  (1139, 'Frozen Berries', 'OTHER', 57, 0.7, 0.3, 14.5, 2.4, 100, 0, 0, 270, 'FREEZER', 'g', 'kg', 0.001, 'g'),
+  (1140, 'Ice Cream', 'DAIRY', 207, 3.5, 11.0, 23.6, 0.7, 100, 0, 0, 180, 'FREEZER', 'ml', 'L', 0.001, 'ml')
 
 ON CONFLICT (id) DO UPDATE SET
   name = EXCLUDED.name,
@@ -437,7 +502,7 @@ BEGIN
   RAISE NOTICE '========================================';
   RAISE NOTICE 'Standard Libraries Initialization Complete!';
   RAISE NOTICE '========================================';
-  RAISE NOTICE 'Standard Ingredients: % (96 items, YOLO model labels only)', (SELECT COUNT(*) FROM ref_standard_ingredients);
+  RAISE NOTICE 'Standard Ingredients: % (96 YOLO labels + 44 additional Western ingredients = 140 total)', (SELECT COUNT(*) FROM ref_standard_ingredients);
   RAISE NOTICE 'Standard Spices: %', (SELECT COUNT(*) FROM ref_standard_spices);
   RAISE NOTICE 'Standard Utensils: %', (SELECT COUNT(*) FROM ref_standard_utensils);
   RAISE NOTICE 'Standard Allergens: %', (SELECT COUNT(*) FROM ref_standard_allergens);

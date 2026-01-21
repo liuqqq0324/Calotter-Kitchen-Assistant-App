@@ -959,6 +959,38 @@ class _InventoryPageState extends State<InventoryPage>
         itemCount: _leftovers.length,
         itemBuilder: (context, index) {
           final leftover = _leftovers[index];
+          
+          // 🔥 使用定格动画滑动删除组件
+          return StopMotionDismissible(
+            dismissKey: leftover.id,
+            onDismissed: (direction) async {
+              final deletedLeftover = leftover;
+              try {
+                await _deleteLeftover(deletedLeftover);
+              } catch (e) {
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text("Failed to delete: $e"),
+                    action: SnackBarAction(
+                      label: "UNDO",
+                      onPressed: () {
+                        _loadLeftovers();
+                      },
+                    ),
+                  ),
+                );
+              }
+            },
+            child: LeftoverCard(
+              item: leftover,
+            ),
+          );
+          
+          // =========================================================
+          // 🔥 原有滑动删除代码（已注释，保留作为参考）
+          // =========================================================
+          /*
           return Dismissible(
             key: ValueKey(leftover.id),
             direction: DismissDirection.endToStart,
@@ -995,6 +1027,7 @@ class _InventoryPageState extends State<InventoryPage>
               item: leftover,
             ),
           );
+          */
         },
       ),
     );

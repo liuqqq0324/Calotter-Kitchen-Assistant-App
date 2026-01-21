@@ -95,7 +95,7 @@ def verify_data():
         cursor.execute("SELECT COUNT(*) FROM ref_standard_allergens")
         allergen_count = cursor.fetchone()[0]
         
-        print(f"   ✅ 标准食材: {ingredient_count} 条（应包含 96 条，仅 YOLO 模型标签）")
+        print(f"   ✅ 标准食材: {ingredient_count} 条（应包含 140 条：96 个 YOLO 模型标签 + 44 个额外欧美常见食材）")
         print(f"   ✅ 标准调料: {spice_count} 条")
         print(f"   ✅ 标准厨具: {utensil_count} 条")
         print(f"   ✅ 标准过敏原: {allergen_count} 条")
@@ -136,7 +136,7 @@ def main():
     print()
     print("此脚本将执行以下操作：")
     print("  1. 初始化基础标准库数据（过敏原、食材、调料、厨具）")
-    print("  2. 标准食材库仅包含 YOLO 模型可识别的 96 个标签")
+    print("  2. 标准食材库包含 140 个食材：96 个 YOLO 模型标签 + 44 个额外欧美常见食材")
     print("  3. 所有食材的单位和单位转换已规范化")
     print("  4. 验证数据完整性")
     print()
@@ -144,7 +144,7 @@ def main():
     # 执行 SQL 文件
     success = run_sql_file(
         sql_file,
-        "执行标准库初始化（仅 YOLO 模型标签，单位已规范化）"
+        "执行标准库初始化（140 个食材，单位已规范化）"
     )
     
     if not success:
