@@ -445,6 +445,33 @@ class InventoryApiService {
     }
   }
 
+  /// Get all standard allergens
+  /// 获取所有标准过敏原列表
+  /// 注意：此端点属于 user API，但放在 InventoryApiService 中以打破循环依赖
+  static Future<List<Map<String, dynamic>>> getAllStandardAllergens() async {
+    try {
+      final url = Uri.parse('${ApiConfig.baseUrl}/api/user/standard-allergens');
+
+      final response = await http.get(url, headers: await _getHeaders());
+
+      // ✅ 适配后端返回的 Result<T> 格式
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200 && data['code'] == 200) {
+        final responseData = data['data'];
+        if (responseData is List) {
+          return List<Map<String, dynamic>>.from(responseData);
+        }
+        return [];
+      } else {
+        throw Exception(
+          'Failed to get standard allergens: ${data['message'] ?? 'Unknown error'}',
+        );
+      }
+    } catch (e) {
+      throw Exception('Network error: $e');
+    }
+  }
+
   /// ✅ 获取标准食材的允许单位列表
   /// Get allowed units for a standard ingredient
   /// GET /api/inventory/standard-ingredients/{id}/allowed-units

@@ -160,6 +160,12 @@ class _SketchyBorderPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _SketchyBorderPainter oldDelegate) {
+    return oldDelegate.borderColor != borderColor ||
+        oldDelegate.borderWidth != borderWidth ||
+        oldDelegate.backgroundColor != backgroundColor ||
+        oldDelegate.borderRadius != borderRadius ||
+        oldDelegate.roughness != roughness;
+  }
 }
 

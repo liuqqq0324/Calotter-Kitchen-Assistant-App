@@ -688,94 +688,106 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
     final theme = Theme.of(context);
     final steps = recipe.steps;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(recipe.title),
-        // ✅ Add TabBar below title when there are multiple dishes
-        bottom: _totalDishes > 1
-            ? TabBar(
-                controller: _tabController,
-                isScrollable: true,
-                indicatorColor: Colors.orange,
-                labelColor: Colors.orange,
-                unselectedLabelColor: Colors.grey,
-                tabs: widget.menu.recipes.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final r = entry.value;
-                  final isDone = _completedDishes.contains(index);
-                  return Tab(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (isDone)
-                          Icon(
-                            Icons.check_circle,
-                            size: 16,
-                            color: Colors.green,
-                          )
-                        else
-                          Text('${r.emoji}'),
-                        const SizedBox(width: 6),
-                        Text(
-                          r.title.length > 20
-                              ? '${r.title.substring(0, 20)}...'
-                              : r.title,
-                          style: const TextStyle(fontSize: 13),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
-              )
-            : null,
-        actions: [
-          // View Mode: 只显示收藏按钮
-          // Cooking Mode: 显示语音/手势控制 + 收藏按钮
-          if (!widget.isViewMode) ...[
-            // Gesture control button
-            IconButton(
-              onPressed: _toggleGestureMode,
-              icon: Icon(
-                _isGestureModeActive ? Icons.gesture : Icons.gesture_outlined,
-                color: _isGestureModeActive ? Colors.blue : null,
+    return Container(
+      decoration: const BoxDecoration(
+        image: DecorationImage(
+          image: AssetImage('assets/images/background.png'),
+          fit: BoxFit.cover,
+        ),
+      ),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          title: Text(recipe.title),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          surfaceTintColor: Colors.transparent,
+          // ✅ Add TabBar below title when there are multiple dishes
+          bottom: _totalDishes > 1
+              ? TabBar(
+                  controller: _tabController,
+                  isScrollable: true,
+                  indicatorColor: Colors.orange,
+                  labelColor: Colors.orange,
+                  unselectedLabelColor: Colors.grey,
+                  tabs: widget.menu.recipes.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final r = entry.value;
+                    final isDone = _completedDishes.contains(index);
+                    return Tab(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (isDone)
+                            Icon(
+                              Icons.check_circle,
+                              size: 16,
+                              color: Colors.green,
+                            )
+                          else
+                            Text('${r.emoji}'),
+                          const SizedBox(width: 6),
+                          Text(
+                            r.title.length > 20
+                                ? '${r.title.substring(0, 20)}...'
+                                : r.title,
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                )
+              : null,
+          actions: [
+            // View Mode: 只显示收藏按钮
+            // Cooking Mode: 显示语音/手势控制 + 收藏按钮
+            if (!widget.isViewMode) ...[
+              // Gesture control button
+              IconButton(
+                onPressed: _toggleGestureMode,
+                icon: Icon(
+                  _isGestureModeActive ? Icons.gesture : Icons.gesture_outlined,
+                  color: _isGestureModeActive ? Colors.blue : null,
+                ),
+                tooltip: _isGestureModeActive ? '退出手势模式' : '开启手势模式',
               ),
-              tooltip: _isGestureModeActive ? '退出手势模式' : '开启手势模式',
-            ),
-            // Voice control button
-            IconButton(
-              onPressed: _toggleVoiceMode,
-              icon: Icon(
-                _isVoiceModeActive ? Icons.mic : Icons.mic_none,
-                color: _isVoiceModeActive ? Colors.red : null,
+              // Voice control button
+              IconButton(
+                onPressed: _toggleVoiceMode,
+                icon: Icon(
+                  _isVoiceModeActive ? Icons.mic : Icons.mic_none,
+                  color: _isVoiceModeActive ? Colors.red : null,
+                ),
+                tooltip: _isVoiceModeActive ? '退出语音模式' : '开启语音模式',
               ),
-              tooltip: _isVoiceModeActive ? '退出语音模式' : '开启语音模式',
+            ],
+            // 收藏按钮（两种模式都显示）
+            ValueListenableBuilder<List<RecipeModel>>(
+              valueListenable: CollectedRecipesStore.favorites,
+              builder: (context, favorites, _) {
+                final isCollected = favorites.any((r) => r.id == recipe.id);
+
+                return IconButton(
+                  onPressed: _toggleCollectRecipe,
+                  icon: Icon(
+                    isCollected ? Icons.favorite : Icons.favorite_outline,
+                  ),
+                  tooltip: isCollected
+                      ? 'Remove from favorites'
+                      : 'Save this recipe',
+                );
+              },
             ),
           ],
-          // 收藏按钮（两种模式都显示）
-          ValueListenableBuilder<List<RecipeModel>>(
-            valueListenable: CollectedRecipesStore.favorites,
-            builder: (context, favorites, _) {
-              final isCollected = favorites.any((r) => r.id == recipe.id);
-
-              return IconButton(
-                onPressed: _toggleCollectRecipe,
-                icon: Icon(
-                  isCollected ? Icons.favorite : Icons.favorite_outline,
-                ),
-                tooltip: isCollected
-                    ? 'Remove from favorites'
-                    : 'Save this recipe',
-              );
-            },
-          ),
-        ],
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+        ),
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
               // 头部：emoji + 简介 + 时间卡路里
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -980,15 +992,16 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
                         ],
                       ),
               ),
-            ],
+              ],
+            ),
           ),
         ),
+        // View Mode: 不显示底部控制栏
+        // Cooking Mode: 显示完整的底部控制栏
+        bottomNavigationBar: widget.isViewMode
+            ? null
+            : _buildBottomControls(context),
       ),
-      // View Mode: 不显示底部控制栏
-      // Cooking Mode: 显示完整的底部控制栏
-      bottomNavigationBar: widget.isViewMode
-          ? null
-          : _buildBottomControls(context),
     );
   }
 

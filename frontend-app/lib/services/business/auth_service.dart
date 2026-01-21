@@ -1,7 +1,6 @@
 import 'dart:convert';
 // ⚠️ 已拆分：纯API调用已移至 services/api/auth_api_service.dart
 // import 'package:http/http.dart' as http;
-import 'package:personal_sous_chef/core/config/api_config.dart'; // 仍需要用于错误信息
 import 'package:personal_sous_chef/core/constants/storage_keys.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:personal_sous_chef/services/business/standard_library_service.dart';
@@ -84,7 +83,7 @@ class AuthService {
           e.toString().contains('Connection refused')) {
         errorMsg =
             'Cannot connect to server. Please check:\n'
-            '1. Backend service is running on port ${ApiConfig.port}\n'
+            '1. Backend service is running on port 8080\n'
             '2. IP address is correct (10.0.2.2 for emulator)\n'
             '3. Network connection is available';
       } else if (e.toString().contains('Timeout')) {
