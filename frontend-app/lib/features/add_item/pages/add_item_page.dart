@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart'; // 🔥 1. 引入图片选择库
 import 'package:personal_sous_chef/features/add_item/pages/review_ingredients_page.dart';
@@ -117,10 +116,7 @@ class _AddItemPageState extends State<AddItemPage> {
         appBar: AppBar(
           backgroundColor: Colors.white,
           elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
-            onPressed: () => Navigator.pop(context),
-          ),
+          automaticallyImplyLeading: false, // 去掉返回按钮，因为现在是tab切换
           title: const Text(
             "Add Items",
             style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),

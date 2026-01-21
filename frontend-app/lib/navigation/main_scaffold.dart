@@ -59,26 +59,7 @@ class MainScaffoldState extends State<MainScaffold> {
   }
 
   void _onItemTapped(int index) async {
-    if (index == 2) {
-      final result = await Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const AddItemPage()),
-      );
-
-      if (result != null) {
-        setState(() {
-          if (result == 'kitchen') {
-            _selectedIndex = 3;
-            // 🔥 切换到 InventoryPage 时刷新数据
-            _refreshInventoryPage();
-          } else if (result == 'recipe') {
-            _selectedIndex = 1;
-          }
-        });
-      }
-      return;
-    }
-
+    // ✅ 修改：Add页面也作为tab切换，而不是push新页面，确保导航始终显示
     setState(() {
       _selectedIndex = index;
     });
