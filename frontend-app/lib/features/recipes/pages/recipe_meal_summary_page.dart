@@ -323,12 +323,26 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
       }
     }
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Meal summary')),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(20),
-          children: [
+    return Container(
+      decoration: const BoxDecoration(
+        image: DecorationImage(
+          image: AssetImage('assets/images/background.png'),
+          fit: BoxFit.cover,
+        ),
+      ),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          title: const Text('Meal summary'),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          surfaceTintColor: Colors.transparent,
+        ),
+        body: SafeArea(
+          child: ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
             Text(
               'Nice work! You finished this meal.',
               style: theme.textTheme.titleMedium?.copyWith(
@@ -528,7 +542,8 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
                 ),
               ),
             ),
-          ],
+            ],
+          ),
         ),
       ),
     );

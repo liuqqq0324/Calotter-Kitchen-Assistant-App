@@ -111,19 +111,31 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
     final theme = Theme.of(context);
     final summaryText = filterSummary; // 顶部那条 summary 用
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Generated Menus'),
-        actions: [
-          IconButton(
-            onPressed: _openFilter,
-            icon: const Icon(Icons.filter_list),
-            tooltip: 'Filter',
-          ),
-        ],
+    return Container(
+      decoration: const BoxDecoration(
+        image: DecorationImage(
+          image: AssetImage('assets/images/background.png'),
+          fit: BoxFit.cover,
+        ),
       ),
-      body: Column(
-        children: [
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          title: const Text('Generated Menus'),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          surfaceTintColor: Colors.transparent,
+          actions: [
+            IconButton(
+              onPressed: _openFilter,
+              icon: const Icon(Icons.filter_list),
+              tooltip: 'Filter',
+            ),
+          ],
+        ),
+        body: Column(
+          children: [
           // 如果有筛选条件，就在最上面显示一条橘色小条
           if (summaryText != null) ...[
             Padding(
@@ -173,72 +185,73 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
                     },
                   ),
           ),
-        ],
-      ),
+          ],
+        ),
 
-      // 底部操作：Start cooking（选中的 menu）+ Generate again
-      bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SizedBox(
-                height: 52,
-                child: ElevatedButton.icon(
-                  onPressed: _selectedMenuId == null
-                      ? null
-                      : () {
-                          final menu = _menus.firstWhere(
-                            (m) => m.menuId == _selectedMenuId,
-                          );
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => RecipeInstructionPage(
-                                menu: menu,
-                                initialRecipeIndex: 0,
-                                filter: widget.filter,
+        // 底部操作：Start cooking（选中的 menu）+ Generate again
+        bottomNavigationBar: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  height: 52,
+                  child: ElevatedButton.icon(
+                    onPressed: _selectedMenuId == null
+                        ? null
+                        : () {
+                            final menu = _menus.firstWhere(
+                              (m) => m.menuId == _selectedMenuId,
+                            );
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => RecipeInstructionPage(
+                                  menu: menu,
+                                  initialRecipeIndex: 0,
+                                  filter: widget.filter,
+                                ),
                               ),
-                            ),
-                          );
-                        },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+                            );
+                          },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      foregroundColor: Colors.white,
                     ),
-                    foregroundColor: Colors.white,
-                  ),
-                  icon: const Icon(Icons.play_arrow),
-                  label: Text(
-                    _selectedMenuId == null
-                        ? 'Select a menu to start cooking'
-                        : 'Start cooking (Menu $_selectedMenuId)',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-              SizedBox(
-                height: 44,
-                child: OutlinedButton.icon(
-                  onPressed: _fetchMenus,
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Generate Again'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.orange,
-                    side: BorderSide(color: Colors.orange.shade300),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                    icon: const Icon(Icons.play_arrow),
+                    label: Text(
+                      _selectedMenuId == null
+                          ? 'Select a menu to start cooking'
+                          : 'Start cooking (Menu $_selectedMenuId)',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 10),
+                SizedBox(
+                  height: 44,
+                  child: OutlinedButton.icon(
+                    onPressed: _fetchMenus,
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Generate Again'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.orange,
+                      side: BorderSide(color: Colors.orange.shade300),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

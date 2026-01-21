@@ -100,7 +100,6 @@ flutter:
   assets:
     - assets/videos/
     - assets/sketch.png
-    - assets/component/
     - assets/
     - assets/images/tape.png
     - assets/images/clip.png
@@ -109,6 +108,9 @@ flutter:
     - assets/images/frame_0.png
     - assets/images/frame_1.png
     - assets/images/frame_2.png
+    - assets/images/confirm_filters.png
+    - assets/images/generate_recipes_button.png
+    - assets/images/filter_button.png
     - assets/wood_background.png
     - assets/fonts/
     - assets/fonts/caveat/
