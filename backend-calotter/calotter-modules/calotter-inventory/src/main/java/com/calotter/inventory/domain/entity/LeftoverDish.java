@@ -48,6 +48,9 @@ public class LeftoverDish extends BaseEntity {
     @Column(name = "cover_image", length = 500)
     private String coverImage; // 封面图快照（可选）
     
+    @Column(name = "category", length = 50)
+    private String category; // 烹饪分类快照（如：STIR_FRY_PAN_FRY, STEAM_BOIL等）
+    
     @Column(name = "calories_per_100g")
     private Integer caloriesPer100g; // 每100克的卡路里快照
     

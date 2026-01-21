@@ -1,6 +1,7 @@
 package com.calotter.cooking.controller.dto;
 
 import com.calotter.cooking.domain.entity.Dish;
+import com.calotter.cooking.domain.enums.CookingCategory;
 import com.calotter.cooking.domain.enums.DifficultyLevel;
 import lombok.Builder;
 import lombok.Data;
@@ -30,6 +31,7 @@ public class DishDTO {
 
     private Integer cookingTimeMinutes;
     private DifficultyLevel difficulty;
+    private CookingCategory category;
 
     private List<Dish.CookingStep> steps;
     private List<String> tags;

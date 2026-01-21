@@ -16,6 +16,7 @@ public class MenuDTO {
         private Integer servings;
         private Integer cookingTimeMin;
         private String difficulty;
+        private String category; // 烹饪分类 (STIR_FRY_PAN_FRY, STEAM_BOIL, BRAISE_STEW, COLD_SALAD, SOUP, ROAST_BAKE)
         private NutritionEstimate nutritionEstimate;
         private List<IngredientDTO> ingredients;
         private List<StepDTO> steps;

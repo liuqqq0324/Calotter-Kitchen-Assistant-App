@@ -1,6 +1,7 @@
 package com.calotter.cooking.service;
 
 import com.calotter.cooking.domain.entity.Dish;
+import com.calotter.cooking.domain.enums.CookingCategory;
 import com.calotter.cooking.domain.enums.DifficultyLevel;
 import com.calotter.cooking.repository.DishRepository;
 import com.calotter.cooking.service.dto.AiRecipeResponse;
@@ -54,6 +55,16 @@ public class DishService {
             } catch (IllegalArgumentException e) {
                 // 如果无法转换，默认使用MEDIUM
                 dish.setDifficulty(DifficultyLevel.MEDIUM);
+            }
+        }
+        
+        // 分类转换
+        if (mainDish.getCategory() != null) {
+            try {
+                dish.setCategory(CookingCategory.valueOf(mainDish.getCategory().toUpperCase()));
+            } catch (IllegalArgumentException e) {
+                // 如果无法转换，设置为null（允许为空）
+                dish.setCategory(null);
             }
         }
         

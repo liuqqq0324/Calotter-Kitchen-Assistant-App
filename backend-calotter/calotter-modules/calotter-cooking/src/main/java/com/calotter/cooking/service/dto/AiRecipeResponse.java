@@ -30,6 +30,7 @@ public class AiRecipeResponse {
         private String description;     // 短描述 (用于前端展示)
         private Integer totalTimeMin;   // 总耗时
         private String difficulty;      // 难度
+        private String category;        // 烹饪分类 (STIR_FRY_PAN_FRY, STEAM_BOIL, BRAISE_STEW, COLD_SALAD, SOUP, ROAST_BAKE)
 
         // [库存核心]：AI 必须返回精确的数量，后端才能去扣库存
         private List<RequiredIngredient> ingredients;

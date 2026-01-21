@@ -2,31 +2,31 @@
 
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:personal_sous_chef/theme/fallback_google_fonts.dart';
+import 'package:personal_sous_chef/core/theme/fallback_google_fonts.dart';
 
 /// Custom clipper for torn paper edges
 class TornPaperClipper extends CustomClipper<Path> {
   final int seed;
-  
+
   TornPaperClipper({this.seed = 42});
-  
+
   @override
   Path getClip(Size size) {
     final random = math.Random(seed);
     final Path path = Path();
-    
+
     // Start from top-left with slight irregularity
     double x = 0;
     double y = 2 + random.nextDouble() * 2;
     path.moveTo(x, y);
-    
+
     // Top edge (torn)
     while (x < size.width) {
       x += 8 + random.nextDouble() * 6;
       y = 1 + random.nextDouble() * 3;
       path.lineTo(x, y);
     }
-    
+
     // Right edge
     x = size.width - 1 - random.nextDouble() * 2;
     y = 0;
@@ -35,7 +35,7 @@ class TornPaperClipper extends CustomClipper<Path> {
       x = size.width - 1 - random.nextDouble() * 2;
       path.lineTo(x, y);
     }
-    
+
     // Bottom edge (torn)
     y = size.height - 2 - random.nextDouble() * 2;
     while (x > 0) {
@@ -43,7 +43,7 @@ class TornPaperClipper extends CustomClipper<Path> {
       y = size.height - 1 - random.nextDouble() * 3;
       path.lineTo(x, y);
     }
-    
+
     // Left edge
     x = 1 + random.nextDouble() * 2;
     while (y > 0) {
@@ -51,11 +51,11 @@ class TornPaperClipper extends CustomClipper<Path> {
       x = 1 + random.nextDouble() * 2;
       path.lineTo(x, y);
     }
-    
+
     path.close();
     return path;
   }
-  
+
   @override
   bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
 }
@@ -103,14 +103,21 @@ class GenerateRecipeButton extends StatelessWidget {
                 splashColor: Colors.black.withOpacity(0.05),
                 highlightColor: Colors.black.withOpacity(0.02),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
                   child: Row(
-                    mainAxisSize: isFullWidth ? MainAxisSize.max : MainAxisSize.min,
+                    mainAxisSize: isFullWidth
+                        ? MainAxisSize.max
+                        : MainAxisSize.min,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
                         icon,
-                        color: const Color(0xFF5D4E37), // Dark brown for contrast
+                        color: const Color(
+                          0xFF5D4E37,
+                        ), // Dark brown for contrast
                         size: 22,
                       ),
                       const SizedBox(width: 12),
@@ -130,7 +137,7 @@ class GenerateRecipeButton extends StatelessWidget {
             ),
           ),
         ),
-        
+
         // Left tape accent
         Positioned(
           left: 12,
@@ -154,7 +161,7 @@ class GenerateRecipeButton extends StatelessWidget {
             ),
           ),
         ),
-        
+
         // Right tape accent
         Positioned(
           right: 12,

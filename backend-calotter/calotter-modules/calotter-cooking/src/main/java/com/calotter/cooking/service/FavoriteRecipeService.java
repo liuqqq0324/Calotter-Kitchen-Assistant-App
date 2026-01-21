@@ -4,6 +4,7 @@ import com.calotter.cooking.controller.dto.DishDTO;
 import com.calotter.cooking.domain.entity.Dish;
 import com.calotter.cooking.domain.entity.HouseholdFavoriteDish;
 import com.calotter.cooking.domain.entity.UserRecipe;
+import com.calotter.cooking.domain.enums.CookingCategory;
 import com.calotter.cooking.repository.DishRepository;
 import com.calotter.cooking.repository.HouseholdFavoriteDishRepository;
 import com.calotter.cooking.repository.UserRecipeRepository;
@@ -100,6 +101,7 @@ public class FavoriteRecipeService {
         dish.setTotalFiber(recipe.getTotalFiber());
         dish.setCookingTimeMinutes(recipe.getCookingTimeMinutes());
         dish.setDifficulty(recipe.getDifficulty());
+        dish.setCategory(recipe.getCategory());
         
         // 复制 JSONB 字段（深拷贝）
         dish.setSteps(recipe.getSteps() == null ? null : 
@@ -177,6 +179,7 @@ public class FavoriteRecipeService {
                 .totalFiber(recipe.getTotalFiber())
                 .cookingTimeMinutes(recipe.getCookingTimeMinutes())
                 .difficulty(recipe.getDifficulty())
+                .category(recipe.getCategory())
                 .steps(convertStepsToDish(recipe.getSteps()))
                 .tags(recipe.getTags())
                 .ingredientSnapshots(convertIngredientSnapshotsToDish(recipe.getIngredientSnapshots()))
@@ -194,6 +197,7 @@ public class FavoriteRecipeService {
         recipe.setDescription(recipeDto.getShortDescription());
         recipe.setCookingTimeMinutes(recipeDto.getCookingTimeMin());
         recipe.setDifficulty(parseDifficulty(recipeDto.getDifficulty()));
+        recipe.setCategory(parseCategory(recipeDto.getCategory()));
         
         if (recipeDto.getNutritionEstimate() != null) {
             recipe.setTotalCalories(toInt(recipeDto.getNutritionEstimate().getCalories()));
@@ -296,6 +300,7 @@ public class FavoriteRecipeService {
         dish.setDescription(recipeDto.getShortDescription());
         dish.setCookingTimeMinutes(recipeDto.getCookingTimeMin());
         dish.setDifficulty(parseDifficulty(recipeDto.getDifficulty()));
+        dish.setCategory(parseCategory(recipeDto.getCategory()));
         if (recipeDto.getNutritionEstimate() != null) {
             dish.setTotalCalories(toInt(recipeDto.getNutritionEstimate().getCalories()));
             dish.setTotalProtein(recipeDto.getNutritionEstimate().getProteinG());
@@ -385,6 +390,14 @@ public class FavoriteRecipeService {
     private com.calotter.cooking.domain.enums.DifficultyLevel parseDifficulty(String d) {
         try {
             return d == null ? null : com.calotter.cooking.domain.enums.DifficultyLevel.valueOf(d.toUpperCase());
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private CookingCategory parseCategory(String c) {
+        try {
+            return c == null ? null : CookingCategory.valueOf(c.toUpperCase());
         } catch (Exception e) {
             return null;
         }

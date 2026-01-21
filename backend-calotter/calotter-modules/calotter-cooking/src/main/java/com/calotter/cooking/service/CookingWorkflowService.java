@@ -143,6 +143,7 @@ public class CookingWorkflowService {
                 // ✅ 保存菜品信息快照（避免查询时 JOIN 和循环依赖）
                 leftover.setDishName(dish.getName());
                 leftover.setCoverImage(dish.getCoverImage());
+                leftover.setCategory(dish.getCategory() != null ? dish.getCategory().name() : null);
                 leftover.setCaloriesPer100g(dish.getCaloriesPer100g());
                 
                 // ✅ 计算并保存每100g的营养素快照

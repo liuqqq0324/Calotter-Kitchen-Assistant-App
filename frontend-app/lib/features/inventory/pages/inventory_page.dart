@@ -13,6 +13,7 @@ import 'package:personal_sous_chef/services/business/household_service.dart';
 import 'package:personal_sous_chef/data/models/leftover.dart';
 import 'package:personal_sous_chef/shared/widgets/cards/leftover_card.dart';
 import 'package:personal_sous_chef/shared/widgets/cards/stop_motion_dismissible.dart'; // 引入定格动画滑动删除组件
+import 'package:personal_sous_chef/shared/widgets/layouts/layered_inventory_layout.dart'; // 引入分层布局组件
 
 class InventoryPage extends StatefulWidget {
   const InventoryPage({super.key});
@@ -22,7 +23,7 @@ class InventoryPage extends StatefulWidget {
 }
 
 class _InventoryPageState extends State<InventoryPage>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   List<Ingredient> _ingredients = [];
   List<Cookware> _seasonings = [];
   List<Cookware> _cookwares = [];
@@ -30,6 +31,7 @@ class _InventoryPageState extends State<InventoryPage>
 
   late AnimationController _animationController;
   late Animation<double> _expandAnimation;
+  late TabController _tabController; // 🔥 新增：Tab控制器用于书签式交互
   bool _isExpanded = false;
   bool _isLoading = true;
   bool _isLoadingCookware = true;
@@ -51,6 +53,12 @@ class _InventoryPageState extends State<InventoryPage>
       curve: Curves.fastOutSlowIn,
       parent: _animationController,
     );
+
+    // 🔥 新增：初始化Tab控制器
+    _tabController = TabController(length: 4, vsync: this);
+    _tabController.addListener(() {
+      setState(() {}); // 更新UI以反映Tab切换
+    });
 
     _loadInventory();
     _loadCookware();
@@ -125,6 +133,7 @@ class _InventoryPageState extends State<InventoryPage>
   @override
   void dispose() {
     _animationController.dispose();
+    _tabController.dispose(); // 🔥 新增：释放Tab控制器
     super.dispose();
   }
 
@@ -546,45 +555,123 @@ class _InventoryPageState extends State<InventoryPage>
   Widget build(BuildContext context) {
     // Data is loaded from API in initState and _loadInventory
 
-    return DefaultTabController(
-      length: 4,
-      child: Scaffold(
-        appBar: AppBar(
-          automaticallyImplyLeading: false, // 去掉返回箭头
-          title: const Text('My Kitchen'),
-          bottom: const TabBar(
-            tabs: [
-              Tab(icon: Icon(Icons.egg_alt), text: 'Ingredients'),
-              Tab(icon: Icon(Icons.local_dining), text: 'Seasonings'), // 新增调料
-              Tab(icon: Icon(Icons.soup_kitchen), text: 'Cookware'),
-              Tab(icon: Icon(Icons.restaurant), text: 'Leftovers'), // 新增剩菜
-            ],
+    return Scaffold(
+      backgroundColor: Colors.transparent, // 透明背景，让分层布局显示
+      body: LayeredInventoryLayout(
+        selectedTabIndex: _tabController.index,
+        onTabChanged: (index) {
+          _tabController.animateTo(index);
+        },
+        // 所有书签数据
+        bookmarkTabs: [
+          BookmarkTabData(
+            imagePath: 'assets/icons/inventory.png',
+            label: 'Ingredients',
           ),
-        ),
-        body: TabBarView(
+          BookmarkTabData(
+            imagePath: 'assets/icons/seasonings.png',
+            label: 'Seasonings',
+          ),
+          BookmarkTabData(
+            imagePath: 'assets/icons/cookware.png',
+            label: 'Cookware',
+          ),
+          BookmarkTabData(
+            imagePath: 'assets/icons/dish.png',
+            label: 'Leftovers',
+          ),
+        ],
+        // 主容器层的内容
+        mainContent: TabBarView(
+          controller: _tabController,
+          physics: const BouncingScrollPhysics(), // 🔥 允许横向滑动切换
           children: [
             _buildIngredientPage(),
             // ✅ 调料页面（从API加载）
             _isLoadingSeasonings
                 ? const Center(child: CircularProgressIndicator())
-                : ItemToggleGrid(
-                    items: _seasonings,
-                    onToggle: _handleItemToggle,
+                : Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 16,
+                    ),
+                    child: ItemToggleGrid(
+                      items: _seasonings,
+                      onToggle: _handleItemToggle,
+                    ),
                   ),
 
             // ✅ 厨具页面（从API加载）
             _isLoadingCookware
                 ? const Center(child: CircularProgressIndicator())
-                : ItemToggleGrid(
-                    items: _cookwares,
-                    onToggle: _handleItemToggle,
+                : Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 16,
+                    ),
+                    child: ItemToggleGrid(
+                      items: _cookwares,
+                      onToggle: _handleItemToggle,
+                    ),
                   ),
 
             // ✅ 剩菜页面（从API加载）
             _buildLeftoversPage(),
           ],
         ),
+        // 第5层：浮动层（浮动按钮等）
+        floatingContent: _buildFloatingLayer(),
       ),
+    );
+  }
+
+  // =========================================================
+  // 🔥 新增：构建浮动层（浮动按钮等）
+  // =========================================================
+  Widget? _buildFloatingLayer() {
+    // 只在 Ingredients Tab 显示浮动按钮
+    if (_tabController.index != 0) {
+      return null;
+    }
+
+    return Stack(
+      children: [
+        // 展开菜单时的半透明遮罩
+        if (_isExpanded)
+          GestureDetector(
+            onTap: _toggleExpand,
+            child: Container(
+              color: Colors.black54,
+              width: double.infinity,
+              height: double.infinity,
+            ),
+          ),
+
+        // 🔥 底部"生成食谱"按钮
+        if (!_isExpanded)
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 20,
+            child: Center(
+              child: GenerateRecipeButton(
+                onPressed: () {
+                  // 跳转逻辑：查找 MainScaffoldState 并切换 Tab
+                  context
+                      .findAncestorStateOfType<MainScaffoldState>()
+                      ?.switchTab(1);
+                },
+              ),
+            ),
+          ),
+
+        // 展开式浮动按钮组
+        Positioned(
+          right: 16,
+          bottom: _isExpanded ? 100 : 100, // 根据展开状态调整位置
+          child: _buildExpandableFab(),
+        ),
+      ],
     );
   }
 
@@ -594,442 +681,170 @@ class _InventoryPageState extends State<InventoryPage>
 
   Widget _buildIngredientPage() {
     if (_isLoading) {
-      return const Scaffold(
-        backgroundColor: Colors.transparent,
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Center(child: CircularProgressIndicator());
     }
 
     if (_error != null && _ingredients.isEmpty) {
-      return Scaffold(
-        backgroundColor: Colors.transparent,
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text('Error: $_error'),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: _loadInventory,
-                child: const Text('Retry'),
-              ),
-            ],
-          ),
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text('Error: $_error'),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _loadInventory,
+              child: const Text('Retry'),
+            ),
+          ],
         ),
       );
     }
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      floatingActionButton: _buildExpandableFab(),
-      body: Stack(
-        children: [
-          // 列表区域
-          ListView.builder(
-            padding: const EdgeInsets.only(bottom: 100, top: 5), // 🔥 底部留白给按钮
-            itemCount: _ingredients.length,
-            itemBuilder: (context, index) {
-              final item = _ingredients[index];
-              
-              // 🔥 使用定格动画滑动删除组件
-              return StopMotionDismissible(
-                dismissKey: item.name + item.expiryDate.toString(),
-                onDismissed: (direction) async {
-                  final deletedItem = item;
-                  if (deletedItem.inventoryId == null) {
-                    // If no inventory_id, just remove from local list
-                    setState(() {
-                      _ingredients.removeAt(index);
-                    });
-                    if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('${deletedItem.name} tossed!'),
-                        backgroundColor: const Color(0xFF8D6E63),
-                      ),
-                    );
-                    return;
-                  }
+    // 如果列表为空，显示空状态提示
+    if (_ingredients.isEmpty) {
+      return const Center(
+        child: Text(
+          "The pantry is empty...",
+          style: TextStyle(fontSize: 20, color: Colors.grey),
+        ),
+      );
+    }
 
-                  // Delete from API
-                  try {
-                    await InventoryApiService.deleteInventory(
-                      inventoryId: deletedItem.inventoryId!,
-                    );
-                    await _loadInventory();
-                    if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('${deletedItem.name} tossed!'),
-                        backgroundColor: const Color(0xFF8D6E63),
-                      ),
-                    );
-                  } catch (e) {
-                    if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Failed to delete: $e'),
-                        backgroundColor: Colors.red.shade700,
-                        action: SnackBarAction(
-                          label: "UNDO",
-                          textColor: Colors.white,
-                          onPressed: () {
-                            // Reload to restore
-                            _loadInventory();
-                          },
-                        ),
-                      ),
-                    );
-                  }
-                },
-                child: _buildIngredientCard(item),
+    // 🔥 使用普通的 ListView，背景透明
+    return ListView.builder(
+      // 给内容加 padding，否则卡片会贴着屏幕边缘
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 100), // 底部留 100 给 FAB
+      physics: const BouncingScrollPhysics(),
+      itemCount: _ingredients.length,
+      itemBuilder: (context, index) {
+        final item = _ingredients[index];
+
+        // 🔥 使用定格动画滑动删除组件
+        return StopMotionDismissible(
+          dismissKey: item.name + item.expiryDate.toString(),
+          onDismissed: (direction) async {
+            final deletedItem = item;
+            if (deletedItem.inventoryId == null) {
+              // If no inventory_id, just remove from local list
+              setState(() {
+                _ingredients.removeAt(index);
+              });
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('${deletedItem.name} tossed!'),
+                  backgroundColor: const Color(0xFF8D6E63),
+                ),
               );
-              
-              // =========================================================
-              // 🔥 原有滑动删除代码（已注释，保留作为参考）
-              // =========================================================
-              /*
-              return Dismissible(
-                key: ValueKey(
-                  item.name + item.expiryDate.toString(),
-                ), // 确保 Key 唯一
-                direction: DismissDirection.endToStart, // 只允许从右向左滑
-                // background 用于从左向右滑（我们不需要，但必须提供）
-                background: Container(
-                  margin: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFF9E6), // 纸张色，与卡片一致
-                    borderRadius: BorderRadius.circular(4),
+              return;
+            }
+
+            // Delete from API
+            try {
+              await InventoryApiService.deleteInventory(
+                inventoryId: deletedItem.inventoryId!,
+              );
+              await _loadInventory();
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('${deletedItem.name} tossed!'),
+                  backgroundColor: const Color(0xFF8D6E63),
+                ),
+              );
+            } catch (e) {
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Failed to delete: $e'),
+                  backgroundColor: Colors.red.shade700,
+                  action: SnackBarAction(
+                    label: "UNDO",
+                    textColor: Colors.white,
+                    onPressed: () {
+                      // Reload to restore
+                      _loadInventory();
+                    },
                   ),
                 ),
-                // secondaryBackground 用于从右向左滑（从右向左滑时的背景）
-                secondaryBackground: Container(
-                  // 【重要】Margin 必须和 IngredientCard 保持高度一致！
-                  margin: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12, // 匹配 IngredientCard 的 vertical: 12
-                  ),
-                  decoration: BoxDecoration(
-                    // 极淡的粉红色背景，保持手绘风格
-                    color: const Color(0xFFFFEBEE), // 极淡的粉红色
-                    // 【重要】圆角也要保持一致（IngredientCard 是 4）
-                    borderRadius: BorderRadius.circular(4),
-                    // 可选：加一个内部阴影，让背景看起来像是凹陷在墙里
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 4,
-                        spreadRadius: 0,
-                        offset: const Offset(0, 0),
-                        blurStyle: BlurStyle.inner,
-                      )
-                    ],
-                  ),
-                  // 【核心】内容靠右对齐！
-                  alignment: Alignment.centerRight,
-                  // 右侧留点空隙，不要紧贴边缘
-                  padding: const EdgeInsets.only(right: 24.0),
-                  // 背景里的内容（垃圾桶和文字）
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min, // 紧凑排列
-                    mainAxisAlignment: MainAxisAlignment.end, // 靠右
-                    children: [
-                      // 文字提示
-                      Text(
-                        "Toss", // 扔掉
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF8D6E63), // 深棕色，保持手绘风格
-                          // fontFamily: 'Patrick Hand', // 记得用手写字体
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      // 垃圾桶图标 (稍微旋转一点点，增加俏皮感)
-                      Transform.rotate(
-                        angle: -0.1, // 微微向左歪
-                        child: const Icon(
-                          Icons.delete_outline_rounded, // 用圆润的图标
-                          color: Color(0xFF8D6E63), // 深棕色
-                          size: 28,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // 确认删除的逻辑
-                confirmDismiss: (direction) async {
-                  // 弹出确认对话框
-                  return await showDialog<bool>(
-                    context: context,
-                    builder: (ctx) => AlertDialog(
-                      backgroundColor: const Color(0xFFFFF9E6), // 纸张色背景
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      title: Text(
-                        'Sure to toss this?',
-                        style: TextStyle(
-                          color: const Color(0xFF5D4037), // 深棕色文字
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      content: Text(
-                        '${item.name} will be removed from your inventory.',
-                        style: const TextStyle(
-                          color: Color(0xFF8D6E63),
-                        ),
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(ctx, false),
-                          child: Text(
-                            'Cancel',
-                            style: TextStyle(
-                              color: const Color(0xFF8D6E63),
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: () => Navigator.pop(ctx, true),
-                          style: TextButton.styleFrom(
-                            foregroundColor: const Color(0xFFD87836), // 暖橙色
-                          ),
-                          child: const Text(
-                            'Toss',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ) ?? false; // 如果对话框返回 null，则取消删除
-                },
-                // 删除执行后的回调
-                onDismissed: (direction) async {
-                  final deletedItem = item;
-                  if (deletedItem.inventoryId == null) {
-                    // If no inventory_id, just remove from local list
-                    setState(() {
-                      _ingredients.removeAt(index);
-                    });
-                    if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('${deletedItem.name} tossed!'),
-                        backgroundColor: const Color(0xFF8D6E63),
-                      ),
-                    );
-                    return;
-                  }
-
-                  // Delete from API
-                  try {
-                    await InventoryApiService.deleteInventory(
-                      inventoryId: deletedItem.inventoryId!,
-                    );
-                    await _loadInventory();
-                    if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('${deletedItem.name} tossed!'),
-                        backgroundColor: const Color(0xFF8D6E63),
-                      ),
-                    );
-                  } catch (e) {
-                    if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Failed to delete: $e'),
-                        backgroundColor: Colors.red.shade700,
-                        action: SnackBarAction(
-                          label: "UNDO",
-                          textColor: Colors.white,
-                          onPressed: () {
-                            // Reload to restore
-                            _loadInventory();
-                          },
-                        ),
-                      ),
-                    );
-                  }
-                },
-                child: _buildIngredientCard(item),
               );
-              */
-            },
+            }
+          },
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 12.0),
+            child: _buildIngredientCard(item),
           ),
-
-          // 展开菜单时的半透明遮罩
-          if (_isExpanded)
-            GestureDetector(
-              onTap: _toggleExpand,
-              child: Container(
-                color: Colors.black54,
-                width: double.infinity,
-                height: double.infinity,
-              ),
-            ),
-
-          // 🔥 4. 底部“生成食谱”按钮 (使用你的 GenerateRecipeButton)
-          if (!_isExpanded)
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 20,
-              child: Center(
-                child: GenerateRecipeButton(
-                  onPressed: () {
-                    // 跳转逻辑：查找 MainScaffoldState 并切换 Tab
-                    context
-                        .findAncestorStateOfType<MainScaffoldState>()
-                        ?.switchTab(1);
-                  },
-                ),
-              ),
-            ),
-        ],
-      ),
+        );
+      },
     );
   }
 
   Widget _buildLeftoversPage() {
     if (_isLoadingLeftovers) {
-      return const Scaffold(
-        backgroundColor: Colors.transparent,
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Center(child: CircularProgressIndicator());
     }
 
     if (_error != null && _leftovers.isEmpty) {
-      return Scaffold(
-        backgroundColor: Colors.transparent,
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text('Error: $_error'),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: _loadLeftovers,
-                child: const Text('Retry'),
-              ),
-            ],
-          ),
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text('Error: $_error'),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _loadLeftovers,
+              child: const Text('Retry'),
+            ),
+          ],
         ),
       );
     }
 
     if (_leftovers.isEmpty) {
-      return Scaffold(
-        backgroundColor: Colors.transparent,
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.restaurant_menu, size: 64, color: Colors.grey[400]),
-              const SizedBox(height: 16),
-              Text(
-                'No Leftovers',
-                style: TextStyle(
-                  fontSize: 18,
-                  color: Colors.grey[600],
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Leftovers will be automatically added here after completing cooking',
-                style: TextStyle(fontSize: 14, color: Colors.grey[500]),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
+      return const Center(
+        child: Text(
+          "No Leftovers",
+          style: TextStyle(fontSize: 18, color: Colors.grey),
         ),
       );
     }
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: ListView.builder(
-        padding: const EdgeInsets.only(bottom: 20, top: 5),
-        itemCount: _leftovers.length,
-        itemBuilder: (context, index) {
-          final leftover = _leftovers[index];
-          
-          // 🔥 使用定格动画滑动删除组件
-          return StopMotionDismissible(
-            dismissKey: leftover.id,
-            onDismissed: (direction) async {
-              final deletedLeftover = leftover;
-              try {
-                await _deleteLeftover(deletedLeftover);
-              } catch (e) {
-                if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text("Failed to delete: $e"),
-                    action: SnackBarAction(
-                      label: "UNDO",
-                      onPressed: () {
-                        _loadLeftovers();
-                      },
-                    ),
+    // 🔥 使用普通的 ListView，背景透明
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+      physics: const BouncingScrollPhysics(),
+      itemCount: _leftovers.length,
+      itemBuilder: (context, index) {
+        final leftover = _leftovers[index];
+
+        // 🔥 使用定格动画滑动删除组件
+        return StopMotionDismissible(
+          dismissKey: leftover.id!,
+          onDismissed: (direction) async {
+            final deletedLeftover = leftover;
+            try {
+              await _deleteLeftover(deletedLeftover);
+            } catch (e) {
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text("Failed to delete: $e"),
+                  action: SnackBarAction(
+                    label: "UNDO",
+                    onPressed: () {
+                      _loadLeftovers();
+                    },
                   ),
-                );
-              }
-            },
-            child: LeftoverCard(
-              item: leftover,
-            ),
-          );
-          
-          // =========================================================
-          // 🔥 原有滑动删除代码（已注释，保留作为参考）
-          // =========================================================
-          /*
-          return Dismissible(
-            key: ValueKey(leftover.id),
-            direction: DismissDirection.endToStart,
-            background: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.red.shade100,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              alignment: Alignment.centerRight,
-              padding: const EdgeInsets.only(right: 20),
-              child: const Icon(Icons.delete, color: Colors.red, size: 30),
-            ),
-            onDismissed: (direction) async {
-              final deletedLeftover = leftover;
-              try {
-                await _deleteLeftover(deletedLeftover);
-              } catch (e) {
-                if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text("Failed to delete: $e"),
-                    action: SnackBarAction(
-                      label: "UNDO",
-                      onPressed: () {
-                        _loadLeftovers();
-                      },
-                    ),
-                  ),
-                );
-              }
-            },
-            child: LeftoverCard(
-              item: leftover,
-            ),
-          );
-          */
-        },
-      ),
+                ),
+              );
+            }
+          },
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 12.0),
+            child: LeftoverCard(item: leftover),
+          ),
+        );
+      },
     );
   }
 

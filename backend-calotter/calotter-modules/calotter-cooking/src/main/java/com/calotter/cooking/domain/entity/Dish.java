@@ -1,6 +1,7 @@
 package com.calotter.cooking.domain.entity;
 
 import com.calotter.common.core.domain.BaseEntity;
+import com.calotter.cooking.domain.enums.CookingCategory;
 import com.calotter.cooking.domain.enums.DifficultyLevel;
 import com.calotter.user.domain.entity.Household;
 import jakarta.persistence.*;
@@ -74,6 +75,9 @@ public class Dish extends BaseEntity {
     
     @Enumerated(EnumType.STRING)
     private DifficultyLevel difficulty; // EASY, MEDIUM, HARD
+    
+    @Enumerated(EnumType.STRING)
+    private CookingCategory category; // 烹饪分类
 
     // --- 复杂结构 (使用 JSONB 存储) ---
     
