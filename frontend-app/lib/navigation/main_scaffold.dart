@@ -80,6 +80,13 @@ class MainScaffoldState extends State<MainScaffold> {
 
   @override
   Widget build(BuildContext context) {
+    // 🔥 定义自定义标题栏的总高度（根据你的图片实际情况调整）
+    // 这个高度需要包含状态栏高度 + 标题内容高度 + 底部不规则边缘延伸出的高度
+    const double customHeaderHeight = 130.0; // 🔥 你可以根据实际显示效果微调这个数字
+
+    // 获取状态栏高度，用于后续计算内边距
+    final double statusBarHeight = MediaQuery.of(context).padding.top;
+
     return PopScope(
       // 拦截返回键，防止返回到 LandingPage
       canPop: false, // 不允许返回到上一页
@@ -113,41 +120,74 @@ class MainScaffoldState extends State<MainScaffold> {
         }
       },
       child: Scaffold(
-        appBar: AppBar(
-          automaticallyImplyLeading: false, // 去掉返回箭头
-          title: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // 海獭emoji作为图标
-              const Text('🦦', style: TextStyle(fontSize: 28)),
-              const SizedBox(width: 8),
-              const Text(
-                'CalOtter',
-                style: TextStyle(
-                  fontFamily: 'PatrickHand',
-                  fontSize: 24,
-                  fontWeight: FontWeight.w700,
+        // 🔥 关键修改 1: 彻底移除标准的 appBar 属性
+        // appBar: AppBar( ... ),
+
+        // 🔥 关键修改 2: 将 body 改为 Stack
+        body: Stack(
+          children: [
+            // --- 2.1 底层：页面内容 ---
+            Positioned.fill(
+              // ✅ 这里的 Padding 很重要。
+              // 我们需要让页面内容从顶部向下偏移一定的距离，否则内容会被标题栏完全挡住。
+              // 偏移量通常是 (状态栏高度 + 标准导航栏高度) 左右，不需要完全等于 customHeaderHeight，
+              // 这样可以让内容稍微滑入不规则边缘的下方。
+              top: statusBarHeight + kToolbarHeight,
+              child: _selectedIndex < _pages.length
+                  ? _pages[_selectedIndex]
+                  : _pages[0],
+            ),
+
+            // --- 2.2 顶层：自定义不规则标题栏 ---
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              height: customHeaderHeight, // 设置自定义标题区域的高度
+              child: Container(
+                // ✅ 使用 BoxDecoration 设置背景图
+                decoration: const BoxDecoration(
+                  image: DecorationImage(
+                    image: AssetImage('assets/images/title.png'),
+                    // 🔥 关键：使用 BoxFit.cover 并顶部对齐
+                    // 这样可以保证图片宽度铺满，且顶部固定，底部的透明不规则区域自然延伸
+                    fit: BoxFit.cover,
+                    alignment: Alignment.topCenter,
+                  ),
+                ),
+                // ✅ 这是一个安全区域和内容的容器
+                child: Padding(
+                  // Padding 用于把标题文字推到合适的位置，避开状态栏
+                  padding: EdgeInsets.only(
+                    top: statusBarHeight + 10, // 状态栏高度 + 一点微调
+                    left: 16,
+                    bottom: 20, // 底部留出空间给不规则边缘
+                  ),
+                  // 这里放原本 AppBar title 里的 Row
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center, // 确保垂直居中对齐
+                    children: [
+                      const Text('🦦', style: TextStyle(fontSize: 28)),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'CalOtter',
+                        style: TextStyle(
+                          fontFamily: 'PatrickHand',
+                          fontSize: 24,
+                          fontWeight: FontWeight.w700,
+                          // ✅ 确保文字颜色在背景上清晰可见，如果背景偏浅可能需要深色文字
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ],
-          ),
-          flexibleSpace: Container(
-            decoration: BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('assets/images/title.png'),
-                fit: BoxFit.cover,
-              ),
             ),
-          ),
-          backgroundColor: Colors.transparent,
-          elevation: 0,
+          ],
         ),
-        // 安全检查：防止索引越界
-        body: _selectedIndex < _pages.length
-            ? _pages[_selectedIndex]
-            : _pages[0],
-        
-        // 🦦 新的海獭浮动导航 - 放在 Scaffold 顶层，不会被页面内容遮挡
+
+        // 🦦 海獭浮动导航 (保持不变)
         floatingActionButton: OtterFloatingNav(
           selectedIndex: _selectedIndex,
           onItemTapped: _onItemTapped,

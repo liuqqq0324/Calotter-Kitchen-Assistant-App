@@ -569,8 +569,10 @@ class _InventoryPageState extends State<InventoryPage>
               'assets/wood_background.png',
               fit: BoxFit.cover,
               // 如果背景图路径不对/资源未打包，使用错误处理
-              errorBuilder: (context, error, stackTrace) =>
-                  Image.asset('assets/images/sketch_paper_transparent.png', fit: BoxFit.cover),
+              errorBuilder: (context, error, stackTrace) => Image.asset(
+                'assets/images/sketch_paper_transparent.png',
+                fit: BoxFit.cover,
+              ),
             ),
           ),
 
@@ -626,15 +628,17 @@ class _InventoryPageState extends State<InventoryPage>
                 // 【新设计】层级 B (上层): 悬挂的书签 (Bookmarks)
                 // 说明：把书签放在羊皮纸之后，这样它就会浮在纸张上面 (Z轴在前)
                 // 这样当列表滚动时，内容会滑入书签背后的区域，营造真正的"夹在书签下的纸张"效果
+                // 🔥 关键修改 1: 向上提 15px，让书签顶部"钻"进木纹标题栏下方
+                // 这样无论木纹边缘怎么不规则，书签看起来都是从木板后面伸出来的
                 // =========================================
                 Positioned(
-                  top: 0,
+                  top: -15, // 🔥 关键修改 1: 向上提 15px
                   left: 0,
                   right: 0,
                   child: SafeArea(
                     bottom: false,
                     child: Container(
-                      height: 90, // 【建议】稍微调高一点点，给书签多一点活动空间（从 80 改为 90）
+                      height: 110, // 🔥 关键修改 2: 增加容器高度，容纳变长的书签
                       padding: const EdgeInsets.symmetric(horizontal: 10),
                       alignment: Alignment.topCenter,
                       child: Row(
@@ -823,12 +827,15 @@ class _InventoryPageState extends State<InventoryPage>
   ) {
     final bool isSelected = _tabController.index == index;
 
-    // 动画参数
-    // 选中时：书签变长 (76)，向下伸出
-    // 未选时：书签变短 (56)，向上收起，且颜色变暗
-    final double height = isSelected ? 76.0 : 56.0; // 缩小20%
+    // 动画参数调整
+    // 🔥 关键修改 3: 整体增加高度 (原 76/56 -> 现 95/75)
+    // 因为顶部约 15px 被木纹遮住了，我们需要补回来
+    final double height = isSelected ? 95.0 : 75.0;
     final double width = 65.0;
-    final double topMargin = isSelected ? 0.0 : -8.0; // 未选中时稍微往上缩一点（缩小20%）
+
+    // 🔥 关键修改 4: 调整未选中时的收起幅度
+    // 未选中时向上收起更多，营造层次感
+    final double topMargin = isSelected ? 0.0 : -15.0;
 
     return GestureDetector(
       onTap: () {
@@ -872,11 +879,11 @@ class _InventoryPageState extends State<InventoryPage>
           children: [
             // 文字
             Padding(
-              padding: const EdgeInsets.only(bottom: 8.0),
+              padding: const EdgeInsets.only(bottom: 12.0), // 文字稍微稍微往上提一点点
               child: Text(
                 label,
                 style: GoogleFonts.caveat(
-                  fontSize: 12,
+                  fontSize: 14, // 稍微加大字体
                   fontWeight: FontWeight.bold,
                   color: isSelected ? Colors.black87 : Colors.white70,
                 ),
@@ -901,7 +908,7 @@ class _InventoryPageState extends State<InventoryPage>
       // 【旧设计】padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16), // 旧设计中需要左右和上下 padding
       padding: const EdgeInsets.fromLTRB(
         0,
-        110, // 【关键修复】从 100 改为 110，计算公式：书签高度(约90) + 视觉间隙(20) = 110
+        130, // 🔥 关键修改 5: 从 110 改为 130 (适配变长的书签)
         0,
         0,
       ), // 新设计：顶部留出书签空间，左右为0（羊皮纸容器已有边距）
@@ -919,7 +926,7 @@ class _InventoryPageState extends State<InventoryPage>
       // 【旧设计】padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16), // 旧设计中需要左右和上下 padding
       padding: const EdgeInsets.fromLTRB(
         0,
-        110, // 【关键修复】从 100 改为 110，计算公式：书签高度(约90) + 视觉间隙(20) = 110
+        130, // 🔥 关键修改 5: 从 110 改为 130 (适配变长的书签)
         0,
         0,
       ), // 新设计：顶部留出书签空间，左右为0（羊皮纸容器已有边距）
@@ -969,7 +976,7 @@ class _InventoryPageState extends State<InventoryPage>
       // 【旧设计】padding: const EdgeInsets.fromLTRB(16, 16, 16, 100), // 旧设计中顶部需要留出空间给标题
       padding: const EdgeInsets.fromLTRB(
         0,
-        110, // 【关键修复】从 100 改为 110，计算公式：书签高度(约90) + 视觉间隙(20) = 110
+        130, // 🔥 关键修改 5: 从 110 改为 130 (适配变长的书签)
         // 确保第一个项目从书签下方可见，上滑时会平滑地滑入书签背后的区域
         0,
         100,
@@ -1075,7 +1082,7 @@ class _InventoryPageState extends State<InventoryPage>
       // 【旧设计】padding: const EdgeInsets.fromLTRB(16, 16, 16, 100), // 旧设计中顶部需要留出空间给标题
       padding: const EdgeInsets.fromLTRB(
         0,
-        110, // 【关键修复】从 100 改为 110，计算公式：书签高度(约90) + 视觉间隙(20) = 110
+        130, // 🔥 关键修改 5: 从 110 改为 130 (适配变长的书签)
         // 确保第一个项目从书签下方可见，上滑时会平滑地滑入书签背后的区域
         0,
         100,
