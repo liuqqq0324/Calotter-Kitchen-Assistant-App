@@ -150,7 +150,15 @@ class MainScaffoldState extends State<MainScaffold> {
               ),
             ],
           ),
-          backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+          flexibleSpace: Container(
+            decoration: BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage('assets/images/title.png'),
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+          backgroundColor: Colors.transparent,
           elevation: 0,
         ),
         // 安全检查：防止索引越界

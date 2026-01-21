@@ -173,14 +173,11 @@ public class IntakeServiceImpl implements IIntakeService {
             throw new IllegalArgumentException("id or ids is required");
         }
 
-        // Semantics: consumedPercentage is 0-100 relative to the ORIGINAL leftover (initial quantity).
-        // If not provided, default to "eat all remaining" (i.e. current remaining % vs initial).
-        final BigDecimal requestedConsumedPct = request.getConsumedPercentage();
-        if (requestedConsumedPct != null) {
-            if (requestedConsumedPct.compareTo(BigDecimal.ZERO) < 0 ||
-                    requestedConsumedPct.compareTo(BigDecimal.valueOf(100)) > 0) {
-                throw new IllegalArgumentException("consumedPercentage must be between 0 and 100");
-            }
+        BigDecimal consumedPct = request.getConsumedPercentage() != null
+                ? request.getConsumedPercentage()
+                : BigDecimal.valueOf(100);
+        if (consumedPct.compareTo(BigDecimal.ZERO) < 0 || consumedPct.compareTo(BigDecimal.valueOf(100)) > 0) {
+            throw new IllegalArgumentException("consumedPercentage must be between 0 and 100");
         }
 
         LocalDate today = LocalDate.now();
@@ -205,6 +202,7 @@ public class IntakeServiceImpl implements IIntakeService {
             log.setUser(user);
             log.setLogDate(today);
             log.setEatenAt(LocalDateTime.now());
+            log.setConsumedPercentage(consumedPct);
 
             // 关键：对于 LEFTOVER，这里的 dishId 存 LeftoverDish.id（方便后续同步库存）
             log.setSourceType(LogSourceType.LEFTOVER);
@@ -213,21 +211,6 @@ public class IntakeServiceImpl implements IIntakeService {
             log.setUnit("g");
             Integer grams = leftover.getCurrentQuantityGram() != null ? leftover.getCurrentQuantityGram() : 0;
             log.setQuantity((double) grams); // 记录"当时选择的剩菜重量"，用于后续百分比同步
-
-            // Max consumable at creation time (0-100 vs initial)
-            BigDecimal maxConsumablePctAtCreation = computeMaxConsumablePercentageAtIntakeCreation(log, leftover);
-
-            BigDecimal consumedPctAbs = requestedConsumedPct != null
-                    ? requestedConsumedPct
-                    : maxConsumablePctAtCreation; // default: eat all remaining
-            // Safety clamp: cannot exceed what was available at creation time.
-            if (maxConsumablePctAtCreation != null && consumedPctAbs.compareTo(maxConsumablePctAtCreation) > 0) {
-                consumedPctAbs = maxConsumablePctAtCreation;
-            }
-            if (consumedPctAbs.compareTo(BigDecimal.ZERO) < 0) {
-                consumedPctAbs = BigDecimal.ZERO;
-            }
-            log.setConsumedPercentage(consumedPctAbs);
 
             // 从 LeftoverDish 快照字段获取每100g的营养素值
             int kcalPer100g = leftover.getCaloriesPer100g() != null ? leftover.getCaloriesPer100g() : 0;
@@ -249,20 +232,13 @@ public class IntakeServiceImpl implements IIntakeService {
             log.setBaseCarbohydrates(baseCarbohydrates);
             log.setBaseFiber(baseFiber);
 
-            // 计算实际摄入值（effective）
-            // Base nutrition is computed from the CURRENT grams at creation time (log.quantity).
-            // Since consumedPctAbs is relative to INITIAL, convert to a ratio of "how much of the CURRENT grams was eaten":
-            //   ratio = consumedPctAbs / maxConsumablePctAtCreation
-            BigDecimal ratio = BigDecimal.ZERO;
-            if (maxConsumablePctAtCreation != null && maxConsumablePctAtCreation.compareTo(BigDecimal.ZERO) > 0) {
-                ratio = consumedPctAbs.divide(maxConsumablePctAtCreation, 4, RoundingMode.HALF_UP);
-            }
-            double ratioD = Math.max(0.0, Math.min(1.0, ratio.doubleValue()));
-            log.setEnergy((int) Math.round((log.getBaseEnergy() != null ? log.getBaseEnergy() : 0) * ratioD));
-            log.setProtein((log.getBaseProtein() != null ? log.getBaseProtein() : 0.0) * ratioD);
-            log.setFat((log.getBaseFat() != null ? log.getBaseFat() : 0.0) * ratioD);
-            log.setCarbohydrates((log.getBaseCarbohydrates() != null ? log.getBaseCarbohydrates() : 0.0) * ratioD);
-            log.setFiber((log.getBaseFiber() != null ? log.getBaseFiber() : 0.0) * ratioD);
+            // 计算实际摄入值（effective，基于 consumedPercentage）
+            BigDecimal ratio = consumedPct.divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP);
+            log.setEnergy((int) Math.round((log.getBaseEnergy() != null ? log.getBaseEnergy() : 0) * ratio.doubleValue()));
+            log.setProtein((log.getBaseProtein() != null ? log.getBaseProtein() : 0.0) * ratio.doubleValue());
+            log.setFat((log.getBaseFat() != null ? log.getBaseFat() : 0.0) * ratio.doubleValue());
+            log.setCarbohydrates((log.getBaseCarbohydrates() != null ? log.getBaseCarbohydrates() : 0.0) * ratio.doubleValue());
+            log.setFiber((log.getBaseFiber() != null ? log.getBaseFiber() : 0.0) * ratio.doubleValue());
 
             // 同步到 inventory：根据 consumedPercentage 更新剩菜当前重量
             syncLeftoverQuantityByConsumedPercentage(log, leftover);
@@ -439,56 +415,23 @@ public class IntakeServiceImpl implements IIntakeService {
         nutritionLog.setConsumedPercentage(consumedPercentage);
         
         // 重新计算实际摄入营养值（基于基础值和新的 consumedPercentage）
-        // Semantics:
-        // - For leftover: consumedPercentage is relative to INITIAL (0-100), but base nutrition is for CURRENT grams at creation,
-        //   so we convert to ratio-of-current via: ratio = consumedPct / maxConsumablePctAtCreation.
-        // - For non-leftover: keep old ratio = consumedPct / 100.
         BigDecimal ratio = consumedPercentage.divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP);
-        if (nutritionLog.getSourceType() == LogSourceType.LEFTOVER && nutritionLog.getDishId() != null) {
-            LeftoverDish leftover = leftoverDishRepository.findById(nutritionLog.getDishId()).orElse(null);
-            if (leftover != null) {
-                BigDecimal maxConsumable = computeMaxConsumablePercentageAtIntakeCreation(nutritionLog, leftover);
-                if (maxConsumable != null && maxConsumable.compareTo(BigDecimal.ZERO) > 0) {
-                    BigDecimal r = consumedPercentage.divide(maxConsumable, 4, RoundingMode.HALF_UP);
-                    // Clamp 0..1
-                    double rd = Math.max(0.0, Math.min(1.0, r.doubleValue()));
-                    // Apply with base values
-                    if (nutritionLog.getBaseEnergy() != null) {
-                        nutritionLog.setEnergy((int) Math.round(nutritionLog.getBaseEnergy() * rd));
-                    }
-                    if (nutritionLog.getBaseProtein() != null) {
-                        nutritionLog.setProtein(nutritionLog.getBaseProtein() * rd);
-                    }
-                    if (nutritionLog.getBaseFat() != null) {
-                        nutritionLog.setFat(nutritionLog.getBaseFat() * rd);
-                    }
-                    if (nutritionLog.getBaseCarbohydrates() != null) {
-                        nutritionLog.setCarbohydrates(nutritionLog.getBaseCarbohydrates() * rd);
-                    }
-                    if (nutritionLog.getBaseFiber() != null) {
-                        nutritionLog.setFiber(nutritionLog.getBaseFiber() * rd);
-                    }
-                }
-            }
-        }
         
-        // 从基础营养值计算实际摄入值（非 leftover 走这里；leftover 已在上面按“相对初始”语义重算）
-        if (nutritionLog.getSourceType() != LogSourceType.LEFTOVER) {
-            if (nutritionLog.getBaseEnergy() != null) {
-                nutritionLog.setEnergy((int) (nutritionLog.getBaseEnergy() * ratio.doubleValue()));
-            }
-            if (nutritionLog.getBaseProtein() != null) {
-                nutritionLog.setProtein(nutritionLog.getBaseProtein() * ratio.doubleValue());
-            }
-            if (nutritionLog.getBaseFat() != null) {
-                nutritionLog.setFat(nutritionLog.getBaseFat() * ratio.doubleValue());
-            }
-            if (nutritionLog.getBaseCarbohydrates() != null) {
-                nutritionLog.setCarbohydrates(nutritionLog.getBaseCarbohydrates() * ratio.doubleValue());
-            }
-            if (nutritionLog.getBaseFiber() != null) {
-                nutritionLog.setFiber(nutritionLog.getBaseFiber() * ratio.doubleValue());
-            }
+        // 从基础营养值计算实际摄入值
+        if (nutritionLog.getBaseEnergy() != null) {
+            nutritionLog.setEnergy((int)(nutritionLog.getBaseEnergy() * ratio.doubleValue()));
+        }
+        if (nutritionLog.getBaseProtein() != null) {
+            nutritionLog.setProtein(nutritionLog.getBaseProtein() * ratio.doubleValue());
+        }
+        if (nutritionLog.getBaseFat() != null) {
+            nutritionLog.setFat(nutritionLog.getBaseFat() * ratio.doubleValue());
+        }
+        if (nutritionLog.getBaseCarbohydrates() != null) {
+            nutritionLog.setCarbohydrates(nutritionLog.getBaseCarbohydrates() * ratio.doubleValue());
+        }
+        if (nutritionLog.getBaseFiber() != null) {
+            nutritionLog.setFiber(nutritionLog.getBaseFiber() * ratio.doubleValue());
         }
         
         // 更新数量（如果有基础数量）

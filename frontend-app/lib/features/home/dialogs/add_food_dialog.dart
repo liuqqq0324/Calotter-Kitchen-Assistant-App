@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:personal_sous_chef/core/theme/fallback_google_fonts.dart';
 import 'package:personal_sous_chef/services/api/homepage_api_service.dart';
+import 'dart:math' as math;
+import 'package:personal_sous_chef/shared/widgets/common/programmatic_sketchy_card.dart';
 
 /// 额外食物数据模型
 class ExtraFood {
@@ -281,18 +283,73 @@ class _AddFoodDialogState extends State<AddFoodDialog> {
     }
   }
 
+  // 构建手绘边框按钮
+  Widget _buildSketchyButton({
+    required VoidCallback? onPressed,
+    required Widget child,
+    double? width,
+  }) {
+    final borderColor = const Color(0xFF6B4F4F).withOpacity(0.7); // Same as text color
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          width: width,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          child: CustomPaint(
+            painter: _SketchyButtonBorderPainter(
+              borderColor: borderColor,
+              borderWidth: 1.5,
+              wobbleAmount: 1.5,
+              seed: 123,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(1.5), // Account for border width
+              child: Center(child: child), // Center the content
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: Container(
-        padding: const EdgeInsets.all(24),
-        constraints: const BoxConstraints(maxWidth: 400, maxHeight: 650),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      insetPadding: const EdgeInsets.all(20),
+      child: Stack(
+        alignment: Alignment.topCenter,
+        clipBehavior: Clip.none,
+        children: [
+          // 1. Background Layer: Sketchy paper container
+          Container(
+            constraints: const BoxConstraints(maxWidth: 400, maxHeight: 650),
+            margin: const EdgeInsets.only(top: 14), // Space for tape
+            padding: const EdgeInsets.all(24),
+            decoration: ShapeDecoration(
+              color: const Color(0xFFFFFFF0), // Off-white/cream color
+              shape: const SketchyRectBorder(
+                borderWidth: 1.0,
+                wobbleAmount: 2.5,
+                seed: 42, // Fixed seed for consistent appearance
+              ),
+              shadows: [
+                BoxShadow(
+                  color: const Color(0xFF6B4F4F).withOpacity(0.12),
+                  blurRadius: 10,
+                  offset: const Offset(2, 6),
+                ),
+              ],
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
               // 标题栏
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -302,7 +359,7 @@ class _AddFoodDialogState extends State<AddFoodDialog> {
                       children: [
                         Icon(
                           Icons.add_circle,
-                          color: Colors.teal.shade600,
+                          color: const Color(0xFF6B4F4F).withOpacity(0.7), // Lighter brown
                           size: 28,
                         ),
                         const SizedBox(width: 10),
@@ -312,7 +369,7 @@ class _AddFoodDialogState extends State<AddFoodDialog> {
                             style: GoogleFonts.caveat(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
-                              color: Colors.teal.shade800,
+                              color: const Color(0xFF6B4F4F).withOpacity(0.7), // Lighter brown
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -343,19 +400,19 @@ class _AddFoodDialogState extends State<AddFoodDialog> {
                         hintText: "Enter food name...",
                         hintStyle: GoogleFonts.kalam(color: Colors.grey[400]),
                         filled: true,
-                        fillColor: Colors.teal.shade50,
+                        fillColor: const Color(0xFF6B4F4F).withOpacity(0.05), // Light brown background
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: Colors.teal.shade200),
+                          borderSide: BorderSide(color: const Color(0xFF6B4F4F).withOpacity(0.2)),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: Colors.teal.shade200),
+                          borderSide: BorderSide(color: const Color(0xFF6B4F4F).withOpacity(0.2)),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: BorderSide(
-                            color: Colors.teal.shade500,
+                            color: const Color(0xFF6B4F4F),
                             width: 2,
                           ),
                         ),
@@ -369,26 +426,18 @@ class _AddFoodDialogState extends State<AddFoodDialog> {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  ElevatedButton(
+                  _buildSketchyButton(
                     onPressed: _isLoading ? null : _addFood,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.teal.shade500,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.all(14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
                     child: _isLoading
                         ? const SizedBox(
                             width: 24,
                             height: 24,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: Colors.white,
+                              color: Color(0xFF6B4F4F),
                             ),
                           )
-                        : const Icon(Icons.add, size: 24),
+                        : Icon(Icons.add, size: 24, color: const Color(0xFF6B4F4F).withOpacity(0.7)),
                   ),
                 ],
               ),
@@ -431,34 +480,64 @@ class _AddFoodDialogState extends State<AddFoodDialog> {
               const SizedBox(height: 16),
 
               // 确认按钮
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
+              Center(
+                child: _buildSketchyButton(
                   onPressed: _isLoading
                       ? null
                       : () {
                           Navigator.of(context).pop(_addedFoods);
                         },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.teal.shade500,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
+                  width: 200, // Fixed width, not too long
                   child: Text(
                     "Done",
                     style: GoogleFonts.kalam(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
+                      color: const Color(0xFF6B4F4F).withOpacity(0.7),
                     ),
+                    textAlign: TextAlign.center,
                   ),
                 ),
               ),
-            ],
+                ],
+              ),
+            ),
           ),
-        ),
+
+          // 2. Tape Layer: Programmatic tape effect
+          Positioned(
+            top: 4, // Position tape slightly above the card
+            child: Transform.rotate(
+              angle: -0.05, // Slight rotation for natural look
+              child: Container(
+                width: 85, // Shortened tape length
+                height: 18,
+                decoration: BoxDecoration(
+                  // Semi-transparent yellowish-white tape color - more transparent
+                  color: const Color(0xFFFFF8DC).withOpacity(0.4),
+                  borderRadius: BorderRadius.circular(2),
+                  // Add a subtle border to make it look more like tape
+                  border: Border.all(
+                    color: const Color(0xFFD4AF37).withOpacity(0.3),
+                    width: 0.5,
+                  ),
+                  // Add a subtle shadow to make the tape pop
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 2,
+                      offset: const Offset(0, 1),
+                    ),
+                  ],
+                ),
+                // Add some texture lines to simulate tape texture
+                child: CustomPaint(
+                  painter: _TapeTexturePainter(),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -486,9 +565,9 @@ class _AddFoodDialogState extends State<AddFoodDialog> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.teal.shade50,
+        color: const Color(0xFF6B4F4F).withOpacity(0.05), // Light brown background
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.teal.shade100),
+        border: Border.all(color: const Color(0xFF6B4F4F).withOpacity(0.15)),
       ),
       child: Row(
         children: [
@@ -497,10 +576,10 @@ class _AddFoodDialogState extends State<AddFoodDialog> {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: Colors.teal.shade100,
+              color: const Color(0xFF6B4F4F).withOpacity(0.1),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(Icons.fastfood, color: Colors.teal.shade600, size: 22),
+            child: Icon(Icons.fastfood, color: const Color(0xFF6B4F4F), size: 22),
           ),
           const SizedBox(width: 12),
 
@@ -532,7 +611,7 @@ class _AddFoodDialogState extends State<AddFoodDialog> {
           // 删除按钮
           IconButton(
             onPressed: _isLoading ? null : () => _deleteFood(food, index),
-            icon: Icon(Icons.remove_circle_outline, color: Colors.red.shade400),
+            icon: Icon(Icons.remove_circle_outline, color: const Color(0xFF6B4F4F).withOpacity(0.6)),
             iconSize: 22,
           ),
         ],
@@ -556,8 +635,9 @@ class _AddFoodDialogState extends State<AddFoodDialog> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.teal.shade100,
+        color: const Color(0xFF6B4F4F).withOpacity(0.08),
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF6B4F4F).withOpacity(0.15)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -579,16 +659,108 @@ class _AddFoodDialogState extends State<AddFoodDialog> {
           style: GoogleFonts.caveat(
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: Colors.teal.shade800,
+            color: const Color(0xFF6B4F4F), // River Deep Brown
           ),
         ),
         Text(
           "$label ($unit)",
-          style: GoogleFonts.kalam(fontSize: 10, color: Colors.teal.shade700),
+          style: GoogleFonts.kalam(fontSize: 10, color: const Color(0xFF6B4F4F).withOpacity(0.7)),
         ),
       ],
     );
   }
+}
+
+/// Custom painter to add subtle texture lines to the tape
+class _TapeTexturePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFFD4AF37).withOpacity(0.15)
+      ..strokeWidth = 0.5
+      ..style = PaintingStyle.stroke;
+
+    // Draw horizontal lines to simulate tape texture
+    for (double y = 2; y < size.height; y += 3) {
+      canvas.drawLine(
+        Offset(0, y),
+        Offset(size.width, y),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+/// Custom painter for sketchy button border
+class _SketchyButtonBorderPainter extends CustomPainter {
+  final Color borderColor;
+  final double borderWidth;
+  final double wobbleAmount;
+  final int seed;
+
+  _SketchyButtonBorderPainter({
+    required this.borderColor,
+    this.borderWidth = 1.5,
+    this.wobbleAmount = 1.5,
+    this.seed = 123,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path = _createSketchyPath(size);
+    final paint = Paint()
+      ..color = borderColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = borderWidth
+      ..strokeJoin = StrokeJoin.round
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawPath(path, paint);
+  }
+
+  Path _createSketchyPath(Size size) {
+    final path = Path();
+    final random = math.Random(seed);
+    final step = 8.0;
+    final wobble = wobbleAmount;
+
+    // Top edge: left to right
+    path.moveTo(0, 0);
+    for (double x = step; x < size.width; x += step) {
+      final noise = (random.nextDouble() * 2 - 1) * wobble;
+      path.lineTo(x, noise);
+    }
+    path.lineTo(size.width, 0);
+
+    // Right edge: top to bottom
+    for (double y = step; y < size.height; y += step) {
+      final noise = (random.nextDouble() * 2 - 1) * wobble;
+      path.lineTo(size.width + noise, y);
+    }
+    path.lineTo(size.width, size.height);
+
+    // Bottom edge: right to left
+    for (double x = size.width - step; x > 0; x -= step) {
+      final noise = (random.nextDouble() * 2 - 1) * wobble;
+      path.lineTo(x, size.height + noise);
+    }
+    path.lineTo(0, size.height);
+
+    // Left edge: bottom to top
+    for (double y = size.height - step; y > 0; y -= step) {
+      final noise = (random.nextDouble() * 2 - 1) * wobble;
+      path.lineTo(noise, y);
+    }
+
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 /// 显示添加食物弹窗的便捷方法
