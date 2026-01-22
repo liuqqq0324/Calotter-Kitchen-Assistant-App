@@ -434,7 +434,8 @@ class _OtterFloatingNavState extends State<OtterFloatingNav>
                   duration: Duration(milliseconds: 100 + index * 50),
                   curve: Curves.easeOutBack,
                   child: Stack(
-                    alignment: Alignment.center,
+                    alignment: Alignment.center, // 确保所有子元素居中
+                    clipBehavior: Clip.none, // 允许内容超出边界
                     children: [
                       Image.asset(
                         'assets/images/Shell.png',
@@ -455,7 +456,9 @@ class _OtterFloatingNavState extends State<OtterFloatingNav>
                               Shadow(
                                 offset: const Offset(0.5, 0.5),
                                 blurRadius: 1.5,
-                                color: const Color(0xFF4A3A3A).withOpacity(0.2),
+                                color: const Color(
+                                  0xFF4A3A3A,
+                                ).withOpacity(0.2), // 微弱的深色投影
                               ),
                             ],
                           ),

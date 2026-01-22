@@ -1193,22 +1193,40 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+      return Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/wood_background.png'),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: const Scaffold(
+          backgroundColor: Colors.transparent,
+          body: Center(child: CircularProgressIndicator()),
+        ),
       );
     }
 
-    return Scaffold(
-      body: PassportPageView(
-        pages: [
-          _buildProfilePage(context),
-          _buildHealthPage(context),
-          _buildNutritionPage(context),
-          _buildPreferencesPage(context),
-        ],
-        pageLabels: const ['Profile', 'Health', 'Nutrition', 'Preferences'],
-        initialPage: 0,
-        shouldAnimateCover: widget.shouldAnimateCover, // 启用封面动画
+    return Container(
+      decoration: const BoxDecoration(
+        image: DecorationImage(
+          image: AssetImage('assets/wood_background.png'),
+          fit: BoxFit.cover,
+        ),
+      ),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: PassportPageView(
+          pages: [
+            _buildProfilePage(context),
+            _buildHealthPage(context),
+            _buildNutritionPage(context),
+            _buildPreferencesPage(context),
+          ],
+          pageLabels: const ['Profile', 'Health', 'Nutrition', 'Preferences'],
+          initialPage: 0,
+          shouldAnimateCover: widget.shouldAnimateCover, // 启用封面动画
+        ),
       ),
     );
   }
