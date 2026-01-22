@@ -601,56 +601,12 @@ class _CrayonFillPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final random = math.Random(42); // 固定种子，确保每次渲染一致
-
-    // 基础填充
+    // 基础填充 - 纯色填充，无斜线、点状纹理和高光效果
     final basePaint = Paint()
       ..color = color.withOpacity(0.6)
       ..style = PaintingStyle.fill;
 
     canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), basePaint);
-
-    // 手绘蜡笔笔触效果 - 斜线纹理
-    final strokePaint = Paint()
-      ..color = color.withOpacity(0.3)
-      ..strokeWidth = 2
-      ..style = PaintingStyle.stroke;
-
-    // 绘制斜线纹理（模拟蜡笔笔触）
-    for (double i = -size.height; i < size.width + size.height; i += 8) {
-      // 添加轻微的随机偏移，模拟手绘效果
-      final offset = random.nextDouble() * 2 - 1;
-      canvas.drawLine(
-        Offset(i + offset, 0),
-        Offset(i + size.height + offset, size.height),
-        strokePaint,
-      );
-    }
-
-    // 添加点状纹理（模拟蜡笔颗粒感）
-    final dotPaint = Paint()
-      ..color = color.withOpacity(0.15)
-      ..style = PaintingStyle.fill;
-
-    for (int i = 0; i < 30; i++) {
-      final x = random.nextDouble() * size.width;
-      final y = random.nextDouble() * size.height;
-      final radius = random.nextDouble() * 1.5 + 0.5;
-      canvas.drawCircle(Offset(x, y), radius, dotPaint);
-    }
-
-    // 高光效果
-    final highlightPaint = Paint()
-      ..color = Colors.white.withOpacity(0.2)
-      ..strokeWidth = 1.5
-      ..style = PaintingStyle.stroke;
-
-    // 绘制顶部高光
-    canvas.drawLine(
-      Offset(0, size.height * 0.3),
-      Offset(size.width, size.height * 0.3),
-      highlightPaint,
-    );
   }
 
   @override
