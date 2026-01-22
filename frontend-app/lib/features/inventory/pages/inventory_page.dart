@@ -556,129 +556,260 @@ class _InventoryPageState extends State<InventoryPage>
   Widget build(BuildContext context) {
     // Data is loaded from API in initState and _loadInventory
 
-    return Container(
-      decoration: const BoxDecoration(
-        image: DecorationImage(
-          image: AssetImage('assets/wood_background.png'),
-          fit: BoxFit.cover,
-        ),
+    // 【新设计】参考 home_page.dart 的背景和 container 层级布局
+    // 使用 SizedBox.expand 包裹整个页面，使用 Stack 实现分层效果
+    return SizedBox.expand(
+      child: Stack(
+        children: [
+          // =========================================
+          // 背景图层 1: 木纹背景图片
+          // =========================================
+          Positioned.fill(
+            child: Image.asset(
+              'assets/wood_background.png',
+              fit: BoxFit.cover,
+              // 如果背景图路径不对/资源未打包，使用错误处理
+              errorBuilder: (context, error, stackTrace) =>
+                  Image.asset('assets/sketch.png', fit: BoxFit.cover),
+            ),
+          ),
+
+          // =========================================
+          // 背景图层 2: 纸张泛黄蒙版（让内容更易读）
+          // =========================================
+          Positioned.fill(
+            child: Container(color: const Color(0xFFF3E5AB).withOpacity(0.35)),
+          ),
+
+          // =========================================
+          // 内容层: 书签、羊皮纸、浮动按钮等
+          // =========================================
+          Scaffold(
+            backgroundColor: Colors.transparent,
+            // Stack 是实现分层效果的关键
+            body: Stack(
+              children: [
+                // =========================================
+                // 【旧设计 - 已注释】层级 1 (底层): 内容区域 (TabBarView)
+                // 说明：旧设计中，TabBarView 是独立的 Positioned 层，从 top: 140 开始
+                // 标题和列表是分离的，导致滚动时视觉上有割裂感
+                // =========================================
+                // Positioned.fill(
+                //   // 顶部留出空间给书签和标题
+                //   top: 140, // 上移位置，适配缩小的书签区域（表头在90，高度约40-50px）
+                //   child: TabBarView(
+                //     controller: _tabController,
+                //     physics: const BouncingScrollPhysics(),
+                //     children: [
+                //       _buildIngredientPage(),
+                //       _buildSeasoningsPage(),
+                //       _buildCookwarePage(),
+                //       _buildLeftoversPage(),
+                //     ],
+                //   ),
+                // ),
+
+                // =========================================
+                // 【新设计】层级 A (底层): 羊皮纸主体 (Parchment Sheet)
+                // 说明：把羊皮纸放在书签之前，这样它就会被书签盖住 (Z轴在后)
+                // container 设为全透明，底部不留 margin
+                // =========================================
+                Positioned(
+                  top: 0,
+                  bottom: 0, // 【修改】底部不留 margin
+                  left: 16,
+                  right: 16,
+                  child: _buildParchmentSheet(),
+                ),
+
+                // =========================================
+                // 【新设计】层级 B (上层): 悬挂的书签 (Bookmarks)
+                // 说明：把书签放在羊皮纸之后，这样它就会浮在纸张上面 (Z轴在前)
+                // 这样当列表滚动时，内容会滑入书签背后的区域，营造真正的"夹在书签下的纸张"效果
+                // =========================================
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: SafeArea(
+                    bottom: false,
+                    child: Container(
+                      height: 90, // 【建议】稍微调高一点点，给书签多一点活动空间（从 80 改为 90）
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      alignment: Alignment.topCenter,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildHangingBookmark(
+                            0,
+                            'Ingredients',
+                            'assets/icons/Ingredients.png',
+                            Colors.orange.shade300,
+                          ),
+                          _buildHangingBookmark(
+                            1,
+                            'Seasonings',
+                            'assets/icons/Seasonings.png',
+                            Colors.green.shade300,
+                          ),
+                          _buildHangingBookmark(
+                            2,
+                            'Cookware',
+                            'assets/icons/Cookwares.png',
+                            Colors.blue.shade300,
+                          ),
+                          _buildHangingBookmark(
+                            3,
+                            'Dish',
+                            'assets/icons/Dishes.png',
+                            Colors.yellow.shade300,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+                // =========================================
+                // 【旧设计 - 已注释】层级 3 (顶层): My Kitchen 标题
+                // 说明：旧设计中，标题是独立的 Positioned 层，悬浮在列表上方
+                // 这导致列表滚动时会从标题下方穿过，产生视觉割裂感
+                // =========================================
+                // Positioned(
+                //   top: 90, // 上移位置，适配缩小的书签区域（书签选中时高度76）
+                //   left: 20,
+                //   child: SafeArea(
+                //     child: Text(
+                //       'My Kitchen',
+                //       style:
+                //           GoogleFonts.caveat(
+                //             fontSize: 32,
+                //             fontWeight: FontWeight.bold,
+                //             color: Colors.brown.shade800,
+                //           ).copyWith(
+                //             shadows: [
+                //               const Shadow(
+                //                 offset: Offset(1, 1),
+                //                 color: Colors.white,
+                //                 blurRadius: 2,
+                //               ),
+                //             ],
+                //           ),
+                //     ),
+                //   ),
+                // ),
+
+                // =========================================
+                // 层级 3 (浮动层): 按钮与遮罩
+                // =========================================
+                if (_isExpanded)
+                  Positioned.fill(
+                    child: GestureDetector(
+                      onTap: _toggleExpand,
+                      child: Container(color: Colors.black54),
+                    ),
+                  ),
+
+                // 浮动菜单
+                if (_tabController.index == 0) // 只在第一个Tab显示
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    // 适配底部安全区（iPhone Home 条 / Android 手势条）
+                    bottom: MediaQuery.of(context).padding.bottom + 20,
+                    child: Align(
+                      alignment: Alignment.bottomCenter,
+                      child: _buildExpandableFab(),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
       ),
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        // Stack 是实现分层效果的关键
-        body: Stack(
-          children: [
-            // =========================================
-            // 层级 1 (底层): 内容区域 (TabBarView)
-            // =========================================
-            Positioned.fill(
-              // 顶部留出空间给书签和标题
-              top: 140, // 上移位置，适配缩小的书签区域（表头在90，高度约40-50px）
-              child: TabBarView(
-                controller: _tabController,
-                physics: const BouncingScrollPhysics(),
-                children: [
-                  _buildIngredientPage(),
-                  _buildSeasoningsPage(),
-                  _buildCookwarePage(),
-                  _buildLeftoversPage(),
-                ],
-              ),
+    );
+  }
+
+  // =========================================================
+  // 【新设计】羊皮纸方案：构建统一的羊皮纸容器
+  // =========================================================
+  /// 构建羊皮纸容器，将标题和列表装进同一个容器里
+  /// 核心思路：不再把标题和列表看作两个悬浮元素，而是统一在一个容器中
+  /// 这样滚动时内容是在纸张内部滑动，视觉上更加连贯统一
+  Widget _buildParchmentSheet() {
+    return Container(
+      // 1. 设置容器为全透明（移除背景色和阴影）
+      decoration: BoxDecoration(
+        color: Colors.transparent, // 【修改】设为全透明
+        // 移除圆角和阴影，因为透明容器不需要这些装饰
+        // borderRadius: const BorderRadius.vertical(
+        //   top: Radius.circular(20),
+        // ),
+        // boxShadow: [
+        //   BoxShadow(
+        //     color: Colors.black.withOpacity(0.2),
+        //     blurRadius: 10,
+        //     offset: const Offset(0, 4),
+        //   ),
+        // ],
+      ),
+      // 2. 移除 clipBehavior，因为透明容器不需要裁切
+      // clipBehavior: Clip.hardEdge,
+
+      // 3. 垂直布局：直接显示列表内容（已移除标题）
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // --- 头部区域 (Header) - 已移除 ---
+          // 【旧设计】包含 "My Kitchen" 标题和分隔线
+          // Container(
+          //   padding: const EdgeInsets.fromLTRB(20, 24, 20, 10),
+          //   color: const Color(0xFFFDFBF7), // 和背景同色
+          //   child: Column(
+          //     crossAxisAlignment: CrossAxisAlignment.start,
+          //     children: [
+          //       Text(
+          //         'My Kitchen',
+          //         style:
+          //             GoogleFonts.caveat(
+          //               fontSize: 32,
+          //               fontWeight: FontWeight.bold,
+          //               color: Colors.brown.shade800,
+          //             ).copyWith(
+          //               shadows: [
+          //                 const Shadow(
+          //                   offset: Offset(1, 1),
+          //                   color: Colors.white,
+          //                   blurRadius: 2,
+          //                 ),
+          //               ],
+          //             ),
+          //       ),
+          //       const SizedBox(height: 4),
+          //       Divider(
+          //         height: 1,
+          //         color: Colors.brown.shade200, // 可选：加一条淡淡的分隔线
+          //       ),
+          //     ],
+          //   ),
+          // ),
+
+          // --- 滚动区域 (Body) ---
+          Expanded(
+            // 使用 Expanded 占满剩余空间
+            child: TabBarView(
+              controller: _tabController,
+              physics: const BouncingScrollPhysics(),
+              children: [
+                _buildIngredientPage(), // 你的各个页面
+                _buildSeasoningsPage(),
+                _buildCookwarePage(),
+                _buildLeftoversPage(),
+              ],
             ),
-
-            // =========================================
-            // 层级 2 (中间层): 悬挂的书签 (Bookmarks)
-            // =========================================
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: SafeArea(
-                bottom: false,
-                child: Container(
-                  height: 80, // 书签区域高度（缩小20%）
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  alignment: Alignment.topCenter,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildHangingBookmark(
-                        0,
-                        'Ingredients',
-                        'assets/icons/Ingredients.png',
-                        Colors.orange.shade300,
-                      ),
-                      _buildHangingBookmark(
-                        1,
-                        'Seasonings',
-                        'assets/icons/Seasonings.png',
-                        Colors.green.shade300,
-                      ),
-                      _buildHangingBookmark(
-                        2,
-                        'Cookware',
-                        'assets/icons/Cookwares.png',
-                        Colors.blue.shade300,
-                      ),
-                      _buildHangingBookmark(
-                        3,
-                        'Dish',
-                        'assets/icons/Dishes.png',
-                        Colors.yellow.shade300,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-            // =========================================
-            // 层级 3 (顶层): My Kitchen 标题
-            // =========================================
-            Positioned(
-              top: 90, // 上移位置，适配缩小的书签区域（书签选中时高度76）
-              left: 20,
-              child: SafeArea(
-                child: Text(
-                  'My Kitchen',
-                  style: GoogleFonts.caveat(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.brown.shade800,
-                  ).copyWith(
-                    shadows: [
-                      const Shadow(
-                        offset: Offset(1, 1),
-                        color: Colors.white,
-                        blurRadius: 2,
-                      )
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-            // =========================================
-            // 层级 4 (浮动层): 按钮与遮罩
-            // =========================================
-            if (_isExpanded)
-              Positioned.fill(
-                child: GestureDetector(
-                  onTap: _toggleExpand,
-                  child: Container(color: Colors.black54),
-                ),
-              ),
-
-            // 浮动菜单
-            if (_tabController.index == 0) // 只在第一个Tab显示
-              Positioned(
-                right: 16,
-                bottom: 20,
-                child: _buildExpandableFab(),
-              ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -733,7 +864,7 @@ class _InventoryPageState extends State<InventoryPage>
               color: Colors.black.withOpacity(0.2),
               blurRadius: 4,
               offset: const Offset(2, 2),
-            )
+            ),
           ],
         ),
         child: Column(
@@ -765,12 +896,16 @@ class _InventoryPageState extends State<InventoryPage>
     if (_isLoadingSeasonings) {
       return const Center(child: CircularProgressIndicator());
     }
+    // 【新设计】修改 padding：增加顶部 padding 以避让书签（书签覆盖在羊皮纸上方）
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      child: ItemToggleGrid(
-        items: _seasonings,
-        onToggle: _handleItemToggle,
-      ),
+      // 【旧设计】padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16), // 旧设计中需要左右和上下 padding
+      padding: const EdgeInsets.fromLTRB(
+        0,
+        110, // 【关键修复】从 100 改为 110，计算公式：书签高度(约90) + 视觉间隙(20) = 110
+        0,
+        0,
+      ), // 新设计：顶部留出书签空间，左右为0（羊皮纸容器已有边距）
+      child: ItemToggleGrid(items: _seasonings, onToggle: _handleItemToggle),
     );
   }
 
@@ -779,12 +914,16 @@ class _InventoryPageState extends State<InventoryPage>
     if (_isLoadingCookware) {
       return const Center(child: CircularProgressIndicator());
     }
+    // 【新设计】修改 padding：增加顶部 padding 以避让书签（书签覆盖在羊皮纸上方）
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      child: ItemToggleGrid(
-        items: _cookwares,
-        onToggle: _handleItemToggle,
-      ),
+      // 【旧设计】padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16), // 旧设计中需要左右和上下 padding
+      padding: const EdgeInsets.fromLTRB(
+        0,
+        110, // 【关键修复】从 100 改为 110，计算公式：书签高度(约90) + 视觉间隙(20) = 110
+        0,
+        0,
+      ), // 新设计：顶部留出书签空间，左右为0（羊皮纸容器已有边距）
+      child: ItemToggleGrid(items: _cookwares, onToggle: _handleItemToggle),
     );
   }
 
@@ -824,9 +963,17 @@ class _InventoryPageState extends State<InventoryPage>
     }
 
     // 🔥 使用普通的 ListView，背景透明
+    // 【新设计】修改 padding：增加顶部 padding 以避让书签（书签覆盖在羊皮纸上方）
     return ListView.builder(
       // 给内容加 padding，否则卡片会贴着屏幕边缘
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 100), // 底部留 100 给 FAB
+      // 【旧设计】padding: const EdgeInsets.fromLTRB(16, 16, 16, 100), // 旧设计中顶部需要留出空间给标题
+      padding: const EdgeInsets.fromLTRB(
+        0,
+        110, // 【关键修复】从 100 改为 110，计算公式：书签高度(约90) + 视觉间隙(20) = 110
+        // 确保第一个项目从书签下方可见，上滑时会平滑地滑入书签背后的区域
+        0,
+        100,
+      ), // 新设计：顶部留出书签空间，左右为0（羊皮纸容器已有边距），底部留 100 给 FAB
       physics: const BouncingScrollPhysics(),
       itemCount: _ingredients.length,
       itemBuilder: (context, index) {
@@ -923,8 +1070,16 @@ class _InventoryPageState extends State<InventoryPage>
     }
 
     // 🔥 使用普通的 ListView，背景透明
+    // 【新设计】修改 padding：增加顶部 padding 以避让书签（书签覆盖在羊皮纸上方）
     return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+      // 【旧设计】padding: const EdgeInsets.fromLTRB(16, 16, 16, 100), // 旧设计中顶部需要留出空间给标题
+      padding: const EdgeInsets.fromLTRB(
+        0,
+        110, // 【关键修复】从 100 改为 110，计算公式：书签高度(约90) + 视觉间隙(20) = 110
+        // 确保第一个项目从书签下方可见，上滑时会平滑地滑入书签背后的区域
+        0,
+        100,
+      ), // 新设计：顶部留出书签空间，左右为0（羊皮纸容器已有边距），底部留 100 给 FAB
       physics: const BouncingScrollPhysics(),
       itemCount: _leftovers.length,
       itemBuilder: (context, index) {
@@ -999,7 +1154,8 @@ class _InventoryPageState extends State<InventoryPage>
   Widget _buildExpandableFab() {
     return Column(
       mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.end,
+      // 底部居中：让主按钮与展开的小按钮中线对齐
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         // 1. 手动输入按钮
         SizeTransition(
@@ -1009,7 +1165,7 @@ class _InventoryPageState extends State<InventoryPage>
             child: Container(
               margin: const EdgeInsets.only(bottom: 10),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   FloatingActionButton.small(
                     heroTag: "btn_manual",
@@ -1045,7 +1201,7 @@ class _InventoryPageState extends State<InventoryPage>
             child: Container(
               margin: const EdgeInsets.only(bottom: 10),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   FloatingActionButton.small(
                     heroTag: "btn_camera",

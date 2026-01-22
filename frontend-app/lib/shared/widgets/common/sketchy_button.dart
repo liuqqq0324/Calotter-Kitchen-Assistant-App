@@ -3,7 +3,7 @@ import 'package:personal_sous_chef/core/theme/fallback_google_fonts.dart';
 import 'sketchy_border.dart';
 
 /// 手绘风格的按钮组件
-class SketchyButton extends StatelessWidget {
+class SketchyButton extends StatefulWidget {
   final String text;
   final VoidCallback onPressed;
   final IconData? icon;
@@ -28,60 +28,79 @@ class SketchyButton extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final bgColor = backgroundColor ?? Theme.of(context).colorScheme.primary;
-    final txtColor = textColor ?? Colors.white;
+  State<SketchyButton> createState() => _SketchyButtonState();
+}
 
-    Widget button = SketchyBorder(
-      borderColor: borderColor,
-      borderWidth: borderWidth,
-      backgroundColor: bgColor,
-      borderRadius: 30.0,
-      roughness: 3.0,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onPressed,
-          borderRadius: BorderRadius.circular(30),
-          child: Container(
-            padding:
-                padding ??
-                const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-            width: isFullWidth ? double.infinity : null,
-            child: Row(
-              mainAxisSize: isFullWidth ? MainAxisSize.max : MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Flexible(
-                  child: Text(
-                    text,
-                    style: GoogleFonts.caveat(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: txtColor,
-                      letterSpacing: 1.5,
+class _SketchyButtonState extends State<SketchyButton> {
+  bool _pressed = false;
+
+  Color _darken(Color c, [double amount = 0.12]) {
+    return Color.lerp(c, Colors.black, amount) ?? c;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final baseBg = widget.backgroundColor ?? Theme.of(context).colorScheme.primary;
+    final pressedBg = _darken(baseBg);
+    final txtColor = widget.textColor ?? Colors.white;
+
+    return TweenAnimationBuilder<Color?>(
+      duration: const Duration(milliseconds: 110),
+      curve: Curves.easeOut,
+      tween: ColorTween(end: _pressed ? pressedBg : baseBg),
+      builder: (context, bg, _) {
+        return SketchyBorder(
+          borderColor: widget.borderColor,
+          borderWidth: widget.borderWidth,
+          backgroundColor: bg ?? baseBg,
+          borderRadius: 30.0,
+          roughness: 3.0,
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: widget.onPressed,
+              onHighlightChanged: (v) => setState(() => _pressed = v),
+              borderRadius: BorderRadius.circular(30),
+              child: Container(
+                padding:
+                    widget.padding ??
+                    const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                width: widget.isFullWidth ? double.infinity : null,
+                child: Row(
+                  mainAxisSize:
+                      widget.isFullWidth ? MainAxisSize.max : MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        widget.text,
+                        style: GoogleFonts.caveat(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: txtColor,
+                          letterSpacing: 1.5,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
                     ),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
-                  ),
+                    if (widget.icon != null) ...[
+                      const SizedBox(width: 12),
+                      Icon(widget.icon, color: txtColor, size: 24),
+                    ],
+                  ],
                 ),
-                if (icon != null) ...[
-                  const SizedBox(width: 12),
-                  Icon(icon, color: txtColor, size: 24),
-                ],
-              ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
-
-    return button;
   }
 }
 
 /// 手绘风格的图标按钮
-class SketchyIconButton extends StatelessWidget {
+class SketchyIconButton extends StatefulWidget {
   final IconData icon;
   final VoidCallback onPressed;
   final Color? backgroundColor;
@@ -100,29 +119,49 @@ class SketchyIconButton extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final bgColor = backgroundColor ?? Theme.of(context).colorScheme.primary;
-    final icnColor = iconColor ?? Colors.white;
+  State<SketchyIconButton> createState() => _SketchyIconButtonState();
+}
 
-    return SketchyBorder(
-      borderColor: borderColor,
-      borderWidth: 2.5,
-      backgroundColor: bgColor,
-      borderRadius: size / 2,
-      roughness: 3.0,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onPressed,
-          borderRadius: BorderRadius.circular(size / 2),
-          child: Container(
-            width: size,
-            height: size,
-            alignment: Alignment.center,
-            child: Icon(icon, color: icnColor, size: size * 0.5),
+class _SketchyIconButtonState extends State<SketchyIconButton> {
+  bool _pressed = false;
+
+  Color _darken(Color c, [double amount = 0.12]) {
+    return Color.lerp(c, Colors.black, amount) ?? c;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final baseBg = widget.backgroundColor ?? Theme.of(context).colorScheme.primary;
+    final pressedBg = _darken(baseBg);
+    final icnColor = widget.iconColor ?? Colors.white;
+
+    return TweenAnimationBuilder<Color?>(
+      duration: const Duration(milliseconds: 110),
+      curve: Curves.easeOut,
+      tween: ColorTween(end: _pressed ? pressedBg : baseBg),
+      builder: (context, bg, _) {
+        return SketchyBorder(
+          borderColor: widget.borderColor,
+          borderWidth: 2.5,
+          backgroundColor: bg ?? baseBg,
+          borderRadius: widget.size / 2,
+          roughness: 3.0,
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: widget.onPressed,
+              onHighlightChanged: (v) => setState(() => _pressed = v),
+              borderRadius: BorderRadius.circular(widget.size / 2),
+              child: Container(
+                width: widget.size,
+                height: widget.size,
+                alignment: Alignment.center,
+                child: Icon(widget.icon, color: icnColor, size: widget.size * 0.5),
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

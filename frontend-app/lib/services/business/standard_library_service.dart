@@ -2,9 +2,6 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:personal_sous_chef/services/api/inventory_api_service.dart';
-import 'package:personal_sous_chef/core/config/api_config.dart';
-import 'package:http/http.dart' as http;
-import 'package:personal_sous_chef/services/business/auth_service.dart';
 
 /// 标准库服务（支持缓存）
 class StandardLibraryService {
@@ -171,7 +168,8 @@ class StandardLibraryService {
   /// 加载并缓存标准过敏源库
   static Future<List<Map<String, dynamic>>> _loadAndCacheAllergens() async {
     try {
-      final allergens = await _fetchStandardAllergens();
+      // ✅ 使用 InventoryApiService 获取标准过敏原，打破循环依赖
+      final allergens = await InventoryApiService.getAllStandardAllergens();
 
       // 保存到缓存
       final prefs = await SharedPreferences.getInstance();
@@ -190,37 +188,6 @@ class StandardLibraryService {
         return List<Map<String, dynamic>>.from(cached['data'] as List);
       }
       rethrow;
-    }
-  }
-
-  /// 从API获取标准过敏源库
-  static Future<List<Map<String, dynamic>>> _fetchStandardAllergens() async {
-    try {
-      final url = Uri.parse('${ApiConfig.baseUrl}/api/user/standard-allergens');
-      final token = await AuthService.getToken();
-
-      final response = await http.get(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-          if (token != null) 'Authorization': 'Bearer $token',
-        },
-      );
-
-      final data = jsonDecode(response.body);
-      if (response.statusCode == 200 && data['code'] == 200) {
-        final responseData = data['data'];
-        if (responseData is List) {
-          return List<Map<String, dynamic>>.from(responseData);
-        }
-        return [];
-      } else {
-        throw Exception(
-          'Failed to get standard allergens: ${data['message'] ?? 'Unknown error'}',
-        );
-      }
-    } catch (e) {
-      throw Exception('Network error: $e');
     }
   }
 

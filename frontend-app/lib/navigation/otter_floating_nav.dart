@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:personal_sous_chef/navigation/bottom_nav_config.dart';
 import 'package:personal_sous_chef/core/theme/fallback_google_fonts.dart';
 import 'package:personal_sous_chef/navigation/otter_tooltip.dart';
+import 'package:personal_sous_chef/shared/widgets/common/programmatic_sketchy_card.dart';
 import 'dart:math' as math;
 
 /// 海獭浮动导航组件
@@ -205,8 +206,8 @@ class _OtterFloatingNavState extends State<OtterFloatingNav>
                   final newDy =
                       _position.dy - details.delta.dy; // Y轴反向（Flutter坐标系）
 
-                  // 计算边界（按钮大小64 + 边距16）
-                  final buttonSize = 64.0;
+                  // 计算边界（按钮大小120 + 边距16）
+                  final buttonSize = 120.0;
                   final maxDx = screenSize.width - buttonSize - 16;
                   final maxDy =
                       screenSize.height - safeArea.bottom - buttonSize - 16;
@@ -229,21 +230,10 @@ class _OtterFloatingNavState extends State<OtterFloatingNav>
                   _toggleMenu();
                 }
               },
-              child: Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.brown.shade300,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.3),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: ClipOval(child: _buildOtterImage()),
+              child: SizedBox(
+                width: 120,
+                height: 120,
+                child: _buildOtterImage(),
               ),
             ),
           ),
@@ -253,25 +243,28 @@ class _OtterFloatingNavState extends State<OtterFloatingNav>
   }
 
   Widget _buildOtterImage() {
-    // TODO: 替换为从参考图抠出的海獭形象
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.brown.shade200,
-        shape: BoxShape.circle,
-      ),
-      child: Center(child: Text('🦦', style: const TextStyle(fontSize: 40))),
+    return Image.asset(
+      'assets/images/otter_floating_transparent.png',
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) {
+        // Fallback to emoji if image fails to load
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.brown.shade200,
+            shape: BoxShape.circle,
+          ),
+          child: Center(
+            child: Text('🦦', style: const TextStyle(fontSize: 40)),
+          ),
+        );
+      },
     );
-    // 后续替换为：
-    // return Image.asset(
-    //   'assets/profile_passport/otter_floating.png',
-    //   fit: BoxFit.cover,
-    // );
   }
 
   // 🔥 修复：简化菜单位置计算，确保正确显示
   Widget _buildExpandedMenu(Size screenSize, EdgeInsets safeArea) {
     final destinations = BottomNavConfig.destinations;
-    final buttonSize = 64.0;
+    final buttonSize = 120.0;
     final buttonRight = 16.0 + _position.dx;
     final buttonBottom = 16.0 + _position.dy;
 
@@ -281,7 +274,7 @@ class _OtterFloatingNavState extends State<OtterFloatingNav>
         screenSize.height - safeArea.bottom - buttonBottom - buttonSize / 2;
 
     final buttonCenter = Offset(buttonCenterX, buttonCenterY);
-    final itemSize = 56.0;
+    final itemSize = 110.0; // 进一步增大贝壳尺寸：从 100.0 增加到 110.0
     final itemHalf = itemSize / 2;
 
     // 安全显示区域（不包含系统安全区）
@@ -398,59 +391,60 @@ class _OtterFloatingNavState extends State<OtterFloatingNav>
           return Positioned(
             left: c.dx - itemHalf,
             top: c.dy - itemHalf,
-            child: GestureDetector(
-              onTap: () => _handleItemTap(index),
-              child: AnimatedScale(
-                scale: _expandAnimation.value,
-                duration: Duration(milliseconds: 100 + index * 50),
-                curve: Curves.easeOutBack,
-                child: Container(
-                  width: itemSize,
-                  height: itemSize,
-                  decoration: BoxDecoration(
-                    color: Colors.transparent, // 透明背景
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: isSelected
-                          ? Colors.brown.shade600
-                          : Colors.brown.shade300,
-                      width: 2,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.min,
+            child: Material(
+              color: Colors.transparent, // 确保 Material 背景透明
+              child: InkWell(
+                onTap: () => _handleItemTap(index),
+                customBorder: CircleBorder(), // 圆形点击区域
+                child: AnimatedScale(
+                  scale: _expandAnimation.value,
+                  duration: Duration(milliseconds: 100 + index * 50),
+                  curve: Curves.easeOutBack,
+                  child: Stack(
+                    alignment: Alignment.center, // 确保所有子元素居中
+                    clipBehavior: Clip.none, // 允许内容超出边界
                     children: [
-                      SizedBox(
-                        width: 24,
-                        height: 24,
-                        child:
-                            isSelected &&
-                                destinations[index].selectedIcon != null
-                            ? destinations[index].selectedIcon!
-                            : destinations[index].icon,
+                      // 贝壳背景图片 - 完全去除白色背景的版本，不透明
+                      Image.asset(
+                        'assets/images/Shell_transparent_final.png',
+                        width: itemSize,
+                        height: itemSize,
+                        fit: BoxFit.fill,
+                        // 移除 opacity，让贝壳完全不透明
+                        errorBuilder: (context, error, stackTrace) {
+                          // Fallback to cropped version if final version fails
+                          return Image.asset(
+                            'assets/images/Shell_transparent_cropped.png',
+                            width: itemSize,
+                            height: itemSize,
+                            fit: BoxFit.fill,
+                          );
+                        },
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        destinations[index].label,
-                        style: GoogleFonts.kalam(
-                          fontSize: 9,
-                          fontWeight: isSelected
-                              ? FontWeight.bold
-                              : FontWeight.normal,
-                          color: isSelected
-                              ? Colors.brown.shade900
-                              : Colors.brown.shade700,
+                      // 文字标签 - 完全居中，更大更突出，带微弱的深色描边
+                      Center(
+                        child: Text(
+                          destinations[index].label,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontFamily: 'PatrickHand',
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold, // 加粗手写体
+                            color: const Color(0xFF6B4F4F), // 完全不透明
+                            shadows: [
+                              // 微弱的深色投影，增强可读性
+                              Shadow(
+                                offset: const Offset(0.5, 0.5),
+                                blurRadius: 1.5,
+                                color: const Color(
+                                  0xFF4A3A3A,
+                                ).withOpacity(0.2), // 微弱的深色投影
+                              ),
+                            ],
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
@@ -462,4 +456,73 @@ class _OtterFloatingNavState extends State<OtterFloatingNav>
       ),
     );
   }
+}
+
+/// Custom painter for sketchy button border
+class _SketchyButtonBorderPainter extends CustomPainter {
+  final Color borderColor;
+  final double borderWidth;
+  final double wobbleAmount;
+  final int seed;
+  final math.Random _random;
+
+  _SketchyButtonBorderPainter({
+    required this.borderColor,
+    this.borderWidth = 1.5,
+    this.wobbleAmount = 1.5,
+    this.seed = 123,
+  }) : _random = math.Random(seed);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path = _createSketchyPath(size);
+    final paint = Paint()
+      ..color = borderColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = borderWidth
+      ..strokeJoin = StrokeJoin.round
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawPath(path, paint);
+  }
+
+  Path _createSketchyPath(Size size) {
+    final path = Path();
+    const double step = 8.0; // Distance between points on the path
+    final double wobble = wobbleAmount;
+
+    // Top edge: left to right
+    path.moveTo(0, 0);
+    for (double x = step; x < size.width; x += step) {
+      final noise = (_random.nextDouble() * 2 - 1) * wobble;
+      path.lineTo(x, noise);
+    }
+    path.lineTo(size.width, 0);
+
+    // Right edge: top to bottom
+    for (double y = step; y < size.height; y += step) {
+      final noise = (_random.nextDouble() * 2 - 1) * wobble;
+      path.lineTo(size.width + noise, y);
+    }
+    path.lineTo(size.width, size.height);
+
+    // Bottom edge: right to left
+    for (double x = size.width - step; x > 0; x -= step) {
+      final noise = (_random.nextDouble() * 2 - 1) * wobble;
+      path.lineTo(x, size.height + noise);
+    }
+    path.lineTo(0, size.height);
+
+    // Left edge: bottom to top
+    for (double y = size.height - step; y > 0; y -= step) {
+      final noise = (_random.nextDouble() * 2 - 1) * wobble;
+      path.lineTo(noise, y);
+    }
+
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

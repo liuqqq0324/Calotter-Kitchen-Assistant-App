@@ -3,15 +3,23 @@ import 'package:flutter/material.dart';
 import 'package:personal_sous_chef/services/api/recipe_api_service.dart';
 import 'package:personal_sous_chef/services/business/household_service.dart';
 import 'package:personal_sous_chef/services/business/standard_library_service.dart';
+import 'package:personal_sous_chef/shared/widgets/common/sketchy_card.dart';
 
 class RecipeFilterPage extends StatefulWidget {
-  const RecipeFilterPage({super.key});
+  final bool isBottomSheet;
+  
+  const RecipeFilterPage({super.key, this.isBottomSheet = false});
 
   @override
   State<RecipeFilterPage> createState() => _RecipeFilterPageState();
 }
 
-class _RecipeFilterPageState extends State<RecipeFilterPage> {
+class _RecipeFilterPageState extends State<RecipeFilterPage> with SingleTickerProviderStateMixin {
+  // Theme colors - matching main app theme
+  static const Color _terracotta = Color(0xFFD68C5E); // Terracotta accent
+  static const Color _deepBrown = Color(0xFF6B4F4F); // Deep brown borders
+  static const Color _lightBeige = Color(0xFFFFFAF5); // Lighter beige background
+  
   // ------------ 文本输入控制器 ------------
   TextEditingController _allergyController = TextEditingController();
   // Autocomplete 的 controller 由 Autocomplete 管理生命周期；我们自己创建的才需要 dispose。
@@ -345,22 +353,59 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final terracottaSelectedFill =
+        Color.lerp(_lightBeige, _terracotta, 0.52)!; // deeper theme tint
+    final terracottaSelectedBorder =
+        Color.lerp(_terracotta, _deepBrown, 0.25)!; // deepen terracotta
 
-    return Scaffold(
-      appBar: AppBar(title: const Text("Filter")),
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: _isLoadingDefaults
-                  ? const Center(child: CircularProgressIndicator())
-                  : ListView(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 12,
-                      ),
-                      children: [
+    // Custom theme for consistent colors throughout the page
+    final customTheme = theme.copyWith(
+      chipTheme: ChipThemeData(
+        backgroundColor: _lightBeige,
+        selectedColor: terracottaSelectedFill,
+        checkmarkColor: _deepBrown,
+        deleteIconColor: _deepBrown,
+        labelStyle: TextStyle(color: _deepBrown, fontSize: 15),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: _deepBrown.withOpacity(0.3), width: 1.2),
+        ),
+      ),
+      colorScheme: theme.colorScheme.copyWith(
+        primary: _terracotta,
+        onPrimary: Colors.white,
+        secondary: _terracotta,
+        secondaryContainer: terracottaSelectedFill,
+        onSecondaryContainer: _deepBrown,
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: _deepBrown.withOpacity(0.4), width: 1.5),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: _deepBrown.withOpacity(0.4), width: 1.5),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: _terracotta, width: 2),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      ),
+    );
+
+    final contentBody = Column(
+      children: [
+        Expanded(
+          child: _isLoadingDefaults
+              ? const Center(child: CircularProgressIndicator())
+              : ListView(
+                  padding: widget.isBottomSheet
+                      ? EdgeInsets.zero
+                      : const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  children: [
                         Text(
                           "Filter your generated menus",
                           style: theme.textTheme.titleMedium?.copyWith(
@@ -387,14 +432,13 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> {
                             spacing: 8,
                             runSpacing: 4,
                             children: _selectedAllergies.map((allergy) {
-                              return Chip(
-                                label: Text(allergy),
+                              return _buildSelectedValueChip(
+                                label: allergy,
                                 onDeleted: () {
                                   setState(() {
                                     _selectedAllergies.remove(allergy);
                                   });
                                 },
-                                deleteIcon: const Icon(Icons.close, size: 18),
                               );
                             }).toList(),
                           ),
@@ -546,14 +590,13 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> {
                             spacing: 8,
                             runSpacing: 4,
                             children: _selectedDietHabits.map((t) {
-                              return Chip(
-                                label: Text(t),
+                              return _buildSelectedValueChip(
+                                label: t,
                                 onDeleted: () {
                                   setState(() {
                                     _selectedDietHabits.remove(t);
                                   });
                                 },
-                                deleteIcon: const Icon(Icons.close, size: 18),
                               );
                             }).toList(),
                           ),
@@ -614,14 +657,13 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> {
                             spacing: 8,
                             runSpacing: 4,
                             children: _selectedAvoidIngredients.map((ing) {
-                              return Chip(
-                                label: Text(ing),
+                              return _buildSelectedValueChip(
+                                label: ing,
                                 onDeleted: () {
                                   setState(() {
                                     _selectedAvoidIngredients.remove(ing);
                                   });
                                 },
-                                deleteIcon: const Icon(Icons.close, size: 18),
                               );
                             }).toList(),
                           ),
@@ -729,9 +771,11 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> {
                           spacing: 8,
                           children: _difficultyOptions.map((d) {
                             final selected = _selectedDifficulties.contains(d);
-                            return FilterChip(
-                              label: Text(d),
+                            return _buildThemedFilterChip(
+                              label: d,
                               selected: selected,
+                              selectedFill: terracottaSelectedFill,
+                              selectedBorder: terracottaSelectedBorder,
                               onSelected: (val) {
                                 setState(() {
                                   if (val) {
@@ -755,9 +799,11 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> {
                           runSpacing: 4,
                           children: _cuisineOptions.map((c) {
                             final selected = _selectedCuisines.contains(c);
-                            return FilterChip(
-                              label: Text(c),
+                            return _buildThemedFilterChip(
+                              label: c,
                               selected: selected,
+                              selectedFill: terracottaSelectedFill,
+                              selectedBorder: terracottaSelectedBorder,
                               onSelected: (val) {
                                 setState(() {
                                   if (val) {
@@ -781,9 +827,11 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> {
                           runSpacing: 4,
                           children: _tasteOptions.map((t) {
                             final selected = _selectedTastes.contains(t);
-                            return FilterChip(
-                              label: Text(t),
+                            return _buildThemedFilterChip(
+                              label: t,
                               selected: selected,
+                              selectedFill: terracottaSelectedFill,
+                              selectedBorder: terracottaSelectedBorder,
                               onSelected: (val) {
                                 setState(() {
                                   if (val) {
@@ -805,37 +853,176 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> {
 
             // 底部 Confirm 按钮
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-              child: SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: _onConfirmPressed,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  child: const Text(
-                    "Confirm filters",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                ),
+              padding: EdgeInsets.fromLTRB(
+                widget.isBottomSheet ? 0 : 20,
+                8,
+                widget.isBottomSheet ? 0 : 20,
+                16 + MediaQuery.of(context).viewInsets.bottom,
+              ),
+              child: _TiltImageButton(
+                assetPath: 'assets/images/confirm_filters.png',
+                height: 62,
+                widthFactor: 0.92,
+                onTap: _onConfirmPressed,
               ),
             ),
           ],
+        );
+
+    // Apply custom theme to content
+    final themedContent = Theme(
+      data: customTheme,
+      child: contentBody,
+    );
+
+    // Bottom sheet mode
+    if (widget.isBottomSheet) {
+      return Material(
+        color: Colors.transparent,
+        child: MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            textScaler: const TextScaler.linear(1.12),
+          ),
+          child: SafeArea(
+            top: false,
+            child: Column(
+              children: [
+                const SizedBox(height: 8),
+                Container(
+                  width: 46,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Expanded(
+                  child: SketchyCard(
+                    backgroundColor: _lightBeige,
+                    borderColor: _deepBrown,
+                    borderWidth: 2.5,
+                    padding: const EdgeInsets.all(18),
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              'Filter',
+                              style: theme.textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: _deepBrown,
+                              ),
+                            ),
+                            const Spacer(),
+                            IconButton(
+                              onPressed: () => Navigator.pop(context),
+                              icon: Icon(Icons.close, color: _deepBrown),
+                              tooltip: 'Close',
+                            ),
+                          ],
+                        ),
+                        Divider(height: 1, color: _deepBrown.withOpacity(0.2)),
+                        const SizedBox(height: 8),
+                        Expanded(child: themedContent),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
+      );
+    }
+
+    // Regular page mode
+    return Container(
+      decoration: const BoxDecoration(
+        image: DecorationImage(
+          image: AssetImage('assets/images/background.png'),
+          fit: BoxFit.cover,
+        ),
+      ),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          title: const Text("Filter"),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+        ),
+        body: SafeArea(child: themedContent),
       ),
     );
   }
 
   // ------------ 小组件：标题 & 输入框 ------------
+  Widget _buildThemedFilterChip({
+    required String label,
+    required bool selected,
+    required Color selectedFill,
+    required Color selectedBorder,
+    required ValueChanged<bool> onSelected,
+  }) {
+    return FilterChip(
+      label: Text(
+        label,
+        style: TextStyle(
+          color: _deepBrown,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      selected: selected,
+      onSelected: onSelected,
+      backgroundColor: _lightBeige,
+      selectedColor: selectedFill,
+      checkmarkColor: _deepBrown,
+      side: BorderSide(
+        color: selected ? selectedBorder : _deepBrown.withOpacity(0.3),
+        width: 1.2,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+      showCheckmark: true,
+    );
+  }
+
+  Widget _buildSelectedValueChip({
+    required String label,
+    required VoidCallback onDeleted,
+  }) {
+    final fill = Color.lerp(_terracotta, _deepBrown, 0.35)!; // deeper “brown”
+    final border = Color.lerp(_terracotta, _deepBrown, 0.55)!;
+
+    return Chip(
+      label: Text(
+        label,
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+      backgroundColor: fill,
+      deleteIcon: const Icon(Icons.close, size: 18, color: Colors.white),
+      deleteIconColor: Colors.white,
+      onDeleted: onDeleted,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: border.withOpacity(0.65), width: 1.1),
+      ),
+    );
+  }
+
   Widget _buildSectionTitle(String text) {
     return Text(
       text,
-      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+      style: TextStyle(
+        fontSize: 17,
+        fontWeight: FontWeight.w700,
+        color: _deepBrown,
+      ),
     );
   }
 
@@ -843,9 +1030,9 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> {
     return Text(
       text,
       style: TextStyle(
-        fontSize: 14,
+        fontSize: 15,
         fontWeight: FontWeight.w600,
-        color: Colors.grey[700],
+        color: _deepBrown.withOpacity(0.7),
       ),
     );
   }
@@ -866,6 +1053,70 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> {
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 12,
           vertical: 10,
+        ),
+      ),
+    );
+  }
+}
+
+// Tilting image button with press animation
+class _TiltImageButton extends StatefulWidget {
+  final String assetPath;
+  final double height;
+  final double widthFactor;
+  final VoidCallback onTap;
+
+  const _TiltImageButton({
+    required this.assetPath,
+    required this.height,
+    required this.widthFactor,
+    required this.onTap,
+  });
+
+  @override
+  State<_TiltImageButton> createState() => _TiltImageButtonState();
+}
+
+class _TiltImageButtonState extends State<_TiltImageButton> {
+  bool _isPressed = false;
+
+  void _handleTapDown(TapDownDetails details) {
+    setState(() => _isPressed = true);
+  }
+
+  void _handleTapUp(TapUpDetails details) {
+    setState(() => _isPressed = false);
+  }
+
+  void _handleTapCancel() {
+    setState(() => _isPressed = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: SizedBox(
+        width: MediaQuery.of(context).size.width * widget.widthFactor,
+        child: GestureDetector(
+          onTapDown: _handleTapDown,
+          onTapUp: _handleTapUp,
+          onTapCancel: _handleTapCancel,
+          onTap: widget.onTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 110),
+            curve: Curves.easeOut,
+            transformAlignment: Alignment.center,
+            transform: Matrix4.identity()
+              ..rotateZ(_isPressed ? -0.09 : 0.0),
+            child: SizedBox(
+              height: widget.height,
+              child: Image.asset(
+                widget.assetPath,
+                fit: BoxFit.contain,
+                filterQuality: FilterQuality.high,
+              ),
+            ),
+          ),
         ),
       ),
     );

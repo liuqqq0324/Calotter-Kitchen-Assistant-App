@@ -37,6 +37,19 @@ public class GroqManualNutritionEstimator implements ManualNutritionEstimator {
             @Value("${ai.nutrition.groq.api-key:}") String apiKey,
             @Value("${ai.nutrition.groq.model:llama-3.3-70b-versatile}") String model
     ) {
+        // 🔥 调试日志：在创建 RestClient 前验证 API Key
+        System.out.println("=== GroqManualNutritionEstimator Constructor ===");
+        System.out.println("Received API Key: " + (apiKey != null && !apiKey.isEmpty() ? "YES" : "NO"));
+        System.out.println("API Key length: " + (apiKey != null ? apiKey.length() : 0));
+        if (apiKey != null && !apiKey.isEmpty()) {
+            System.out.println("API Key starts with: " + apiKey.substring(0, Math.min(7, apiKey.length())));
+        } else {
+            System.out.println("⚠️  ERROR: API Key is null or empty! This will cause 401 Unauthorized errors.");
+        }
+        System.out.println("Base URL: " + baseUrl);
+        System.out.println("Model: " + model);
+        System.out.println("================================================");
+        
         this.objectMapper = objectMapper;
         this.model = model;
         this.restClient = RestClient.builder()

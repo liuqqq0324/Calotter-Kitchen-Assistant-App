@@ -11,6 +11,7 @@ class ApiConfig {
   // 如果用真机，请填你电脑的局域网 IP (如 "192.168.1.100")
 
   //static const String serverIp = "16.176.170.214"; // IP 换成AWS 公网 IP
+
   // static const String serverIp = "10.0.2.2"; // Android 模拟器使用此 IP（默认）
   static const String serverIp = "172.23.26.237"; // 真机调试时使用此 IP
 

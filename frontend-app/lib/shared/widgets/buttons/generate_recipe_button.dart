@@ -1,4 +1,4 @@
-// lib/widgets/generate_recipe_button.dart
+// lib/shared/widgets/buttons/generate_recipe_button.dart
 
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
@@ -60,7 +60,7 @@ class TornPaperClipper extends CustomClipper<Path> {
   bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
 }
 
-class GenerateRecipeButton extends StatelessWidget {
+class GenerateRecipeButton extends StatefulWidget {
   final VoidCallback onPressed;
   final String label;
   final IconData icon;
@@ -75,123 +75,79 @@ class GenerateRecipeButton extends StatelessWidget {
   });
 
   @override
+  State<GenerateRecipeButton> createState() => _GenerateRecipeButtonState();
+}
+
+class _GenerateRecipeButtonState extends State<GenerateRecipeButton> {
+  bool _isPressed = false;
+  static const double _pressedTiltAngle = -0.09;
+  static const double _buttonHeight = 70;
+
+  void _handleTapDown(TapDownDetails details) {
+    setState(() => _isPressed = true);
+  }
+
+  void _handleTapUp(TapUpDetails details) {
+    setState(() => _isPressed = false);
+  }
+
+  void _handleTapCancel() {
+    setState(() => _isPressed = false);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    Widget buttonContent = Stack(
-      clipBehavior: Clip.none,
-      children: [
-        // Main torn paper label
-        ClipPath(
-          clipper: TornPaperClipper(seed: 42),
-          child: Container(
-            height: 56,
-            decoration: BoxDecoration(
-              // Muted terracotta/kraft paper color
-              color: const Color(0xFFD4A574), // Warm brownish-orange
-              boxShadow: [
-                // Subtle shadow to lift off background
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.15),
-                  blurRadius: 8,
-                  offset: const Offset(2, 4),
-                ),
-              ],
-            ),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: onPressed,
-                splashColor: Colors.black.withOpacity(0.05),
-                highlightColor: Colors.black.withOpacity(0.02),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 12,
-                  ),
-                  child: Row(
-                    mainAxisSize: isFullWidth
-                        ? MainAxisSize.max
-                        : MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        icon,
-                        color: const Color(
-                          0xFF5D4E37,
-                        ), // Dark brown for contrast
-                        size: 22,
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        label,
-                        style: GoogleFonts.caveat(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF5D4E37), // Dark brown
-                          letterSpacing: 0.5,
+    return GestureDetector(
+      onTapDown: _handleTapDown,
+      onTapUp: _handleTapUp,
+      onTapCancel: _handleTapCancel,
+      onTap: widget.onPressed,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 110),
+        curve: Curves.easeOut,
+        transformAlignment: Alignment.center,
+        transform: Matrix4.identity()
+          ..rotateZ(_isPressed ? _pressedTiltAngle : 0.0),
+        child: SizedBox(
+          height: _buttonHeight,
+          width: widget.isFullWidth ? double.infinity : null,
+          child: Stack(
+            alignment: Alignment.center,
+            clipBehavior: Clip.none,
+            children: [
+              // 涟漪效果背景（用 Positioned 避免撑高占位）
+              Positioned.fill(
+                child: Center(
+                  child: TweenAnimationBuilder<double>(
+                    duration: const Duration(milliseconds: 600),
+                    tween: Tween(begin: 0.0, end: 1.0),
+                    builder: (context, value, child) {
+                      return Container(
+                        width: 82 * (1 + value * 0.25),
+                        height: 82 * (1 + value * 0.25),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.blue.withOpacity(0.1 * (1 - value)),
                         ),
-                      ),
-                    ],
+                      );
+                    },
                   ),
                 ),
               ),
-            ),
-          ),
-        ),
-
-        // Left tape accent
-        Positioned(
-          left: 12,
-          top: -4,
-          child: Transform.rotate(
-            angle: -0.05,
-            child: Container(
-              width: 32,
-              height: 16,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.3),
-                borderRadius: BorderRadius.circular(2),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
-                    blurRadius: 2,
-                    offset: const Offset(0, 1),
-                  ),
-                ],
+              // 按钮图片
+              SizedBox(
+                height: 66,
+                width: widget.isFullWidth ? double.infinity : null,
+                child: Image.asset(
+                  'assets/images/generate_recipes_button.png',
+                  fit: BoxFit.contain,
+                  filterQuality: FilterQuality.high,
+                ),
               ),
-            ),
+            ],
           ),
         ),
-
-        // Right tape accent
-        Positioned(
-          right: 12,
-          top: -4,
-          child: Transform.rotate(
-            angle: 0.05,
-            child: Container(
-              width: 32,
-              height: 16,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.3),
-                borderRadius: BorderRadius.circular(2),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
-                    blurRadius: 2,
-                    offset: const Offset(0, 1),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
+      ),
     );
-
-    if (!isFullWidth) {
-      return buttonContent;
-    }
-
-    return buttonContent;
   }
 }

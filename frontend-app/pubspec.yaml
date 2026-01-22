@@ -106,10 +106,18 @@ flutter:
     - assets/images/frame_2.png
     - assets/images/inventory_container.png
     - assets/images/title.png
+    - assets/images/confirm_filters.png
+    - assets/images/generate_recipes_button.png
+    - assets/images/filter_button.png
     - assets/wood_background.png
     - assets/profile_passport/
     - assets/images/dish_intake_icon.png
     - assets/images/add_food_icon.png
+    - assets/images/navigation_logo_transparent.png
+    - assets/images/otter_floating_transparent.png
+    - assets/images/Shell_transparent.png
+    - assets/images/Shell_transparent_cropped.png
+    - assets/images/Shell_transparent_final.png
     - assets/fonts/
     - assets/fonts/caveat/
     - assets/models/

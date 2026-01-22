@@ -22,16 +22,37 @@ public class DotenvConfig implements ApplicationContextInitializer<ConfigurableA
     public void initialize(ConfigurableApplicationContext applicationContext) {
         ConfigurableEnvironment environment = applicationContext.getEnvironment();
         
+        // 🔥 调试：检查系统环境变量
+        String groqFromSystem = System.getenv("GROQ_API_KEY");
+        String geminiFromSystem = System.getenv("GEMINI_API_KEY");
+        System.out.println("=== DotenvConfig: System Environment Variables ===");
+        System.out.println("GROQ_API_KEY from System.getenv(): " + (groqFromSystem != null ? "EXISTS (length: " + groqFromSystem.length() + ")" : "NOT SET"));
+        System.out.println("GEMINI_API_KEY from System.getenv(): " + (geminiFromSystem != null ? "EXISTS (length: " + geminiFromSystem.length() + ")" : "NOT SET"));
+        System.out.println("==================================================");
+        
         // 查找 .env 文件
         File envFile = findEnvFile();
         
         if (envFile != null && envFile.exists()) {
+            System.out.println("=== DotenvConfig: Found .env file at: " + envFile.getAbsolutePath());
             Map<String, Object> envProperties = loadEnvFile(envFile);
             if (!envProperties.isEmpty()) {
+                System.out.println("=== DotenvConfig: Loaded " + envProperties.size() + " properties from .env file");
+                
+                // 🔥 调试：检查加载的 key
+                System.out.println("=== DotenvConfig: Checking loaded keys ===");
+                System.out.println("GROQ_API_KEY in .env: " + (envProperties.containsKey("GROQ_API_KEY") ? "YES (length: " + envProperties.get("GROQ_API_KEY").toString().length() + ")" : "NO"));
+                System.out.println("GEMINI_API_KEY in .env: " + (envProperties.containsKey("GEMINI_API_KEY") ? "YES (length: " + envProperties.get("GEMINI_API_KEY").toString().length() + ")" : "NO"));
+                System.out.println("==========================================");
+                
                 environment.getPropertySources().addFirst(
                     new MapPropertySource("dotenv", envProperties)
                 );
+            } else {
+                System.out.println("=== DotenvConfig: Warning - .env file is empty or no valid properties found");
             }
+        } else {
+            System.out.println("=== DotenvConfig: Warning - .env file not found");
         }
     }
 
@@ -40,11 +61,17 @@ public class DotenvConfig implements ApplicationContextInitializer<ConfigurableA
      * 优先查找项目根目录（backend-calotter），然后是当前工作目录
      */
     private File findEnvFile() {
+        System.out.println("=== DotenvConfig: Starting to find .env file ===");
+        
         // 尝试从当前工作目录查找
         String currentDir = System.getProperty("user.dir");
+        System.out.println("=== DotenvConfig: Current working directory: " + currentDir);
+        
         File envFile = new File(currentDir, ".env");
+        System.out.println("=== DotenvConfig: Checking: " + envFile.getAbsolutePath() + " (exists: " + envFile.exists() + ")");
         
         if (envFile.exists()) {
+            System.out.println("=== DotenvConfig: Found .env file at current directory");
             return envFile;
         }
         
@@ -52,7 +79,9 @@ public class DotenvConfig implements ApplicationContextInitializer<ConfigurableA
         File parentDir = new File(currentDir).getParentFile();
         if (parentDir != null) {
             envFile = new File(parentDir, ".env");
+            System.out.println("=== DotenvConfig: Checking parent directory: " + envFile.getAbsolutePath() + " (exists: " + envFile.exists() + ")");
             if (envFile.exists()) {
+                System.out.println("=== DotenvConfig: Found .env file at parent directory");
                 return envFile;
             }
         }
@@ -62,11 +91,14 @@ public class DotenvConfig implements ApplicationContextInitializer<ConfigurableA
         if (classLoader.getResource(".env") != null) {
             String resourcePath = classLoader.getResource(".env").getPath();
             envFile = new File(resourcePath);
+            System.out.println("=== DotenvConfig: Checking classpath: " + envFile.getAbsolutePath() + " (exists: " + envFile.exists() + ")");
             if (envFile.exists()) {
+                System.out.println("=== DotenvConfig: Found .env file in classpath");
                 return envFile;
             }
         }
         
+        System.out.println("=== DotenvConfig: .env file not found in any location");
         return null;
     }
 
@@ -92,13 +124,20 @@ public class DotenvConfig implements ApplicationContextInitializer<ConfigurableA
                     String key = line.substring(0, equalsIndex).trim();
                     String value = line.substring(equalsIndex + 1).trim();
                     
-                    // 移除引号（如果有）
-                    if ((value.startsWith("\"") && value.endsWith("\"")) ||
-                        (value.startsWith("'") && value.endsWith("'"))) {
-                        value = value.substring(1, value.length() - 1);
-                    }
-                    
-                    properties.put(key, value);
+                // 移除引号（如果有）
+                if ((value.startsWith("\"") && value.endsWith("\"")) ||
+                    (value.startsWith("'") && value.endsWith("'"))) {
+                    value = value.substring(1, value.length() - 1);
+                }
+                
+                // 🔥 调试日志：特别关注 API Key 相关的环境变量
+                if (key.equals("GROQ_API_KEY") || key.equals("GEMINI_API_KEY")) {
+                    System.out.println("=== DotenvConfig: Loaded " + key + " = " + 
+                        (value.length() > 10 ? value.substring(0, 10) + "..." : value) + 
+                        " (length: " + value.length() + ")");
+                }
+                
+                properties.put(key, value);
                 }
             }
         } catch (IOException e) {
