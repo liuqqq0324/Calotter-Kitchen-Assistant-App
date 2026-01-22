@@ -95,15 +95,43 @@ class _PassportPageViewState extends State<PassportPageView>
       builder: (context, child) {
         return Stack(
           children: [
-            // 背景：沙色纹理
+            // 底层背景：木纹背景
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  image: DecorationImage(
+                    image: const AssetImage('assets/wood_background.png'),
+                    fit: BoxFit.fill,
+                  ),
+                ),
+              ),
+            ),
+            // 中间层背景：容器背景（缩短到标签之上2.5cm的位置）
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 100, // 2.5cm ≈ 100 像素，在底部导航栏上方
+              child: Container(
+                decoration: BoxDecoration(
+                  image: DecorationImage(
+                    image: const AssetImage('assets/images/inventory_container.png'),
+                    fit: BoxFit.fill,
+                    // 使用 centerSlice 保持边缘不变形
+                    centerSlice: const Rect.fromLTWH(25, 15, 360, 380),
+                  ),
+                ),
+              ),
+            ),
+            // 背景：沙色纹理（作为半透明层，可选）
             Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    const Color(0xFFE8DCC6), // 沙色
-                    const Color(0xFFD4C4A8),
+                    const Color(0xFFE8DCC6).withOpacity(0.3), // 沙色，降低透明度以显示木纹
+                    const Color(0xFFD4C4A8).withOpacity(0.3),
                   ],
                 ),
               ),
@@ -197,30 +225,7 @@ class _PassportPageViewState extends State<PassportPageView>
   }
 
   Widget _buildPageWithStyle(Widget page) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF8E8), // 米白色纸张
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.brown.shade400.withOpacity(0.4),
-            blurRadius: 12,
-            offset: const Offset(4, 4),
-            spreadRadius: 2,
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: Stack(
-          children: [
-            // 手绘边框
-            CustomPaint(painter: _PageBorderPainter(), child: page),
-          ],
-        ),
-      ),
-    );
+    return page;
   }
 
   Widget _buildBottomNavigation() {
