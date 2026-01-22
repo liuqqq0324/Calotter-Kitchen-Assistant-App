@@ -658,7 +658,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
         Text(
           label,
           style: GoogleFonts.kalam(
-            fontSize: 16,
+            fontSize: 18,
             fontWeight: FontWeight.bold,
             color: const Color(0xFF6B4F4F), // River Deep Brown - 与 homepage 一致
           ),
@@ -667,7 +667,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
         Text(
           value.isNotEmpty ? value : 'Not set',
           style: GoogleFonts.kalam(
-            fontSize: 20,
+            fontSize: 24,
             color: const Color(0xFF6B4F4F).withOpacity(0.8), // River Deep Brown - 与 homepage 一致
           ),
           overflow: TextOverflow.ellipsis,
@@ -768,12 +768,13 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
 
     return RefreshIndicator(
       onRefresh: _loadUserData,
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
-        child: Stack(
-          children: [
-            Column(
+      child: Stack(
+        children: [
+          // 内容区域
+          SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Header: 用户信息 + 简要资料
@@ -783,39 +784,89 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          SketchyBorder(
-                            borderColor: Colors.black87,
-                            borderWidth: 2.0,
-                            borderRadius: 40,
-                            roughness: 2.0,
-                            child: const CircleAvatar(
-                              radius: 40,
-                              backgroundColor: Colors.grey,
-                              child: Icon(
-                                Icons.person,
-                                size: 42,
-                                color: Colors.white,
+                          Column(
+                            children: [
+                              SketchyBorder(
+                                borderColor: Colors.black87,
+                                borderWidth: 2.0,
+                                borderRadius: 40,
+                                roughness: 2.0,
+                                child: const CircleAvatar(
+                                  radius: 40,
+                                  backgroundColor: Colors.grey,
+                                  child: Icon(
+                                    Icons.person,
+                                    size: 42,
+                                    color: Colors.white,
+                                  ),
+                                ),
                               ),
-                            ),
+                              const SizedBox(height: 4),
+                              SketchyButton(
+                                text: 'Edit',
+                                backgroundColor: Colors.orange.shade100,
+                                borderColor: Colors.orange.shade700,
+                                onPressed: () async {
+                                  final result = await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => const ProfileEditPage(),
+                                    ),
+                                  );
+                                  if (result == true) {
+                                    _loadUserData();
+                                  }
+                                },
+                              ),
+                              const SizedBox(height: 24),
+                              SizedBox(
+                                width: 160,
+                                child: _buildMiniInfo('Birthdate', ageData['birthdate']!),
+                              ),
+                            ],
                           ),
                           const SizedBox(width: 16),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                FittedBox(
-                                  fit: BoxFit.scaleDown,
-                                  alignment: Alignment.centerLeft,
-                                  child: Text(
-                                    user.username,
-                                    style: GoogleFonts.caveat(
-                                      fontSize: 36,
-                                      fontWeight: FontWeight.bold,
-                                      color: const Color(0xFF6B4F4F).withOpacity(0.8), // River Deep Brown - 与出生日期一致
+                                Row(
+                                  mainAxisSize: MainAxisSize.max,
+                                  children: [
+                                    Expanded(
+                                      flex: 1,
+                                      child: Text(
+                                        user.username,
+                                        style: GoogleFonts.caveat(
+                                          fontSize: 36,
+                                          fontWeight: FontWeight.bold,
+                                          color: const Color(0xFF6B4F4F).withOpacity(0.8), // River Deep Brown - 与出生日期一致
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     ),
-                                    maxLines: 1,
-                                  ),
+                                    const SizedBox(width: 8),
+                                    Flexible(
+                                      fit: FlexFit.loose,
+                                      child: SketchyButton(
+                                        text: 'settings',
+                                        backgroundColor: Colors.grey.shade400,
+                                        borderColor: Colors.grey.shade700,
+                                        onPressed: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) => const SettingsPage(),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                  ],
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
@@ -824,128 +875,105 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                                     fontSize: 18,
                                     color: Colors.grey[600],
                                   ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ],
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          SketchyButton(
-                            text: 'Invite',
-                            backgroundColor: Colors.orange.shade100,
-                            borderColor: Colors.orange.shade700,
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const HouseholdManagePage(),
-                                ),
-                              );
-                            },
-                          ),
                         ],
                       ),
                       const SizedBox(height: 24),
-                      Wrap(
-                        spacing: 16,
-                        runSpacing: 12,
+                      Column(
                         children: [
-                          SizedBox(
-                            width: 160,
-                            child: _buildMiniInfo('Birthdate', ageData['birthdate']!),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildMiniInfo('Birthdate', ageData['birthdate']!),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: _buildMiniInfo('Gender', user.gender),
+                              ),
+                            ],
                           ),
-                          if (ageData['age']!.isNotEmpty)
-                            SizedBox(
-                              width: 120,
-                              child: _buildMiniInfo('Age', '${ageData['age']} years'),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildMiniInfo('Weight', user.weight),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: _buildMiniInfo('Height', user.height),
+                              ),
+                            ],
+                          ),
+                          if (ageData['age']!.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _buildMiniInfo('Age', '${ageData['age']} years'),
+                                ),
+                              ],
                             ),
-                          SizedBox(
-                            width: 140,
-                            child: _buildMiniInfo('Gender', user.gender),
-                          ),
-                          SizedBox(
-                            width: 140,
-                            child: _buildMiniInfo('Height', user.height),
-                          ),
-                          SizedBox(
-                            width: 140,
-                            child: _buildMiniInfo('Weight', user.weight),
-                          ),
+                          ],
                         ],
+                      ),
+                      const SizedBox(height: 24),
+                      // Invite 按钮 - 放在资料信息下方
+                      Center(
+                        child: SketchyButton(
+                          text: 'Invite',
+                          backgroundColor: Colors.orange.shade100,
+                          borderColor: Colors.orange.shade700,
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const HouseholdManagePage(),
+                              ),
+                            );
+                          },
+                        ),
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 80), // 增加间距，避免与印章重叠
-                // Edit 和 Settings 按钮 - 手绘风格
-                Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SketchyButton(
-                        text: 'Edit',
-                        backgroundColor: Colors.orange.shade100,
-                        borderColor: Colors.orange.shade700,
-                        onPressed: () async {
-                          final result = await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const ProfileEditPage(),
-                            ),
-                          );
-                          if (result == true) {
-                            _loadUserData();
-                          }
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      SketchyButton(
-                        text: 'settings',
-                        backgroundColor: Colors.grey.shade400,
-                        borderColor: Colors.grey.shade700,
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const SettingsPage(),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ),
               ],
             ),
-            // 参考图元素：精准裁剪的红色爪印 + 代码生成的艺术字印章（半透明，不挡信息）
-            Positioned(
-              top: 182,
-              right: -4,
-              child: IgnorePointer(
-                child: Opacity(
-                  opacity: 0.38,
-                  child: Image.asset(
-                    'assets/profile_passport/paw.png',
-                    width: 160,
-                    fit: BoxFit.contain,
-                  ),
+          ),  // SingleChildScrollView 结束，需要逗号因为后面还有元素
+          // 参考图元素：精准裁剪的红色爪印 + 代码生成的艺术字印章（半透明，不挡信息）
+          Positioned(
+            top: 182,
+            right: -4,
+            child: IgnorePointer(
+              child: Opacity(
+                opacity: 0.38,
+                child: Image.asset(
+                  'assets/profile_passport/paw.png',
+                  width: 160,
+                  fit: BoxFit.contain,
                 ),
               ),
             ),
-            Positioned(
-              top: 320,
-              right: -18,
-              child: IgnorePointer(
-                child: OtterApprovedStamp(
-                  width: 240,
-                  opacity: 0.52,
-                  rotation: -0.20,
-                ),
+          ),
+          Positioned(
+            top: 320,
+            right: -18,
+            child: IgnorePointer(
+              child: OtterApprovedStamp(
+                width: 240,
+                opacity: 0.52,
+                rotation: -0.20,
               ),
             ),
+          ),
           ],
         ),
-      ),
-    );
+      );
   }
 
   // Build Health Page (Page 1)
