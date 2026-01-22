@@ -1,7 +1,9 @@
 // lib/pages/recipes/recipe_instruction_page.dart
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:personal_sous_chef/core/theme/fallback_google_fonts.dart';
 import 'package:personal_sous_chef/data/stores/collected_recipes_store.dart';
 import 'package:personal_sous_chef/data/models/recipe_models.dart';
 import 'package:personal_sous_chef/features/recipes/pages/recipe_meal_summary_page.dart';
@@ -9,6 +11,7 @@ import 'package:personal_sous_chef/services/cooking/cooking_api_service.dart';
 import 'package:personal_sous_chef/services/cooking/cooking_voice_assistant.dart';
 import 'package:personal_sous_chef/services/cooking/cooking_gesture_control.dart';
 import 'package:personal_sous_chef/services/business/household_service.dart';
+import 'package:personal_sous_chef/shared/widgets/common/programmatic_sketchy_widgets.dart';
 
 class RecipeInstructionPage extends StatefulWidget {
   final RecipeMenuModel menu;
@@ -33,6 +36,7 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
   late int _currentIndex;
   late Set<int> _completedDishes;
   late TabController _tabController;
+  PageController? _pageController; // 用于 PageView 滑动（可空类型，避免初始化错误）
   // Timers/steps must be keyed per dish + per step.
   // Otherwise stepNumber=1 in dish A collides with stepNumber=1 in dish B/C and all appear to start together.
   final Map<String, int> _remainingSeconds = {};
@@ -71,6 +75,9 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
       initialIndex: widget.initialRecipeIndex,
     );
 
+    // ✅ Initialize PageController for swipe navigation
+    _pageController = PageController(initialPage: widget.initialRecipeIndex);
+
     // Listen to tab changes and update current index
     _tabController.addListener(() {
       if (_tabController.indexIsChanging) {
@@ -81,6 +88,17 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
           _currentIndex = _tabController.index;
           _currentFocusedStepNumber = 1; // Reset to first step
         });
+        // 同步 PageController（确保已初始化）
+        if (_pageController != null && 
+            _pageController!.hasClients && 
+            _pageController!.page != null && 
+            _pageController!.page!.round() != _currentIndex) {
+          _pageController!.animateToPage(
+            _currentIndex,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+          );
+        }
       }
     });
 
@@ -203,6 +221,7 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
     }
     _voiceAssistant.dispose();
     _tabController.dispose(); // ✅ Dispose TabController
+    _pageController?.dispose(); // ✅ Dispose PageController（可空类型，需要安全调用）
     debugPrint('[RecipePage] Recipe instruction page disposed');
     super.dispose();
   }
@@ -213,8 +232,7 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
 
   bool get _isWholeMealDone => _completedDishes.length == _totalDishes;
 
-  Future<void> _toggleCollectRecipe() async {
-    final recipe = widget.menu.recipes[_currentIndex];
+  Future<void> _toggleCollectRecipeForDish(RecipeModel recipe) async {
     final wasCollected = CollectedRecipesStore.isCollected(recipe);
     try {
       final householdId = await HouseholdService.getHouseholdId();
@@ -682,64 +700,334 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
     _voiceAssistant.stopListening();
   }
 
+  // 构建单个菜谱的内容页面
+  Widget _buildRecipePage(int index) {
+    final recipe = widget.menu.recipes[index];
+    final steps = recipe.steps;
+    final theme = Theme.of(context);
+      
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 头部：emoji + 简介 + 时间卡路里
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade50,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Center(
+                    child: Text(
+                      recipe.emoji,
+                      style: const TextStyle(fontSize: 34),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        recipe.title,
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 24, // 增大标题字体
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.access_time,
+                            size: 16, // 增大图标
+                            color: Colors.grey[600],
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${recipe.cookingTimeMin} min',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: Colors.grey[700],
+                              fontSize: 15, // 增大字体
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Icon(
+                            Icons.local_fire_department,
+                            size: 16, // 增大图标
+                            color: Colors.grey[600],
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${recipe.totalCaloriesEstimate.toStringAsFixed(0)} kcal',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: Colors.grey[700],
+                              fontSize: 15, // 增大字体
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 20),
+
+            // 可折叠的原材料列表 - 使用与 home 页一致的便签样式（带胶带和锯齿边框）
+            Stack(
+              alignment: Alignment.topCenter,
+              clipBehavior: Clip.none,
+              children: [
+                // 1. Background Layer: Sketchy paper container
+                Container(
+                  margin: const EdgeInsets.only(top: 14), // Space for tape
+                  padding: const EdgeInsets.all(16),
+                  decoration: ShapeDecoration(
+                    color: const Color(0xFFFFFFF0), // Off-white/cream color
+                    shape: const SketchyRectBorder(
+                      borderWidth: 1.0,
+                      wobbleAmount: 2.5,
+                      seed: 42, // Fixed seed for consistent appearance
+                    ),
+                    shadows: [
+                      BoxShadow(
+                        color: const Color(0xFF6B4F4F).withOpacity(0.12),
+                        blurRadius: 10,
+                        offset: const Offset(2, 6),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 标题栏（可点击展开/收起）
+                      InkWell(
+                        onTap: () {
+                          setState(() {
+                            _isIngredientsExpanded = !_isIngredientsExpanded;
+                          });
+                        },
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.restaurant_menu,
+                              color: const Color(0xFF6B4F4F).withOpacity(0.7),
+                              size: 24,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'Ingredients',
+                                style: GoogleFonts.kalam(
+                                  fontSize: 20, // 增大标题字体
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.grey[800],
+                                ),
+                              ),
+                            ),
+                            if (!_isIngredientsExpanded)
+                              Text(
+                                '${recipe.ingredients.length} items',
+                                style: GoogleFonts.kalam(
+                                  fontSize: 16, // 增大字体
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            const SizedBox(width: 8),
+                            Icon(
+                              _isIngredientsExpanded
+                                  ? Icons.expand_less
+                                  : Icons.expand_more,
+                              color: const Color(0xFF6B4F4F).withOpacity(0.6),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // 展开的内容
+                      if (_isIngredientsExpanded) ...[
+                        const SizedBox(height: 12),
+                        if (recipe.ingredients.isEmpty)
+                          Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Text(
+                              'No ingredients listed.',
+                              style: GoogleFonts.kalam(
+                                fontSize: 16, // 增大字体
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          )
+                        else
+                          // 使用 Wrap 实现每行三个食材的布局
+                          LayoutBuilder(
+                            builder: (context, constraints) {
+                              // 计算每项宽度：容器宽度减去间距后除以3
+                              final itemWidth = (constraints.maxWidth - 8 * 2) / 3;
+                              return Wrap(
+                                spacing: 8, // 水平间距
+                                runSpacing: 8, // 垂直间距
+                                children: recipe.ingredients.map((ing) {
+                                  return SizedBox(
+                                    width: itemWidth,
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          ing.name,
+                                          style: GoogleFonts.kalam(
+                                            fontSize: 16, // 增大字体
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.grey[800],
+                                          ),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          '${ing.amountValue} ${ing.amountUnit}${ing.isOptional ? ' • opt' : ''}',
+                                          style: GoogleFonts.kalam(
+                                            fontSize: 13, // 增大字体
+                                            color: Colors.grey[600],
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }).toList(),
+                              );
+                            },
+                          ),
+                      ],
+                    ],
+                  ),
+                ),
+                // 2. Tape Layer: Programmatic tape effect
+                Positioned(
+                  top: 4, // Position tape slightly above the card
+                  child: Transform.rotate(
+                    angle: -0.05, // Slight rotation for natural look
+                    child: Container(
+                      width: 85, // Shortened tape length
+                      height: 18,
+                      decoration: BoxDecoration(
+                        // Semi-transparent yellowish-white tape color
+                        color: const Color(0xFFFFF8DC).withOpacity(0.4),
+                        borderRadius: BorderRadius.circular(2),
+                        // Add a subtle border to make it look more like tape
+                        border: Border.all(
+                          color: const Color(0xFFD4AF37).withOpacity(0.3),
+                          width: 0.5,
+                        ),
+                        // Add a subtle shadow to make the tape pop
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 2,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
+                      ),
+                      // Add some texture lines to simulate tape texture
+                      child: CustomPaint(painter: _TapeTexturePainter()),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+
+            Text(
+              'Steps',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                fontSize: 20, // 增大标题字体
+              ),
+            ),
+            const SizedBox(height: 8),
+
+            Expanded(
+              child: steps.isNotEmpty
+                  ? ListView.builder(
+                      itemCount: steps.length,
+                      itemBuilder: (context, stepIndex) {
+                        final step = steps[stepIndex];
+                        return _buildStepItem(step: step, dishIndex: index);
+                      },
+                    )
+                  : ListView(
+                      children: [
+                        _buildStepItem(
+                          step: const RecipeStepModel(
+                            stepNumber: 1,
+                            instruction:
+                                'Beat the eggs with a pinch of salt.',
+                            stepTimeMin: 3,
+                          ),
+                          dishIndex: index,
+                        ),
+                        _buildStepItem(
+                          step: const RecipeStepModel(
+                            stepNumber: 2,
+                            instruction:
+                                'Stir-fry tomatoes until soft, then add eggs.',
+                            stepTimeMin: 7,
+                          ),
+                          dishIndex: index,
+                        ),
+                        _buildStepItem(
+                          step: const RecipeStepModel(
+                            stepNumber: 3,
+                            instruction: 'Season to taste and serve hot.',
+                            stepTimeMin: 5,
+                          ),
+                          dishIndex: index,
+                        ),
+                      ],
+                    ),
+            ),
+          ],
+        ),
+      );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final recipe = widget.menu.recipes[_currentIndex];
-    final theme = Theme.of(context);
-    final steps = recipe.steps;
-
     return Container(
       decoration: const BoxDecoration(
         image: DecorationImage(
-          image: AssetImage('assets/images/background.png'),
+          image: AssetImage('assets/wood_background.png'),
           fit: BoxFit.cover,
         ),
       ),
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(
-          title: Text(recipe.title),
+          title: Text(
+            widget.isViewMode ? 'View Steps' : 'Cooking',
+            style: GoogleFonts.caveat(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          centerTitle: true, // 标题居中
           backgroundColor: Colors.transparent,
           elevation: 0,
           scrolledUnderElevation: 0,
           surfaceTintColor: Colors.transparent,
-          // ✅ Add TabBar below title when there are multiple dishes
-          bottom: _totalDishes > 1
-              ? TabBar(
-                  controller: _tabController,
-                  isScrollable: true,
-                  indicatorColor: Colors.orange,
-                  labelColor: Colors.orange,
-                  unselectedLabelColor: Colors.grey,
-                  tabs: widget.menu.recipes.asMap().entries.map((entry) {
-                    final index = entry.key;
-                    final r = entry.value;
-                    final isDone = _completedDishes.contains(index);
-                    return Tab(
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (isDone)
-                            Icon(
-                              Icons.check_circle,
-                              size: 16,
-                              color: Colors.green,
-                            )
-                          else
-                            Text('${r.emoji}'),
-                          const SizedBox(width: 6),
-                          Text(
-                            r.title.length > 20
-                                ? '${r.title.substring(0, 20)}...'
-                                : r.title,
-                            style: const TextStyle(fontSize: 13),
-                          ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                )
-              : null,
+          // 移除 TabBar，使用 PageView 滑动切换
           actions: [
             // View Mode: 只显示收藏按钮
             // Cooking Mode: 显示语音/手势控制 + 收藏按钮
@@ -767,10 +1055,15 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
             ValueListenableBuilder<List<RecipeModel>>(
               valueListenable: CollectedRecipesStore.favorites,
               builder: (context, favorites, _) {
-                final isCollected = favorites.any((r) => r.id == recipe.id);
+                final currentRecipe = widget.menu.recipes[_currentIndex];
+                final isCollected = favorites.any((r) => r.id == currentRecipe.id);
 
                 return IconButton(
-                  onPressed: _toggleCollectRecipe,
+                  onPressed: () {
+                    // 使用当前索引的菜谱
+                    final currentRecipe = widget.menu.recipes[_currentIndex];
+                    _toggleCollectRecipeForDish(currentRecipe);
+                  },
                   icon: Icon(
                     isCollected ? Icons.favorite : Icons.favorite_outline,
                   ),
@@ -782,232 +1075,52 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
             ),
           ],
         ),
-        body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-              // 头部：emoji + 简介 + 时间卡路里
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 64,
-                    height: 64,
-                    decoration: BoxDecoration(
-                      color: Colors.orange.shade50,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Center(
-                      child: Text(
-                        recipe.emoji,
-                        style: const TextStyle(fontSize: 34),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          recipe.title,
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          recipe.shortDescription,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: Colors.grey[700],
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.access_time,
-                              size: 14,
-                              color: Colors.grey[600],
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${recipe.cookingTimeMin} min',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: Colors.grey[700],
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Icon(
-                              Icons.local_fire_department,
-                              size: 14,
-                              color: Colors.grey[600],
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${recipe.totalCaloriesEstimate.toStringAsFixed(0)} kcal',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: Colors.grey[700],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 20),
-
-              // 可折叠的原材料列表
-              Container(
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade300),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Theme(
-                  data: Theme.of(
-                    context,
-                  ).copyWith(dividerColor: Colors.transparent),
-                  child: ExpansionTile(
-                    initiallyExpanded: _isIngredientsExpanded,
-                    onExpansionChanged: (expanded) {
+        body: _GridPaper(
+          child: SafeArea(
+            child: widget.menu.recipes.length > 1 && _pageController != null
+                ? PageView.builder(
+                    controller: _pageController!,
+                    itemCount: widget.menu.recipes.length,
+                    onPageChanged: (index) {
                       setState(() {
-                        _isIngredientsExpanded = expanded;
+                        _currentIndex = index;
+                        _currentFocusedStepNumber = 1; // Reset to first step
                       });
+                      // 同步 TabController
+                      if (_tabController.index != index) {
+                        _tabController.animateTo(index);
+                      }
                     },
-                    leading: Icon(
-                      Icons.restaurant_menu,
-                      color: Colors.orange.shade600,
-                    ),
-                    title: Text(
-                      'Ingredients',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    subtitle: _isIngredientsExpanded
-                        ? null
-                        : Text(
-                            '${recipe.ingredients.length} items',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                    children: [
-                      if (recipe.ingredients.isEmpty)
-                        const Padding(
-                          padding: EdgeInsets.all(16.0),
-                          child: Text('No ingredients listed.'),
-                        )
-                      else
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: recipe.ingredients.map((ing) {
-                              return Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 4.0,
-                                ),
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        ing.name,
-                                        style: theme.textTheme.bodyMedium,
-                                      ),
-                                    ),
-                                    Text(
-                                      '${ing.amountValue} ${ing.amountUnit}',
-                                      style: theme.textTheme.bodySmall
-                                          ?.copyWith(color: Colors.grey[700]),
-                                    ),
-                                    if (ing.isOptional) ...[
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        'optional',
-                                        style: theme.textTheme.bodySmall
-                                            ?.copyWith(color: Colors.orange),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              Text(
-                'Steps',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-
-              Expanded(
-                child: steps.isNotEmpty
-                    ? ListView.builder(
-                        itemCount: steps.length,
-                        itemBuilder: (context, index) {
-                          final step = steps[index];
-                          return _buildStepItem(step: step);
-                        },
-                      )
-                    : ListView(
-                        children: [
-                          _buildStepItem(
-                            step: const RecipeStepModel(
-                              stepNumber: 1,
-                              instruction:
-                                  'Beat the eggs with a pinch of salt.',
-                              stepTimeMin: 3,
-                            ),
-                          ),
-                          _buildStepItem(
-                            step: const RecipeStepModel(
-                              stepNumber: 2,
-                              instruction:
-                                  'Stir-fry tomatoes until soft, then add eggs.',
-                              stepTimeMin: 7,
-                            ),
-                          ),
-                          _buildStepItem(
-                            step: const RecipeStepModel(
-                              stepNumber: 3,
-                              instruction: 'Season to taste and serve hot.',
-                              stepTimeMin: 5,
-                            ),
-                          ),
-                        ],
-                      ),
-              ),
-              ],
-            ),
+                    itemBuilder: (context, index) {
+                      return _buildRecipePage(index);
+                    },
+                  )
+                : _buildRecipePage(0), // 如果只有一个菜谱或 PageController 未初始化，直接显示
           ),
         ),
-        // View Mode: 不显示底部控制栏
-        // Cooking Mode: 显示完整的底部控制栏
+        // View Mode: 只显示分页指示器（如果有多个菜谱）
+        // Cooking Mode: 显示完整的底部控制栏（包括分页指示器和按钮）
         bottomNavigationBar: widget.isViewMode
-            ? null
+            ? (widget.menu.recipes.length > 1
+                ? SafeArea(
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: SketchyPageIndicator(
+                        count: widget.menu.recipes.length,
+                        currentIndex: _currentIndex,
+                      ),
+                    ),
+                  )
+                : null)
             : _buildBottomControls(context),
       ),
     );
   }
 
-  Widget _buildStepItem({required RecipeStepModel step}) {
+  Widget _buildStepItem({required RecipeStepModel step, int? dishIndex}) {
     final theme = Theme.of(context);
-    final key = _stepKey(_currentIndex, step.stepNumber);
+    final effectiveDishIndex = dishIndex ?? _currentIndex;
+    final key = _stepKey(effectiveDishIndex, step.stepNumber);
     final remaining = _remainingSeconds[key];
     final isRunning = _runningTimers.containsKey(key);
     final isOvertime = remaining != null && remaining <= 0;
@@ -1044,7 +1157,7 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
           _completedSteps.remove(key);
         });
       } else {
-        _stopAndCompleteStep(_currentIndex, step.stepNumber);
+        _stopAndCompleteStep(effectiveDishIndex, step.stepNumber);
       }
     }
 
@@ -1055,27 +1168,31 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ✅ Target A: Circle - Tappable for toggling completion
+            // ✅ Target A: Circle - Tappable for toggling completion (手绘风格)
             GestureDetector(
               onTap: toggleCompletion,
-              child: Container(
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(
-                  color: isCompleted ? Colors.green : Colors.orange.shade100,
-                  shape: BoxShape.circle,
-                ),
-                child: Center(
-                  child: isCompleted
-                      ? const Icon(Icons.check, size: 16, color: Colors.white)
-                      : Text(
-                          step.stepNumber.toString(),
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                            color: isCompleted ? Colors.white : Colors.black87,
+              child: SizedBox(
+                width: 32,
+                height: 32,
+                child: CustomPaint(
+                  painter: _SketchyCirclePainter(
+                    borderColor: const Color(0xFF6B4F4F), // 边框颜色（和原本的字体颜色一致）
+                    backgroundColor: Colors.transparent, // 去掉背景色
+                    borderWidth: 1.5,
+                    seed: step.stepNumber, // 使用步骤编号作为种子，每个步骤略有不同
+                  ),
+                  child: Center(
+                    child: isCompleted
+                        ? Icon(Icons.check, size: 18, color: const Color(0xFF6B4F4F)) // 和原本的字体颜色一致
+                        : Text(
+                            step.stepNumber.toString(),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16, // 增大字体
+                              color: const Color(0xFF6B4F4F), // 和原本的字体颜色一致
+                            ),
                           ),
-                        ),
+                  ),
                 ),
               ),
             ),
@@ -1092,6 +1209,7 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
                       step.instruction,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: isCompleted ? Colors.grey[400] : null,
+                        fontSize: 16, // 增大字体
                       ),
                     ),
                   ),
@@ -1104,6 +1222,7 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
                       remaining: remaining,
                       theme: theme,
                       isCompleted: isCompleted,
+                      dishIndex: effectiveDishIndex, // 传递菜谱索引
                     ),
                   // View Mode: 只显示时间信息
                   if (widget.isViewMode && step.stepTimeMin > 0)
@@ -1113,6 +1232,7 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
                         '⏱️ ~ ${step.stepTimeMin} min',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: Colors.grey[600],
+                          fontSize: 14, // 增大字体
                         ),
                       ),
                     ),
@@ -1132,6 +1252,7 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
     required int? remaining,
     required ThemeData theme,
     required bool isCompleted,
+    required int dishIndex, // 添加菜谱索引参数
   }) {
     // State-specific styling
     Color backgroundColor;
@@ -1227,12 +1348,12 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: iconColor),
+          Icon(icon, size: 16, color: iconColor), // 增大图标
           const SizedBox(width: 4),
           Text(
             displayText,
             style: theme.textTheme.bodySmall?.copyWith(
-              fontSize: 12,
+              fontSize: 14, // 增大字体
               fontWeight: FontWeight.w600,
               color: textColor,
             ),
@@ -1267,14 +1388,14 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
           ? () {
               if (timerState == 'overtime') {
                 // In overtime, tapping stops and completes the step
-                _stopAndCompleteStep(_currentIndex, step.stepNumber);
+                _stopAndCompleteStep(dishIndex, step.stepNumber);
               } else if (timerState == 'running') {
                 // Pause the timer
-                _pauseTimer(_currentIndex, step.stepNumber);
+                _pauseTimer(dishIndex, step.stepNumber);
               } else {
                 // Start or resume the timer
                 _startTimerForStep(
-                  _currentIndex,
+                  dishIndex,
                   step.stepNumber,
                   step.stepTimeMin,
                 );
@@ -1286,86 +1407,547 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
   }
 
   Widget _buildBottomControls(BuildContext context) {
-    final theme = Theme.of(context);
-
     final isCurrentDone = _isCurrentDishDone;
     final completedCount = _completedDishes.length;
     final hasCompleted = completedCount > 0;
+    final canSave = hasCompleted;
 
     return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // 上面一行：第几道菜 + 进度 + 左右切换
-            Row(
-              children: [
-                Text(
-                  'Dish ${_currentIndex + 1} of $_totalDishes',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                if (hasCompleted) ...[
-                  const SizedBox(width: 8),
-                  Text(
-                    '($completedCount/$_totalDishes completed)',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: Colors.orange,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-                const Spacer(),
-                IconButton(
-                  onPressed: _currentIndex > 0 ? _goToPrevDish : null,
-                  icon: const Icon(Icons.chevron_left),
-                ),
-                IconButton(
-                  onPressed: _currentIndex < _totalDishes - 1
-                      ? _goToNextDish
-                      : null,
-                  icon: const Icon(Icons.chevron_right),
-                ),
-              ],
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // 1. 分页指示器 (替代原来的 Dish 1 of 1 文本)
+          if (widget.menu.recipes.length > 1)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: SketchyPageIndicator(
+                count: widget.menu.recipes.length,
+                currentIndex: _currentIndex,
+              ),
             ),
-            const SizedBox(height: 8),
 
-            // 下面一行：Dish done + Save progress
-            Row(
+          // 2. 新的按钮区域 (复刻 Generated Menus 样式)
+          Container(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Row(
               children: [
+                // 左侧按钮: Mark Done
                 Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _toggleDishDone,
-                    icon: Icon(
-                      isCurrentDone
-                          ? Icons.check_circle
-                          : Icons.radio_button_unchecked,
+                  child: SizedBox(
+                    height: 70,
+                    child: _SketchyButtonWithAnimation(
+                      backgroundColor: const Color(0xFFFFFFF0),
+                      withShadow: true,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      onPressed: _toggleDishDone,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            isCurrentDone ? Icons.check_circle : Icons.radio_button_unchecked,
+                            size: 20,
+                            color: const Color(0xFF6B4F4F),
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              isCurrentDone ? 'Completed' : 'Mark Done',
+                              style: GoogleFonts.kalam(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF6B4F4F),
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    label: Text(isCurrentDone ? 'Dish done' : 'Mark dish done'),
                   ),
                 ),
-                const SizedBox(width: 12),
+                
+                const SizedBox(width: 16), // 按钮间距
+                
+                // 右侧按钮: Save Progress
                 Expanded(
-                  child: ElevatedButton(
-                    onPressed: hasCompleted ? _onMealDone : null,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.orange,
-                      foregroundColor: Colors.white,
-                    ),
-                    child: Text(
-                      _isWholeMealDone
-                          ? 'Meal done'
-                          : 'Save progress ($completedCount dishes)',
+                  child: SizedBox(
+                    height: 70,
+                    child: Opacity(
+                      // 如果不可点击，降低透明度以示禁用
+                      opacity: canSave ? 1.0 : 0.5,
+                      child: _SketchyButtonWithAnimation(
+                        backgroundColor: const Color(0xFFFFFFF0),
+                        withShadow: canSave, // 禁用时不要阴影
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        onPressed: canSave ? _onMealDone : null,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              _isWholeMealDone ? Icons.check_circle : Icons.save_alt,
+                              size: 20,
+                              color: const Color(0xFF6B4F4F),
+                            ),
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: Text(
+                                _isWholeMealDone
+                                    ? 'Meal Done'
+                                    : 'Save Progress',
+                                style: GoogleFonts.kalam(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF6B4F4F),
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 ),
               ],
             ),
-          ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 格纹纸背景组件
+class _GridPaper extends StatelessWidget {
+  final Widget child;
+
+  const _GridPaper({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final margin5mm = 18.0;
+
+    return Container(
+      width: double.infinity,
+      margin: EdgeInsets.symmetric(horizontal: margin5mm, vertical: 20),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return SizedBox(
+            width: constraints.maxWidth,
+            child: CustomPaint(painter: _GridPaperPainter(), child: child),
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// 格子纸绘制器
+class _GridPaperPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (size.width <= 0 ||
+        size.height <= 0 ||
+        !size.width.isFinite ||
+        !size.height.isFinite) {
+      return;
+    }
+
+    final random = math.Random(42);
+
+    // 创建不规则边缘路径
+    final path = _createIrregularPath(size, random);
+
+    // 1. 先绘制阴影效果
+    final shadowPaint = Paint()
+      ..color = Colors.black.withOpacity(0.12)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10);
+
+    final shadowPath = Path();
+    shadowPath.addPath(path, const Offset(6, 6));
+    canvas.drawPath(shadowPath, shadowPaint);
+
+    // 2. 绘制背景
+    final backgroundPaint = Paint()
+      ..color = const Color(0xFFF8F8F5) // 网格纸背景色
+      ..style = PaintingStyle.fill;
+
+    canvas.drawPath(path, backgroundPaint);
+
+    // 3. 绘制网格线
+    final gridPaint = Paint()
+      ..color = const Color(0xFFE3E6E8) // 网格线颜色
+      ..strokeWidth = 1.0
+      ..style = PaintingStyle.stroke;
+
+    const double gridSpacing = 20.0;
+
+    canvas.save();
+    canvas.clipPath(path);
+
+    // 绘制垂直线
+    for (double x = 0; x <= size.width; x += gridSpacing) {
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), gridPaint);
+    }
+
+    // 绘制水平线
+    for (double y = 0; y <= size.height; y += gridSpacing) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
+    }
+
+    canvas.restore();
+
+    // 4. 绘制不规则边缘线
+    final edgePaint = Paint()
+      ..color = const Color(0xFF6B4F4F).withOpacity(0.2)
+      ..strokeWidth = 1.5
+      ..style = PaintingStyle.stroke
+      ..strokeJoin = StrokeJoin.round
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawPath(path, edgePaint);
+  }
+
+  Path _createIrregularPath(Size size, math.Random random) {
+    final path = Path();
+    const double edgeNoise = 2.5;
+    const double step = 8.0;
+
+    final double effectiveWidth = size.width > 0 ? size.width : 100.0;
+    final double effectiveHeight = size.height > 0 ? size.height : 100.0;
+
+    // 顶部边缘
+    path.moveTo(0, 0);
+    for (double x = step; x < effectiveWidth; x += step) {
+      final noise = random.nextDouble() * edgeNoise * 2 - edgeNoise;
+      final y = noise.clamp(-edgeNoise, edgeNoise).toDouble();
+      path.lineTo(x, y);
+    }
+    path.lineTo(effectiveWidth, 0);
+
+    // 右侧边缘
+    for (double y = step; y < effectiveHeight; y += step) {
+      final noise = random.nextDouble() * edgeNoise * 2 - edgeNoise;
+      final x = (effectiveWidth + noise.clamp(-edgeNoise, edgeNoise)).toDouble();
+      path.lineTo(x, y);
+    }
+    path.lineTo(effectiveWidth, effectiveHeight);
+
+    // 底部边缘
+    for (double x = effectiveWidth - step; x > 0; x -= step) {
+      final noise = random.nextDouble() * edgeNoise * 2 - edgeNoise;
+      final y = (effectiveHeight + noise.clamp(-edgeNoise, edgeNoise)).toDouble();
+      path.lineTo(x, y);
+    }
+    path.lineTo(0, effectiveHeight);
+
+    // 左侧边缘
+    for (double y = effectiveHeight - step; y > 0; y -= step) {
+      final noise = random.nextDouble() * edgeNoise * 2 - edgeNoise;
+      final x = noise.clamp(-edgeNoise, edgeNoise).toDouble();
+      path.lineTo(x, y);
+    }
+
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+/// 手绘风格分页指示器
+class SketchyPageIndicator extends StatelessWidget {
+  final int count;
+  final int currentIndex;
+  final Color activeColor;
+  final Color inactiveColor;
+
+  const SketchyPageIndicator({
+    super.key,
+    required this.count,
+    required this.currentIndex,
+    this.activeColor = const Color(0xFF6B4F4F), // 深褐色墨水
+    this.inactiveColor = const Color(0xFF6B4F4F),
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List.generate(count, (index) {
+        final isActive = index == currentIndex;
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          margin: const EdgeInsets.symmetric(horizontal: 6),
+          width: isActive ? 12 : 8, // 选中时稍微大一点
+          height: isActive ? 12 : 8,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: isActive ? activeColor : Colors.transparent, // 选中实心，未选中空心
+            border: Border.all(
+              color: inactiveColor,
+              width: 1.5,
+            ),
+          ),
+        );
+      }),
+    );
+  }
+}
+
+/// 手绘风格按钮边框绘制器
+class _SketchyButtonBorderPainter extends CustomPainter {
+  final Color borderColor;
+  final Color? backgroundColor;
+  final double borderWidth;
+  final double wobbleAmount;
+  final int seed;
+
+  _SketchyButtonBorderPainter({
+    required this.borderColor,
+    this.backgroundColor,
+    this.borderWidth = 1.5,
+    this.wobbleAmount = 1.5,
+    this.seed = 123,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path = _createSketchyPath(size);
+    
+    // 1. 先画背景（如果有）
+    if (backgroundColor != null) {
+      final fillPaint = Paint()
+        ..color = backgroundColor!
+        ..style = PaintingStyle.fill;
+      canvas.drawPath(path, fillPaint);
+    }
+
+    // 2. 再画边框
+    final borderPaint = Paint()
+      ..color = borderColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = borderWidth
+      ..strokeJoin = StrokeJoin.round
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawPath(path, borderPaint);
+  }
+
+  Path _createSketchyPath(Size size) {
+    final path = Path();
+    final random = math.Random(seed);
+    final step = 8.0;
+    final wobble = wobbleAmount;
+
+    // Top edge: left to right
+    path.moveTo(0, 0);
+    for (double x = step; x < size.width; x += step) {
+      final noise = (random.nextDouble() * 2 - 1) * wobble;
+      path.lineTo(x, noise);
+    }
+    path.lineTo(size.width, 0);
+
+    // Right edge: top to bottom
+    for (double y = step; y < size.height; y += step) {
+      final noise = (random.nextDouble() * 2 - 1) * wobble;
+      path.lineTo(size.width + noise, y);
+    }
+    path.lineTo(size.width, size.height);
+
+    // Bottom edge: right to left
+    for (double x = size.width - step; x > 0; x -= step) {
+      final noise = (random.nextDouble() * 2 - 1) * wobble;
+      path.lineTo(x, size.height + noise);
+    }
+    path.lineTo(0, size.height);
+
+    // Left edge: bottom to top
+    for (double y = size.height - step; y > 0; y -= step) {
+      final noise = (random.nextDouble() * 2 - 1) * wobble;
+      path.lineTo(noise, y);
+    }
+
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+/// 带点击动画的手绘按钮
+class _SketchyButtonWithAnimation extends StatefulWidget {
+  final VoidCallback? onPressed;
+  final Widget child;
+  final EdgeInsetsGeometry? padding;
+  final Color? backgroundColor;
+  final bool withShadow;
+
+  const _SketchyButtonWithAnimation({
+    required this.onPressed,
+    required this.child,
+    this.padding,
+    this.backgroundColor,
+    this.withShadow = false,
+  });
+
+  @override
+  State<_SketchyButtonWithAnimation> createState() =>
+      _SketchyButtonWithAnimationState();
+}
+
+class _SketchyButtonWithAnimationState
+    extends State<_SketchyButtonWithAnimation> {
+  bool _isPressed = false;
+
+  void _handleTapDown(TapDownDetails details) {
+    setState(() => _isPressed = true);
+  }
+
+  void _handleTapUp(TapUpDetails details) {
+    setState(() => _isPressed = false);
+  }
+
+  void _handleTapCancel() {
+    setState(() => _isPressed = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final borderColor = const Color(0xFF6B4F4F).withOpacity(
+      _isPressed ? 1.0 : 0.7,
+    );
+    
+    final effectivePadding = widget.padding ?? 
+        const EdgeInsets.symmetric(horizontal: 20, vertical: 12);
+    
+    return Material(
+      color: Colors.transparent,
+      child: GestureDetector(
+        onTapDown: _handleTapDown,
+        onTapUp: _handleTapUp,
+        onTapCancel: _handleTapCancel,
+        onTap: widget.onPressed,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 110),
+          curve: Curves.easeOut,
+          transformAlignment: Alignment.center,
+          transform: Matrix4.identity()
+            ..rotateZ(_isPressed ? -0.05 : 0.0)
+            ..scale(_isPressed ? 0.98 : 1.0),
+          padding: effectivePadding,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(4),
+            boxShadow: (widget.withShadow && !_isPressed) ? [
+              BoxShadow(
+                color: const Color(0xFF6B4F4F).withOpacity(0.15),
+                offset: const Offset(2, 3),
+                blurRadius: 4,
+              )
+            ] : null,
+          ),
+          child: CustomPaint(
+            painter: _SketchyButtonBorderPainter(
+              borderColor: borderColor,
+              backgroundColor: widget.backgroundColor,
+              borderWidth: _isPressed ? 2.0 : 1.5,
+              wobbleAmount: 1.5,
+              seed: 123,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(2.0),
+              child: Center(child: widget.child),
+            ),
+          ),
         ),
       ),
     );
   }
+}
+
+/// 胶带纹理绘制器
+class _TapeTexturePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFFD4AF37).withOpacity(0.15)
+      ..strokeWidth = 0.5
+      ..style = PaintingStyle.stroke;
+
+    // 绘制水平线来模拟胶带纹理
+    for (double y = 2; y < size.height; y += 3) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+/// 手绘风格圆形边框绘制器（用于步骤编号标签）
+class _SketchyCirclePainter extends CustomPainter {
+  final Color borderColor;
+  final Color backgroundColor;
+  final double borderWidth;
+  final int seed;
+
+  _SketchyCirclePainter({
+    required this.borderColor,
+    required this.backgroundColor,
+    this.borderWidth = 1.5,
+    this.seed = 123,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = (size.width / 2) - borderWidth / 2;
+    final random = math.Random(seed);
+    final wobble = 1.5;
+    final step = 8.0;
+
+    // 创建手绘风格的圆形路径
+    final path = Path();
+    final angleStep = (2 * math.pi) / (2 * math.pi * radius / step).round().clamp(16, 32);
+    
+    // 从顶部开始绘制
+    double startAngle = -math.pi / 2;
+    path.moveTo(
+      center.dx + (radius + (random.nextDouble() * 2 - 1) * wobble) * math.cos(startAngle),
+      center.dy + (radius + (random.nextDouble() * 2 - 1) * wobble) * math.sin(startAngle),
+    );
+
+    // 绘制圆形，添加随机抖动
+    for (double angle = startAngle + angleStep; angle <= startAngle + 2 * math.pi + angleStep; angle += angleStep) {
+      final noise = (random.nextDouble() * 2 - 1) * wobble;
+      final currentRadius = radius + noise;
+      path.lineTo(
+        center.dx + currentRadius * math.cos(angle),
+        center.dy + currentRadius * math.sin(angle),
+      );
+    }
+
+    path.close();
+
+    // 1. 先画背景
+    final fillPaint = Paint()
+      ..color = backgroundColor
+      ..style = PaintingStyle.fill;
+    canvas.drawPath(path, fillPaint);
+
+    // 2. 再画边框
+    final borderPaint = Paint()
+      ..color = borderColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = borderWidth
+      ..strokeJoin = StrokeJoin.round
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawPath(path, borderPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
