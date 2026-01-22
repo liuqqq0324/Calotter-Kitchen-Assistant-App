@@ -20,6 +20,9 @@ spring:
   
   # Spring AI Google GenAI 配置
   ai:
+    # 🔥 禁用自动重试，防止 429 错误时重复请求导致配额耗尽
+    retry:
+      max-attempts: 1  # 坚决不重试
     google:
       genai:
         api-key: ${GEMINI_API_KEY:}
@@ -69,12 +72,8 @@ jwt:
   expiration: 3000 # seconds (50 minutes)
 
 # AI API 配置
-# 模式选择：mock（开发测试，默认）/ spring-ai-gemini（Spring AI Gemini，使用 Function Calling）/ groq（完整 Prompt）/ bedrock（AWS Bedrock）
+# 模式选择：spring-ai-gemini（Spring AI Gemini，使用 Function Calling，默认）/ bedrock（AWS Bedrock，可选）
+# 已废除：mock 和 groq 模式
 ai:
   api:
-    mode: spring-ai-gemini  # mock / spring-ai-gemini / groq / bedrock
-    # Groq 配置（完整 Prompt 版本，主要使用）
-    groq:
-      api-key: ${GROQ_API_KEY:}  # 从环境变量读取
-      url: https://api.groq.com/openai/v1/chat/completions
-      model: llama-3.3-70b-versatile
+    mode: spring-ai-gemini  # spring-ai-gemini（默认） / bedrock（可选）

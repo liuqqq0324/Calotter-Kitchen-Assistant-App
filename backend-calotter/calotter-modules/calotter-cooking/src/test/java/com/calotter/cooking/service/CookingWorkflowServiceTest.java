@@ -214,7 +214,6 @@ class CookingWorkflowServiceTest {
 
         FinishCookingRequest.FinalIngredient ingredient = new FinishCookingRequest.FinalIngredient();
         ingredient.setName("五花肉");
-        ingredient.setSourceType("INVENTORY");
         ingredient.setAmountValue(500.0);
         ingredient.setAmountUnit("g");
         request.setFinalIngredients(Arrays.asList(ingredient));
@@ -308,7 +307,6 @@ class CookingWorkflowServiceTest {
 
         FinishCookingRequest.FinalIngredient ingredient = new FinishCookingRequest.FinalIngredient();
         ingredient.setName("五花肉");
-        ingredient.setSourceType("INVENTORY");
         ingredient.setAmountValue(500.0);
         ingredient.setAmountUnit("g");
         request.setFinalIngredients(Arrays.asList(ingredient));

@@ -185,11 +185,6 @@ public class CookingWorkflowService {
         List<Ingredient> householdIngredients = ingredientRepository.findByHouseholdIdAndQuantityGreaterThan(householdId, 0.0);
         
         for (FinishCookingRequest.FinalIngredient reqIng : ingredients) {
-            // 只处理INVENTORY类型的食材
-            if (!"INVENTORY".equalsIgnoreCase(reqIng.getSourceType())) {
-                continue;
-            }
-            
             String reqName = reqIng.getName();
             Double reqAmount = reqIng.getAmountValue();
             String reqUnit = reqIng.getAmountUnit();

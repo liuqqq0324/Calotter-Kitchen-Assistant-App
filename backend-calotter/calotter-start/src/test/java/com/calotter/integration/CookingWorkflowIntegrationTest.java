@@ -187,7 +187,6 @@ class CookingWorkflowIntegrationTest {
         // 设置最终用料（扣减库存）
         FinishCookingRequest.FinalIngredient finalIngredient = new FinishCookingRequest.FinalIngredient();
         finalIngredient.setName("五花肉");
-        finalIngredient.setSourceType("INVENTORY");
         finalIngredient.setAmountValue(500.0);
         finalIngredient.setAmountUnit("g");
         finishRequest.setFinalIngredients(Arrays.asList(finalIngredient));

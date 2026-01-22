@@ -123,6 +123,7 @@ class LeftoverCard extends StatelessWidget {
 
                       // Remaining weight and calories
                       Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Flexible(
                             child: Text(
@@ -154,6 +155,7 @@ class LeftoverCard extends StatelessWidget {
 
                       // Production time / days remaining
                       Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
                             Icons.access_time,
@@ -165,7 +167,7 @@ class LeftoverCard extends StatelessWidget {
                                       : Colors.grey[600]),
                           ),
                           const SizedBox(width: 6),
-                          Flexible(
+                          Expanded(
                             child: Text(
                               item.isExpired
                                   ? 'Expired ${item.daysSinceProduced} days ago'

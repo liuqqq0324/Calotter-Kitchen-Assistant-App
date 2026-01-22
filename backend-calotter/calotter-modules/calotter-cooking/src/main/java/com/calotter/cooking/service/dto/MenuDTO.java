@@ -36,7 +36,6 @@ public class MenuDTO {
         private Double amountValue;
         private String amountUnit;
         private Boolean isOptional;
-        private String sourceType; // INVENTORY / MANUAL_ADD
     }
 
     @Data

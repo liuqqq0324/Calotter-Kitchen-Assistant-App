@@ -19,7 +19,7 @@ import java.util.List;
 @AllArgsConstructor
 public class MenuGenerationFunction {
     
-    @JsonPropertyDescription("生成5套菜单选项，每套包含指定数量的菜品")
+    // 移除 description，字段名 menus 已经很清楚
     @JsonProperty(required = true)
     private List<MenuOption> menus;
     
@@ -28,11 +28,11 @@ public class MenuGenerationFunction {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class MenuOption {
-        @JsonPropertyDescription("菜单ID (1-5)")
+        // 移除 description，字段名和类型已经很清楚
         @JsonProperty(required = true)
         private Integer menuId;
         
-        @JsonPropertyDescription("该菜单中的食谱列表")
+        // 移除 description，字段名 recipes 已经很清楚
         @JsonProperty(required = true)
         private List<RecipeOption> recipes;
     }
@@ -42,34 +42,35 @@ public class MenuGenerationFunction {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class RecipeOption {
-        @JsonPropertyDescription("菜品名称")
+        // 移除 "菜品名称" 描述，字段名 title 已经很清楚
         @JsonProperty(required = true)
         private String title;
         
-        @JsonPropertyDescription("简短描述")
+        // 移除 "简短描述" 描述
         private String shortDescription;
         
-        @JsonPropertyDescription("份数")
+        // 移除 "份数" 描述
         @JsonProperty(required = true)
         private Integer servings;
         
-        @JsonPropertyDescription("烹饪时间（分钟）")
+        // 移除 "烹饪时间（分钟）" 描述，字段名 cookingTimeMin 已经很清楚
         @JsonProperty(required = true)
         private Integer cookingTimeMin;
         
-        @JsonPropertyDescription("难度等级: easy, medium, hard")
+        // 简化描述，只保留枚举值
+        @JsonPropertyDescription("easy, medium, or hard")
         @JsonProperty(required = true)
         private String difficulty;
         
-        @JsonPropertyDescription("营养估算（整个食谱的总量）")
+        // 移除描述，字段名 nutritionEstimate 已经很清楚
         @JsonProperty(required = true)
         private NutritionEstimateOption nutritionEstimate;
         
-        @JsonPropertyDescription("食材列表")
+        // 移除描述，字段名 ingredients 已经很清楚
         @JsonProperty(required = true)
         private List<IngredientOption> ingredients;
         
-        @JsonPropertyDescription("烹饪步骤")
+        // 移除描述，字段名 steps 已经很清楚
         @JsonProperty(required = true)
         private List<StepOption> steps;
     }
@@ -79,19 +80,19 @@ public class MenuGenerationFunction {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class NutritionEstimateOption {
-        @JsonPropertyDescription("总卡路里（整个食谱）")
+        // 移除描述，字段名 calories 已经很清楚
         @JsonProperty(required = true)
         private Double calories;
         
-        @JsonPropertyDescription("总蛋白质（克）")
+        // 移除描述，字段名 proteinG 已经很清楚
         @JsonProperty(required = true)
         private Double proteinG;
         
-        @JsonPropertyDescription("总脂肪（克）")
+        // 移除描述，字段名 fatG 已经很清楚
         @JsonProperty(required = true)
         private Double fatG;
         
-        @JsonPropertyDescription("总碳水化合物（克）")
+        // 移除描述，字段名 carbsG 已经很清楚
         @JsonProperty(required = true)
         private Double carbsG;
     }
@@ -101,24 +102,21 @@ public class MenuGenerationFunction {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class IngredientOption {
-        @JsonPropertyDescription("食材名称")
+        // 移除描述，字段名 name 已经很清楚
         @JsonProperty(required = true)
         private String name;
         
-        @JsonPropertyDescription("数量值")
+        // 移除描述，字段名 amountValue 已经很清楚
         @JsonProperty(required = true)
         private Double amountValue;
         
-        @JsonPropertyDescription("数量单位（g, ml, pcs等）")
+        // 简化描述，只保留单位示例
+        @JsonPropertyDescription("g, ml, pcs, etc")
         @JsonProperty(required = true)
         private String amountUnit;
         
-        @JsonPropertyDescription("是否可选")
+        // 移除描述，字段名 isOptional 已经很清楚
         private Boolean isOptional = false;
-        
-        @JsonPropertyDescription("来源类型: INVENTORY (来自库存) 或 MANUAL_ADD (需要购买)")
-        @JsonProperty(required = true)
-        private String sourceType;
     }
     
     @Data
@@ -126,15 +124,15 @@ public class MenuGenerationFunction {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class StepOption {
-        @JsonPropertyDescription("步骤编号")
+        // 移除描述，字段名 stepNumber 已经很清楚
         @JsonProperty(required = true)
         private Integer stepNumber;
         
-        @JsonPropertyDescription("步骤说明")
+        // 移除描述，字段名 instruction 已经很清楚
         @JsonProperty(required = true)
         private String instruction;
         
-        @JsonPropertyDescription("该步骤所需时间（分钟）")
+        // 移除描述，字段名 stepTimeMin 已经很清楚
         private Integer stepTimeMin;
     }
 }

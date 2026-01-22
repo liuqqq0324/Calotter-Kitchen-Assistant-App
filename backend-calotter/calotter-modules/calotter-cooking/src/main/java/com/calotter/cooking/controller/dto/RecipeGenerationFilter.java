@@ -6,7 +6,20 @@ import java.util.List;
 
 @Data
 public class RecipeGenerationFilter {
+    /**
+     * 即将过期的食材（3天内），必须优先使用
+     */
+    private List<InventoryItem> urgentInventory;
+    
+    /**
+     * 普通库存食材（3天以上或没有过期日期）
+     */
+    private List<InventoryItem> regularInventory;
+    
+    // 保留旧的 inventory 字段以向后兼容（已废弃，建议使用 urgentInventory + regularInventory）
+    @Deprecated
     private List<InventoryItem> inventory;
+    
     private CalorieTarget calorieTarget;
     private Integer servings;
     private DietPreferences dietPreferences;
@@ -19,7 +32,6 @@ public class RecipeGenerationFilter {
         private String name;
         private Double amountValue;
         private String amountUnit;
-        private String expiresAt;
     }
 
     @Data
@@ -33,7 +45,7 @@ public class RecipeGenerationFilter {
         private List<String> cuisinePreferences;
         private List<String> tastePreferences;
         /**
-         * 软性“避免食材”（不喜欢吃的具体食材），应当来自标准食材库（StandardIngredient）。
+         * 软性"避免食材"（不喜欢吃的具体食材），应当来自标准食材库（StandardIngredient）。
          */
         private List<String> avoidIngredients;
         /**

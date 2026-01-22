@@ -261,169 +261,118 @@ class _OtterFloatingNavState extends State<OtterFloatingNav>
     );
   }
 
-  // 🔥 修复后的菜单构建逻辑
+  // 🔥 修复后的智能菜单构建逻辑
   Widget _buildExpandedMenu(Size screenSize, EdgeInsets safeArea) {
     final destinations = BottomNavConfig.destinations;
+    final int count = destinations.length;
 
     final buttonSize = 120.0;
 
-    // 按钮的实际位置
+    // 1. 计算按钮中心位置
     final buttonRight = 16.0 + _position.dx;
     final buttonBottom = 16.0 + _position.dy;
-
-    // 按钮中心坐标（相对于屏幕左上角）
     final buttonCenterX = screenSize.width - buttonRight - buttonSize / 2;
     final buttonCenterY =
         screenSize.height - safeArea.bottom - buttonBottom - buttonSize / 2;
     final buttonCenter = Offset(buttonCenterX, buttonCenterY);
 
-    final itemSize = 110.0;
+    // 2. 配置子菜单项参数
+    final itemSize = 55.0;
     final itemHalf = itemSize / 2;
 
-    // 🔥 关键 1: 定义一个严格的安全区域，确保 Item 完全显示在屏幕内
-    // 不仅仅是中心点在屏幕内，而是边缘也要在屏幕内 (inset by itemHalf)
-    final safeRect = Rect.fromLTRB(
-      safeArea.left + itemHalf,
-      safeArea.top + itemHalf,
-      screenSize.width - safeArea.right - itemHalf,
-      screenSize.height - safeArea.bottom - itemHalf,
-    );
+    // 基础半径 (海獭半径60 + 间隙 + 贝壳半径27.5)
+    final double radius = 100.0;
 
-    // 最小间距定义
-    final minDistanceFromButton =
-        (buttonSize / 2) + (itemSize / 2) - 10; // 允许轻微重叠看起来更紧凑
-    final minItemSpacing = itemSize * 0.85; // Item 之间的最小距离
+    // 3. 定义安全区域 (确保子项完全展示在屏幕内)
+    final double safeLeft = safeArea.left + itemHalf + 8; // +8 留点边距
+    final double safeRight = screenSize.width - safeArea.right - itemHalf - 8;
+    final double safeTop = safeArea.top + itemHalf + 8;
+    final double safeBottom =
+        screenSize.height - safeArea.bottom - itemHalf - 8;
 
-    // 计算朝向屏幕中心的角度
+    // 4. 计算初始角度：朝向屏幕中心
     final screenCenter = Offset(screenSize.width / 2, screenSize.height / 2);
-    final towardCenterAngle = math.atan2(
+    double baseAngle = math.atan2(
       screenCenter.dy - buttonCenter.dy,
       screenCenter.dx - buttonCenter.dx,
     );
 
-    // 生成候选点的方法
-    List<Offset> candidateCenters({
-      required double radius,
-      required double spreadRadians,
-    }) {
-      final count = destinations.length;
-      if (count == 1) {
-        final c =
-            buttonCenter +
-            Offset(math.cos(towardCenterAngle), math.sin(towardCenterAngle)) *
-                radius;
-        return [c];
-      }
-      return List.generate(count, (i) {
-        // 在扇形区域内均匀分布
-        final t = (i / (count - 1)) - 0.5; // range [-0.5, 0.5]
-        final angle = towardCenterAngle + t * spreadRadians;
-        return buttonCenter + Offset(math.cos(angle), math.sin(angle)) * radius;
-      });
-    }
+    // 5. 初始展开幅度 (Spread)
+    // 默认约 100~120 度，根据项目数量微调
+    double spread = 110 * (math.pi / 180);
 
-    // 检查一组点是否有效
-    bool centersFit(List<Offset> centers) {
-      for (int i = 0; i < centers.length; i++) {
-        final c = centers[i];
-        // 1. 检查是否在安全区域内
-        if (!safeRect.contains(c)) return false;
+    // --- 🚀 智能适配核心算法 ---
 
-        // 2. 检查是否遮挡了海獭按钮
-        if ((c - buttonCenter).distance < minDistanceFromButton) return false;
+    // 步骤 A: 预计算最外侧两个点的坐标 (Start 和 End)
+    // 检查它们是否超出边界，如果超出，就旋转 baseAngle
+    for (int step = 0; step < 20; step++) {
+      // 尝试修正最多20次
+      double startAngle = baseAngle - spread / 2;
+      double endAngle = baseAngle + spread / 2;
 
-        // 3. 检查互相重叠
-        for (int j = i + 1; j < centers.length; j++) {
-          if ((c - centers[j]).distance < minItemSpacing) return false;
-        }
-      }
-      return true;
-    }
+      Offset startPos =
+          buttonCenter +
+          Offset(math.cos(startAngle), math.sin(startAngle)) * radius;
+      Offset endPos =
+          buttonCenter +
+          Offset(math.cos(endAngle), math.sin(endAngle)) * radius;
 
-    // 🔥 关键 2: 扩展搜索策略
-    // 增加更小的半径 (100, 110) 和 更大的角度范围，以便在角落挤得下
-    final radii = <double>[130, 120, 110, 100];
-    final spreads = <double>[3.8, 3.2, 2.5, 2.0, 1.5]; // 弧度
-
-    List<Offset> finalCenters = const [];
-    bool found = false;
-
-    // 尝试寻找完美布局
-    for (final r in radii) {
-      for (final s in spreads) {
-        final c = candidateCenters(radius: r, spreadRadians: s);
-        if (centersFit(c)) {
-          finalCenters = c;
-          found = true;
-          break;
-        }
-      }
-      if (found) break;
-    }
-
-    // 🔥 关键 3: 物理防重叠兜底 (Relaxation Algorithm)
-    // 如果上面找不到完美布局（比如在死角），我们手动计算位置
-    if (!found) {
-      // 1. 初始位置：朝向屏幕中心，用较小的半径紧凑排列
-      List<Offset> currentPositions = candidateCenters(
-        radius: 110,
-        spreadRadians: 2.0,
+      bool startOut = !_isInside(
+        startPos,
+        safeLeft,
+        safeRight,
+        safeTop,
+        safeBottom,
+      );
+      bool endOut = !_isInside(
+        endPos,
+        safeLeft,
+        safeRight,
+        safeTop,
+        safeBottom,
       );
 
-      // 迭代多次以解开重叠 (类似物理引擎的迭代求解)
-      for (int iter = 0; iter < 10; iter++) {
-        for (int i = 0; i < currentPositions.length; i++) {
-          Offset pos = currentPositions[i];
-
-          // A. 强制拉回屏幕内 (Clamp to Screen)
-          double dx = pos.dx.clamp(safeRect.left, safeRect.right);
-          double dy = pos.dy.clamp(safeRect.top, safeRect.bottom);
-          pos = Offset(dx, dy);
-
-          // B. 解决与海獭按钮的重叠 (Repel from Button)
-          Offset vecToButton = pos - buttonCenter;
-          double distToButton = vecToButton.distance;
-          if (distToButton < minDistanceFromButton) {
-            if (distToButton == 0) vecToButton = const Offset(1, 0); // 防止除零
-            // 向外推
-            pos =
-                buttonCenter +
-                (vecToButton / distToButton) * minDistanceFromButton;
-          }
-
-          // C. 解决与其他 Item 的重叠 (Repel from others)
-          for (int j = 0; j < currentPositions.length; j++) {
-            if (i == j) continue;
-            Offset vecToOther = pos - currentPositions[j];
-            double distToOther = vecToOther.distance;
-
-            if (distToOther < minItemSpacing) {
-              if (distToOther == 0)
-                vecToOther = Offset(
-                  math.Random().nextDouble() - 0.5,
-                  math.Random().nextDouble() - 0.5,
-                );
-              // 稍微推开一点，每次迭代推一点，直到解开
-              double pushDist = (minItemSpacing - distToOther) * 0.5;
-              pos += (vecToOther / distToOther) * pushDist;
-            }
-          }
-
-          currentPositions[i] = pos;
-        }
+      if (!startOut && !endOut) {
+        break; // 都在界内，完美！
       }
-      finalCenters = currentPositions;
+
+      if (startOut && endOut) {
+        // 两个都出界了（通常是卡在角落），说明 Spread 太宽了，缩小展开角度
+        spread *= 0.9;
+      } else if (startOut) {
+        // 起始点出界，向 End 方向旋转
+        baseAngle += 0.1; // 约 5 度
+      } else if (endOut) {
+        // 结束点出界，向 Start 方向旋转
+        baseAngle -= 0.1;
+      }
     }
+
+    // 6. 生成最终坐标
+    List<Offset> finalPositions = List.generate(count, (i) {
+      // 线性分布
+      double t = (count > 1) ? i / (count - 1) : 0.5;
+      double angle = baseAngle - (spread / 2) + (spread * t);
+
+      Offset pos =
+          buttonCenter + Offset(math.cos(angle), math.sin(angle)) * radius;
+
+      // 兜底：最后的最后，如果还是有一点点出界（比如计算误差），强制 Clamp 回来
+      // 这只会导致轻微的贴边，不会导致乱序
+      double cx = pos.dx.clamp(safeLeft, safeRight);
+      double cy = pos.dy.clamp(safeTop, safeBottom);
+      return Offset(cx, cy);
+    });
 
     return Positioned.fill(
       child: Stack(
         clipBehavior: Clip.none,
-        children: List.generate(destinations.length, (index) {
-          final c = finalCenters[index];
+        children: List.generate(count, (index) {
+          final pos = finalPositions[index];
 
           return Positioned(
-            left: c.dx - itemHalf,
-            top: c.dy - itemHalf,
+            left: pos.dx - itemHalf,
+            top: pos.dy - itemHalf,
             child: Material(
               color: Colors.transparent,
               child: InkWell(
@@ -431,11 +380,10 @@ class _OtterFloatingNavState extends State<OtterFloatingNav>
                 customBorder: const CircleBorder(),
                 child: AnimatedScale(
                   scale: _expandAnimation.value,
-                  duration: Duration(milliseconds: 100 + index * 50),
+                  duration: Duration(milliseconds: 150 + index * 50),
                   curve: Curves.easeOutBack,
                   child: Stack(
-                    alignment: Alignment.center, // 确保所有子元素居中
-                    clipBehavior: Clip.none, // 允许内容超出边界
+                    alignment: Alignment.center,
                     children: [
                       Image.asset(
                         'assets/images/Shell.png',
@@ -449,16 +397,15 @@ class _OtterFloatingNavState extends State<OtterFloatingNav>
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontFamily: 'PatrickHand',
-                            fontSize: 16,
+                            fontSize: 13, // 稍微调小一点字体适配小贝壳
                             fontWeight: FontWeight.bold,
                             color: const Color(0xFF6B4F4F),
+                            height: 1.0,
                             shadows: [
                               Shadow(
                                 offset: const Offset(0.5, 0.5),
                                 blurRadius: 1.5,
-                                color: const Color(
-                                  0xFF4A3A3A,
-                                ).withOpacity(0.2), // 微弱的深色投影
+                                color: const Color(0xFF4A3A3A).withOpacity(0.2),
                               ),
                             ],
                           ),
@@ -475,6 +422,17 @@ class _OtterFloatingNavState extends State<OtterFloatingNav>
         }),
       ),
     );
+  }
+
+  // 辅助函数：检查点是否在安全区内
+  bool _isInside(
+    Offset p,
+    double left,
+    double right,
+    double top,
+    double bottom,
+  ) {
+    return p.dx >= left && p.dx <= right && p.dy >= top && p.dy <= bottom;
   }
 }
 

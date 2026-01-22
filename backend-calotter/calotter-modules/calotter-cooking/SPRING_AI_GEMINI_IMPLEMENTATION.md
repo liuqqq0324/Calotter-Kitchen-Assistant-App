@@ -55,10 +55,12 @@ spring:
 
 ### 模式选择
 
-- `mock` - Mock 实现（开发测试）
-- `gemini` - 原始 Gemini 实现（RestTemplate 直接调用）
-- `spring-ai-gemini` - **Spring AI Gemini 实现（推荐，使用 Function Calling）**
-- `groq` - Groq 实现（完整 Prompt 版本）
+- `spring-ai-gemini` - **Spring AI Gemini 实现（默认，使用 Function Calling）**
+- `bedrock` - AWS Bedrock 实现（可选）
+
+**已废除的模式**：
+- ~~`mock`~~ - Mock 实现（已删除）
+- ~~`groq`~~ - Groq 实现（已删除）
 
 ## 使用方法
 
@@ -106,8 +108,8 @@ spring:
 
 1. **依赖版本**: 使用 Spring AI 1.0.0-M4（Milestone 版本）
 2. **模型兼容性**: 确保 Gemini 模型支持结构化输出（gemini-2.0-flash-exp 及以上）
-3. **向后兼容**: 保留了原始 `GeminiAiMenuGenerationService`，可通过配置切换
-4. **API Key**: 确保 `.env` 文件中配置了正确的 `GEMINI_API_KEY`
+3. **API Key**: 确保 `.env` 文件中配置了正确的 `GEMINI_API_KEY`
+4. **已废除**: Mock 和 Groq 实现已被删除，仅保留 Spring AI Gemini 和 Bedrock 实现
 
 ## 下一步优化
 

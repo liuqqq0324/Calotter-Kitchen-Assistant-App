@@ -44,7 +44,6 @@ public class FinishCookingRequest {
         private String name;
         private Double amountValue;
         private String amountUnit;
-        private String sourceType; // INVENTORY / MANUAL_ADD
     }
 
     @Data

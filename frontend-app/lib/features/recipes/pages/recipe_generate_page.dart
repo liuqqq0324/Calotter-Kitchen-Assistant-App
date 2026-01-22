@@ -462,6 +462,7 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
                           const SizedBox(height: 8),
                           // 第三行：难度、时间和卡路里
                           Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
                               _buildSketchyDifficultyBadge(
                                 label: difficultyLabel.toUpperCase(),
@@ -474,11 +475,14 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
                                 color: ink.withOpacity(0.65),
                               ),
                               const SizedBox(width: 4),
-                              Text(
-                                '~ ${menu.totalCookingTimeMin} min',
-                                style: GoogleFonts.kalam(
-                                  fontSize: 15,
-                                  color: ink.withOpacity(0.8),
+                              Flexible(
+                                child: Text(
+                                  '~ ${menu.totalCookingTimeMin} min',
+                                  style: GoogleFonts.kalam(
+                                    fontSize: 15,
+                                    color: ink.withOpacity(0.8),
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                               const SizedBox(width: 12),
@@ -488,11 +492,14 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
                                 color: ink.withOpacity(0.65),
                               ),
                               const SizedBox(width: 4),
-                              Text(
-                                '${menu.totalCalories.toStringAsFixed(0)} kcal',
-                                style: GoogleFonts.kalam(
-                                  fontSize: 15,
-                                  color: ink.withOpacity(0.8),
+                              Flexible(
+                                child: Text(
+                                  '${menu.totalCalories.toStringAsFixed(0)} kcal',
+                                  style: GoogleFonts.kalam(
+                                    fontSize: 15,
+                                    color: ink.withOpacity(0.8),
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                             ],

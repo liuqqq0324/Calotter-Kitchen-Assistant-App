@@ -27,7 +27,8 @@ public class SpringAiGeminiMenuGenerationService implements AiMenuGenerationServ
     // JSON Schema is automatically handled by Spring AI via .entity() method, not in prompt
     private static final String MINIMAL_SYSTEM_PROMPT = """
         Diet-focused cooking assistant. Generate EXACTLY 3 menus.
-        Rules: dishCount per menu, WHOLE recipe nutrition, inventory matching, dietary constraints, cooker compatibility.
+        Rules: dishCount per menu, WHOLE recipe nutrition, dietary constraints, cooker compatibility.
+        IMPORTANT: You MUST prioritize using ingredients from urgentInventory to prevent waste. Use regularInventory as needed.
         """;
     
     @Override
@@ -137,7 +138,6 @@ public class SpringAiGeminiMenuGenerationService implements AiMenuGenerationServ
                     dto.setAmountValue(ing.getAmountValue());
                     dto.setAmountUnit(ing.getAmountUnit());
                     dto.setIsOptional(ing.getIsOptional());
-                    dto.setSourceType(ing.getSourceType());
                     return dto;
                 })
                 .collect(Collectors.toList());

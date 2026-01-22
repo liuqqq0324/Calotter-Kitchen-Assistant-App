@@ -20,7 +20,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.time.format.DateTimeFormatter;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -37,7 +37,7 @@ public class AiMenuService {
     private final UserRepository userRepository;
     private final HealthGoalRepository healthGoalRepository;
     
-    // 注入 AI 菜单生成服务（根据配置自动选择 Mock/Gemini/Groq）
+    // 注入 AI 菜单生成服务（使用 Spring AI Gemini）
     private final AiMenuGenerationService aiMenuGenerationService;
     private final RecipeFilterValidationService recipeFilterValidationService;
 
@@ -100,7 +100,7 @@ public class AiMenuService {
         // dietHabits 是硬性饮食习惯（如 vegetarian），应该单独处理
         // avoidIngredients 是软性避免食材（具体食材名称）
         
-        // 使用注入的服务（Mock/Gemini/Groq）
+        // 使用注入的服务（Spring AI Gemini）
         return aiMenuGenerationService.generateMenus(filter);
     }
 
@@ -217,23 +217,59 @@ public class AiMenuService {
      * 从household自动填充filter的inventory、cookers、seasonings
      */
     private void enrichFilterFromHousehold(RecipeGenerationFilter filter, Long householdId) {
-        // 填充inventory（如果为空）
-        if (filter.getInventory() == null || filter.getInventory().isEmpty()) {
+        // 填充 urgentInventory 和 regularInventory（如果为空）
+        if ((filter.getUrgentInventory() == null || filter.getUrgentInventory().isEmpty()) &&
+            (filter.getRegularInventory() == null || filter.getRegularInventory().isEmpty())) {
+            
             List<Ingredient> ingredients = ingredientRepository.findByHouseholdIdAndQuantityGreaterThan(householdId, 0.0);
-            List<RecipeGenerationFilter.InventoryItem> inventoryItems = ingredients.stream()
-                    .map(ing -> {
-                        RecipeGenerationFilter.InventoryItem item = new RecipeGenerationFilter.InventoryItem();
-                        item.setName(ing.getMetadata().getName());
-                        item.setAmountValue(ing.getQuantity());
-                        item.setAmountUnit(ing.getUnit());
-                        if (ing.getExpirationDate() != null) {
-                            item.setExpiresAt(ing.getExpirationDate().format(DateTimeFormatter.ISO_LOCAL_DATE));
-                        }
-                        return item;
-                    })
-                    .collect(Collectors.toList());
-            filter.setInventory(inventoryItems);
-            log.info("自动填充inventory: {} 项", inventoryItems.size());
+            
+            // 获取当前日期，用于过滤和分类食材
+            LocalDate today = LocalDate.now();
+            LocalDate threeDaysLater = today.plusDays(3);
+            
+            // 分类：即将过期（3天内）和普通库存
+            List<RecipeGenerationFilter.InventoryItem> urgentItems = new ArrayList<>();
+            List<RecipeGenerationFilter.InventoryItem> regularItems = new ArrayList<>();
+            
+            for (Ingredient ing : ingredients) {
+                // 过滤掉已过期的食材
+                if (ing.getExpirationDate() != null && ing.getExpirationDate().isBefore(today)) {
+                    continue; // 跳过已过期的食材
+                }
+                
+                RecipeGenerationFilter.InventoryItem item = new RecipeGenerationFilter.InventoryItem();
+                item.setName(ing.getMetadata().getName());
+                item.setAmountValue(ing.getQuantity());
+                item.setAmountUnit(ing.getUnit());
+                
+                // 判断是否即将过期（3天内）
+                if (ing.getExpirationDate() != null && 
+                    !ing.getExpirationDate().isBefore(today) && 
+                    !ing.getExpirationDate().isAfter(threeDaysLater)) {
+                    // 即将过期（今天到3天后之间）
+                    urgentItems.add(item);
+                } else {
+                    // 普通库存（没有过期日期，或过期日期在3天之后）
+                    regularItems.add(item);
+                }
+            }
+            
+            filter.setUrgentInventory(urgentItems);
+            filter.setRegularInventory(regularItems);
+            log.info("自动填充库存: {} 项即将过期（3天内），{} 项普通库存（已过滤过期食材）", 
+                    urgentItems.size(), regularItems.size());
+        }
+        
+        // 向后兼容：如果使用了旧的 inventory 字段，也填充它（合并 urgent + regular）
+        if (filter.getInventory() == null || filter.getInventory().isEmpty()) {
+            List<RecipeGenerationFilter.InventoryItem> allItems = new ArrayList<>();
+            if (filter.getUrgentInventory() != null) {
+                allItems.addAll(filter.getUrgentInventory());
+            }
+            if (filter.getRegularInventory() != null) {
+                allItems.addAll(filter.getRegularInventory());
+            }
+            filter.setInventory(allItems);
         }
 
         // 强制从数据库获取cookers（忽略前端传入的值，与inventory保持一致）

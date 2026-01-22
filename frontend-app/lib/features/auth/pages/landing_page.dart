@@ -74,7 +74,7 @@ class _LandingPageState extends State<LandingPage> with RouteAware {
     return Scaffold(
       body: VideoBackground(
         // 视频路径（本地）
-        videoPath: 'assets/videos/otter_seal_dance33.mp4',
+        videoPath: 'assets/videos/landingpage.mp4',
         // 或者使用网络视频（备用，已注释）
         // videoUrl: 'https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4',
         child: SafeArea(

@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Configuration;
 
 /**
  * AI 菜单生成服务统一配置类
- * 通过配置选择使用 Mock、Spring AI Gemini、Groq 或 Bedrock
+ * 仅使用 Spring AI Gemini 实现（已废除 Mock 和 Groq）
  */
 @Configuration
 public class AiConfig {
@@ -18,33 +18,16 @@ public class AiConfig {
     /**
      * Spring AI Gemini 实现（使用 Spring AI 和 Function Calling，减少 token 消耗）
      * 注意：这里需要 ChatModel，确保 application.yml 里配置了 spring.ai.google.genai
+     * 默认使用此实现
      */
     @Bean
-    @ConditionalOnProperty(name = "ai.api.mode", havingValue = "spring-ai-gemini")
+    @ConditionalOnProperty(name = "ai.api.mode", havingValue = "spring-ai-gemini", matchIfMissing = true)
     public AiMenuGenerationService springAiGeminiService(ChatModel chatModel, ObjectMapper objectMapper) {
         return new SpringAiGeminiMenuGenerationService(chatModel, objectMapper);
     }
 
     /**
-     * Mock 实现（开发测试阶段，默认使用）
-     */
-    @Bean
-    @ConditionalOnProperty(name = "ai.api.mode", havingValue = "mock", matchIfMissing = true)
-    public AiMenuGenerationService mockService() {
-        return new MockAiMenuGenerationService();
-    }
-
-    /**
-     * Groq 实现（完整 Prompt 版本）
-     */
-    @Bean
-    @ConditionalOnProperty(name = "ai.api.mode", havingValue = "groq")
-    public AiMenuGenerationService groqService(ObjectMapper objectMapper) {
-        return new GroqAiMenuGenerationService(objectMapper);
-    }
-
-    /**
-     * AWS Bedrock 实现
+     * AWS Bedrock 实现（可选，保留以备后用）
      */
     @Bean
     @ConditionalOnProperty(name = "ai.api.mode", havingValue = "bedrock")
