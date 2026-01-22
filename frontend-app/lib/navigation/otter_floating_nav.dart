@@ -272,7 +272,7 @@ class _OtterFloatingNavState extends State<OtterFloatingNav>
         screenSize.height - safeArea.bottom - buttonBottom - buttonSize / 2;
 
     final buttonCenter = Offset(buttonCenterX, buttonCenterY);
-    final itemSize = 100.0; // 进一步增大贝壳尺寸：从 88.0 增加到 100.0
+    final itemSize = 110.0; // 进一步增大贝壳尺寸：从 100.0 增加到 110.0
     final itemHalf = itemSize / 2;
 
     // 安全显示区域（不包含系统安全区）
@@ -419,22 +419,22 @@ class _OtterFloatingNavState extends State<OtterFloatingNav>
                           );
                         },
                       ),
-                      // 文字标签 - 完全居中，更大更突出
+                      // 文字标签 - 完全居中，更大更突出，带微弱的深色描边
                       Center(
                         child: Text(
                           destinations[index].label,
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontFamily: 'PatrickHand',
-                            fontSize: 16, // 进一步增大字体：从 13 增加到 16
-                            fontWeight: FontWeight.bold, // 始终加粗，更突出
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold, // 加粗手写体
                             color: const Color(0xFF6B4F4F), // 完全不透明
                             shadows: [
-                              // 添加文字阴影，增强可读性
+                              // 微弱的深色投影，增强可读性
                               Shadow(
                                 offset: const Offset(0.5, 0.5),
                                 blurRadius: 1.5,
-                                color: Colors.white.withOpacity(0.6),
+                                color: const Color(0xFF4A3A3A).withOpacity(0.2), // 微弱的深色投影
                               ),
                             ],
                           ),
