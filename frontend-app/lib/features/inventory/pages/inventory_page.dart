@@ -55,11 +55,15 @@ class _InventoryPageState extends State<InventoryPage>
 
     // 🔥 新增：初始化Tab控制器
     _tabController = TabController(length: 4, vsync: this);
+    // 🔥🔥 修复部分开始 🔥🔥
     _tabController.addListener(() {
-      if (_tabController.indexIsChanging) {
-        setState(() {}); // 触发重绘以更新书签状态
+      // 移除 if (_tabController.indexIsChanging) 判断
+      // 这样无论是点击 Tab 还是滑动 TabBarView，只要 index 发生变化，都会触发刷新
+      if (mounted) {
+        setState(() {});
       }
     });
+    // 🔥🔥 修复部分结束 🔥🔥
 
     _loadInventory();
     _loadCookware();
@@ -599,8 +603,10 @@ class _InventoryPageState extends State<InventoryPage>
                 Positioned(
                   top: 0,
                   bottom: 0, // 【修改】底部不留 margin
-                  left: 16,
-                  right: 16,
+                  // 🔥 修复关键 1: 改为 0，让容器撑满屏幕宽度
+                  // 这样滑动删除时，内容可以一直滑到屏幕边缘而不被截断
+                  left: 0,
+                  right: 0,
                   child: _buildParchmentSheet(),
                 ),
 
@@ -608,11 +614,11 @@ class _InventoryPageState extends State<InventoryPage>
                 // 【新设计】层级 B (上层): 悬挂的书签 (Bookmarks)
                 // 说明：把书签放在羊皮纸之后，这样它就会浮在纸张上面 (Z轴在前)
                 // 这样当列表滚动时，内容会滑入书签背后的区域，营造真正的"夹在书签下的纸张"效果
-                // 🔥 关键修改 1: 向上提 15px，让书签顶部"钻"进木纹标题栏下方
+                // 🔥 关键修改 1: 向上提 35px，让书签顶部"钻"进木纹标题栏下方
                 // 这样无论木纹边缘怎么不规则，书签看起来都是从木板后面伸出来的
                 // =========================================
                 Positioned(
-                  top: -15, // 🔥 关键修改 1: 向上提 15px
+                  top: -45, // 🔥 修复：向上提 35px（从 -25 上调 10px）
                   left: 0,
                   right: 0,
                   child: SafeArea(
@@ -812,12 +818,13 @@ class _InventoryPageState extends State<InventoryPage>
     // 【新设计】修改 padding：增加顶部 padding 以避让书签（书签覆盖在羊皮纸上方）
     return Padding(
       // 【旧设计】padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16), // 旧设计中需要左右和上下 padding
+      // 🔥 修复关键 4: 补上水平方向的 16 边距
       padding: const EdgeInsets.fromLTRB(
-        0,
-        130, // 🔥 关键修改 5: 从 110 改为 130 (适配变长的书签)
-        0,
-        0,
-      ), // 新设计：顶部留出书签空间，左右为0（羊皮纸容器已有边距）
+        16, // Left
+        100, // Top
+        16, // Right
+        0, // Bottom
+      ), // 新设计：顶部留出书签空间，左右为16（因为外层容器已撑满屏幕）
       child: ItemToggleGrid(items: _seasonings, onToggle: _handleItemToggle),
     );
   }
@@ -830,12 +837,13 @@ class _InventoryPageState extends State<InventoryPage>
     // 【新设计】修改 padding：增加顶部 padding 以避让书签（书签覆盖在羊皮纸上方）
     return Padding(
       // 【旧设计】padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16), // 旧设计中需要左右和上下 padding
+      // 🔥 修复关键 5: 补上水平方向的 16 边距
       padding: const EdgeInsets.fromLTRB(
-        0,
-        130, // 🔥 关键修改 5: 从 110 改为 130 (适配变长的书签)
-        0,
-        0,
-      ), // 新设计：顶部留出书签空间，左右为0（羊皮纸容器已有边距）
+        16, // Left
+        100, // Top
+        16, // Right
+        0, // Bottom
+      ), // 新设计：顶部留出书签空间，左右为16（因为外层容器已撑满屏幕）
       child: ItemToggleGrid(items: _cookwares, onToggle: _handleItemToggle),
     );
   }
@@ -880,13 +888,16 @@ class _InventoryPageState extends State<InventoryPage>
     return ListView.builder(
       // 给内容加 padding，否则卡片会贴着屏幕边缘
       // 【旧设计】padding: const EdgeInsets.fromLTRB(16, 16, 16, 100), // 旧设计中顶部需要留出空间给标题
+      // 🔥 修复关键 2: 在这里添加水平 Padding (16)
+      // 之前是 fromLTRB(0, 85, 0, 100)，现在改为:
       padding: const EdgeInsets.fromLTRB(
-        0,
-        130, // 🔥 关键修改 5: 从 110 改为 130 (适配变长的书签)
-        // 确保第一个项目从书签下方可见，上滑时会平滑地滑入书签背后的区域
-        0,
-        100,
-      ), // 新设计：顶部留出书签空间，左右为0（羊皮纸容器已有边距），底部留 100 给 FAB
+        16, // Left: 16
+        100, // Top: 85
+        16, // Right: 16
+        100, // Bottom: 100
+      ), // 新设计：顶部留出书签空间，左右为16（因为外层容器已撑满屏幕），底部留 100 给 FAB
+      // 🔥 可选优化: 允许子元素绘制在 Padding 区域之外 (虽然 Dismissible 通常自己处理，但这有助于防止其他裁剪问题)
+      clipBehavior: Clip.none,
       physics: const BouncingScrollPhysics(),
       itemCount: _ingredients.length,
       itemBuilder: (context, index) {
@@ -944,7 +955,9 @@ class _InventoryPageState extends State<InventoryPage>
             }
           },
           child: Padding(
-            padding: const EdgeInsets.only(bottom: 12.0),
+            padding: const EdgeInsets.only(
+              bottom: 4.0,
+            ), // 🔥 修复：进一步减小卡片之间的垂直距离（从 12.0 减小到 6.0）
             child: _buildIngredientCard(item),
           ),
         );
@@ -986,13 +999,15 @@ class _InventoryPageState extends State<InventoryPage>
     // 【新设计】修改 padding：增加顶部 padding 以避让书签（书签覆盖在羊皮纸上方）
     return ListView.builder(
       // 【旧设计】padding: const EdgeInsets.fromLTRB(16, 16, 16, 100), // 旧设计中顶部需要留出空间给标题
+      // 🔥 修复关键 3: 同样添加水平 Padding
       padding: const EdgeInsets.fromLTRB(
-        0,
-        130, // 🔥 关键修改 5: 从 110 改为 130 (适配变长的书签)
-        // 确保第一个项目从书签下方可见，上滑时会平滑地滑入书签背后的区域
-        0,
-        100,
-      ), // 新设计：顶部留出书签空间，左右为0（羊皮纸容器已有边距），底部留 100 给 FAB
+        16, // Left: 16
+        100, // Top: 85
+        16, // Right: 16
+        100, // Bottom: 100
+      ), // 新设计：顶部留出书签空间，左右为16（因为外层容器已撑满屏幕），底部留 100 给 FAB
+      // 🔥 可选优化: 允许子元素绘制在 Padding 区域之外 (虽然 Dismissible 通常自己处理，但这有助于防止其他裁剪问题)
+      clipBehavior: Clip.none,
       physics: const BouncingScrollPhysics(),
       itemCount: _leftovers.length,
       itemBuilder: (context, index) {
@@ -1021,7 +1036,9 @@ class _InventoryPageState extends State<InventoryPage>
             }
           },
           child: Padding(
-            padding: const EdgeInsets.only(bottom: 12.0),
+            padding: const EdgeInsets.only(
+              bottom: 4.0,
+            ), // 🔥 修复：进一步减小卡片之间的垂直距离（从 12.0 减小到 6.0）
             child: LeftoverCard(item: leftover),
           ),
         );

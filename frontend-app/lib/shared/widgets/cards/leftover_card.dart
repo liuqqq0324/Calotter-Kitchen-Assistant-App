@@ -9,11 +9,7 @@ class LeftoverCard extends StatelessWidget {
   // --- 交互回调 ---
   final VoidCallback? onTap; // 点击卡片本身
 
-  const LeftoverCard({
-    super.key,
-    required this.item,
-    this.onTap,
-  });
+  const LeftoverCard({super.key, required this.item, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -36,13 +32,14 @@ class LeftoverCard extends StatelessWidget {
         }
       },
       child: Container(
-        // 外层 Margin
-        margin: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+        // 外层 Margin：增大上下 margin 以减少误触
+        margin: const EdgeInsets.fromLTRB(16, 2, 16, 2),
         // --- 手工纸张主体（使用图片背景 + 九宫格拉伸）---
         // 使用 IntrinsicHeight 让容器根据内容自动调整高度
         child: IntrinsicHeight(
           child: Container(
-            padding: const EdgeInsets.fromLTRB(40, 20, 25, 35),
+            // 🔥 修复：减小上下 padding 各 10px（从 20, 35 改为 10, 25）
+            padding: const EdgeInsets.fromLTRB(40, 10, 25, 25),
             decoration: BoxDecoration(
               image: DecorationImage(
                 // 使用手绘纸张背景图片（410px * 410px）
@@ -72,7 +69,8 @@ class LeftoverCard extends StatelessWidget {
                   decoration: const BoxDecoration(color: Colors.transparent),
                   child: CustomPaint(
                     painter: SketchyBoxPainter(color: const Color(0xFF8D6E63)),
-                    child: item.coverImage != null && item.coverImage!.isNotEmpty
+                    child:
+                        item.coverImage != null && item.coverImage!.isNotEmpty
                         ? ClipRRect(
                             borderRadius: BorderRadius.circular(8),
                             child: Image.network(
@@ -163,8 +161,8 @@ class LeftoverCard extends StatelessWidget {
                             color: item.isExpired
                                 ? Colors.red
                                 : (item.isExpiringSoon
-                                    ? Colors.orange
-                                    : Colors.grey[600]),
+                                      ? Colors.orange
+                                      : Colors.grey[600]),
                           ),
                           const SizedBox(width: 6),
                           Flexible(
@@ -172,16 +170,17 @@ class LeftoverCard extends StatelessWidget {
                               item.isExpired
                                   ? 'Expired ${item.daysSinceProduced} days ago'
                                   : (item.isExpiringSoon
-                                      ? 'Expiring soon (${3 - item.daysSinceProduced} days left)'
-                                      : 'Made ${item.daysSinceProduced} days ago'),
+                                        ? 'Expiring soon (${3 - item.daysSinceProduced} days left)'
+                                        : 'Made ${item.daysSinceProduced} days ago'),
                               style: TextStyle(
                                 fontSize: 14,
                                 color: item.isExpired
                                     ? Colors.red
                                     : (item.isExpiringSoon
-                                        ? Colors.orange
-                                        : Colors.grey[600]),
-                                fontWeight: item.isExpired || item.isExpiringSoon
+                                          ? Colors.orange
+                                          : Colors.grey[600]),
+                                fontWeight:
+                                    item.isExpired || item.isExpiringSoon
                                     ? FontWeight.w600
                                     : FontWeight.normal,
                               ),

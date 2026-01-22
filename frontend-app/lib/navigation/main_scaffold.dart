@@ -128,11 +128,12 @@ class MainScaffoldState extends State<MainScaffold> {
           children: [
             // --- 2.1 底层：页面内容 ---
             Positioned.fill(
-              // ✅ 这里的 Padding 很重要。
-              // 我们需要让页面内容从顶部向下偏移一定的距离，否则内容会被标题栏完全挡住。
-              // 偏移量通常是 (状态栏高度 + 标准导航栏高度) 左右，不需要完全等于 customHeaderHeight，
-              // 这样可以让内容稍微滑入不规则边缘的下方。
-              top: statusBarHeight + kToolbarHeight,
+              // 🔥 修复关键点：
+              // 原代码: top: statusBarHeight + kToolbarHeight, (~80px)
+              // 修改为: 下面的代码
+              // 解释: 我们用 header 高度 (130) 减去一点点 (20)，让页面内容从 110px 开始。
+              // 这样内容不会被挡住太多，同时又能保证刚好衔接在木纹不规则边缘的下方。
+              top: customHeaderHeight - 20,
               child: _selectedIndex < _pages.length
                   ? _pages[_selectedIndex]
                   : _pages[0],

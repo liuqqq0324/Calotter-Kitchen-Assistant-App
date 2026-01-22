@@ -261,41 +261,47 @@ class _OtterFloatingNavState extends State<OtterFloatingNav>
     );
   }
 
-  // 🔥 修复：简化菜单位置计算，确保正确显示
+  // 🔥 修复后的菜单构建逻辑
   Widget _buildExpandedMenu(Size screenSize, EdgeInsets safeArea) {
     final destinations = BottomNavConfig.destinations;
+
     final buttonSize = 120.0;
+
+    // 按钮的实际位置
     final buttonRight = 16.0 + _position.dx;
     final buttonBottom = 16.0 + _position.dy;
 
-    // 按钮中心位置（相对于屏幕）
+    // 按钮中心坐标（相对于屏幕左上角）
     final buttonCenterX = screenSize.width - buttonRight - buttonSize / 2;
     final buttonCenterY =
         screenSize.height - safeArea.bottom - buttonBottom - buttonSize / 2;
-
     final buttonCenter = Offset(buttonCenterX, buttonCenterY);
-    final itemSize = 110.0; // 进一步增大贝壳尺寸：从 100.0 增加到 110.0
+
+    final itemSize = 110.0;
     final itemHalf = itemSize / 2;
 
-    // 安全显示区域（不包含系统安全区）
-    final safeRect = Rect.fromLTWH(
-      safeArea.left,
-      safeArea.top,
-      screenSize.width - safeArea.left - safeArea.right,
-      screenSize.height - safeArea.top - safeArea.bottom,
+    // 🔥 关键 1: 定义一个严格的安全区域，确保 Item 完全显示在屏幕内
+    // 不仅仅是中心点在屏幕内，而是边缘也要在屏幕内 (inset by itemHalf)
+    final safeRect = Rect.fromLTRB(
+      safeArea.left + itemHalf,
+      safeArea.top + itemHalf,
+      screenSize.width - safeArea.right - itemHalf,
+      screenSize.height - safeArea.bottom - itemHalf,
     );
 
-    // ✅ 关键：即使靠边，也要保证圆形菜单项与海獭按钮“完全不遮挡”
+    // 最小间距定义
     final minDistanceFromButton =
-        (buttonSize / 2) + (itemSize / 2) + 10; // 10px gap
+        (buttonSize / 2) + (itemSize / 2) - 10; // 允许轻微重叠看起来更紧凑
+    final minItemSpacing = itemSize * 0.85; // Item 之间的最小距离
 
-    // 菜单尽量朝向屏幕中心展开（通常空间更大）
+    // 计算朝向屏幕中心的角度
     final screenCenter = Offset(screenSize.width / 2, screenSize.height / 2);
     final towardCenterAngle = math.atan2(
       screenCenter.dy - buttonCenter.dy,
       screenCenter.dx - buttonCenter.dx,
     );
 
+    // 生成候选点的方法
     List<Offset> candidateCenters({
       required double radius,
       required double spreadRadians,
@@ -308,56 +314,46 @@ class _OtterFloatingNavState extends State<OtterFloatingNav>
                 radius;
         return [c];
       }
-
-      // 在一个扇形弧线上均匀分布
       return List.generate(count, (i) {
-        final t = (count == 1) ? 0.0 : (i / (count - 1)) - 0.5; // [-0.5, 0.5]
+        // 在扇形区域内均匀分布
+        final t = (i / (count - 1)) - 0.5; // range [-0.5, 0.5]
         final angle = towardCenterAngle + t * spreadRadians;
         return buttonCenter + Offset(math.cos(angle), math.sin(angle)) * radius;
       });
     }
 
+    // 检查一组点是否有效
     bool centersFit(List<Offset> centers) {
-      // 1) 全部在屏幕可点击区域内
-      for (final c in centers) {
-        final left = c.dx - itemHalf;
-        final top = c.dy - itemHalf;
-        final right = c.dx + itemHalf;
-        final bottom = c.dy + itemHalf;
-        if (left < safeRect.left ||
-            top < safeRect.top ||
-            right > safeRect.right ||
-            bottom > safeRect.bottom) {
-          return false;
-        }
-        // 2) 与按钮中心保持最小距离（防遮挡）
-        if ((c - buttonCenter).distance < minDistanceFromButton) {
-          return false;
-        }
-      }
-
-      // 3) 菜单项之间不要挤在一起（避免重叠）
-      final minBetweenItems = itemSize * 0.9;
       for (int i = 0; i < centers.length; i++) {
+        final c = centers[i];
+        // 1. 检查是否在安全区域内
+        if (!safeRect.contains(c)) return false;
+
+        // 2. 检查是否遮挡了海獭按钮
+        if ((c - buttonCenter).distance < minDistanceFromButton) return false;
+
+        // 3. 检查互相重叠
         for (int j = i + 1; j < centers.length; j++) {
-          if ((centers[i] - centers[j]).distance < minBetweenItems) {
-            return false;
-          }
+          if ((c - centers[j]).distance < minItemSpacing) return false;
         }
       }
       return true;
     }
 
-    // 尝试几组半径/扇形角度，找到一组“既不出界又不遮挡按钮”的布局
-    final radii = <double>[120, 105, 92, 82];
-    final spreads = <double>[3.6, 3.1, 2.6, 2.2]; // radians
-    List<Offset> centers = const [];
+    // 🔥 关键 2: 扩展搜索策略
+    // 增加更小的半径 (100, 110) 和 更大的角度范围，以便在角落挤得下
+    final radii = <double>[130, 120, 110, 100];
+    final spreads = <double>[3.8, 3.2, 2.5, 2.0, 1.5]; // 弧度
+
+    List<Offset> finalCenters = const [];
     bool found = false;
+
+    // 尝试寻找完美布局
     for (final r in radii) {
       for (final s in spreads) {
         final c = candidateCenters(radius: r, spreadRadians: s);
         if (centersFit(c)) {
-          centers = c;
+          finalCenters = c;
           found = true;
           break;
         }
@@ -365,54 +361,87 @@ class _OtterFloatingNavState extends State<OtterFloatingNav>
       if (found) break;
     }
 
-    // 兜底：如果极端位置实在放不下，就把点“夹在安全区内”，并确保远离按钮
+    // 🔥 关键 3: 物理防重叠兜底 (Relaxation Algorithm)
+    // 如果上面找不到完美布局（比如在死角），我们手动计算位置
     if (!found) {
-      centers = candidateCenters(radius: 92, spreadRadians: 2.6).map((c) {
-        final clamped = Offset(
-          c.dx.clamp(safeRect.left + itemHalf, safeRect.right - itemHalf),
-          c.dy.clamp(safeRect.top + itemHalf, safeRect.bottom - itemHalf),
-        );
-        final v = clamped - buttonCenter;
-        if (v.distance >= minDistanceFromButton) return clamped;
-        final pushDir = (v.distance == 0)
-            ? const Offset(1, 0)
-            : (v / v.distance);
-        return buttonCenter + pushDir * minDistanceFromButton;
-      }).toList();
+      // 1. 初始位置：朝向屏幕中心，用较小的半径紧凑排列
+      List<Offset> currentPositions = candidateCenters(
+        radius: 110,
+        spreadRadians: 2.0,
+      );
+
+      // 迭代多次以解开重叠 (类似物理引擎的迭代求解)
+      for (int iter = 0; iter < 10; iter++) {
+        for (int i = 0; i < currentPositions.length; i++) {
+          Offset pos = currentPositions[i];
+
+          // A. 强制拉回屏幕内 (Clamp to Screen)
+          double dx = pos.dx.clamp(safeRect.left, safeRect.right);
+          double dy = pos.dy.clamp(safeRect.top, safeRect.bottom);
+          pos = Offset(dx, dy);
+
+          // B. 解决与海獭按钮的重叠 (Repel from Button)
+          Offset vecToButton = pos - buttonCenter;
+          double distToButton = vecToButton.distance;
+          if (distToButton < minDistanceFromButton) {
+            if (distToButton == 0) vecToButton = const Offset(1, 0); // 防止除零
+            // 向外推
+            pos =
+                buttonCenter +
+                (vecToButton / distToButton) * minDistanceFromButton;
+          }
+
+          // C. 解决与其他 Item 的重叠 (Repel from others)
+          for (int j = 0; j < currentPositions.length; j++) {
+            if (i == j) continue;
+            Offset vecToOther = pos - currentPositions[j];
+            double distToOther = vecToOther.distance;
+
+            if (distToOther < minItemSpacing) {
+              if (distToOther == 0)
+                vecToOther = Offset(
+                  math.Random().nextDouble() - 0.5,
+                  math.Random().nextDouble() - 0.5,
+                );
+              // 稍微推开一点，每次迭代推一点，直到解开
+              double pushDist = (minItemSpacing - distToOther) * 0.5;
+              pos += (vecToOther / distToOther) * pushDist;
+            }
+          }
+
+          currentPositions[i] = pos;
+        }
+      }
+      finalCenters = currentPositions;
     }
 
     return Positioned.fill(
       child: Stack(
         clipBehavior: Clip.none,
         children: List.generate(destinations.length, (index) {
-          final isSelected = widget.selectedIndex == index;
-          final c = centers[index];
+          final c = finalCenters[index];
 
           return Positioned(
             left: c.dx - itemHalf,
             top: c.dy - itemHalf,
             child: Material(
-              color: Colors.transparent, // 确保 Material 背景透明
+              color: Colors.transparent,
               child: InkWell(
                 onTap: () => _handleItemTap(index),
-                customBorder: CircleBorder(), // 圆形点击区域
+                customBorder: const CircleBorder(),
                 child: AnimatedScale(
                   scale: _expandAnimation.value,
                   duration: Duration(milliseconds: 100 + index * 50),
                   curve: Curves.easeOutBack,
                   child: Stack(
-                    alignment: Alignment.center, // 确保所有子元素居中
-                    clipBehavior: Clip.none, // 允许内容超出边界
+                    alignment: Alignment.center,
                     children: [
-                      // 贝壳背景图片 - 完全去除白色背景的版本，不透明
                       Image.asset(
                         'assets/images/Shell.png',
                         width: itemSize,
                         height: itemSize,
                         fit: BoxFit.fill,
-                        // 移除 opacity，让贝壳完全不透明
                       ),
-                      // 文字标签 - 完全居中，更大更突出，带微弱的深色描边
                       Center(
                         child: Text(
                           destinations[index].label,
@@ -420,16 +449,13 @@ class _OtterFloatingNavState extends State<OtterFloatingNav>
                           style: TextStyle(
                             fontFamily: 'PatrickHand',
                             fontSize: 16,
-                            fontWeight: FontWeight.bold, // 加粗手写体
-                            color: const Color(0xFF6B4F4F), // 完全不透明
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF6B4F4F),
                             shadows: [
-                              // 微弱的深色投影，增强可读性
                               Shadow(
                                 offset: const Offset(0.5, 0.5),
                                 blurRadius: 1.5,
-                                color: const Color(
-                                  0xFF4A3A3A,
-                                ).withOpacity(0.2), // 微弱的深色投影
+                                color: const Color(0xFF4A3A3A).withOpacity(0.2),
                               ),
                             ],
                           ),

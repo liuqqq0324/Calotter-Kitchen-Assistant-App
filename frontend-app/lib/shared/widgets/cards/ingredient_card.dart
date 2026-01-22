@@ -56,18 +56,15 @@ class IngredientCard extends StatelessWidget {
         }
       },
       child: Container(
-        // 外层 Margin：左侧不再需要为胶带留空间
-        margin: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+        // 外层 Margin：增大上下 margin 以减少误触
+        margin: const EdgeInsets.fromLTRB(16, 2, 16, 2),
         // --- 手工纸张主体（使用图片背景 + 九宫格拉伸）---
         // 使用 IntrinsicHeight 让容器根据内容自动调整高度
         child: IntrinsicHeight(
           child: Container(
             // 必须设置 padding，防止内容盖住图片边缘的毛边
-            // 根据新的图片尺寸（410x410）和毛边区域（左60、右60、上50、下50）调整
-            // top: 28 - 内容整体下移，使布局更平衡
-            // bottom: 40 - 减小底部留白，因为日期标签上移了
-            // 左侧空间已减小以适应更紧凑的布局
-            padding: const EdgeInsets.fromLTRB(40, 20, 25, 35),
+            // 🔥 修复：减小上下 padding 各 10px（从 20, 35 改为 10, 25）
+            padding: const EdgeInsets.fromLTRB(40, 10, 25, 25),
             decoration: BoxDecoration(
               image: DecorationImage(
                 // 使用手绘纸张背景图片（410px * 410px）
