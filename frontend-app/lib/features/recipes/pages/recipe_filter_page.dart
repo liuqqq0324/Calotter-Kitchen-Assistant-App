@@ -18,7 +18,7 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> with SingleTickerPr
   // Theme colors - matching main app theme
   static const Color _terracotta = Color(0xFFD68C5E); // Terracotta accent
   static const Color _deepBrown = Color(0xFF6B4F4F); // Deep brown borders
-  static const Color _lightBeige = Color(0xFFFFFAF5); // Lighter beige background
+  static const Color _lightBeige = Color(0xFFFFFFF0); // 米色背景（与菜单卡片一致）
   
   // ------------ 文本输入控制器 ------------
   TextEditingController _allergyController = TextEditingController();
@@ -406,21 +406,6 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> with SingleTickerPr
                       ? EdgeInsets.zero
                       : const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                   children: [
-                        Text(
-                          "Filter your generated menus",
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          "Set allergies, servings, dish count and other preferences.",
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-
                         // ---- Allergies & Diet Habits ----
                         _buildSectionTitle(
                           "Allergies, diet habits & avoid ingredients",
@@ -940,7 +925,7 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> with SingleTickerPr
     return Container(
       decoration: const BoxDecoration(
         image: DecorationImage(
-          image: AssetImage('assets/images/background.png'),
+          image: AssetImage('assets/wood_background.png'),
           fit: BoxFit.cover,
         ),
       ),

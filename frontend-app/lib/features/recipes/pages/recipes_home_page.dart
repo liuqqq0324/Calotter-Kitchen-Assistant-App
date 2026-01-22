@@ -12,25 +12,121 @@ import 'package:personal_sous_chef/services/business/household_service.dart';
 import 'package:personal_sous_chef/shared/widgets/buttons/generate_recipe_button.dart';
 import 'package:personal_sous_chef/shared/widgets/common/sketchy_card.dart';
 
-// ========== CustomPainter: 绘制复古索引卡的红蓝线 ==========
-class VintageCardPainter extends CustomPainter {
+// ========== CustomPainter: 绘制格子纸效果 ==========
+class _GridPaperPainter extends CustomPainter {
+  final int seed;
+
+  _GridPaperPainter({this.seed = 0});
+
   @override
   void paint(Canvas canvas, Size size) {
-    final Paint linePaint = Paint()
+    // 检查 size 是否有效
+    if (size.width <= 0 ||
+        size.height <= 0 ||
+        !size.width.isFinite ||
+        !size.height.isFinite) {
+      return;
+    }
+
+    final random = math.Random(seed); // 使用传入的种子，确保每个卡片一致
+
+    // 创建不规则边缘路径
+    final path = _createIrregularPath(size, random);
+
+    // 1. 先绘制阴影效果（让网格纸看起来悬浮）
+    final shadowPaint = Paint()
+      ..color = Colors.black.withOpacity(0.12)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10);
+
+    final shadowPath = Path();
+    shadowPath.addPath(path, const Offset(6, 6));
+    canvas.drawPath(shadowPath, shadowPaint);
+
+    // 2. 绘制背景
+    final backgroundPaint = Paint()
+      ..color = const Color(0xFFF8F8F5) // 网格纸背景色
+      ..style = PaintingStyle.fill;
+
+    canvas.drawPath(path, backgroundPaint);
+
+    // 3. 绘制网格线（只在背景区域内）
+    final gridPaint = Paint()
+      ..color = const Color(0xFFE3E6E8) // 网格线颜色（浅蓝灰色）
       ..strokeWidth = 1.0
       ..style = PaintingStyle.stroke;
 
-    // 红线（标题线）- 让菜名的基线在红线上
-    linePaint.color = Colors.red.withOpacity(0.4);
-    canvas.drawLine(const Offset(0, 46), Offset(size.width, 46), linePaint);
+    const double gridSpacing = 20.0;
 
-    // 蓝线循环（内容线）- 从第二行信息开始
-    linePaint.color = Colors.blue.withOpacity(0.15);
-    double startY = 84.0;
-    while (startY < size.height) {
-      canvas.drawLine(Offset(0, startY), Offset(size.width, startY), linePaint);
-      startY += 28.0;
+    // 使用 clipPath 限制网格线只在纸张区域内
+    canvas.save();
+    canvas.clipPath(path);
+
+    // 绘制垂直线
+    for (double x = 0; x <= size.width; x += gridSpacing) {
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), gridPaint);
     }
+
+    // 绘制水平线
+    for (double y = 0; y <= size.height; y += gridSpacing) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
+    }
+
+    canvas.restore();
+
+    // 4. 绘制不规则边缘线（手绘风格，略有毛边）
+    final edgePaint = Paint()
+      ..color = const Color(0xFF6B4F4F).withOpacity(0.2)
+      ..strokeWidth = 1.5
+      ..style = PaintingStyle.stroke
+      ..strokeJoin = StrokeJoin.round
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawPath(path, edgePaint);
+  }
+
+  Path _createIrregularPath(Size size, math.Random random) {
+    final path = Path();
+    const double edgeNoise = 2.5; // 边缘不规则程度
+    const double step = 8.0; // 路径点的间距
+
+    // 确保路径在有效范围内
+    final double effectiveWidth = size.width > 0 ? size.width : 100.0;
+    final double effectiveHeight = size.height > 0 ? size.height : 100.0;
+
+    // 顶部边缘：从左到右，带不规则偏移（限制在有效范围内）
+    path.moveTo(0, 0);
+    for (double x = step; x < effectiveWidth; x += step) {
+      final noise = random.nextDouble() * edgeNoise * 2 - edgeNoise;
+      final y = noise.clamp(-edgeNoise, edgeNoise).toDouble();
+      path.lineTo(x, y);
+    }
+    path.lineTo(effectiveWidth, 0);
+
+    // 右侧边缘：从上到下
+    for (double y = step; y < effectiveHeight; y += step) {
+      final noise = random.nextDouble() * edgeNoise * 2 - edgeNoise;
+      final x = (effectiveWidth + noise.clamp(-edgeNoise, edgeNoise)).toDouble();
+      path.lineTo(x, y);
+    }
+    path.lineTo(effectiveWidth, effectiveHeight);
+
+    // 底部边缘：从右到左
+    for (double x = effectiveWidth - step; x > 0; x -= step) {
+      final noise = random.nextDouble() * edgeNoise * 2 - edgeNoise;
+      final y = (effectiveHeight + noise.clamp(-edgeNoise, edgeNoise)).toDouble();
+      path.lineTo(x, y);
+    }
+    path.lineTo(0, effectiveHeight);
+
+    // 左侧边缘：从下到上
+    for (double y = effectiveHeight - step; y > 0; y -= step) {
+      final noise = random.nextDouble() * edgeNoise * 2 - edgeNoise;
+      final x = noise.clamp(-edgeNoise, edgeNoise).toDouble();
+      path.lineTo(x, y);
+    }
+
+    path.close();
+    return path;
   }
 
   @override
@@ -71,53 +167,6 @@ class JaggedEdgeClipper extends CustomClipper<Path> {
   bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
 }
 
-// ========== CustomClipper: 卡片边缘撕裂效果 ==========
-class TornEdgeClipper extends CustomClipper<Path> {
-  final int seed;
-
-  TornEdgeClipper({this.seed = 0});
-
-  @override
-  Path getClip(Size size) {
-    final random = math.Random(seed);
-    final Path path = Path();
-
-    // 左边缘 - 轻微撕裂
-    double y = 0;
-    path.moveTo(2 + random.nextDouble() * 2, 0);
-    while (y < size.height) {
-      y += 8 + random.nextDouble() * 8;
-      path.lineTo(1 + random.nextDouble() * 3, y);
-    }
-
-    // 底边
-    double x = 0;
-    while (x < size.width) {
-      x += 8 + random.nextDouble() * 8;
-      path.lineTo(x, size.height - 1 - random.nextDouble() * 3);
-    }
-
-    // 右边缘 - 轻微撕裂
-    y = size.height;
-    while (y > 0) {
-      y -= 8 + random.nextDouble() * 8;
-      path.lineTo(size.width - 1 - random.nextDouble() * 3, y);
-    }
-
-    // 顶边
-    x = size.width;
-    while (x > 0) {
-      x -= 8 + random.nextDouble() * 8;
-      path.lineTo(x, 1 + random.nextDouble() * 3);
-    }
-
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
-}
 
 class RecipesHomePage extends StatefulWidget {
   const RecipesHomePage({super.key});
@@ -237,7 +286,7 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
     return Container(
       decoration: const BoxDecoration(
         image: DecorationImage(
-          image: AssetImage('assets/images/background.png'),
+          image: AssetImage('assets/wood_background.png'),
           fit: BoxFit.cover,
         ),
       ),
@@ -264,11 +313,11 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
 
               const SizedBox(height: 8),
 
-              // 如果有 filter，总结一下当前条件 - 手绘风格
+              // 如果有 filter，总结一下当前条件 - 手绘风格（与 generated recipes 一致）
               if (summaryText != null) ...[
                 SketchyCard(
-                  backgroundColor: Colors.orange.withOpacity(0.1),
-                  borderColor: Colors.deepOrange.shade700,
+                  backgroundColor: const Color(0xFFD68C5E).withOpacity(0.12), // 与 generated recipes 一致
+                  borderColor: const Color(0xFF8C5E4A), // 与 generated recipes 一致
                   borderWidth: 2.0,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
@@ -279,7 +328,7 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                       const Icon(
                         Icons.tune,
                         size: 18,
-                        color: Colors.deepOrange,
+                        color: Color(0xFF8C5E4A), // 与 generated recipes 一致
                       ),
                       const SizedBox(width: 8),
                       Expanded(
@@ -287,7 +336,7 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                           summaryText,
                           style: GoogleFonts.kalam(
                             fontSize: 14,
-                            color: Colors.deepOrange.shade700,
+                            color: const Color(0xFF8C5E4A), // 与 generated recipes 一致
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -300,7 +349,10 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                         },
                         child: Text(
                           'Clear',
-                          style: GoogleFonts.kalam(fontSize: 12),
+                          style: GoogleFonts.kalam(
+                            fontSize: 12,
+                            color: const Color(0xFF8C5E4A), // 与 generated recipes 一致
+                          ),
                         ),
                       ),
                     ],
@@ -519,94 +571,78 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
           child: Stack(
             clipBehavior: Clip.none,
             children: [
-              // 索引卡主体 - 添加撕裂边缘效果
+              // 格子纸卡片主体
               AnimatedContainer(
                 duration: const Duration(milliseconds: 180),
                 curve: Curves.easeOut,
                 transformAlignment: Alignment.center,
                 transform: Matrix4.translationValues(0, selected ? -3 : 0, 0),
-                child: SizedBox(
+                child: Container(
                   height: 135,
-                  child: PhysicalShape(
-                    clipper: TornEdgeClipper(seed: index),
-                    clipBehavior: Clip.antiAlias,
-                    color: const Color(0xFFFDFCF5),
-                    elevation: selected ? 18 : 10,
-                    shadowColor: selected
-                        ? selectedCardShadow
-                        : Colors.black.withOpacity(0.30),
-                    child: CustomPaint(
-                      painter: VintageCardPainter(),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16.0,
-                          vertical: 10.0,
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // 标题（压在红线上）
-                            Padding(
-                              padding: const EdgeInsets.only(top: 6.0),
-                              child: Text(
-                                recipe.title,
-                                style: GoogleFonts.caveat(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black87,
-                                ).copyWith(height: 1.1),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
+                  decoration: BoxDecoration(
+                    boxShadow: [
+                      BoxShadow(
+                        color: selected
+                            ? selectedCardShadow
+                            : Colors.black.withOpacity(0.30),
+                        blurRadius: selected ? 18 : 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: CustomPaint(
+                    painter: _GridPaperPainter(seed: index),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16.0,
+                        vertical: 10.0,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // 标题
+                          Padding(
+                            padding: const EdgeInsets.only(top: 6.0),
+                            child: Text(
+                              recipe.title,
+                              style: GoogleFonts.caveat(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ).copyWith(height: 1.1),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                            const SizedBox(height: 20),
-                            // 难度、时间和卡路里在同一行（对齐蓝线）
-                            Padding(
-                              padding: const EdgeInsets.only(top: 2.0),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  // 难度标签
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 3,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: _getDifficultyColor(
-                                        recipe.difficulty,
-                                      ).withOpacity(0.2),
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: Text(
-                                      recipe.difficulty.toUpperCase(),
-                                      style: GoogleFonts.caveat(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.bold,
-                                        color: _getDifficultyColor(
-                                          recipe.difficulty,
-                                        ),
-                                      ),
-                                    ),
+                          ),
+                          const SizedBox(height: 20),
+                          // 难度、时间和卡路里在同一行
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2.0),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                  // 难度标签（手绘风格）
+                                  _buildSketchyDifficultyBadge(
+                                    label: recipe.difficulty.toUpperCase(),
+                                    color: _getDifficultyColor(recipe.difficulty),
                                   ),
-                                  const SizedBox(width: 12),
-                                  // 时间和卡路里
-                                  Expanded(
-                                    child: Text(
-                                      '⏱ ${recipe.cookingTimeMin}min  🔥 ${recipe.totalCaloriesEstimate.toStringAsFixed(0)}kcal',
-                                      style: GoogleFonts.caveat(
-                                        fontSize: 17,
-                                        color: Colors.black87,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
+                                const SizedBox(width: 12),
+                                // 时间和卡路里
+                                Expanded(
+                                  child: Text(
+                                    '⏱ ${recipe.cookingTimeMin}min  🔥 ${recipe.totalCaloriesEstimate.toStringAsFixed(0)}kcal',
+                                    style: GoogleFonts.caveat(
+                                      fontSize: 17,
+                                      color: Colors.black87,
                                     ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -798,6 +834,105 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
         return Colors.green;
     }
   }
+
+  // 构建手绘风格难度标签
+  Widget _buildSketchyDifficultyBadge({
+    required String label,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+      child: CustomPaint(
+        painter: _SketchyBadgePainter(
+          borderColor: color,
+          backgroundColor: color.withOpacity(0.2),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+          child: Text(
+            label,
+            style: GoogleFonts.caveat(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 手绘风格标签绘制器
+class _SketchyBadgePainter extends CustomPainter {
+  final Color borderColor;
+  final Color backgroundColor;
+
+  _SketchyBadgePainter({
+    required this.borderColor,
+    required this.backgroundColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final random = math.Random(42);
+    final path = _createSketchyPath(size, random);
+
+    // 绘制背景
+    final bgPaint = Paint()
+      ..color = backgroundColor
+      ..style = PaintingStyle.fill;
+    canvas.drawPath(path, bgPaint);
+
+    // 绘制边框
+    final borderPaint = Paint()
+      ..color = borderColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5
+      ..strokeJoin = StrokeJoin.round
+      ..strokeCap = StrokeCap.round;
+    canvas.drawPath(path, borderPaint);
+  }
+
+  Path _createSketchyPath(Size size, math.Random random) {
+    final path = Path();
+    const double wobble = 1.5;
+    const double step = 6.0;
+
+    // Top edge
+    path.moveTo(0, 0);
+    for (double x = step; x < size.width; x += step) {
+      final noise = (random.nextDouble() * 2 - 1) * wobble;
+      path.lineTo(x, noise.clamp(-wobble, wobble));
+    }
+    path.lineTo(size.width, 0);
+
+    // Right edge
+    for (double y = step; y < size.height; y += step) {
+      final noise = (random.nextDouble() * 2 - 1) * wobble;
+      path.lineTo(size.width + noise.clamp(-wobble, wobble), y);
+    }
+    path.lineTo(size.width, size.height);
+
+    // Bottom edge
+    for (double x = size.width - step; x > 0; x -= step) {
+      final noise = (random.nextDouble() * 2 - 1) * wobble;
+      path.lineTo(x, size.height + noise.clamp(-wobble, wobble));
+    }
+    path.lineTo(0, size.height);
+
+    // Left edge
+    for (double y = size.height - step; y > 0; y -= step) {
+      final noise = (random.nextDouble() * 2 - 1) * wobble;
+      path.lineTo(noise.clamp(-wobble, wobble), y);
+    }
+
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 // 带动画效果的Filter按钮
