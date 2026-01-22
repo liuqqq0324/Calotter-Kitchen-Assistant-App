@@ -592,26 +592,6 @@ class _InventoryPageState extends State<InventoryPage>
             body: Stack(
               children: [
                 // =========================================
-                // 【旧设计 - 已注释】层级 1 (底层): 内容区域 (TabBarView)
-                // 说明：旧设计中，TabBarView 是独立的 Positioned 层，从 top: 140 开始
-                // 标题和列表是分离的，导致滚动时视觉上有割裂感
-                // =========================================
-                // Positioned.fill(
-                //   // 顶部留出空间给书签和标题
-                //   top: 140, // 上移位置，适配缩小的书签区域（表头在90，高度约40-50px）
-                //   child: TabBarView(
-                //     controller: _tabController,
-                //     physics: const BouncingScrollPhysics(),
-                //     children: [
-                //       _buildIngredientPage(),
-                //       _buildSeasoningsPage(),
-                //       _buildCookwarePage(),
-                //       _buildLeftoversPage(),
-                //     ],
-                //   ),
-                // ),
-
-                // =========================================
                 // 【新设计】层级 A (底层): 羊皮纸主体 (Parchment Sheet)
                 // 说明：把羊皮纸放在书签之前，这样它就会被书签盖住 (Z轴在后)
                 // container 设为全透明，底部不留 margin
@@ -676,35 +656,6 @@ class _InventoryPageState extends State<InventoryPage>
                 ),
 
                 // =========================================
-                // 【旧设计 - 已注释】层级 3 (顶层): My Kitchen 标题
-                // 说明：旧设计中，标题是独立的 Positioned 层，悬浮在列表上方
-                // 这导致列表滚动时会从标题下方穿过，产生视觉割裂感
-                // =========================================
-                // Positioned(
-                //   top: 90, // 上移位置，适配缩小的书签区域（书签选中时高度76）
-                //   left: 20,
-                //   child: SafeArea(
-                //     child: Text(
-                //       'My Kitchen',
-                //       style:
-                //           GoogleFonts.caveat(
-                //             fontSize: 32,
-                //             fontWeight: FontWeight.bold,
-                //             color: Colors.brown.shade800,
-                //           ).copyWith(
-                //             shadows: [
-                //               const Shadow(
-                //                 offset: Offset(1, 1),
-                //                 color: Colors.white,
-                //                 blurRadius: 2,
-                //               ),
-                //             ],
-                //           ),
-                //     ),
-                //   ),
-                // ),
-
-                // =========================================
                 // 层级 3 (浮动层): 按钮与遮罩
                 // =========================================
                 if (_isExpanded)
@@ -746,17 +697,6 @@ class _InventoryPageState extends State<InventoryPage>
       // 1. 设置容器为全透明（移除背景色和阴影）
       decoration: BoxDecoration(
         color: Colors.transparent, // 【修改】设为全透明
-        // 移除圆角和阴影，因为透明容器不需要这些装饰
-        // borderRadius: const BorderRadius.vertical(
-        //   top: Radius.circular(20),
-        // ),
-        // boxShadow: [
-        //   BoxShadow(
-        //     color: Colors.black.withOpacity(0.2),
-        //     blurRadius: 10,
-        //     offset: const Offset(0, 4),
-        //   ),
-        // ],
       ),
       // 2. 移除 clipBehavior，因为透明容器不需要裁切
       // clipBehavior: Clip.hardEdge,
@@ -765,40 +705,6 @@ class _InventoryPageState extends State<InventoryPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // --- 头部区域 (Header) - 已移除 ---
-          // 【旧设计】包含 "My Kitchen" 标题和分隔线
-          // Container(
-          //   padding: const EdgeInsets.fromLTRB(20, 24, 20, 10),
-          //   color: const Color(0xFFFDFBF7), // 和背景同色
-          //   child: Column(
-          //     crossAxisAlignment: CrossAxisAlignment.start,
-          //     children: [
-          //       Text(
-          //         'My Kitchen',
-          //         style:
-          //             GoogleFonts.caveat(
-          //               fontSize: 32,
-          //               fontWeight: FontWeight.bold,
-          //               color: Colors.brown.shade800,
-          //             ).copyWith(
-          //               shadows: [
-          //                 const Shadow(
-          //                   offset: Offset(1, 1),
-          //                   color: Colors.white,
-          //                   blurRadius: 2,
-          //                 ),
-          //               ],
-          //             ),
-          //       ),
-          //       const SizedBox(height: 4),
-          //       Divider(
-          //         height: 1,
-          //         color: Colors.brown.shade200, // 可选：加一条淡淡的分隔线
-          //       ),
-          //     ],
-          //   ),
-          // ),
-
           // --- 滚动区域 (Body) ---
           Expanded(
             // 使用 Expanded 占满剩余空间
@@ -1247,14 +1153,20 @@ class _InventoryPageState extends State<InventoryPage>
           ),
         ),
 
-        // 3. 主开关按钮
-        FloatingActionButton(
-          heroTag: "btn_main",
-          onPressed: _toggleExpand,
-          backgroundColor: Colors.orange,
+        // 🔥🔥🔥 3. 主开关按钮 (修改部分) 🔥🔥🔥
+        GestureDetector(
+          onTap: _toggleExpand, // 绑定点击事件
           child: RotationTransition(
+            // 保留原来的旋转动画
             turns: Tween(begin: 0.0, end: 0.125).animate(_expandAnimation),
-            child: const Icon(Icons.add, size: 30, color: Colors.white),
+            child: Image.asset(
+              'assets/icons/Add_Item.png', // 你的加号图片资源
+              // 🔥 调整大小：因为去掉了 FAB 的外壳，图片本身需要大一点
+              // 之前 FAB 默认大小约 56，这里设为 70-80 会比较容易点击
+              width: 70,
+              height: 70,
+              fit: BoxFit.contain,
+            ),
           ),
         ),
       ],
