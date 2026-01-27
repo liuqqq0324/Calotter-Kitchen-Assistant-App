@@ -597,46 +597,83 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                         horizontal: 16.0,
                         vertical: 10.0,
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      child: Row(
                         children: [
-                          // 标题
-                          Padding(
-                            padding: const EdgeInsets.only(top: 6.0),
-                            child: Text(
-                              recipe.title,
-                              style: GoogleFonts.caveat(
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black87,
-                              ).copyWith(height: 1.1),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
+                          // 左侧：分类图标
+                          if (recipe.category != null)
+                            Padding(
+                              padding: const EdgeInsets.only(right: 12.0),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.asset(
+                                  recipe.categoryImagePath,
+                                  width: 70,
+                                  height: 70,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    // 如果图片加载失败，显示默认图标
+                                    return Container(
+                                      width: 70,
+                                      height: 70,
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey.shade200,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Icon(
+                                        Icons.restaurant,
+                                        size: 32,
+                                        color: Colors.grey.shade400,
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 20),
-                          // 难度、时间和卡路里在同一行
-                          Padding(
-                            padding: const EdgeInsets.only(top: 2.0),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.center,
+                          // 右侧：文字信息
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                  // 难度标签（手绘风格）
-                                  _buildSketchyDifficultyBadge(
-                                    label: recipe.difficulty.toUpperCase(),
-                                    color: _getDifficultyColor(recipe.difficulty),
-                                  ),
-                                const SizedBox(width: 12),
-                                // 时间和卡路里
-                                Expanded(
+                                // 标题
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 6.0),
                                   child: Text(
-                                    '⏱ ${recipe.cookingTimeMin}min  🔥 ${recipe.totalCaloriesEstimate.toStringAsFixed(0)}kcal',
+                                    recipe.title,
                                     style: GoogleFonts.caveat(
-                                      fontSize: 17,
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.bold,
                                       color: Colors.black87,
-                                    ),
-                                    maxLines: 1,
+                                    ).copyWith(height: 1.1),
+                                    maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const SizedBox(height: 20),
+                                // 难度、时间和卡路里在同一行
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 2.0),
+                                  child: Row(
+                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                    children: [
+                                      // 难度标签（手绘风格）
+                                      _buildSketchyDifficultyBadge(
+                                        label: recipe.difficulty.toUpperCase(),
+                                        color: _getDifficultyColor(recipe.difficulty),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      // 时间和卡路里
+                                      Expanded(
+                                        child: Text(
+                                          '⏱ ${recipe.cookingTimeMin}min  🔥 ${recipe.totalCaloriesEstimate.toStringAsFixed(0)}kcal',
+                                          style: GoogleFonts.caveat(
+                                            fontSize: 17,
+                                            color: Colors.black87,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ],

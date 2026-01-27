@@ -61,6 +61,10 @@ public class MenuGenerationFunction {
         @JsonProperty(required = true)
         private String difficulty;
         
+        @JsonPropertyDescription("烹饪分类: STIR_FRY_PAN_FRY (爆炒/煎), STEAM_BOIL (蒸/煮), BRAISE_STEW (炖/焖), COLD_SALAD (凉拌/沙拉), SOUP (汤羹), ROAST_BAKE (烤箱/空气炸锅)")
+        @JsonProperty(required = true)
+        private String category;
+        
         @JsonPropertyDescription("营养估算（整个食谱的总量）")
         @JsonProperty(required = true)
         private NutritionEstimateOption nutritionEstimate;

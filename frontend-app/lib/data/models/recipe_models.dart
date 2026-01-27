@@ -62,6 +62,7 @@ class RecipeModel {
   final int servings;
   final int cookingTimeMin;
   final String difficulty; // 'easy' / 'medium' / 'hard'
+  final String? category; // 烹饪分类：STIR_FRY_PAN_FRY, STEAM_BOIL, BRAISE_STEW, COLD_SALAD, SOUP, ROAST_BAKE
   final double totalCaloriesEstimate; // 保留用于向后兼容
   final List<RecipeIngredientModel> ingredients;
   final List<RecipeStepModel> steps;
@@ -82,6 +83,7 @@ class RecipeModel {
     required this.servings,
     required this.cookingTimeMin,
     required this.difficulty,
+    this.category,
     required this.totalCaloriesEstimate,
     required this.ingredients,
     required this.steps,
@@ -147,6 +149,7 @@ class RecipeModel {
           ? (json['cooking_time_min'] ?? json['cookingTimeMin']).toInt()
           : 0,
       difficulty: json['difficulty']?.toString() ?? 'easy',
+      category: json['category']?.toString(),
       // 优先使用 nutritionEstimate.calories，如果没有则使用其他字段
       totalCaloriesEstimate: caloriesFromEstimate > 0
           ? caloriesFromEstimate
@@ -166,6 +169,21 @@ class RecipeModel {
       totalCarb: parseDouble(json['total_carb'] ?? json['totalCarb']) ?? carbsFromEstimate,
       totalFiber: parseDouble(json['total_fiber'] ?? json['totalFiber']),
     );
+  }
+
+  /// 根据分类获取对应的配图路径
+  String get categoryImagePath {
+    final String path;
+    if (category == null || category!.isEmpty) {
+      print("❌ DEBUG: Category is null/empty. Using default.");
+      path = 'assets/dish_category/STIR_FRY_PAN_FRY.png';
+    } else {
+      // trim() 防止后端返回带空格的字符串
+      path = 'assets/dish_category/${category!.trim()}.png';
+    }
+    
+    print("🖼️ DEBUG: Loading image from path: [$path] for recipe: $title"); 
+    return path;
   }
 }
 

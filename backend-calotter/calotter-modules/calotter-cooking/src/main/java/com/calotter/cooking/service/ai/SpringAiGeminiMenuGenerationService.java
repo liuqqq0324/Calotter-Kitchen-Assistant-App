@@ -28,6 +28,7 @@ public class SpringAiGeminiMenuGenerationService implements AiMenuGenerationServ
     private static final String MINIMAL_SYSTEM_PROMPT = """
         Diet-focused cooking assistant. Generate EXACTLY 3 menus.
         Rules: dishCount per menu, WHOLE recipe nutrition, inventory matching, dietary constraints, cooker compatibility.
+        Each recipe must have a category: STIR_FRY_PAN_FRY (爆炒/煎), STEAM_BOIL (蒸/煮), BRAISE_STEW (炖/焖), COLD_SALAD (凉拌/沙拉), SOUP (汤羹), ROAST_BAKE (烤箱/空气炸锅).
         """;
     
     @Override
@@ -51,6 +52,13 @@ public class SpringAiGeminiMenuGenerationService implements AiMenuGenerationServ
                 .entity(MenuGenerationFunction.class); // Structured output with automatic JSON Schema
             
             log.info("Successfully generated {} menu(s)", functionResult.getMenus() != null ? functionResult.getMenus().size() : 0);
+            
+            // 🔍 DEBUG: 查看AI返回的原始数据
+            try {
+                log.info("🔍 AI returned JSON: {}", objectMapper.writeValueAsString(functionResult));
+            } catch (Exception e) {
+                log.warn("Failed to serialize functionResult for debugging", e);
+            }
             
             // Convert to MenuDTO
             if (functionResult.getMenus() == null || functionResult.getMenus().isEmpty()) {
@@ -117,6 +125,10 @@ public class SpringAiGeminiMenuGenerationService implements AiMenuGenerationServ
         recipeDTO.setServings(recipeOption.getServings());
         recipeDTO.setCookingTimeMin(recipeOption.getCookingTimeMin());
         recipeDTO.setDifficulty(recipeOption.getDifficulty());
+        recipeDTO.setCategory(recipeOption.getCategory()); // 设置烹饪分类
+        
+        // 🔍 DEBUG: 查看每个菜品的category值
+        log.info("🔍 Recipe: [{}], Category: [{}]", recipeOption.getTitle(), recipeOption.getCategory());
         
         // Convert nutrition estimate
         if (recipeOption.getNutritionEstimate() != null) {

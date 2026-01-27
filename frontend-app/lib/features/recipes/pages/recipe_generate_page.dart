@@ -405,7 +405,7 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 左侧：放大的餐盘图标
+                    // 左侧：分类图片或餐盘图标
                     Container(
                       width: 80,
                       height: 80,
@@ -417,11 +417,30 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
                           width: 1.5,
                         ),
                       ),
-                      child: Center(
-                        child: Text(
-                          primaryRecipe.emoji,
-                          style: const TextStyle(fontSize: 48),
-                        ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: primaryRecipe.category != null
+                            ? Image.asset(
+                                primaryRecipe.categoryImagePath,
+                                width: 80,
+                                height: 80,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  // 如果图片加载失败，显示 emoji
+                                  return Center(
+                                    child: Text(
+                                      primaryRecipe.emoji,
+                                      style: const TextStyle(fontSize: 48),
+                                    ),
+                                  );
+                                },
+                              )
+                            : Center(
+                                child: Text(
+                                  primaryRecipe.emoji,
+                                  style: const TextStyle(fontSize: 48),
+                                ),
+                              ),
                       ),
                     ),
                     const SizedBox(width: 16),

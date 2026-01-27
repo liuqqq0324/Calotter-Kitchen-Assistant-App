@@ -722,11 +722,30 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
                     color: Colors.orange.shade50,
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: Center(
-                    child: Text(
-                      recipe.emoji,
-                      style: const TextStyle(fontSize: 34),
-                    ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: recipe.category != null
+                        ? Image.asset(
+                            recipe.categoryImagePath,
+                            width: 64,
+                            height: 64,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              // 如果图片加载失败，显示 emoji
+                              return Center(
+                                child: Text(
+                                  recipe.emoji,
+                                  style: const TextStyle(fontSize: 34),
+                                ),
+                              );
+                            },
+                          )
+                        : Center(
+                            child: Text(
+                              recipe.emoji,
+                              style: const TextStyle(fontSize: 34),
+                            ),
+                          ),
                   ),
                 ),
                 const SizedBox(width: 12),

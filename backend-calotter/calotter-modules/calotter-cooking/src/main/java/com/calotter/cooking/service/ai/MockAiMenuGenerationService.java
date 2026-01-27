@@ -42,13 +42,21 @@ public class MockAiMenuGenerationService implements AiMenuGenerationService {
             dishCount = filter.getGenerationSettings().getDishCount();
         }
         
-        // 根据 dishCount 生成多道菜
+        // 根据 dishCount 生成多道菜（菜名 + 分类）
         String[] mockDishes = {
             "Tomato and Egg Stir-fry",
             "Steamed Fish with Ginger",
             "Bok Choy with Garlic",
             "Miso Soup",
             "White Rice"
+        };
+        
+        String[] mockCategories = {
+            "STIR_FRY_PAN_FRY",
+            "STEAM_BOIL",
+            "STIR_FRY_PAN_FRY",
+            "SOUP",
+            "STEAM_BOIL"
         };
         
         // 根据 filter 中的信息调整菜单
@@ -60,6 +68,7 @@ public class MockAiMenuGenerationService implements AiMenuGenerationService {
             if (cuisine.toLowerCase().contains("chinese")) {
                 mainDish = "Scrambled Eggs with Tomatoes";
                 mockDishes = new String[]{"Scrambled Eggs with Tomatoes", "Steamed Fish", "Garlic Bok Choy", "Seaweed Soup", "White Rice"};
+                mockCategories = new String[]{"STIR_FRY_PAN_FRY", "STEAM_BOIL", "STIR_FRY_PAN_FRY", "SOUP", "STEAM_BOIL"};
             }
         }
         
@@ -71,6 +80,7 @@ public class MockAiMenuGenerationService implements AiMenuGenerationService {
             recipe.setServings(filter.getServings() != null ? filter.getServings() : 2);
             recipe.setCookingTimeMin(15 + i * 5);
             recipe.setDifficulty("easy");
+            recipe.setCategory(mockCategories[i]); // 设置烹饪分类
             
             // 营养估算 - 按照 dishCount 平分总卡路里
             MenuDTO.NutritionEstimate nutrition = new MenuDTO.NutritionEstimate();
