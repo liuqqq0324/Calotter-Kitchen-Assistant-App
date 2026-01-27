@@ -180,11 +180,28 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
   final Set<String> _selectedFavoriteIds = {};
   bool _loadingFavorites = false;
   bool _isEditMode = false; // 编辑/删除模式
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = ''; // 搜索关键词
+  final Set<String> _selectedCategories = {}; // 选中的分类（支持多选）
 
   @override
   void initState() {
     super.initState();
     _loadFavorites();
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  void _onSearchChanged() {
+    setState(() {
+      _searchQuery = _searchController.text.toLowerCase().trim();
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadFavorites() async {
@@ -297,11 +314,13 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 顶部标题 + 删除按钮 + Filter 按钮 - 手绘风格
+              // 顶部标题 + 删除按钮 + Filter按钮 - 手绘风格
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Text(
                         'My Recipes',
@@ -326,11 +345,36 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                       ),
                     ],
                   ),
+                  // Filter按钮（厨师帽）
                   _AnimatedFilterButton(onTap: _openFilterPage),
                 ],
               ),
 
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
+
+              // 搜索栏 - 纸胶带样式
+              _WashiTapeSearchBar(
+                controller: _searchController,
+              ),
+
+              const SizedBox(height: 16),
+
+              // 分类筛选栏
+              _CategoryFilterBar(
+                selectedCategories: _selectedCategories,
+                onCategorySelected: (category) {
+                  setState(() {
+                    // 如果已选中，则取消选择；否则添加到选中列表
+                    if (_selectedCategories.contains(category)) {
+                      _selectedCategories.remove(category);
+                    } else {
+                      _selectedCategories.add(category);
+                    }
+                  });
+                },
+              ),
+
+              const SizedBox(height: 12),
 
               // 如果有 filter，总结一下当前条件 - 手绘风格（与 generated recipes 一致）
               if (summaryText != null) ...[
@@ -394,6 +438,28 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                       (id) => favorites.every((r) => r.id != id),
                     );
 
+                    // 根据搜索关键词和分类过滤食谱
+                    var filteredFavorites = favorites;
+                    
+                    // 先按分类过滤（支持多选）
+                    if (_selectedCategories.isNotEmpty) {
+                      filteredFavorites = filteredFavorites.where((recipe) {
+                        return _selectedCategories.contains(recipe.category);
+                      }).toList();
+                    }
+                    
+                    // 再按搜索词过滤
+                    if (_searchQuery.isNotEmpty) {
+                      filteredFavorites = filteredFavorites.where((recipe) {
+                        final title = recipe.title.toLowerCase();
+                        final ingredients = recipe.ingredients
+                            .map((i) => i.name.toLowerCase())
+                            .join(' ');
+                        return title.contains(_searchQuery) ||
+                            ingredients.contains(_searchQuery);
+                      }).toList();
+                    }
+
                     if (favorites.isEmpty) {
                       return Center(
                         child: Column(
@@ -425,14 +491,38 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                       );
                     }
 
+                    // 如果搜索后没有结果
+                    if (filteredFavorites.isEmpty && _searchQuery.isNotEmpty) {
+                      return Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.search_off,
+                              size: 48,
+                              color: Colors.grey.shade400,
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'No recipes found for "$_searchQuery"',
+                              style: GoogleFonts.kalam(
+                                fontSize: 16,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
                     return Column(
                       children: [
                         Expanded(
                           child: ListView.builder(
                             padding: const EdgeInsets.only(bottom: 40, top: 12),
-                            itemCount: favorites.length,
+                            itemCount: filteredFavorites.length,
                             itemBuilder: (context, index) {
-                              final recipe = favorites[index];
+                              final recipe = filteredFavorites[index];
                               final selected = _selectedFavoriteIds.contains(
                                 recipe.id,
                               );
@@ -475,7 +565,7 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                                       );
                                       if (!confirmed) return;
                                       
-                                      // 删除选中的菜谱
+                                      // 删除选中的菜谱（从原始列表中找）
                                       final selectedRecipes = favorites
                                           .where((r) => _selectedFavoriteIds.contains(r.id))
                                           .toList();
@@ -527,7 +617,7 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                                   width: constraints.maxWidth * 0.90,
                                   child: ElevatedButton.icon(
                                     onPressed: () {
-                                      final selectedRecipes = favorites
+                                      final selectedRecipes = filteredFavorites
                                           .where(
                                             (r) => _selectedFavoriteIds
                                                 .contains(r.id),
@@ -577,7 +667,7 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                 ),
               ),
 
-              // 生成食谱按钮 - 向上移动覆盖部分区域，增加融合感
+              // 生成食谱按钮
               Transform.translate(
                 offset: const Offset(0, 0),
                 child: SizedBox(
@@ -1352,6 +1442,318 @@ class _AnimatedDeleteButtonState extends State<_AnimatedDeleteButton> {
   }
 }
 
+// 分类数据
+class _CategoryData {
+  final String name;
+  final String displayName;
+  final String sketchIcon;
+  final String colorIcon;
+
+  const _CategoryData({
+    required this.name,
+    required this.displayName,
+    required this.sketchIcon,
+    required this.colorIcon,
+  });
+}
+
+// 所有分类
+const List<_CategoryData> _allCategories = [
+  _CategoryData(
+    name: 'STIR_FRY_PAN_FRY',
+    displayName: 'Stir Fry',
+    sketchIcon: 'assets/dish_category/SKETCH_STIR_FRY_PAN_FRY.png',
+    colorIcon: 'assets/dish_category/STIR_FRY_PAN_FRY.png',
+  ),
+  _CategoryData(
+    name: 'STEAM_BOIL',
+    displayName: 'Steam',
+    sketchIcon: 'assets/dish_category/SKETCH_STEAM_BOIL.png',
+    colorIcon: 'assets/dish_category/STEAM_BOIL.png',
+  ),
+  _CategoryData(
+    name: 'BRAISE_STEW',
+    displayName: 'Braise',
+    sketchIcon: 'assets/dish_category/SKETCH_BRAISE_STEW.png',
+    colorIcon: 'assets/dish_category/BRAISE_STEW.png',
+  ),
+  _CategoryData(
+    name: 'COLD_SALAD',
+    displayName: 'Salad',
+    sketchIcon: 'assets/dish_category/SKETCH_COLD_SALAD.png',
+    colorIcon: 'assets/dish_category/COLD_SALAD.png',
+  ),
+  _CategoryData(
+    name: 'SOUP',
+    displayName: 'Soup',
+    sketchIcon: 'assets/dish_category/SKETCH_SOUP.png',
+    colorIcon: 'assets/dish_category/SOUP.png',
+  ),
+  _CategoryData(
+    name: 'ROAST_BAKE',
+    displayName: 'Roast',
+    sketchIcon: 'assets/dish_category/SKETCH_ROAST_BAKE.png',
+    colorIcon: 'assets/dish_category/ROAST_BAKE.png',
+  ),
+];
+
+// 分类筛选栏
+class _CategoryFilterBar extends StatelessWidget {
+  final Set<String> selectedCategories;
+  final ValueChanged<String> onCategorySelected;
+
+  const _CategoryFilterBar({
+    required this.selectedCategories,
+    required this.onCategorySelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 90,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        itemCount: _allCategories.length,
+        itemBuilder: (context, index) {
+          final category = _allCategories[index];
+          final isSelected = selectedCategories.contains(category.name);
+          
+          return _CategoryIconButton(
+            category: category,
+            isSelected: isSelected,
+            onTap: () => onCategorySelected(category.name),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// 分类图标按钮
+class _CategoryIconButton extends StatelessWidget {
+  final _CategoryData category;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _CategoryIconButton({
+    required this.category,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 72,
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 图标容器
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOut,
+              width: 56,
+              height: 56,
+              child: Image.asset(
+                isSelected ? category.colorIcon : category.sketchIcon,
+                width: 56,
+                height: 56,
+                fit: BoxFit.contain,
+              ),
+            ),
+            const SizedBox(height: 6),
+            // 分类名称
+            Text(
+              category.displayName,
+              style: GoogleFonts.kalam(
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                color: isSelected 
+                    ? const Color(0xFF8C5E4A) 
+                    : Colors.black54,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// 纸胶带样式的搜索栏
+class _WashiTapeSearchBar extends StatefulWidget {
+  final TextEditingController controller;
+
+  const _WashiTapeSearchBar({required this.controller});
+
+  @override
+  State<_WashiTapeSearchBar> createState() => _WashiTapeSearchBarState();
+}
+
+class _WashiTapeSearchBarState extends State<_WashiTapeSearchBar> {
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(() {
+      setState(() {}); // 更新清除按钮显示
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 50,
+      child: CustomPaint(
+        painter: _WashiTapePainter(),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Row(
+            children: [
+              // 放大镜图标
+              const Icon(
+                Icons.search,
+                size: 24,
+                color: Color(0xFF8C5E4A), // Rust Brown 主题色
+              ),
+              const SizedBox(width: 12),
+              // 搜索输入框
+              Expanded(
+                child: TextField(
+                  controller: widget.controller,
+                  style: GoogleFonts.kalam(
+                    fontSize: 16,
+                    color: Colors.black87,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: 'Search chicken, beef...',
+                    hintStyle: GoogleFonts.kalam(
+                      fontSize: 16,
+                      color: Colors.black45,
+                    ),
+                    border: InputBorder.none,
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                  ),
+                ),
+              ),
+              // 清除按钮
+              if (widget.controller.text.isNotEmpty)
+                GestureDetector(
+                  onTap: () => widget.controller.clear(),
+                  child: const Icon(
+                    Icons.close,
+                    size: 20,
+                    color: Colors.black45,
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// 纸胶带背景绘制器（撕裂边缘效果）
+class _WashiTapePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final random = math.Random(42);
+    
+    // 创建撕裂边缘路径
+    final path = _createTornEdgePath(size, random);
+    
+    // 绘制阴影
+    final shadowPaint = Paint()
+      ..color = Colors.black.withOpacity(0.1)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
+    final shadowPath = Path();
+    shadowPath.addPath(path, const Offset(2, 3));
+    canvas.drawPath(shadowPath, shadowPaint);
+    
+    // 绘制纸胶带背景（米黄色）
+    final bgPaint = Paint()
+      ..color = const Color(0xFFFFF8E7) // 米黄色
+      ..style = PaintingStyle.fill;
+    canvas.drawPath(path, bgPaint);
+    
+    // 添加纸张纹理
+    canvas.save();
+    canvas.clipPath(path);
+    _drawPaperTexture(canvas, size, random);
+    canvas.restore();
+    
+    // 绘制边缘线
+    final edgePaint = Paint()
+      ..color = const Color(0xFFE8D5B7).withOpacity(0.6)
+      ..strokeWidth = 1.5
+      ..style = PaintingStyle.stroke;
+    canvas.drawPath(path, edgePaint);
+  }
+  
+  Path _createTornEdgePath(Size size, math.Random random) {
+    final path = Path();
+    const double tearSize = 2.0; // 撕裂效果大小
+    const double step = 5.0;
+    
+    // 顶部边缘 - 撕裂效果
+    path.moveTo(0, 0);
+    for (double x = step; x < size.width; x += step) {
+      final noise = (random.nextDouble() * 2 - 1) * tearSize;
+      path.lineTo(x, noise.clamp(-tearSize, tearSize));
+    }
+    path.lineTo(size.width, 0);
+    
+    // 右侧边缘 - 撕裂效果
+    for (double y = step; y < size.height; y += step) {
+      final noise = (random.nextDouble() * 2 - 1) * tearSize;
+      path.lineTo(size.width + noise.clamp(-tearSize, tearSize), y);
+    }
+    path.lineTo(size.width, size.height);
+    
+    // 底部边缘 - 撕裂效果
+    for (double x = size.width - step; x > 0; x -= step) {
+      final noise = (random.nextDouble() * 2 - 1) * tearSize;
+      path.lineTo(x, size.height + noise.clamp(-tearSize, tearSize));
+    }
+    path.lineTo(0, size.height);
+    
+    // 左侧边缘 - 撕裂效果
+    for (double y = size.height - step; y > 0; y -= step) {
+      final noise = (random.nextDouble() * 2 - 1) * tearSize;
+      path.lineTo(noise.clamp(-tearSize, tearSize), y);
+    }
+    
+    path.close();
+    return path;
+  }
+  
+  void _drawPaperTexture(Canvas canvas, Size size, math.Random random) {
+    final texturePaint = Paint()
+      ..color = const Color(0xFFF5E6D3).withOpacity(0.3)
+      ..strokeWidth = 0.5;
+    
+    // 随机绘制一些细线来模拟纸张纹理
+    for (int i = 0; i < 30; i++) {
+      final x1 = random.nextDouble() * size.width;
+      final y1 = random.nextDouble() * size.height;
+      final x2 = x1 + (random.nextDouble() * 20 - 10);
+      final y2 = y1 + (random.nextDouble() * 20 - 10);
+      canvas.drawLine(Offset(x1, y1), Offset(x2, y2), texturePaint);
+    }
+  }
+  
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
 // 带动画效果的Filter按钮
 class _AnimatedFilterButton extends StatefulWidget {
   final VoidCallback onTap;
@@ -1390,11 +1792,13 @@ class _AnimatedFilterButtonState extends State<_AnimatedFilterButton> {
         curve: Curves.easeOut,
         transformAlignment: Alignment.center,
         transform: Matrix4.identity()
+          ..scale(_isPressed ? 1.1 : 1.0)
           ..rotateZ(_isPressed ? _pressedTiltAngle : 0.0),
         child: SizedBox(
-          height: 34,
+          height: 42,
+          width: 42,
           child: Image.asset(
-            'assets/images/filter_button.png',
+            'assets/dish_category/CHEF_HAT.png',
             fit: BoxFit.contain,
             filterQuality: FilterQuality.high,
           ),
