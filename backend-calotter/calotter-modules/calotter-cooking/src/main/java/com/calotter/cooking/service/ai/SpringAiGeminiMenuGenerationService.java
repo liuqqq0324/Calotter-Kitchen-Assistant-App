@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
+import reactor.core.publisher.Flux;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -23,59 +24,129 @@ public class SpringAiGeminiMenuGenerationService implements AiMenuGenerationServ
     private final ChatModel chatModel;
     private final ObjectMapper objectMapper;
     
-    // Minimal System Prompt (optimized for token reduction: ~30-50 tokens vs ~150 tokens)
-    // JSON Schema is automatically handled by Spring AI via .entity() method, not in prompt
+    // ✅ 修复 1: 极简 Prompt，移除所有关于 JSON 格式、字段名的指令
+    // Spring AI 会自动处理 Schema，多余的指令只会干扰模型
     private static final String MINIMAL_SYSTEM_PROMPT = """
-        Diet-focused cooking assistant. Generate EXACTLY 3 menus.
-        Rules: dishCount per menu, WHOLE recipe nutrition, dietary constraints, cooker compatibility.
-        IMPORTANT: You MUST prioritize using ingredients from urgentInventory to prevent waste. Use regularInventory as needed.
+        You are a professional Diet-focused cooking assistant. 
+        Task: Generate EXACTLY 3 distinct menus based on the user's inventory and preferences.
+        
+        Rules:
+        1. Prioritize 'urgentInventory' ingredients to prevent waste.
+        2. Ensure nutritional balance for the whole recipe.
+        3. Respect all dietary constraints and cooker compatibility.
+        """;
+
+    /** 流式模式：每次只请求 1 个菜单，降低 JSON 幻觉概率 */
+    private static final String SINGLE_MENU_PROMPT = """
+        You are a professional Diet-focused cooking assistant. 
+        Task: Generate EXACTLY 1 menu based on the user's inventory and preferences.
+        
+        Rules:
+        1. Prioritize 'urgentInventory' ingredients to prevent waste.
+        2. Ensure nutritional balance for the whole recipe.
+        3. Respect all dietary constraints and cooker compatibility.
         """;
     
     @Override
     public List<MenuDTO> generateMenus(RecipeGenerationFilter filter) {
-        try {
-            log.info("Starting menu generation with Spring AI Gemini");
-            
-            // Build user input
-            String userInput = buildUserInput(filter);
-            log.debug("User input: {}", userInput);
-            
-            // Use Spring AI ChatClient with structured output
-            // JSON Schema is automatically generated from MenuGenerationFunction class annotations
-            // and passed as API parameters (not in prompt), saving ~100-200 tokens compared to including Schema in prompt
-            ChatClient chatClient = ChatClient.builder(chatModel).build();
-            MenuGenerationFunction functionResult = chatClient
+        // ✅ 修复 2: 简单的手动重试机制
+        int maxRetries = 3;
+        int attempt = 0;
+        Exception lastException = null;
+
+        while (attempt < maxRetries) {
+            try {
+                attempt++;
+                log.info("Generating menus with Gemini (Attempt {}/{})", attempt, maxRetries);
+                return executeGeneration(filter);
+            } catch (Exception e) {
+                log.warn("Attempt {} failed: {}", attempt, e.getMessage());
+                lastException = e;
+                // 如果是配额不足(429)，直接抛出，不要重试
+                String errorMsg = e.getMessage();
+                if (errorMsg != null && (errorMsg.contains("429") || errorMsg.contains("quota"))) {
+                    throw new IllegalStateException("Gemini API quota exceeded. Please try again later or check your API quota limits.");
+                }
+            }
+        }
+        throw new RuntimeException("Failed to generate menus after " + maxRetries + " attempts", lastException);
+    }
+
+    @Override
+    public Flux<MenuDTO> generateMenuStream(RecipeGenerationFilter filter) {
+        int totalMenus = 5;
+        return Flux.range(1, totalMenus)
+                .flatMap(i -> generateSingleMenuAsync(filter, i));
+    }
+
+    private Flux<MenuDTO> generateSingleMenuAsync(RecipeGenerationFilter filter, int index) {
+        return Flux.defer(() -> {
+            try {
+                log.info("Generating menu #{}...", index);
+                MenuDTO menu = executeSingleGeneration(filter);
+                menu.setMenuId(index);
+                return Flux.just(menu);
+            } catch (Exception e) {
+                log.warn("Failed to generate menu #{}: {}", index, e.getMessage());
+                return Flux.empty();
+            }
+        });
+    }
+
+    private MenuDTO executeSingleGeneration(RecipeGenerationFilter filter) {
+        String userInput = buildUserInputForStream(filter);
+        log.debug("User input (stream): {}", userInput);
+        ChatClient chatClient = ChatClient.builder(chatModel).build();
+        MenuGenerationFunction functionResult = chatClient
                 .prompt()
-                .system(MINIMAL_SYSTEM_PROMPT)
+                .system(SINGLE_MENU_PROMPT)
                 .user(userInput)
                 .call()
-                .entity(MenuGenerationFunction.class); // Structured output with automatic JSON Schema
-            
-            log.info("Successfully generated {} menu(s)", functionResult.getMenus() != null ? functionResult.getMenus().size() : 0);
-            
-            // Convert to MenuDTO
-            if (functionResult.getMenus() == null || functionResult.getMenus().isEmpty()) {
-                throw new RuntimeException("Spring AI Gemini returned empty menu list");
-            }
-            
-            return functionResult.getMenus().stream()
-                .map(this::convertToMenuDTO)
-                .collect(Collectors.toList());
-                
-        } catch (IllegalStateException e) {
-            log.error("Spring AI Gemini API call failed (possibly quota issue): {}", e.getMessage());
-            throw e;
-        } catch (Exception e) {
-            log.error("Failed to generate menus with Spring AI Gemini", e);
-            
-            // Check if it's a quota error
-            String errorMsg = e.getMessage();
-            if (errorMsg != null && (errorMsg.contains("429") || errorMsg.contains("quota"))) {
-                throw new IllegalStateException("Gemini API quota exceeded. Please try again later or check your API quota limits.");
-            }
-            
-            throw new RuntimeException("Failed to generate menus with Spring AI Gemini: " + e.getMessage(), e);
+                .entity(MenuGenerationFunction.class);
+        if (functionResult == null || functionResult.getMenus() == null || functionResult.getMenus().isEmpty()) {
+            throw new RuntimeException("Empty response from AI");
         }
+        return convertToMenuDTO(functionResult.getMenus().get(0));
+    }
+
+    private String buildUserInputForStream(RecipeGenerationFilter filter) {
+        try {
+            String filterJson = objectMapper.writeValueAsString(filter);
+            return String.format("Context Data: %s\nPlease generate 1 menu now.", filterJson);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to build user input", e);
+        }
+    }
+
+    /**
+     * 执行实际的菜单生成逻辑
+     */
+    private List<MenuDTO> executeGeneration(RecipeGenerationFilter filter) {
+        // Build user input
+        String userInput = buildUserInput(filter);
+        log.debug("User input: {}", userInput);
+        
+        // Use Spring AI ChatClient with structured output
+        // JSON Schema is automatically generated from MenuGenerationFunction class annotations
+        // and passed as API parameters (not in prompt), saving ~100-200 tokens compared to including Schema in prompt
+        ChatClient chatClient = ChatClient.builder(chatModel).build();
+        
+        MenuGenerationFunction functionResult = chatClient
+            .prompt()
+            .system(MINIMAL_SYSTEM_PROMPT)
+            .user(userInput)
+            .call()
+            .entity(MenuGenerationFunction.class); // Structured output with automatic JSON Schema
+        
+        if (functionResult == null || functionResult.getMenus() == null || functionResult.getMenus().isEmpty()) {
+            throw new RuntimeException("Empty response from AI");
+        }
+        
+        log.info("Successfully generated {} menu(s)", functionResult.getMenus().size());
+        
+        return functionResult.getMenus().stream()
+            .map(this::convertToMenuDTO)
+            .collect(Collectors.toList());
     }
     
     /**
@@ -85,9 +156,8 @@ public class SpringAiGeminiMenuGenerationService implements AiMenuGenerationServ
     private String buildUserInput(RecipeGenerationFilter filter) {
         try {
             String filterJson = objectMapper.writeValueAsString(filter);
-            // Simplified user input: remove redundant explanations since dietary habits are already in System Prompt
-            // Saves ~50-80 tokens per request
-            return String.format("Context: %s\nGenerate 3 menus following all constraints.", filterJson);
+            // ✅ 修复 3: User Input 同样移除具体的字段名指导，只保留业务逻辑
+            return String.format("Context Data: %s\nPlease generate the menus now.", filterJson);
         } catch (Exception e) {
             throw new RuntimeException("Failed to build user input", e);
         }

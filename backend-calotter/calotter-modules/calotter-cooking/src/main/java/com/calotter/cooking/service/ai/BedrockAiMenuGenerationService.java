@@ -12,7 +12,9 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
+import reactor.core.publisher.Flux;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -235,6 +237,13 @@ public class BedrockAiMenuGenerationService implements AiMenuGenerationService {
         } catch (Exception e) {
             throw new RuntimeException("使用 Bedrock 生成菜单失败: " + e.getMessage(), e);
         }
+    }
+
+    @Override
+    public Flux<MenuDTO> generateMenuStream(RecipeGenerationFilter filter) {
+        // Bedrock 使用同步 REST API，批量生成后逐条发送，模拟 SSE 流式体验
+        List<MenuDTO> menus = generateMenus(filter);
+        return Flux.fromIterable(menus).delayElements(Duration.ofMillis(400));
     }
 
     private String extractModelText(String responseBody) throws Exception {

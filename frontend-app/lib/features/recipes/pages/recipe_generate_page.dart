@@ -9,7 +9,6 @@ import 'package:personal_sous_chef/services/api/recipe_api_service.dart';
 import 'package:personal_sous_chef/services/business/household_service.dart';
 import 'package:personal_sous_chef/shared/widgets/common/sketchy_card.dart';
 import 'package:personal_sous_chef/shared/widgets/common/programmatic_sketchy_widgets.dart';
-import 'package:personal_sous_chef/shared/widgets/painters/sketchy_box_painter.dart';
 
 class RecipeGeneratePage extends StatefulWidget {
   /// 从 RecipesHomePage 传过来的筛选条件（可为空）
@@ -31,36 +30,34 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
   @override
   void initState() {
     super.initState();
-    _currentFilter = widget.filter; // 初始化时使用传入的 filter
-    _fetchMenus();
+    _currentFilter = widget.filter;
+    _startMenuStream();
   }
 
-  Future<void> _fetchMenus() async {
+  Future<void> _startMenuStream() async {
     setState(() {
+      _menus = [];
       _loading = true;
       _error = null;
       _selectedMenuId = null;
     });
 
     try {
-      // 获取householdId
-      final householdId = await HouseholdService.getHouseholdId();
-      final menus = await RecipeApiService.generateMenus(
-        _currentFilter, // 使用 state 中的 filter
-        householdId: householdId,
+      final stream = RecipeApiService.generateMenusStream(
+        _currentFilter,
+        householdId: await HouseholdService.getHouseholdId(),
       );
-      setState(() {
-        _menus = menus;
-      });
+      await for (final menu in stream) {
+        if (!mounted) return;
+        setState(() => _menus.add(menu));
+      }
     } catch (e) {
-      setState(() {
-        _error = e.toString();
-      });
+      if (mounted) {
+        setState(() => _error = e.toString());
+      }
     } finally {
       if (mounted) {
-        setState(() {
-          _loading = false;
-        });
+        setState(() => _loading = false);
       }
     }
   }
@@ -83,13 +80,12 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
       },
     );
 
-    if (result != null && result is Map<String, dynamic>) {
+    if (result != null) {
       setState(() {
         _currentFilter = result;
       });
 
-      // 更新 filter 后重新获取菜单
-      _fetchMenus();
+      _startMenuStream();
 
       // 小提示：让你知道已经保存了
       if (mounted) {
@@ -211,20 +207,13 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
           ],
 
               Expanded(
-                child: _loading
+                child: _menus.isEmpty && _loading
                     ? const Center(child: CircularProgressIndicator())
-                    : _error != null
+                    : _menus.isEmpty && !_loading && _error != null
                     ? _buildErrorState(theme)
-                    : _menus.isEmpty
+                    : _menus.isEmpty && !_loading
                     ? _buildEmptyState(theme)
-                    : ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 20), // 减少底部 padding，让按钮更融合
-                        itemCount: _menus.length,
-                        itemBuilder: (context, index) {
-                          final menu = _menus[index];
-                          return _buildMenuCard(context, menu);
-                        },
-                      ),
+                    : _buildMenuList(),
               ),
             ],
           ),
@@ -304,7 +293,7 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
                       backgroundColor: const Color(0xFFFFFFF0),
                       withShadow: true,
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      onPressed: _fetchMenus,
+                      onPressed: _loading ? null : _startMenuStream,
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -336,6 +325,28 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildMenuList() {
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+      itemCount: _menus.length + (_loading ? 1 : 0),
+      itemBuilder: (context, index) {
+        if (index == _menus.length) {
+          return const Padding(
+            padding: EdgeInsets.all(24.0),
+            child: Center(
+              child: SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+          );
+        }
+        return _buildMenuCard(context, _menus[index]);
+      },
     );
   }
 
@@ -765,7 +776,7 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
               ),
               const SizedBox(height: 12),
               ElevatedButton(
-                onPressed: _fetchMenus,
+                onPressed: _startMenuStream,
                 child: const Text('Retry'),
               ),
               if (isQuotaError) ...[
