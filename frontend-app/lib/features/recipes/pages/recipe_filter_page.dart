@@ -893,7 +893,7 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> with SingleTickerPr
                         Row(
                           children: [
                             Text(
-                              'Filter',
+                              'Menu Preferences',
                               style: theme.textTheme.titleLarge?.copyWith(
                                 fontWeight: FontWeight.bold,
                                 color: _deepBrown,
@@ -932,7 +932,7 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> with SingleTickerPr
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(
-          title: const Text("Filter"),
+          title: const Text("Menu Preferences"),
           backgroundColor: Colors.transparent,
           elevation: 0,
         ),

@@ -375,32 +375,38 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
           _selectedMenuId = _selectedMenuId == menu.menuId ? null : menu.menuId;
         });
       },
-      child: Stack(
-        clipBehavior: Clip.none,
-        alignment: Alignment.topCenter,
-        children: [
-          // 1. 卡片主体 - 使用锯齿状边框
-          Container(
-            margin: const EdgeInsets.only(top: 14, bottom: 16), // 为胶带留出空间
-            padding: const EdgeInsets.all(16),
-            decoration: ShapeDecoration(
-              color: const Color(0xFFFFFFF0), // Paper White / 米黄色便签
-              shape: SketchyRectBorder(
-                borderWidth: isSelected ? 2.5 : 2.0,
-                wobbleAmount: 2.5,
-                seed: menu.menuId, // 使用 menuId 作为种子，确保每个卡片一致
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+        transform: Matrix4.translationValues(0, isSelected ? -4 : 0, 0),
+        child: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.topCenter,
+          children: [
+            // 1. 卡片主体 - 使用锯齿状边框
+            Container(
+              margin: const EdgeInsets.only(top: 14, bottom: 16), // 为胶带留出空间
+              padding: const EdgeInsets.all(16),
+              decoration: ShapeDecoration(
                 color: isSelected
-                    ? const Color(0xFF6B4F4F)
-                    : const Color(0xFF6B4F4F).withOpacity(0.7),
-              ),
-              shadows: [
-                BoxShadow(
-                  color: const Color(0xFF6B4F4F).withOpacity(0.12),
-                  blurRadius: 10,
-                  offset: const Offset(2, 6),
+                    ? const Color(0xFFFFFFF0) // 选中时保持米黄色
+                    : const Color(0xFFFFFFF0), // Paper White / 米黄色便签
+                shape: SketchyRectBorder(
+                  borderWidth: isSelected ? 2.8 : 2.2,
+                  wobbleAmount: 2.5,
+                  seed: menu.menuId, // 使用 menuId 作为种子，确保每个卡片一致
+                  color: isSelected
+                      ? const Color(0xFF6B4F4F)
+                      : const Color(0xFF6B4F4F).withOpacity(0.85),
                 ),
-              ],
-            ),
+                shadows: [
+                  BoxShadow(
+                    color: const Color(0xFF6B4F4F).withOpacity(isSelected ? 0.35 : 0.18),
+                    blurRadius: isSelected ? 20 : 10,
+                    offset: isSelected ? const Offset(3, 8) : const Offset(2, 6),
+                  ),
+                ],
+              ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -452,20 +458,14 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // 第一行：Menu 1 + 选中标记
-                          Row(
-                            children: [
-                              Text(
-                                'Menu ${menu.menuId}',
-                                style: GoogleFonts.kalam(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.grey[800],
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              if (isSelected) _buildSketchySelectedBadge(),
-                            ],
+                          // 第一行：Menu 1（去掉选中标记）
+                          Text(
+                            'Menu ${menu.menuId}',
+                            style: GoogleFonts.kalam(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey[800],
+                            ),
                           ),
                           const SizedBox(height: 8),
                           // 第二行：菜品名
@@ -539,12 +539,15 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
                                   : menu.menuId;
                             });
                           },
+                          isSelected: isSelected,
                           child: Text(
-                            isSelected ? 'Selected' : 'Choose',
+                            isSelected ? 'Selected' : 'Select',
                             style: GoogleFonts.kalam(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
-                              color: const Color(0xFF6B4F4F).withOpacity(0.7),
+                              color: isSelected
+                                  ? const Color(0xFF6B4F4F)
+                                  : const Color(0xFF6B4F4F).withOpacity(0.7),
                             ),
                             textAlign: TextAlign.center,
                             overflow: TextOverflow.ellipsis,
@@ -628,6 +631,7 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
             ),
           ),
         ],
+        ),
       ),
     );
   }
@@ -636,6 +640,7 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
   Widget _buildSketchyButton({
     required VoidCallback? onPressed,
     required Widget child,
+    bool isSelected = false,
   }) {
     return _SketchyButtonWithAnimation(
       onPressed: onPressed,
@@ -643,6 +648,10 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
       // 垂直 8px * 2 = 16px，剩下 44px 给内容，足够放图标和文字了
       // 水平 12px 避免过宽
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      // 选中时显示透明棕色背景
+      backgroundColor: isSelected
+          ? const Color(0xFF6B4F4F).withOpacity(0.15)
+          : null,
       child: child,
     );
   }
