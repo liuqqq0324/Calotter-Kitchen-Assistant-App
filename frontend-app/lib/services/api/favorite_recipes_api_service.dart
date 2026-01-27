@@ -103,6 +103,10 @@ class FavoriteRecipesApiService {
       return double.tryParse(value.toString());
     }
 
+    // 🔍 DEBUG: 打印category值
+    final category = dish['category']?.toString();
+    print('🔍 [FavoriteApi] _dishToRecipeModel: category="$category" for dish="${dish['name']}"');
+
     return RecipeModel.fromJson({
       'id': dish['id']?.toString() ?? '',
       'title': dish['name']?.toString() ?? '',
@@ -115,6 +119,7 @@ class FavoriteRecipesApiService {
       'ingredients': ingredients,
       'steps': steps,
       'emoji': '🍽️', // 默认emoji
+      'category': category, // 🔧 FIX: 添加category字段
       // 营养字段（跟着后端）
       'total_weight_gram': parseInt(
         dish['totalWeightGram'] ?? dish['total_weight_gram'],
@@ -229,12 +234,16 @@ class FavoriteRecipesApiService {
   }
 
   static Map<String, dynamic> _recipeToJson(RecipeModel recipe) {
+    // 🔍 DEBUG: 打印要发送的category值
+    print('🔍 [FavoriteApi] _recipeToJson: category="${recipe.category}" for recipe="${recipe.title}"');
+    
     return {
       'title': recipe.title,
       'shortDescription': recipe.shortDescription,
       'servings': recipe.servings,
       'cookingTimeMin': recipe.cookingTimeMin,
       'difficulty': recipe.difficulty,
+      'category': recipe.category, // 🔧 FIX: 添加category字段
       'nutritionEstimate': {
         'calories': recipe.totalCaloriesEstimate,
         'proteinG': recipe.totalProtein ?? 0.0,

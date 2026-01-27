@@ -179,6 +179,7 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
   Map<String, dynamic>? _currentFilter; // 保存最近一次的 filter 设置
   final Set<String> _selectedFavoriteIds = {};
   bool _loadingFavorites = false;
+  bool _isEditMode = false; // 编辑/删除模式
 
   @override
   void initState() {
@@ -296,16 +297,34 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 顶部标题 + Filter 按钮 - 手绘风格
+              // 顶部标题 + 删除按钮 + Filter 按钮 - 手绘风格
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'My Recipes',
-                    style: GoogleFonts.caveat(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  Row(
+                    children: [
+                      Text(
+                        'My Recipes',
+                        style: GoogleFonts.caveat(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      // 删除图标按钮
+                      _AnimatedDeleteButton(
+                        isEditMode: _isEditMode,
+                        onTap: () {
+                          setState(() {
+                            _isEditMode = !_isEditMode;
+                            if (!_isEditMode) {
+                              // 退出编辑模式时清空选择
+                              _selectedFavoriteIds.clear();
+                            }
+                          });
+                        },
+                      ),
+                    ],
                   ),
                   _AnimatedFilterButton(onTap: _openFilterPage),
                 ],
@@ -442,6 +461,67 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                             builder: (context, constraints) {
                               const accent = Color(0xFFD68C5E); // Terracotta
                               const shadow = Color(0x1F8C5E4A); // Rust Brown @ 12%
+                              
+                              // 如果在编辑模式，显示删除按钮（手绘风格）
+                              if (_isEditMode) {
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                                  child: _SketchyDeleteButton(
+                                    onPressed: () async {
+                                      // 确认删除对话框
+                                      final confirmed = await _showDeleteConfirmation(
+                                        context,
+                                        _selectedFavoriteIds.length,
+                                      );
+                                      if (!confirmed) return;
+                                      
+                                      // 删除选中的菜谱
+                                      final selectedRecipes = favorites
+                                          .where((r) => _selectedFavoriteIds.contains(r.id))
+                                          .toList();
+                                      
+                                      if (selectedRecipes.isEmpty) return;
+                                      
+                                      // 获取householdId
+                                      final householdId = await HouseholdService.getHouseholdId();
+                                      if (householdId == null) return;
+                                      
+                                      // 删除所有选中的菜谱
+                                      for (final recipe in selectedRecipes) {
+                                        try {
+                                          await CollectedRecipesStore.remove(
+                                            recipe,
+                                            householdId: householdId,
+                                          );
+                                        } catch (e) {
+                                          debugPrint('Failed to remove recipe: $e');
+                                        }
+                                      }
+                                      
+                                      // 退出编辑模式
+                                      setState(() {
+                                        _selectedFavoriteIds.clear();
+                                        _isEditMode = false;
+                                      });
+                                      
+                                      // 显示成功提示
+                                      if (mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              '${selectedRecipes.length} recipe(s) deleted',
+                                            ),
+                                            duration: const Duration(seconds: 2),
+                                          ),
+                                        );
+                                      }
+                                    },
+                                    label: 'Delete (${_selectedFavoriteIds.length} selected)',
+                                  ),
+                                );
+                              }
+                              
+                              // 否则显示Start cooking按钮
                               return Center(
                                 child: SizedBox(
                                   width: constraints.maxWidth * 0.90,
@@ -556,8 +636,8 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
         margin: margin,
         child: GestureDetector(
           onTap: () {
-            // 如果已经选中了某些卡片，点击切换选择状态
-            if (_selectedFavoriteIds.isNotEmpty) {
+            // 如果在编辑模式或已经选中了某些卡片，点击切换选择状态
+            if (_isEditMode || _selectedFavoriteIds.isNotEmpty) {
               onToggleSelect();
             } else {
               // 否则弹出菜单
@@ -565,7 +645,12 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
             }
           },
           onLongPress: () {
-            // 长按切换选择状态
+            // 长按进入编辑模式并选择
+            if (!_isEditMode) {
+              setState(() {
+                _isEditMode = true;
+              });
+            }
             onToggleSelect();
           },
           child: Stack(
@@ -742,6 +827,68 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
         ),
       ),
     );
+  }
+
+  // 显示删除确认对话框
+  Future<bool> _showDeleteConfirmation(BuildContext context, int count) async {
+    const terracotta = Color(0xFFD68C5E); // Terracotta
+    const rustBrown = Color(0xFF8C5E4A); // Rust Brown
+    
+    return await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFFF5F1E8),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Text(
+          'Delete Recipes?',
+          style: GoogleFonts.caveat(
+            fontSize: 26,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
+        ),
+        content: Text(
+          'Are you sure you want to delete $count recipe${count > 1 ? 's' : ''}? This action cannot be undone.',
+          style: GoogleFonts.kalam(
+            fontSize: 16,
+            color: Colors.black87,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.kalam(
+                fontSize: 16,
+                color: rustBrown,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: terracotta,
+              foregroundColor: Colors.white,
+              elevation: 4,
+              shadowColor: rustBrown.withOpacity(0.3),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: Text(
+              'Delete',
+              style: GoogleFonts.kalam(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    ) ?? false;
   }
 
   // 显示菜谱选项菜单
@@ -970,6 +1117,239 @@ class _SketchyBadgePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+// 手绘风格删除按钮
+class _SketchyDeleteButton extends StatefulWidget {
+  final VoidCallback onPressed;
+  final String label;
+
+  const _SketchyDeleteButton({
+    required this.onPressed,
+    required this.label,
+  });
+
+  @override
+  State<_SketchyDeleteButton> createState() => _SketchyDeleteButtonState();
+}
+
+class _SketchyDeleteButtonState extends State<_SketchyDeleteButton> {
+  bool _isPressed = false;
+
+  void _handleTapDown(TapDownDetails details) {
+    setState(() => _isPressed = true);
+  }
+
+  void _handleTapUp(TapUpDetails details) {
+    setState(() => _isPressed = false);
+  }
+
+  void _handleTapCancel() {
+    setState(() => _isPressed = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const terracotta = Color(0xFFD68C5E);
+    const rustBrown = Color(0xFF8C5E4A);
+    
+    return GestureDetector(
+      onTapDown: _handleTapDown,
+      onTapUp: _handleTapUp,
+      onTapCancel: _handleTapCancel,
+      onTap: widget.onPressed,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 110),
+        curve: Curves.easeOut,
+        transformAlignment: Alignment.center,
+        transform: Matrix4.identity()
+          ..rotateZ(_isPressed ? -0.02 : 0.0)
+          ..scale(_isPressed ? 0.98 : 1.0),
+        height: 60,
+        decoration: BoxDecoration(
+          boxShadow: !_isPressed ? [
+            BoxShadow(
+              color: rustBrown.withOpacity(0.15),
+              offset: const Offset(2, 3),
+              blurRadius: 4,
+            )
+          ] : null,
+        ),
+        child: CustomPaint(
+          painter: _SketchyButtonBorderPainter(
+            borderColor: terracotta,
+            backgroundColor: const Color(0xFFFFFFF0), // Paper White
+            borderWidth: _isPressed ? 2.0 : 1.5,
+            wobbleAmount: 1.5,
+            seed: 999,
+          ),
+          child: Center(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.delete_outline,
+                  size: 22,
+                  color: terracotta,
+                ),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    widget.label,
+                    style: GoogleFonts.kalam(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: terracotta,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// 手绘按钮边框绘制器
+class _SketchyButtonBorderPainter extends CustomPainter {
+  final Color borderColor;
+  final Color? backgroundColor;
+  final double borderWidth;
+  final double wobbleAmount;
+  final int seed;
+
+  _SketchyButtonBorderPainter({
+    required this.borderColor,
+    this.backgroundColor,
+    this.borderWidth = 1.5,
+    this.wobbleAmount = 1.5,
+    this.seed = 123,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path = _createSketchyPath(size);
+    
+    // 1. 先画背景（如果有）
+    if (backgroundColor != null) {
+      final fillPaint = Paint()
+        ..color = backgroundColor!
+        ..style = PaintingStyle.fill;
+      canvas.drawPath(path, fillPaint);
+    }
+
+    // 2. 再画边框
+    final borderPaint = Paint()
+      ..color = borderColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = borderWidth
+      ..strokeJoin = StrokeJoin.round
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawPath(path, borderPaint);
+  }
+
+  Path _createSketchyPath(Size size) {
+    final path = Path();
+    final random = math.Random(seed);
+    final step = 8.0;
+    final wobble = wobbleAmount;
+
+    // Top edge: left to right
+    path.moveTo(0, 0);
+    for (double x = step; x < size.width; x += step) {
+      final noise = (random.nextDouble() * 2 - 1) * wobble;
+      path.lineTo(x, noise);
+    }
+    path.lineTo(size.width, 0);
+
+    // Right edge: top to bottom
+    for (double y = step; y < size.height; y += step) {
+      final noise = (random.nextDouble() * 2 - 1) * wobble;
+      path.lineTo(size.width + noise, y);
+    }
+    path.lineTo(size.width, size.height);
+
+    // Bottom edge: right to left
+    for (double x = size.width - step; x > 0; x -= step) {
+      final noise = (random.nextDouble() * 2 - 1) * wobble;
+      path.lineTo(x, size.height + noise);
+    }
+    path.lineTo(0, size.height);
+
+    // Left edge: bottom to top
+    for (double y = size.height - step; y > 0; y -= step) {
+      final noise = (random.nextDouble() * 2 - 1) * wobble;
+      path.lineTo(noise, y);
+    }
+
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+// 带动画效果的Delete按钮
+class _AnimatedDeleteButton extends StatefulWidget {
+  final VoidCallback onTap;
+  final bool isEditMode;
+
+  const _AnimatedDeleteButton({
+    required this.onTap,
+    required this.isEditMode,
+  });
+
+  @override
+  State<_AnimatedDeleteButton> createState() => _AnimatedDeleteButtonState();
+}
+
+class _AnimatedDeleteButtonState extends State<_AnimatedDeleteButton> {
+  bool _isPressed = false;
+  static const double _pressedTiltAngle = -0.09;
+
+  void _handleTapDown(TapDownDetails details) {
+    setState(() => _isPressed = true);
+  }
+
+  void _handleTapUp(TapUpDetails details) {
+    setState(() => _isPressed = false);
+  }
+
+  void _handleTapCancel() {
+    setState(() => _isPressed = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const terracotta = Color(0xFFD68C5E); // Terracotta
+    const rustBrown = Color(0xFF8C5E4A); // Rust Brown
+    
+    return GestureDetector(
+      onTapDown: _handleTapDown,
+      onTapUp: _handleTapUp,
+      onTapCancel: _handleTapCancel,
+      onTap: widget.onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 110),
+        curve: Curves.easeOut,
+        transformAlignment: Alignment.center,
+        transform: Matrix4.identity()
+          ..rotateZ(_isPressed ? _pressedTiltAngle : 0.0)
+          ..scale(_isPressed ? 0.95 : 1.0),
+        child: Icon(
+          widget.isEditMode ? Icons.close : Icons.delete_outline,
+          size: 26,
+          color: widget.isEditMode ? terracotta : rustBrown.withOpacity(0.7),
+        ),
+      ),
+    );
+  }
 }
 
 // 带动画效果的Filter按钮
