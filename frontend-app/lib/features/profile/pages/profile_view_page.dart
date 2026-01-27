@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:personal_sous_chef/core/theme/fallback_google_fonts.dart';
-import 'profile_edit_page.dart';
 import 'settings_page.dart';
 // Modified by Chase: Fixed import paths after moving preferences pages to ums/preferences/ folder / 由 Chase 修改：偏好页面移动到 ums/preferences/ 文件夹后修复导入路径
 // Need to go up to ums/ then into preferences/ folder / 需要向上到 ums/ 然后进入 preferences/ 文件夹
@@ -21,11 +20,8 @@ import '../../household/pages/household_manage_page.dart';
 // Modified by Chase: Changed to StatefulWidget to support refresh after edit / 由 Chase 修改：改为 StatefulWidget 以支持编辑后刷新
 class ProfileViewPage extends StatefulWidget {
   final bool shouldAnimateCover; // 是否显示封面打开动画
-  
-  const ProfileViewPage({
-    super.key,
-    this.shouldAnimateCover = false,
-  });
+
+  const ProfileViewPage({super.key, this.shouldAnimateCover = false});
 
   @override
   State<ProfileViewPage> createState() => _ProfileViewPageState();
@@ -388,7 +384,11 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
               style: GoogleFonts.kalam(
                 fontSize: 15,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected ? color : const Color(0xFF6B4F4F), // River Deep Brown - 与 Profile 页面一致
+                color: isSelected
+                    ? color
+                    : const Color(
+                        0xFF6B4F4F,
+                      ), // River Deep Brown - 与 Profile 页面一致
               ),
             ),
           ),
@@ -454,8 +454,12 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
           label: 'Energy',
           valueText: '${dailyEnergy.toInt()} kcal',
           accent: const Color(0xFFF0B27A), // Appetite Orange - 与 homepage 一致
-          labelColor: const Color(0xFF6B4F4F), // River Deep Brown - 与 homepage 一致
-          valueColor: const Color(0xFF6B4F4F).withOpacity(0.8), // River Deep Brown - 与 homepage 一致
+          labelColor: const Color(
+            0xFF6B4F4F,
+          ), // River Deep Brown - 与 homepage 一致
+          valueColor: const Color(
+            0xFF6B4F4F,
+          ).withOpacity(0.8), // River Deep Brown - 与 homepage 一致
         ),
       if (dailyProtein != null)
         _buildNutritionStatCard(
@@ -520,7 +524,9 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
         'No preferences set. Tap "Edit" to add preferences.',
         style: GoogleFonts.kalam(
           fontSize: 14,
-          color: const Color(0xFF6B4F4F).withOpacity(0.8), // River Deep Brown - 与 Profile 页面一致
+          color: const Color(
+            0xFF6B4F4F,
+          ).withOpacity(0.8), // River Deep Brown - 与 Profile 页面一致
         ).copyWith(fontStyle: FontStyle.italic),
       );
     }
@@ -538,7 +544,9 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
             style: GoogleFonts.kalam(
               fontSize: 13,
               fontWeight: FontWeight.bold,
-              color: const Color(0xFF6B4F4F), // River Deep Brown - 与 Profile 页面一致
+              color: const Color(
+                0xFF6B4F4F,
+              ), // River Deep Brown - 与 Profile 页面一致
             ),
           ),
           const SizedBox(height: 8),
@@ -553,7 +561,9 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                     _formatToTitleCase(v),
                     style: GoogleFonts.kalam(
                       fontSize: 12,
-                      color: const Color(0xFF6B4F4F).withOpacity(0.8), // River Deep Brown - 与 Profile 页面一致
+                      color: const Color(
+                        0xFF6B4F4F,
+                      ).withOpacity(0.8), // River Deep Brown - 与 Profile 页面一致
                     ),
                   ),
                   side: BorderSide(color: Colors.grey.shade400),
@@ -566,7 +576,9 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                     '+$remaining',
                     style: GoogleFonts.kalam(
                       fontSize: 12,
-                      color: const Color(0xFF6B4F4F).withOpacity(0.8), // River Deep Brown - 与 Profile 页面一致
+                      color: const Color(
+                        0xFF6B4F4F,
+                      ).withOpacity(0.8), // River Deep Brown - 与 Profile 页面一致
                     ),
                   ),
                   side: BorderSide(color: Colors.grey.shade400),
@@ -595,7 +607,9 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
         'No items',
         style: GoogleFonts.kalam(
           fontSize: 12,
-          color: const Color(0xFF6B4F4F).withOpacity(0.8), // River Deep Brown - 与 Profile 页面一致
+          color: const Color(
+            0xFF6B4F4F,
+          ).withOpacity(0.8), // River Deep Brown - 与 Profile 页面一致
         ),
       );
     }
@@ -614,7 +628,9 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
               _formatToTitleCase(item),
               style: GoogleFonts.kalam(
                 fontSize: 12,
-                color: const Color(0xFF6B4F4F).withOpacity(0.8), // River Deep Brown - 与 Profile 页面一致
+                color: const Color(
+                  0xFF6B4F4F,
+                ).withOpacity(0.8), // River Deep Brown - 与 Profile 页面一致
               ),
             ),
             side: BorderSide(color: Colors.grey.shade400),
@@ -627,7 +643,9 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
               '+$remaining',
               style: GoogleFonts.kalam(
                 fontSize: 12,
-                color: const Color(0xFF6B4F4F).withOpacity(0.8), // River Deep Brown - 与 Profile 页面一致
+                color: const Color(
+                  0xFF6B4F4F,
+                ).withOpacity(0.8), // River Deep Brown - 与 Profile 页面一致
               ),
             ),
             side: BorderSide(color: Colors.grey.shade400),
@@ -668,7 +686,9 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
           value.isNotEmpty ? value : 'Not set',
           style: GoogleFonts.kalam(
             fontSize: 24,
-            color: const Color(0xFF6B4F4F).withOpacity(0.8), // River Deep Brown - 与 homepage 一致
+            color: const Color(
+              0xFF6B4F4F,
+            ).withOpacity(0.8), // River Deep Brown - 与 homepage 一致
           ),
           overflow: TextOverflow.ellipsis,
           maxLines: 1,
@@ -729,6 +749,13 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
     );
   }
 
+  // Helper method to get gender display text
+  String _getGenderDisplay(String gender) {
+    if (gender == '1') return 'Male';
+    if (gender == '2') return 'Female';
+    return gender.isNotEmpty ? gender : 'Unknown';
+  }
+
   // Helper method to get user profile data
   UserProfile _getUserProfile() {
     return _userData != null
@@ -773,7 +800,10 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
           // 内容区域
           SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 20.0,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -803,28 +833,6 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                                   ),
                                 ),
                               ),
-                              const SizedBox(height: 4),
-                              SketchyButton(
-                                text: 'Edit',
-                                backgroundColor: Colors.orange.shade100,
-                                borderColor: Colors.orange.shade700,
-                                onPressed: () async {
-                                  final result = await Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => const ProfileEditPage(),
-                                    ),
-                                  );
-                                  if (result == true) {
-                                    _loadUserData();
-                                  }
-                                },
-                              ),
-                              const SizedBox(height: 24),
-                              SizedBox(
-                                width: 160,
-                                child: _buildMiniInfo('Birthdate', ageData['birthdate']!),
-                              ),
                             ],
                           ),
                           const SizedBox(width: 16),
@@ -843,27 +851,13 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                                         style: GoogleFonts.caveat(
                                           fontSize: 36,
                                           fontWeight: FontWeight.bold,
-                                          color: const Color(0xFF6B4F4F).withOpacity(0.8), // River Deep Brown - 与出生日期一致
+                                          color: const Color(0xFF6B4F4F)
+                                              .withOpacity(
+                                                0.8,
+                                              ), // River Deep Brown - 与出生日期一致
                                         ),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Flexible(
-                                      fit: FlexFit.loose,
-                                      child: SketchyButton(
-                                        text: 'settings',
-                                        backgroundColor: Colors.grey.shade400,
-                                        borderColor: Colors.grey.shade700,
-                                        onPressed: () {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) => const SettingsPage(),
-                                            ),
-                                          );
-                                        },
                                       ),
                                     ),
                                   ],
@@ -884,58 +878,99 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                         ],
                       ),
                       const SizedBox(height: 24),
-                      Column(
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildMiniInfo('Birthdate', ageData['birthdate']!),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: _buildMiniInfo('Gender', user.gender),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildMiniInfo('Weight', user.weight),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: _buildMiniInfo('Height', user.height),
-                              ),
-                            ],
-                          ),
-                          if (ageData['age']!.isNotEmpty) ...[
+                      Transform.translate(
+                        offset: const Offset(24, 58), // 再次下移 32 像素 (26 + 32 = 58)
+                        child: Column(
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _buildMiniInfo(
+                                    'Birthdate',
+                                    ageData['birthdate']!,
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: _buildMiniInfo(
+                                    'Gender',
+                                    _getGenderDisplay(user.gender),
+                                  ),
+                                ),
+                              ],
+                            ),
                             const SizedBox(height: 12),
                             Row(
                               children: [
                                 Expanded(
-                                  child: _buildMiniInfo('Age', '${ageData['age']} years'),
+                                  child: _buildMiniInfo('Weight', user.weight),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: _buildMiniInfo('Height', user.height),
                                 ),
                               ],
                             ),
-                          ],
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                      // Invite 按钮 - 放在资料信息下方
-                      Center(
-                        child: SketchyButton(
-                          text: 'Invite',
-                          backgroundColor: Colors.orange.shade100,
-                          borderColor: Colors.orange.shade700,
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const HouseholdManagePage(),
+                            if (ageData['age']!.isNotEmpty) ...[
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildMiniInfo(
+                                      'Age',
+                                      '${ageData['age']} years',
+                                    ),
+                                  ),
+                                ],
                               ),
-                            );
-                          },
+                            ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 100), // 再次下移 32 像素 (68 + 32 = 100)
+                      // 按钮组：Settings 在上，Invite 在下
+                      Center(
+                        child: Column(
+                          children: [
+                            SketchyButton(
+                              text: 'Settings',
+                              fontSize: 23, // 调整字体 (原为 26)
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 54,
+                                vertical: 18,
+                              ), // 调整按钮大小 (原为 60, 22)
+                              backgroundColor: Colors.grey.shade400,
+                              borderColor: Colors.grey.shade700,
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const SettingsPage(),
+                                  ),
+                                );
+                              },
+                            ),
+                            const SizedBox(height: 16), // 缩小间距，使 Setting 向 Invite 靠近 (原为 24)
+                            SketchyButton(
+                              text: 'Invite',
+                              fontSize: 23, // 调整字体 (原为 26)
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 54,
+                                vertical: 18,
+                              ), // 调整按钮大小 (原为 60, 22)
+                              backgroundColor: Colors.orange.shade100,
+                              borderColor: Colors.orange.shade700,
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const HouseholdManagePage(),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
                         ),
                       ),
                     ],
@@ -944,7 +979,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                 const SizedBox(height: 80), // 增加间距，避免与印章重叠
               ],
             ),
-          ),  // SingleChildScrollView 结束，需要逗号因为后面还有元素
+          ), // SingleChildScrollView 结束，需要逗号因为后面还有元素
           // 参考图元素：精准裁剪的红色爪印 + 代码生成的艺术字印章（半透明，不挡信息）
           Positioned(
             top: 182,
@@ -971,9 +1006,9 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
               ),
             ),
           ),
-          ],
-        ),
-      );
+        ],
+      ),
+    );
   }
 
   // Build Health Page (Page 1)
@@ -1013,7 +1048,9 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                 }
 
                 return SketchyBorder(
-                  borderColor: const Color(0xFF6B4F4F), // River Deep Brown - 与出生日期一致
+                  borderColor: const Color(
+                    0xFF6B4F4F,
+                  ), // River Deep Brown - 与出生日期一致
                   borderWidth: 2.0,
                   borderRadius: 12,
                   roughness: 2.0,
@@ -1031,7 +1068,9 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                           style: GoogleFonts.kalam(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
-                            color: const Color(0xFF6B4F4F), // River Deep Brown - 与 Profile 页面一致
+                            color: const Color(
+                              0xFF6B4F4F,
+                            ), // River Deep Brown - 与 Profile 页面一致
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -1040,7 +1079,9 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                           style: GoogleFonts.caveat(
                             fontSize: 32,
                             fontWeight: FontWeight.bold,
-                            color: const Color(0xFF6B4F4F).withOpacity(0.8), // River Deep Brown - 与 Profile 页面一致
+                            color: const Color(0xFF6B4F4F).withOpacity(
+                              0.8,
+                            ), // River Deep Brown - 与 Profile 页面一致
                           ),
                         ),
                       ],
@@ -1055,7 +1096,9 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
               style: GoogleFonts.kalam(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: const Color(0xFF6B4F4F), // River Deep Brown - 与 Profile 页面一致
+                color: const Color(
+                  0xFF6B4F4F,
+                ), // River Deep Brown - 与 Profile 页面一致
               ),
             ),
             const SizedBox(height: 12),
@@ -1106,7 +1149,9 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                     'Set a health goal to see nutrition targets',
                     style: GoogleFonts.kalam(
                       fontSize: 14,
-                      color: const Color(0xFF6B4F4F).withOpacity(0.8), // River Deep Brown - 与 Profile 页面一致
+                      color: const Color(
+                        0xFF6B4F4F,
+                      ).withOpacity(0.8), // River Deep Brown - 与 Profile 页面一致
                     ),
                   ),
                 ),
@@ -1138,7 +1183,9 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                     style: GoogleFonts.kalam(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: const Color(0xFF6B4F4F), // River Deep Brown - 与 Profile 页面一致
+                      color: const Color(
+                        0xFF6B4F4F,
+                      ), // River Deep Brown - 与 Profile 页面一致
                     ),
                   ),
                   subtitle: Column(
@@ -1169,7 +1216,9 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                     style: GoogleFonts.kalam(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: const Color(0xFF6B4F4F), // River Deep Brown - 与 Profile 页面一致
+                      color: const Color(
+                        0xFF6B4F4F,
+                      ), // River Deep Brown - 与 Profile 页面一致
                     ),
                   ),
                   subtitle: _buildItemsSummary(kCurrentUser.dietHabits),
@@ -1194,7 +1243,9 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                     style: GoogleFonts.kalam(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: const Color(0xFF6B4F4F), // River Deep Brown - 与 Profile 页面一致
+                      color: const Color(
+                        0xFF6B4F4F,
+                      ), // River Deep Brown - 与 Profile 页面一致
                     ),
                   ),
                   subtitle: _buildItemsSummary(kCurrentUser.allergies),

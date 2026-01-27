@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:personal_sous_chef/core/theme/fallback_google_fonts.dart';
-import 'profile_view_page.dart';
+import 'profile_edit_page.dart';
 // Modified by Chase: Import user static data and auth service / 由 Chase 修改：导入用户静态数据和认证服务
 import '../../../data/models/user_profile.dart';
 
@@ -18,59 +18,27 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) {
-    // Modified by Chase: Read data from global kCurrentUser instead of hardcoded values / 由 Chase 修改：从全局 kCurrentUser 读取数据，而不是硬编码值
-    final user = kCurrentUser;
-
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: Column(
         children: [
-          // 用户信息区域（可点击返回）
-          InkWell(
+          // 用户信息区域（可点击进入编辑页）
+          ListTile(
+            leading: const CircleAvatar(
+              radius: 20,
+              backgroundColor: Colors.grey,
+              child: Icon(Icons.person, size: 20, color: Colors.white),
+            ),
+            title: const Text('Edit Profile'),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
             onTap: () {
-              Navigator.pushReplacement(
+              Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const ProfileViewPage(),
+                  builder: (context) => const ProfileEditPage(),
                 ),
               );
             },
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                children: [
-                  const CircleAvatar(
-                    radius: 30,
-                    backgroundColor: Colors.grey,
-                    child: Icon(Icons.person, size: 30, color: Colors.white),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          user.username,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          user.email,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Icon(Icons.arrow_forward_ios, size: 16),
-                ],
-              ),
-            ),
           ),
           const Divider(),
           // 设置选项
