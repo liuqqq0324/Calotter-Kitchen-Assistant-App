@@ -223,45 +223,6 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
     }
   }
 
-  // 把 Map 变成一行 summary 文案
-  String? get _filterSummary {
-    if (_currentFilter == null) return null;
-
-    final servings = _currentFilter?['servings'];
-    final dishCount = _currentFilter?['dish_count'];
-    final calorieTarget = _currentFilter?['calorie_target'];
-    final maxTime = _currentFilter?['max_cooking_time_min'];
-    final difficulty = _currentFilter?['difficulty_target'];
-
-    final parts = <String>[];
-
-    if (servings != null) {
-      parts.add('$servings servings');
-    }
-    if (dishCount != null) {
-      parts.add('$dishCount dishes');
-    }
-    if (calorieTarget != null) {
-      parts.add('≤ $calorieTarget kcal / person');
-    }
-    if (maxTime != null) {
-      parts.add('≤ $maxTime min / dish');
-    }
-    // 只在 difficulty 有效且非空时才显示
-    if (difficulty != null) {
-      if (difficulty is List) {
-        if (difficulty.isNotEmpty) {
-          parts.add('difficulty: ${difficulty.join("/")}');
-        }
-      } else if (difficulty.toString().trim().isNotEmpty) {
-        parts.add('difficulty: $difficulty');
-      }
-    }
-
-    if (parts.isEmpty) return null;
-    return parts.join(' · ');
-  }
-
   Future<void> _openFilterPage() async {
     final result = await showModalBottomSheet<Map<String, dynamic>>(
       context: context,
@@ -299,7 +260,6 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final summaryText = _filterSummary;
 
     return Container(
       decoration: const BoxDecoration(
@@ -375,55 +335,6 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
               ),
 
               const SizedBox(height: 12),
-
-              // 如果有 filter，总结一下当前条件 - 手绘风格（与 generated recipes 一致）
-              if (summaryText != null) ...[
-                SketchyCard(
-                  backgroundColor: const Color(0xFFD68C5E).withOpacity(0.12), // 与 generated recipes 一致
-                  borderColor: const Color(0xFF8C5E4A), // 与 generated recipes 一致
-                  borderWidth: 2.0,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.tune,
-                        size: 18,
-                        color: Color(0xFF8C5E4A), // 与 generated recipes 一致
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          summaryText,
-                          style: GoogleFonts.kalam(
-                            fontSize: 14,
-                            color: const Color(0xFF8C5E4A), // 与 generated recipes 一致
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          setState(() {
-                            _currentFilter = null;
-                          });
-                        },
-                        child: Text(
-                          'Clear',
-                          style: GoogleFonts.kalam(
-                            fontSize: 12,
-                            color: const Color(0xFF8C5E4A), // 与 generated recipes 一致
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-              ] else
-                const SizedBox(height: 16),
 
               // 收藏食谱区域 + 选择后统一 Start cooking
               Expanded(
