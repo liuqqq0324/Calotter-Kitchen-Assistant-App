@@ -13,6 +13,7 @@ class SketchyButton extends StatefulWidget {
   final double borderWidth;
   final EdgeInsets? padding;
   final bool isFullWidth;
+  final double fontSize;
 
   const SketchyButton({
     super.key,
@@ -25,6 +26,7 @@ class SketchyButton extends StatefulWidget {
     this.borderWidth = 2.5,
     this.padding,
     this.isFullWidth = false,
+    this.fontSize = 20,
   });
 
   @override
@@ -75,7 +77,7 @@ class _SketchyButtonState extends State<SketchyButton> {
                       child: Text(
                         widget.text,
                         style: GoogleFonts.caveat(
-                          fontSize: 20,
+                          fontSize: widget.fontSize,
                           fontWeight: FontWeight.bold,
                           color: txtColor,
                           letterSpacing: 1.5,

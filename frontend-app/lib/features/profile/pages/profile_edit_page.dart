@@ -16,7 +16,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
   // Modified by Chase: Initialize controllers from API data / 由 Chase 修改：从 API 数据初始化控制器
   late TextEditingController usernameController;
   late TextEditingController emailController;
-  late TextEditingController genderController;
+  String? _selectedGender;
   DateTime? _selectedBirthdate; // Changed from ageController to birthdate
   late TextEditingController heightController;
   late TextEditingController weightController;
@@ -73,9 +73,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
           text: data['userName'] ?? '',
         );
         emailController = TextEditingController(text: data['email'] ?? '');
-        genderController = TextEditingController(
-          text: data['profile']?['gender'] ?? '',
-        );
+        _selectedGender = data['profile']?['gender']?.toString();
         // Parse birthdate from API response
         final birthdateStr = data['profile']?['birthdate'];
         if (birthdateStr != null && birthdateStr.toString().isNotEmpty) {
@@ -105,9 +103,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
         emailController = TextEditingController(
           text: user.email.isNotEmpty ? user.email : '',
         );
-        genderController = TextEditingController(
-          text: user.gender.isNotEmpty ? user.gender : '',
-        );
+        _selectedGender = user.gender.isNotEmpty ? user.gender : null;
         // Parse birthdate from user.age (if it's a date string) or set to null
         if (user.age.isNotEmpty) {
           try {
@@ -278,7 +274,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
     try {
       usernameController.dispose();
       emailController.dispose();
-      genderController.dispose();
+      // _selectedGender doesn't need disposal
       // ageController removed - using _selectedBirthdate instead
       heightController.dispose();
       weightController.dispose();
@@ -381,7 +377,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                       'T',
                     )[0] // YYYY-MM-DD format
                   : null;
-              final gender = genderController.text.trim();
+              final gender = _selectedGender;
               final height = int.tryParse(
                 heightController.text.replaceAll(' cm', '').trim(),
               );
@@ -392,7 +388,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
               // Save user basic info
               final result = await UserService.updateUserInfo(
                 birthdate: birthdate,
-                gender: gender.isNotEmpty ? gender : null,
+                gender: gender,
                 height: height,
                 weight: weight,
               );
@@ -401,7 +397,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                 // Also update local static data for compatibility
                 // Store birthdate as ISO string in age field (for backward compatibility)
                 kCurrentUser.age = birthdate ?? '';
-                kCurrentUser.gender = genderController.text;
+                kCurrentUser.gender = _selectedGender ?? '';
                 kCurrentUser.height = heightController.text;
                 kCurrentUser.weight = weightController.text;
 
@@ -521,11 +517,24 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
               children: [
                 const SizedBox(width: 100, child: Text('Gender')),
                 Expanded(
-                  child: TextField(
-                    controller: genderController,
+                  child: DropdownButtonFormField<String>(
+                    value: (_selectedGender == '1' || _selectedGender == '2') 
+                        ? _selectedGender 
+                        : null,
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     ),
+                    items: const [
+                      DropdownMenuItem(value: '1', child: Text('Male')),
+                      DropdownMenuItem(value: '2', child: Text('Female')),
+                    ],
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedGender = value;
+                      });
+                    },
+                    hint: const Text('Select Gender'),
                   ),
                 ),
               ],
