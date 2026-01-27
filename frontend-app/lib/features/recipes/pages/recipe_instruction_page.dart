@@ -841,81 +841,100 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
     final recipe = widget.menu.recipes[index];
     final steps = recipe.steps;
     final theme = Theme.of(context);
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 头部：emoji + 简介 + 时间卡路里
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  color: Colors.orange.shade50,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Center(
-                  child: Text(
-                    recipe.emoji,
-                    style: const TextStyle(fontSize: 34),
+      
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 头部：emoji + 简介 + 时间卡路里
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade50,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: recipe.category != null
+                        ? Image.asset(
+                            recipe.categoryImagePath,
+                            width: 64,
+                            height: 64,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              // 如果图片加载失败，显示 emoji
+                              return Center(
+                                child: Text(
+                                  recipe.emoji,
+                                  style: const TextStyle(fontSize: 34),
+                                ),
+                              );
+                            },
+                          )
+                        : Center(
+                            child: Text(
+                              recipe.emoji,
+                              style: const TextStyle(fontSize: 34),
+                            ),
+                          ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      recipe.title,
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 24, // 增大标题字体
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        recipe.title,
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 24, // 增大标题字体
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.access_time,
-                          size: 16, // 增大图标
-                          color: Colors.grey[600],
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${recipe.cookingTimeMin} min',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: Colors.grey[700],
-                            fontSize: 15, // 增大字体
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.access_time,
+                            size: 16, // 增大图标
+                            color: Colors.grey[600],
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Icon(
-                          Icons.local_fire_department,
-                          size: 16, // 增大图标
-                          color: Colors.grey[600],
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${recipe.totalCaloriesEstimate.toStringAsFixed(0)} kcal',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: Colors.grey[700],
-                            fontSize: 15, // 增大字体
+                          const SizedBox(width: 4),
+                          Text(
+                            '${recipe.cookingTimeMin} min',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: Colors.grey[700],
+                              fontSize: 15, // 增大字体
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                          const SizedBox(width: 12),
+                          Icon(
+                            Icons.local_fire_department,
+                            size: 16, // 增大图标
+                            color: Colors.grey[600],
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${recipe.totalCaloriesEstimate.toStringAsFixed(0)} kcal',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: Colors.grey[700],
+                              fontSize: 15, // 增大字体
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
 
-          const SizedBox(height: 20),
+            const SizedBox(height: 20),
 
           // 可折叠的原材料列表 - 使用与 home 页一致的便签样式（带胶带和锯齿边框）
           Stack(

@@ -248,6 +248,7 @@ public class FavoriteRecipeService {
         recipe.setDescription(recipeDto.getShortDescription());
         recipe.setCookingTimeMinutes(recipeDto.getCookingTimeMin());
         recipe.setDifficulty(parseDifficulty(recipeDto.getDifficulty()));
+        recipe.setCategory(parseCategory(recipeDto.getCategory())); // 🔧 FIX: 添加category更新
         
         if (recipeDto.getNutritionEstimate() != null) {
             recipe.setTotalCalories(toInt(recipeDto.getNutritionEstimate().getCalories()));

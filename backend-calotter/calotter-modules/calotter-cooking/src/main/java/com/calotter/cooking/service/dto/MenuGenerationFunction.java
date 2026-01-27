@@ -62,7 +62,11 @@ public class MenuGenerationFunction {
         @JsonProperty(required = true)
         private String difficulty;
         
-        // 移除描述，字段名 nutritionEstimate 已经很清楚
+        @JsonPropertyDescription("Cooking category: STIR_FRY_PAN_FRY (stir-fry/pan-fry), STEAM_BOIL (steam/boil), BRAISE_STEW (braise/stew), COLD_SALAD (cold salad), SOUP (soup), ROAST_BAKE (roast/bake)")
+        @JsonProperty(required = true)
+        private String category;
+        
+        @JsonPropertyDescription("Nutrition estimate for the entire recipe")
         @JsonProperty(required = true)
         private NutritionEstimateOption nutritionEstimate;
         

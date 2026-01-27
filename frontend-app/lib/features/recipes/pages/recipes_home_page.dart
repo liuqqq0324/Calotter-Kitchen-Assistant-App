@@ -179,11 +179,29 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
   Map<String, dynamic>? _currentFilter; // 保存最近一次的 filter 设置
   final Set<String> _selectedFavoriteIds = {};
   bool _loadingFavorites = false;
+  bool _isEditMode = false; // 编辑/删除模式
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = ''; // 搜索关键词
+  final Set<String> _selectedCategories = {}; // 选中的分类（支持多选）
 
   @override
   void initState() {
     super.initState();
     _loadFavorites();
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  void _onSearchChanged() {
+    setState(() {
+      _searchQuery = _searchController.text.toLowerCase().trim();
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadFavorites() async {
@@ -203,45 +221,6 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
         setState(() => _loadingFavorites = false);
       }
     }
-  }
-
-  // 把 Map 变成一行 summary 文案
-  String? get _filterSummary {
-    if (_currentFilter == null) return null;
-
-    final servings = _currentFilter?['servings'];
-    final dishCount = _currentFilter?['dish_count'];
-    final calorieTarget = _currentFilter?['calorie_target'];
-    final maxTime = _currentFilter?['max_cooking_time_min'];
-    final difficulty = _currentFilter?['difficulty_target'];
-
-    final parts = <String>[];
-
-    if (servings != null) {
-      parts.add('$servings servings');
-    }
-    if (dishCount != null) {
-      parts.add('$dishCount dishes');
-    }
-    if (calorieTarget != null) {
-      parts.add('≤ $calorieTarget kcal / person');
-    }
-    if (maxTime != null) {
-      parts.add('≤ $maxTime min / dish');
-    }
-    // 只在 difficulty 有效且非空时才显示
-    if (difficulty != null) {
-      if (difficulty is List) {
-        if (difficulty.isNotEmpty) {
-          parts.add('difficulty: ${difficulty.join("/")}');
-        }
-      } else if (difficulty.toString().trim().isNotEmpty) {
-        parts.add('difficulty: $difficulty');
-      }
-    }
-
-    if (parts.isEmpty) return null;
-    return parts.join(' · ');
   }
 
   Future<void> _openFilterPage() async {
@@ -281,7 +260,6 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final summaryText = _filterSummary;
 
     return Container(
       decoration: const BoxDecoration(
@@ -296,71 +274,67 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 顶部标题 + Filter 按钮 - 手绘风格
+              // 顶部标题 + 删除按钮 + Filter按钮 - 手绘风格
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Text(
-                    'My Recipes',
-                    style: GoogleFonts.caveat(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(
+                        'My Recipes',
+                        style: GoogleFonts.caveat(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      // 删除图标按钮
+                      _AnimatedDeleteButton(
+                        isEditMode: _isEditMode,
+                        onTap: () {
+                          setState(() {
+                            _isEditMode = !_isEditMode;
+                            if (!_isEditMode) {
+                              // 退出编辑模式时清空选择
+                              _selectedFavoriteIds.clear();
+                            }
+                          });
+                        },
+                      ),
+                    ],
                   ),
+                  // Filter按钮（厨师帽）
                   _AnimatedFilterButton(onTap: _openFilterPage),
                 ],
               ),
 
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
 
-              // 如果有 filter，总结一下当前条件 - 手绘风格（与 generated recipes 一致）
-              if (summaryText != null) ...[
-                SketchyCard(
-                  backgroundColor: const Color(0xFFD68C5E).withOpacity(0.12), // 与 generated recipes 一致
-                  borderColor: const Color(0xFF8C5E4A), // 与 generated recipes 一致
-                  borderWidth: 2.0,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.tune,
-                        size: 18,
-                        color: Color(0xFF8C5E4A), // 与 generated recipes 一致
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          summaryText,
-                          style: GoogleFonts.kalam(
-                            fontSize: 14,
-                            color: const Color(0xFF8C5E4A), // 与 generated recipes 一致
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          setState(() {
-                            _currentFilter = null;
-                          });
-                        },
-                        child: Text(
-                          'Clear',
-                          style: GoogleFonts.kalam(
-                            fontSize: 12,
-                            color: const Color(0xFF8C5E4A), // 与 generated recipes 一致
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-              ] else
-                const SizedBox(height: 16),
+              // 搜索栏 - 纸胶带样式
+              _WashiTapeSearchBar(
+                controller: _searchController,
+              ),
+
+              const SizedBox(height: 16),
+
+              // 分类筛选栏
+              _CategoryFilterBar(
+                selectedCategories: _selectedCategories,
+                onCategorySelected: (category) {
+                  setState(() {
+                    // 如果已选中，则取消选择；否则添加到选中列表
+                    if (_selectedCategories.contains(category)) {
+                      _selectedCategories.remove(category);
+                    } else {
+                      _selectedCategories.add(category);
+                    }
+                  });
+                },
+              ),
+
+              const SizedBox(height: 12),
 
               // 收藏食谱区域 + 选择后统一 Start cooking
               Expanded(
@@ -374,6 +348,28 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                     _selectedFavoriteIds.removeWhere(
                       (id) => favorites.every((r) => r.id != id),
                     );
+
+                    // 根据搜索关键词和分类过滤食谱
+                    var filteredFavorites = favorites;
+                    
+                    // 先按分类过滤（支持多选）
+                    if (_selectedCategories.isNotEmpty) {
+                      filteredFavorites = filteredFavorites.where((recipe) {
+                        return _selectedCategories.contains(recipe.category);
+                      }).toList();
+                    }
+                    
+                    // 再按搜索词过滤
+                    if (_searchQuery.isNotEmpty) {
+                      filteredFavorites = filteredFavorites.where((recipe) {
+                        final title = recipe.title.toLowerCase();
+                        final ingredients = recipe.ingredients
+                            .map((i) => i.name.toLowerCase())
+                            .join(' ');
+                        return title.contains(_searchQuery) ||
+                            ingredients.contains(_searchQuery);
+                      }).toList();
+                    }
 
                     if (favorites.isEmpty) {
                       return Center(
@@ -406,14 +402,38 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                       );
                     }
 
+                    // 如果搜索后没有结果
+                    if (filteredFavorites.isEmpty && _searchQuery.isNotEmpty) {
+                      return Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.search_off,
+                              size: 48,
+                              color: Colors.grey.shade400,
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'No recipes found for "$_searchQuery"',
+                              style: GoogleFonts.kalam(
+                                fontSize: 16,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
                     return Column(
                       children: [
                         Expanded(
                           child: ListView.builder(
                             padding: const EdgeInsets.only(bottom: 40, top: 12),
-                            itemCount: favorites.length,
+                            itemCount: filteredFavorites.length,
                             itemBuilder: (context, index) {
-                              final recipe = favorites[index];
+                              final recipe = filteredFavorites[index];
                               final selected = _selectedFavoriteIds.contains(
                                 recipe.id,
                               );
@@ -442,12 +462,73 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                             builder: (context, constraints) {
                               const accent = Color(0xFFD68C5E); // Terracotta
                               const shadow = Color(0x1F8C5E4A); // Rust Brown @ 12%
+                              
+                              // 如果在编辑模式，显示删除按钮（手绘风格）
+                              if (_isEditMode) {
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                                  child: _SketchyDeleteButton(
+                                    onPressed: () async {
+                                      // 确认删除对话框
+                                      final confirmed = await _showDeleteConfirmation(
+                                        context,
+                                        _selectedFavoriteIds.length,
+                                      );
+                                      if (!confirmed) return;
+                                      
+                                      // 删除选中的菜谱（从原始列表中找）
+                                      final selectedRecipes = favorites
+                                          .where((r) => _selectedFavoriteIds.contains(r.id))
+                                          .toList();
+                                      
+                                      if (selectedRecipes.isEmpty) return;
+                                      
+                                      // 获取householdId
+                                      final householdId = await HouseholdService.getHouseholdId();
+                                      if (householdId == null) return;
+                                      
+                                      // 删除所有选中的菜谱
+                                      for (final recipe in selectedRecipes) {
+                                        try {
+                                          await CollectedRecipesStore.remove(
+                                            recipe,
+                                            householdId: householdId,
+                                          );
+                                        } catch (e) {
+                                          debugPrint('Failed to remove recipe: $e');
+                                        }
+                                      }
+                                      
+                                      // 退出编辑模式
+                                      setState(() {
+                                        _selectedFavoriteIds.clear();
+                                        _isEditMode = false;
+                                      });
+                                      
+                                      // 显示成功提示
+                                      if (mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              '${selectedRecipes.length} recipe(s) deleted',
+                                            ),
+                                            duration: const Duration(seconds: 2),
+                                          ),
+                                        );
+                                      }
+                                    },
+                                    label: 'Delete (${_selectedFavoriteIds.length} selected)',
+                                  ),
+                                );
+                              }
+                              
+                              // 否则显示Start cooking按钮
                               return Center(
                                 child: SizedBox(
                                   width: constraints.maxWidth * 0.90,
                                   child: ElevatedButton.icon(
                                     onPressed: () {
-                                      final selectedRecipes = favorites
+                                      final selectedRecipes = filteredFavorites
                                           .where(
                                             (r) => _selectedFavoriteIds
                                                 .contains(r.id),
@@ -497,7 +578,7 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                 ),
               ),
 
-              // 生成食谱按钮 - 向上移动覆盖部分区域，增加融合感
+              // 生成食谱按钮
               Transform.translate(
                 offset: const Offset(0, 0),
                 child: SizedBox(
@@ -556,8 +637,8 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
         margin: margin,
         child: GestureDetector(
           onTap: () {
-            // 如果已经选中了某些卡片，点击切换选择状态
-            if (_selectedFavoriteIds.isNotEmpty) {
+            // 如果在编辑模式或已经选中了某些卡片，点击切换选择状态
+            if (_isEditMode || _selectedFavoriteIds.isNotEmpty) {
               onToggleSelect();
             } else {
               // 否则弹出菜单
@@ -565,7 +646,12 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
             }
           },
           onLongPress: () {
-            // 长按切换选择状态
+            // 长按进入编辑模式并选择
+            if (!_isEditMode) {
+              setState(() {
+                _isEditMode = true;
+              });
+            }
             onToggleSelect();
           },
           child: Stack(
@@ -597,46 +683,83 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                         horizontal: 16.0,
                         vertical: 10.0,
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      child: Row(
                         children: [
-                          // 标题
-                          Padding(
-                            padding: const EdgeInsets.only(top: 6.0),
-                            child: Text(
-                              recipe.title,
-                              style: GoogleFonts.caveat(
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black87,
-                              ).copyWith(height: 1.1),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
+                          // 左侧：分类图标
+                          if (recipe.category != null)
+                            Padding(
+                              padding: const EdgeInsets.only(right: 12.0),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.asset(
+                                  recipe.categoryImagePath,
+                                  width: 70,
+                                  height: 70,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    // 如果图片加载失败，显示默认图标
+                                    return Container(
+                                      width: 70,
+                                      height: 70,
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey.shade200,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Icon(
+                                        Icons.restaurant,
+                                        size: 32,
+                                        color: Colors.grey.shade400,
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 20),
-                          // 难度、时间和卡路里在同一行
-                          Padding(
-                            padding: const EdgeInsets.only(top: 2.0),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.center,
+                          // 右侧：文字信息
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                  // 难度标签（手绘风格）
-                                  _buildSketchyDifficultyBadge(
-                                    label: recipe.difficulty.toUpperCase(),
-                                    color: _getDifficultyColor(recipe.difficulty),
-                                  ),
-                                const SizedBox(width: 12),
-                                // 时间和卡路里
-                                Expanded(
+                                // 标题
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 6.0),
                                   child: Text(
-                                    '⏱ ${recipe.cookingTimeMin}min  🔥 ${recipe.totalCaloriesEstimate.toStringAsFixed(0)}kcal',
+                                    recipe.title,
                                     style: GoogleFonts.caveat(
-                                      fontSize: 17,
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.bold,
                                       color: Colors.black87,
-                                    ),
-                                    maxLines: 1,
+                                    ).copyWith(height: 1.1),
+                                    maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const SizedBox(height: 20),
+                                // 难度、时间和卡路里在同一行
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 2.0),
+                                  child: Row(
+                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                    children: [
+                                      // 难度标签（手绘风格）
+                                      _buildSketchyDifficultyBadge(
+                                        label: recipe.difficulty.toUpperCase(),
+                                        color: _getDifficultyColor(recipe.difficulty),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      // 时间和卡路里
+                                      Expanded(
+                                        child: Text(
+                                          '⏱ ${recipe.cookingTimeMin}min  🔥 ${recipe.totalCaloriesEstimate.toStringAsFixed(0)}kcal',
+                                          style: GoogleFonts.caveat(
+                                            fontSize: 17,
+                                            color: Colors.black87,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ],
@@ -705,6 +828,68 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
         ),
       ),
     );
+  }
+
+  // 显示删除确认对话框
+  Future<bool> _showDeleteConfirmation(BuildContext context, int count) async {
+    const terracotta = Color(0xFFD68C5E); // Terracotta
+    const rustBrown = Color(0xFF8C5E4A); // Rust Brown
+    
+    return await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFFF5F1E8),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Text(
+          'Delete Recipes?',
+          style: GoogleFonts.caveat(
+            fontSize: 26,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
+        ),
+        content: Text(
+          'Are you sure you want to delete $count recipe${count > 1 ? 's' : ''}? This action cannot be undone.',
+          style: GoogleFonts.kalam(
+            fontSize: 16,
+            color: Colors.black87,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.kalam(
+                fontSize: 16,
+                color: rustBrown,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: terracotta,
+              foregroundColor: Colors.white,
+              elevation: 4,
+              shadowColor: rustBrown.withOpacity(0.3),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: Text(
+              'Delete',
+              style: GoogleFonts.kalam(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    ) ?? false;
   }
 
   // 显示菜谱选项菜单
@@ -935,6 +1120,551 @@ class _SketchyBadgePainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
+// 手绘风格删除按钮
+class _SketchyDeleteButton extends StatefulWidget {
+  final VoidCallback onPressed;
+  final String label;
+
+  const _SketchyDeleteButton({
+    required this.onPressed,
+    required this.label,
+  });
+
+  @override
+  State<_SketchyDeleteButton> createState() => _SketchyDeleteButtonState();
+}
+
+class _SketchyDeleteButtonState extends State<_SketchyDeleteButton> {
+  bool _isPressed = false;
+
+  void _handleTapDown(TapDownDetails details) {
+    setState(() => _isPressed = true);
+  }
+
+  void _handleTapUp(TapUpDetails details) {
+    setState(() => _isPressed = false);
+  }
+
+  void _handleTapCancel() {
+    setState(() => _isPressed = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const terracotta = Color(0xFFD68C5E);
+    const rustBrown = Color(0xFF8C5E4A);
+    
+    return GestureDetector(
+      onTapDown: _handleTapDown,
+      onTapUp: _handleTapUp,
+      onTapCancel: _handleTapCancel,
+      onTap: widget.onPressed,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 110),
+        curve: Curves.easeOut,
+        transformAlignment: Alignment.center,
+        transform: Matrix4.identity()
+          ..rotateZ(_isPressed ? -0.02 : 0.0)
+          ..scale(_isPressed ? 0.98 : 1.0),
+        height: 60,
+        decoration: BoxDecoration(
+          boxShadow: !_isPressed ? [
+            BoxShadow(
+              color: rustBrown.withOpacity(0.15),
+              offset: const Offset(2, 3),
+              blurRadius: 4,
+            )
+          ] : null,
+        ),
+        child: CustomPaint(
+          painter: _SketchyButtonBorderPainter(
+            borderColor: terracotta,
+            backgroundColor: const Color(0xFFFFFFF0), // Paper White
+            borderWidth: _isPressed ? 2.0 : 1.5,
+            wobbleAmount: 1.5,
+            seed: 999,
+          ),
+          child: Center(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.delete_outline,
+                  size: 22,
+                  color: terracotta,
+                ),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    widget.label,
+                    style: GoogleFonts.kalam(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: terracotta,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// 手绘按钮边框绘制器
+class _SketchyButtonBorderPainter extends CustomPainter {
+  final Color borderColor;
+  final Color? backgroundColor;
+  final double borderWidth;
+  final double wobbleAmount;
+  final int seed;
+
+  _SketchyButtonBorderPainter({
+    required this.borderColor,
+    this.backgroundColor,
+    this.borderWidth = 1.5,
+    this.wobbleAmount = 1.5,
+    this.seed = 123,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path = _createSketchyPath(size);
+    
+    // 1. 先画背景（如果有）
+    if (backgroundColor != null) {
+      final fillPaint = Paint()
+        ..color = backgroundColor!
+        ..style = PaintingStyle.fill;
+      canvas.drawPath(path, fillPaint);
+    }
+
+    // 2. 再画边框
+    final borderPaint = Paint()
+      ..color = borderColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = borderWidth
+      ..strokeJoin = StrokeJoin.round
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawPath(path, borderPaint);
+  }
+
+  Path _createSketchyPath(Size size) {
+    final path = Path();
+    final random = math.Random(seed);
+    final step = 8.0;
+    final wobble = wobbleAmount;
+
+    // Top edge: left to right
+    path.moveTo(0, 0);
+    for (double x = step; x < size.width; x += step) {
+      final noise = (random.nextDouble() * 2 - 1) * wobble;
+      path.lineTo(x, noise);
+    }
+    path.lineTo(size.width, 0);
+
+    // Right edge: top to bottom
+    for (double y = step; y < size.height; y += step) {
+      final noise = (random.nextDouble() * 2 - 1) * wobble;
+      path.lineTo(size.width + noise, y);
+    }
+    path.lineTo(size.width, size.height);
+
+    // Bottom edge: right to left
+    for (double x = size.width - step; x > 0; x -= step) {
+      final noise = (random.nextDouble() * 2 - 1) * wobble;
+      path.lineTo(x, size.height + noise);
+    }
+    path.lineTo(0, size.height);
+
+    // Left edge: bottom to top
+    for (double y = size.height - step; y > 0; y -= step) {
+      final noise = (random.nextDouble() * 2 - 1) * wobble;
+      path.lineTo(noise, y);
+    }
+
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+// 带动画效果的Delete按钮
+class _AnimatedDeleteButton extends StatefulWidget {
+  final VoidCallback onTap;
+  final bool isEditMode;
+
+  const _AnimatedDeleteButton({
+    required this.onTap,
+    required this.isEditMode,
+  });
+
+  @override
+  State<_AnimatedDeleteButton> createState() => _AnimatedDeleteButtonState();
+}
+
+class _AnimatedDeleteButtonState extends State<_AnimatedDeleteButton> {
+  bool _isPressed = false;
+  static const double _pressedTiltAngle = -0.09;
+
+  void _handleTapDown(TapDownDetails details) {
+    setState(() => _isPressed = true);
+  }
+
+  void _handleTapUp(TapUpDetails details) {
+    setState(() => _isPressed = false);
+  }
+
+  void _handleTapCancel() {
+    setState(() => _isPressed = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const terracotta = Color(0xFFD68C5E); // Terracotta
+    const rustBrown = Color(0xFF8C5E4A); // Rust Brown
+    
+    return GestureDetector(
+      onTapDown: _handleTapDown,
+      onTapUp: _handleTapUp,
+      onTapCancel: _handleTapCancel,
+      onTap: widget.onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 110),
+        curve: Curves.easeOut,
+        transformAlignment: Alignment.center,
+        transform: Matrix4.identity()
+          ..rotateZ(_isPressed ? _pressedTiltAngle : 0.0)
+          ..scale(_isPressed ? 0.95 : 1.0),
+        child: Icon(
+          widget.isEditMode ? Icons.close : Icons.delete_outline,
+          size: 26,
+          color: widget.isEditMode ? terracotta : rustBrown.withOpacity(0.7),
+        ),
+      ),
+    );
+  }
+}
+
+// 分类数据
+class _CategoryData {
+  final String name;
+  final String displayName;
+  final String sketchIcon;
+  final String colorIcon;
+
+  const _CategoryData({
+    required this.name,
+    required this.displayName,
+    required this.sketchIcon,
+    required this.colorIcon,
+  });
+}
+
+// 所有分类
+const List<_CategoryData> _allCategories = [
+  _CategoryData(
+    name: 'STIR_FRY_PAN_FRY',
+    displayName: 'Stir Fry',
+    sketchIcon: 'assets/dish_category/SKETCH_STIR_FRY_PAN_FRY.png',
+    colorIcon: 'assets/dish_category/STIR_FRY_PAN_FRY.png',
+  ),
+  _CategoryData(
+    name: 'STEAM_BOIL',
+    displayName: 'Steam',
+    sketchIcon: 'assets/dish_category/SKETCH_STEAM_BOIL.png',
+    colorIcon: 'assets/dish_category/STEAM_BOIL.png',
+  ),
+  _CategoryData(
+    name: 'BRAISE_STEW',
+    displayName: 'Braise',
+    sketchIcon: 'assets/dish_category/SKETCH_BRAISE_STEW.png',
+    colorIcon: 'assets/dish_category/BRAISE_STEW.png',
+  ),
+  _CategoryData(
+    name: 'COLD_SALAD',
+    displayName: 'Salad',
+    sketchIcon: 'assets/dish_category/SKETCH_COLD_SALAD.png',
+    colorIcon: 'assets/dish_category/COLD_SALAD.png',
+  ),
+  _CategoryData(
+    name: 'SOUP',
+    displayName: 'Soup',
+    sketchIcon: 'assets/dish_category/SKETCH_SOUP.png',
+    colorIcon: 'assets/dish_category/SOUP.png',
+  ),
+  _CategoryData(
+    name: 'ROAST_BAKE',
+    displayName: 'Roast',
+    sketchIcon: 'assets/dish_category/SKETCH_ROAST_BAKE.png',
+    colorIcon: 'assets/dish_category/ROAST_BAKE.png',
+  ),
+];
+
+// 分类筛选栏
+class _CategoryFilterBar extends StatelessWidget {
+  final Set<String> selectedCategories;
+  final ValueChanged<String> onCategorySelected;
+
+  const _CategoryFilterBar({
+    required this.selectedCategories,
+    required this.onCategorySelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 90,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        itemCount: _allCategories.length,
+        itemBuilder: (context, index) {
+          final category = _allCategories[index];
+          final isSelected = selectedCategories.contains(category.name);
+          
+          return _CategoryIconButton(
+            category: category,
+            isSelected: isSelected,
+            onTap: () => onCategorySelected(category.name),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// 分类图标按钮
+class _CategoryIconButton extends StatelessWidget {
+  final _CategoryData category;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _CategoryIconButton({
+    required this.category,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 72,
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 图标容器
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOut,
+              width: 56,
+              height: 56,
+              child: Image.asset(
+                isSelected ? category.colorIcon : category.sketchIcon,
+                width: 56,
+                height: 56,
+                fit: BoxFit.contain,
+              ),
+            ),
+            const SizedBox(height: 6),
+            // 分类名称
+            Text(
+              category.displayName,
+              style: GoogleFonts.kalam(
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                color: isSelected 
+                    ? const Color(0xFF8C5E4A) 
+                    : Colors.black54,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// 纸胶带样式的搜索栏
+class _WashiTapeSearchBar extends StatefulWidget {
+  final TextEditingController controller;
+
+  const _WashiTapeSearchBar({required this.controller});
+
+  @override
+  State<_WashiTapeSearchBar> createState() => _WashiTapeSearchBarState();
+}
+
+class _WashiTapeSearchBarState extends State<_WashiTapeSearchBar> {
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(() {
+      setState(() {}); // 更新清除按钮显示
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 50,
+      child: CustomPaint(
+        painter: _WashiTapePainter(),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Row(
+            children: [
+              // 放大镜图标
+              const Icon(
+                Icons.search,
+                size: 24,
+                color: Color(0xFF8C5E4A), // Rust Brown 主题色
+              ),
+              const SizedBox(width: 12),
+              // 搜索输入框
+              Expanded(
+                child: TextField(
+                  controller: widget.controller,
+                  style: GoogleFonts.kalam(
+                    fontSize: 16,
+                    color: Colors.black87,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: 'Search chicken, beef...',
+                    hintStyle: GoogleFonts.kalam(
+                      fontSize: 16,
+                      color: Colors.black45,
+                    ),
+                    border: InputBorder.none,
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                  ),
+                ),
+              ),
+              // 清除按钮
+              if (widget.controller.text.isNotEmpty)
+                GestureDetector(
+                  onTap: () => widget.controller.clear(),
+                  child: const Icon(
+                    Icons.close,
+                    size: 20,
+                    color: Colors.black45,
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// 纸胶带背景绘制器（撕裂边缘效果）
+class _WashiTapePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final random = math.Random(42);
+    
+    // 创建撕裂边缘路径
+    final path = _createTornEdgePath(size, random);
+    
+    // 绘制阴影
+    final shadowPaint = Paint()
+      ..color = Colors.black.withOpacity(0.1)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
+    final shadowPath = Path();
+    shadowPath.addPath(path, const Offset(2, 3));
+    canvas.drawPath(shadowPath, shadowPaint);
+    
+    // 绘制纸胶带背景（米黄色）
+    final bgPaint = Paint()
+      ..color = const Color(0xFFFFF8E7) // 米黄色
+      ..style = PaintingStyle.fill;
+    canvas.drawPath(path, bgPaint);
+    
+    // 添加纸张纹理
+    canvas.save();
+    canvas.clipPath(path);
+    _drawPaperTexture(canvas, size, random);
+    canvas.restore();
+    
+    // 绘制边缘线
+    final edgePaint = Paint()
+      ..color = const Color(0xFFE8D5B7).withOpacity(0.6)
+      ..strokeWidth = 1.5
+      ..style = PaintingStyle.stroke;
+    canvas.drawPath(path, edgePaint);
+  }
+  
+  Path _createTornEdgePath(Size size, math.Random random) {
+    final path = Path();
+    const double tearSize = 2.0; // 撕裂效果大小
+    const double step = 5.0;
+    
+    // 顶部边缘 - 撕裂效果
+    path.moveTo(0, 0);
+    for (double x = step; x < size.width; x += step) {
+      final noise = (random.nextDouble() * 2 - 1) * tearSize;
+      path.lineTo(x, noise.clamp(-tearSize, tearSize));
+    }
+    path.lineTo(size.width, 0);
+    
+    // 右侧边缘 - 撕裂效果
+    for (double y = step; y < size.height; y += step) {
+      final noise = (random.nextDouble() * 2 - 1) * tearSize;
+      path.lineTo(size.width + noise.clamp(-tearSize, tearSize), y);
+    }
+    path.lineTo(size.width, size.height);
+    
+    // 底部边缘 - 撕裂效果
+    for (double x = size.width - step; x > 0; x -= step) {
+      final noise = (random.nextDouble() * 2 - 1) * tearSize;
+      path.lineTo(x, size.height + noise.clamp(-tearSize, tearSize));
+    }
+    path.lineTo(0, size.height);
+    
+    // 左侧边缘 - 撕裂效果
+    for (double y = size.height - step; y > 0; y -= step) {
+      final noise = (random.nextDouble() * 2 - 1) * tearSize;
+      path.lineTo(noise.clamp(-tearSize, tearSize), y);
+    }
+    
+    path.close();
+    return path;
+  }
+  
+  void _drawPaperTexture(Canvas canvas, Size size, math.Random random) {
+    final texturePaint = Paint()
+      ..color = const Color(0xFFF5E6D3).withOpacity(0.3)
+      ..strokeWidth = 0.5;
+    
+    // 随机绘制一些细线来模拟纸张纹理
+    for (int i = 0; i < 30; i++) {
+      final x1 = random.nextDouble() * size.width;
+      final y1 = random.nextDouble() * size.height;
+      final x2 = x1 + (random.nextDouble() * 20 - 10);
+      final y2 = y1 + (random.nextDouble() * 20 - 10);
+      canvas.drawLine(Offset(x1, y1), Offset(x2, y2), texturePaint);
+    }
+  }
+  
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
 // 带动画效果的Filter按钮
 class _AnimatedFilterButton extends StatefulWidget {
   final VoidCallback onTap;
@@ -973,11 +1703,13 @@ class _AnimatedFilterButtonState extends State<_AnimatedFilterButton> {
         curve: Curves.easeOut,
         transformAlignment: Alignment.center,
         transform: Matrix4.identity()
+          ..scale(_isPressed ? 1.1 : 1.0)
           ..rotateZ(_isPressed ? _pressedTiltAngle : 0.0),
         child: SizedBox(
-          height: 34,
+          height: 42,
+          width: 42,
           child: Image.asset(
-            'assets/images/filter_button.png',
+            'assets/dish_category/CHEF_HAT.png',
             fit: BoxFit.contain,
             filterQuality: FilterQuality.high,
           ),

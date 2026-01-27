@@ -104,6 +104,7 @@ flutter:
     - assets/videos/
     - assets/
     - assets/icons/
+    - assets/dish_category/
     - assets/images/sketch_paper_transparent.png
     - assets/images/frame_0.png
     - assets/images/frame_2.png

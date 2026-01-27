@@ -62,8 +62,9 @@ logging:
   level:
     root: INFO
     com.calotter: DEBUG
-    org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    # 🔍 DEBUG: 临时关闭 Hibernate SQL 日志以便查看 category 相关日志
+    org.hibernate.SQL: WARN
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN
 
 jwt:
   key: YourSuperSecretKeyForJWTTokenGenerationThatShouldBeAtLeast32CharactersLong!

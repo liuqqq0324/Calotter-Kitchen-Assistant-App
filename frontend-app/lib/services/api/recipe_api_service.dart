@@ -184,6 +184,21 @@ class RecipeApiService {
       throw Exception('Unexpected response format.');
     }
 
+    // 🔍 DEBUG: 查看每个menu的原始数据，特别是category字段
+    for (var i = 0; i < menusJson.length; i++) {
+      final menuData = menusJson[i];
+      print('🔍 [RecipeApi] Menu ${i + 1}:');
+      if (menuData is Map && menuData['recipes'] is List) {
+        final recipes = menuData['recipes'] as List;
+        for (var j = 0; j < recipes.length; j++) {
+          final recipe = recipes[j];
+          if (recipe is Map) {
+            print('  Recipe ${j + 1}: title="${recipe['title']}", category="${recipe['category']}"');
+          }
+        }
+      }
+    }
+
     return menusJson
         .map<RecipeMenuModel>((e) => RecipeMenuModel.fromJson(e))
         .toList();

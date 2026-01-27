@@ -27,6 +27,7 @@ public class SpringAiGeminiMenuGenerationService implements AiMenuGenerationServ
     // ✅ 修复 1: 极简 Prompt，移除所有关于 JSON 格式、字段名的指令
     // Spring AI 会自动处理 Schema，多余的指令只会干扰模型
     private static final String MINIMAL_SYSTEM_PROMPT = """
+<<<<<<< HEAD
         You are a professional Diet-focused cooking assistant. 
         Task: Generate EXACTLY 3 distinct menus based on the user's inventory and preferences.
         
@@ -45,6 +46,11 @@ public class SpringAiGeminiMenuGenerationService implements AiMenuGenerationServ
         1. Prioritize 'urgentInventory' ingredients to prevent waste.
         2. Ensure nutritional balance for the whole recipe.
         3. Respect all dietary constraints and cooker compatibility.
+=======
+        Diet-focused cooking assistant. Generate EXACTLY 3 menus.
+        Rules: dishCount per menu, WHOLE recipe nutrition, inventory matching, dietary constraints, cooker compatibility.
+        Each recipe must have a category: STIR_FRY_PAN_FRY (爆炒/煎), STEAM_BOIL (蒸/煮), BRAISE_STEW (炖/焖), COLD_SALAD (凉拌/沙拉), SOUP (汤羹), ROAST_BAKE (烤箱/空气炸锅).
+>>>>>>> origin/yhe/flutter-v2.0-ios-java
         """;
     
     @Override
@@ -102,9 +108,45 @@ public class SpringAiGeminiMenuGenerationService implements AiMenuGenerationServ
                 .system(SINGLE_MENU_PROMPT)
                 .user(userInput)
                 .call()
+<<<<<<< HEAD
                 .entity(MenuGenerationFunction.class);
         if (functionResult == null || functionResult.getMenus() == null || functionResult.getMenus().isEmpty()) {
             throw new RuntimeException("Empty response from AI");
+=======
+                .entity(MenuGenerationFunction.class); // Structured output with automatic JSON Schema
+            
+            log.info("Successfully generated {} menu(s)", functionResult.getMenus() != null ? functionResult.getMenus().size() : 0);
+            
+            // 🔍 DEBUG: 查看AI返回的原始数据
+            try {
+                log.info("🔍 AI returned JSON: {}", objectMapper.writeValueAsString(functionResult));
+            } catch (Exception e) {
+                log.warn("Failed to serialize functionResult for debugging", e);
+            }
+            
+            // Convert to MenuDTO
+            if (functionResult.getMenus() == null || functionResult.getMenus().isEmpty()) {
+                throw new RuntimeException("Spring AI Gemini returned empty menu list");
+            }
+            
+            return functionResult.getMenus().stream()
+                .map(this::convertToMenuDTO)
+                .collect(Collectors.toList());
+                
+        } catch (IllegalStateException e) {
+            log.error("Spring AI Gemini API call failed (possibly quota issue): {}", e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            log.error("Failed to generate menus with Spring AI Gemini", e);
+            
+            // Check if it's a quota error
+            String errorMsg = e.getMessage();
+            if (errorMsg != null && (errorMsg.contains("429") || errorMsg.contains("quota"))) {
+                throw new IllegalStateException("Gemini API quota exceeded. Please try again later or check your API quota limits.");
+            }
+            
+            throw new RuntimeException("Failed to generate menus with Spring AI Gemini: " + e.getMessage(), e);
+>>>>>>> origin/yhe/flutter-v2.0-ios-java
         }
         return convertToMenuDTO(functionResult.getMenus().get(0));
     }
@@ -188,6 +230,10 @@ public class SpringAiGeminiMenuGenerationService implements AiMenuGenerationServ
         recipeDTO.setServings(recipeOption.getServings());
         recipeDTO.setCookingTimeMin(recipeOption.getCookingTimeMin());
         recipeDTO.setDifficulty(recipeOption.getDifficulty());
+        recipeDTO.setCategory(recipeOption.getCategory()); // 设置烹饪分类
+        
+        // 🔍 DEBUG: 查看每个菜品的category值
+        log.info("🔍 Recipe: [{}], Category: [{}]", recipeOption.getTitle(), recipeOption.getCategory());
         
         // Convert nutrition estimate
         if (recipeOption.getNutritionEstimate() != null) {
