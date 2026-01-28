@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:personal_sous_chef/core/theme/fallback_google_fonts.dart';
 import 'package:personal_sous_chef/data/stores/collected_recipes_store.dart';
 import 'package:personal_sous_chef/data/models/recipe_models.dart';
@@ -108,10 +109,50 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
       _createCookingSession();
       debugPrint('[RecipePage] 初始化语音助手...');
       _initializeVoiceAssistant();
+      debugPrint('[RecipePage] 启用屏幕常亮...');
+      _enableWakelock();
     } else {
       debugPrint('[RecipePage] View Mode: 跳过会话创建和语音初始化');
     }
     debugPrint('[RecipePage] ===== initState() 完成 =====');
+  }
+
+  /// 启用屏幕常亮（只在烹饪模式下）
+  Future<void> _enableWakelock() async {
+    try {
+      await WakelockPlus.enable();
+      debugPrint('[RecipePage] ✅ 屏幕常亮已启用');
+      
+      // 延迟显示Toast，确保页面已经完全加载
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.lightbulb, color: Colors.white, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Screen will stay on while cooking',
+                      style: GoogleFonts.kalam(fontSize: 15),
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: const Color(0xFF6B4F4F).withOpacity(0.9),
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 3),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          );
+        }
+      });
+    } catch (e) {
+      debugPrint('[RecipePage] ❌ 屏幕常亮启用失败: $e');
+    }
   }
 
   Future<void> _initializeVoiceAssistant() async {
@@ -222,8 +263,24 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
     _voiceAssistant.dispose();
     _tabController.dispose(); // ✅ Dispose TabController
     _pageController?.dispose(); // ✅ Dispose PageController（可空类型，需要安全调用）
+    
+    // 只在烹饪模式下禁用屏幕常亮
+    if (!widget.isViewMode) {
+      _disableWakelock();
+    }
+    
     debugPrint('[RecipePage] Recipe instruction page disposed');
     super.dispose();
+  }
+
+  /// 禁用屏幕常亮
+  Future<void> _disableWakelock() async {
+    try {
+      await WakelockPlus.disable();
+      debugPrint('[RecipePage] ✅ 屏幕常亮已禁用');
+    } catch (e) {
+      debugPrint('[RecipePage] ❌ 屏幕常亮禁用失败: $e');
+    }
   }
 
   int get _totalDishes => widget.menu.recipes.length;
