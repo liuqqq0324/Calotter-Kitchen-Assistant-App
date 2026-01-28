@@ -1,4 +1,5 @@
 // lib/pages/recipes/recipe_generate_page.dart
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:personal_sous_chef/core/theme/fallback_google_fonts.dart';
@@ -35,11 +36,18 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
   }
 
   Future<void> _startMenuStream() async {
+    // 如果已经在请求中，直接返回，防止重复请求
+    if (_isStreaming) {
+      debugPrint('[RecipeGeneratePage] 请求已在进行中，跳过重复请求');
+      return;
+    }
+
     setState(() {
       _menus = [];
       _loading = true;
       _error = null;
       _selectedMenuId = null;
+      _isStreaming = true; // 标记为正在请求
     });
 
     try {
@@ -57,7 +65,10 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
       }
     } finally {
       if (mounted) {
-        setState(() => _loading = false);
+        setState(() {
+          _loading = false;
+          _isStreaming = false; // 请求完成，重置标志
+        });
       }
     }
   }
@@ -211,7 +222,7 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
 
               Expanded(
                 child: _menus.isEmpty && _loading
-                    ? const Center(child: CircularProgressIndicator())
+                    ? const Center(child: _ThreeFrameAnimation())
                     : _menus.isEmpty && !_loading && _error != null
                     ? _buildErrorState(theme)
                     : _menus.isEmpty && !_loading
@@ -341,9 +352,9 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
             padding: EdgeInsets.all(24.0),
             child: Center(
               child: SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(strokeWidth: 2),
+                width: 80,
+                height: 80,
+                child: _ThreeFrameAnimation(),
               ),
             ),
           );
@@ -1284,4 +1295,66 @@ class _GridPaperPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+/// 三帧动画组件，循环播放 frame1, frame2, frame3
+class _ThreeFrameAnimation extends StatefulWidget {
+  final double? width;
+  final double? height;
+
+  const _ThreeFrameAnimation({
+    this.width,
+    this.height,
+  });
+
+  @override
+  State<_ThreeFrameAnimation> createState() => _ThreeFrameAnimationState();
+}
+
+class _ThreeFrameAnimationState extends State<_ThreeFrameAnimation> {
+  int _currentFrame = 1;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _startAnimation();
+  }
+
+  void _startAnimation() {
+    _timer = Timer.periodic(const Duration(milliseconds: 400), (timer) {
+      if (mounted) {
+        setState(() {
+          _currentFrame = (_currentFrame % 3) + 1; // 循环 1 -> 2 -> 3 -> 1
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final framePath = 'assets/dish_category/frame$_currentFrame.png';
+    
+    return Image.asset(
+      framePath,
+      width: widget.width,
+      height: widget.height,
+      fit: BoxFit.contain,
+      errorBuilder: (context, error, stackTrace) {
+        // 如果图片加载失败，显示一个占位符
+        return Container(
+          width: widget.width ?? 80,
+          height: widget.height ?? 80,
+          color: Colors.grey[200],
+          child: const Icon(Icons.image, color: Colors.grey),
+        );
+      },
+    );
+  }
 }
