@@ -879,7 +879,10 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                       ),
                       const SizedBox(height: 24),
                       Transform.translate(
-                        offset: const Offset(24, 58), // 再次下移 32 像素 (26 + 32 = 58)
+                        offset: const Offset(
+                          24,
+                          58,
+                        ), // 再次下移 32 像素 (26 + 32 = 58)
                         child: Column(
                           children: [
                             Row(
@@ -903,11 +906,25 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                             Row(
                               children: [
                                 Expanded(
-                                  child: _buildMiniInfo('Weight', user.weight),
+                                  child: _buildMiniInfo(
+                                    'Weight',
+                                    user.weight.isNotEmpty
+                                        ? (user.weight.endsWith(' kg')
+                                            ? user.weight
+                                            : '${user.weight} kg')
+                                        : '',
+                                  ),
                                 ),
                                 const SizedBox(width: 16),
                                 Expanded(
-                                  child: _buildMiniInfo('Height', user.height),
+                                  child: _buildMiniInfo(
+                                    'Height',
+                                    user.height.isNotEmpty
+                                        ? (user.height.endsWith(' cm')
+                                            ? user.height
+                                            : '${user.height} cm')
+                                        : '',
+                                  ),
                                 ),
                               ],
                             ),
@@ -936,11 +953,15 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                               text: 'Settings',
                               fontSize: 23, // 调整字体 (原为 26)
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 54,
-                                vertical: 18,
-                              ), // 调整按钮大小 (原为 60, 22)
-                              backgroundColor: Colors.grey.shade400,
-                              borderColor: Colors.grey.shade700,
+                                horizontal: 70,
+                                vertical: 24,
+                              ), // 再次调大按钮 (原为 54, 18)
+                              backgroundImage:
+                                  'assets/icons/Ingredients.png', // 使用 Ingredients 的纹理
+                              borderColor: Colors.orange.shade700,
+                              textColor: const Color(
+                                0xFF6B4F4F,
+                              ), // 使用页面统一的深棕色文字
                               onPressed: () {
                                 Navigator.push(
                                   context,
@@ -950,16 +971,22 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                                 );
                               },
                             ),
-                            const SizedBox(height: 16), // 缩小间距，使 Setting 向 Invite 靠近 (原为 24)
+                            const SizedBox(
+                              height: 8,
+                            ), // 减小间距，使 Invite 向上移动 (原为 20)
                             SketchyButton(
                               text: 'Invite',
                               fontSize: 23, // 调整字体 (原为 26)
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 54,
-                                vertical: 18,
-                              ), // 调整按钮大小 (原为 60, 22)
-                              backgroundColor: Colors.orange.shade100,
-                              borderColor: Colors.orange.shade700,
+                                horizontal: 70,
+                                vertical: 24,
+                              ), // 再次调大按钮 (原为 54, 18)
+                              backgroundImage:
+                                  'assets/icons/Dishes.png', // 使用 Dishes 的纹理
+                              borderColor: Colors.yellow.shade700,
+                              textColor: const Color(
+                                0xFF6B4F4F,
+                              ), // 使用页面统一的深棕色文字
                               onPressed: () {
                                 Navigator.push(
                                   context,
@@ -1104,14 +1131,20 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
             const SizedBox(height: 12),
             _buildGoalTypeSelector(),
             const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
+            Center(
               child: _isSavingGoal
-                  ? const Center(child: CircularProgressIndicator())
+                  ? const CircularProgressIndicator()
                   : SketchyButton(
                       text: 'Save Goal',
-                      backgroundColor: Colors.green.shade100,
+                      fontSize: 23, // 统一字体大小
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 70,
+                        vertical: 24,
+                      ), // 统一按钮大小，与 Settings/Invite 一致
+                      backgroundImage:
+                          'assets/icons/seasonings.png', // 使用 Seasonings 的绿色纹理
                       borderColor: Colors.green.shade700,
+                      textColor: const Color(0xFF6B4F4F),
                       onPressed: () {
                         _saveHealthGoal();
                       },
