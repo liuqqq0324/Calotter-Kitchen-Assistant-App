@@ -22,7 +22,8 @@ spring:
   ai:
     # 🔥 禁用自动重试，防止 429 错误时重复请求导致配额耗尽
     retry:
-      max-attempts: 1  # 坚决不重试
+      max-attempts: 1  # 禁止自动重试，由我们自己的代码控制
+      enabled: false    # 或者直接禁用
     google:
       genai:
         api-key: ${GEMINI_API_KEY:}

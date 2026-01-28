@@ -10,15 +10,11 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
 
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
  * Spring AI Gemini 菜单生成服务
  * 使用 Spring AI 的 Function Calling 和结构化输出来减少 token 消耗
- * 
- * 修复：添加重试延迟机制，防止重试风暴导致 429 错误
  */
 @Slf4j
 @RequiredArgsConstructor
@@ -26,9 +22,6 @@ public class SpringAiGeminiMenuGenerationService implements AiMenuGenerationServ
     
     private final ChatModel chatModel;
     private final ObjectMapper objectMapper;
-    
-    // 提取等待时间的正则表达式
-    private static final Pattern RETRY_AFTER_PATTERN = Pattern.compile("Please retry in (\\d+(?:\\.\\d+)?)s\\.");
 
     // 极简 System Prompt (优化 token 消耗)
     private static final String MINIMAL_SYSTEM_PROMPT = """
@@ -42,53 +35,13 @@ public class SpringAiGeminiMenuGenerationService implements AiMenuGenerationServ
     
     @Override
     public List<MenuDTO> generateMenus(RecipeGenerationFilter filter) {
-        int maxRetries = 3;
-        int attempt = 0;
-        Exception lastException = null;
-
-        while (attempt < maxRetries) {
-            try {
-                attempt++;
-                log.info("Generating 3 menus (Attempt {}/{})", attempt, maxRetries);
-                
-                return executeGeneration(filter);
-
-            } catch (Exception e) {
-                lastException = e;
-                log.warn("Attempt {} failed: {}", attempt, e.getMessage());
-
-                // 🛑 关键修复：检查是否需要等待，并执行睡眠
-                if (isQuotaExceededError(e)) {
-                    long waitMs = parseWaitTime(e);
-                    // 如果 API 没说等多久，默认指数退避: 2s, 4s, 8s
-                    if (waitMs == 0) {
-                        waitMs = (long) Math.pow(2, attempt) * 1000;
-                    }
-
-                    log.warn("⚠️ 429 Rate Limit detected. Sleeping for {} ms before retry...", waitMs);
-                    
-                    try {
-                        // 强制睡眠！不睡就是自杀
-                        Thread.sleep(waitMs + 1000); // 多睡1秒缓冲
-                    } catch (InterruptedException ie) {
-                        Thread.currentThread().interrupt();
-                        throw new RuntimeException("Interrupted during rate limit backoff", ie);
-                    }
-                } else {
-                    // 非 429 错误，稍微等一下再重试
-                    try {
-                        Thread.sleep(2000);
-                    } catch (InterruptedException ie) {
-                        Thread.currentThread().interrupt();
-                        throw new RuntimeException("Interrupted during retry backoff", ie);
-                    }
-                }
-            }
+        try {
+            log.info("Generating menus");
+            return executeGeneration(filter);
+        } catch (Exception e) {
+            log.error("生成菜单失败: {}", e.getMessage(), e);
+            throw new RuntimeException("生成菜单失败: " + e.getMessage(), e);
         }
-        
-        // 所有重试都失败
-        String errorMsg = lastException != null ? lastException.getMessage() : "Unknown error";
-        throw new RuntimeException("Failed to generate menus after " + maxRetries + " attempts. Last error: " + errorMsg, lastException);
     }
     
     /**
@@ -120,33 +73,53 @@ public class SpringAiGeminiMenuGenerationService implements AiMenuGenerationServ
     }
 
     /**
-     * 极简输入构建 (节省 Token)
-     * 只包含最核心的信息：急需库存、常规库存、菜品数量
+     * 构建输入 (包含完整信息)
+     * 包含：库存（含数量单位）、菜品数量、卡路里、份数、烹饪时间、难度、厨具、调料、偏好等
      */
     private String buildMinimalInput(RecipeGenerationFilter filter) {
         StringBuilder sb = new StringBuilder();
         sb.append("Context:{");
         
-        // 1. 急需库存 (最重要)
+        // 1. 急需库存 (包含名称、数量、单位)
         sb.append("Urgent:[");
         if (filter.getUrgentInventory() != null && !filter.getUrgentInventory().isEmpty()) {
-            String urgentNames = filter.getUrgentInventory().stream()
-                .map(RecipeGenerationFilter.InventoryItem::getName)
-                .filter(name -> name != null && !name.isEmpty())
+            String urgentItems = filter.getUrgentInventory().stream()
+                .filter(item -> item != null && item.getName() != null && !item.getName().isEmpty())
+                .map(item -> {
+                    String name = item.getName();
+                    String amount = item.getAmountValue() != null ? item.getAmountValue().toString() : "";
+                    String unit = item.getAmountUnit() != null ? item.getAmountUnit() : "";
+                    if (!amount.isEmpty() && !unit.isEmpty()) {
+                        return name + "(" + amount + unit + ")";
+                    } else if (!amount.isEmpty()) {
+                        return name + "(" + amount + ")";
+                    }
+                    return name;
+                })
                 .collect(Collectors.joining(","));
-            sb.append(urgentNames);
+            sb.append(urgentItems);
         }
         sb.append("],");
 
-        // 2. 常规库存 (截取前 15 个，防止过长)
+        // 2. 常规库存 (截取前 15 个，包含名称、数量、单位)
         sb.append("Regular:[");
         if (filter.getRegularInventory() != null && !filter.getRegularInventory().isEmpty()) {
-            String regularNames = filter.getRegularInventory().stream()
+            String regularItems = filter.getRegularInventory().stream()
                 .limit(15) // Limit to 15 items
-                .map(RecipeGenerationFilter.InventoryItem::getName)
-                .filter(name -> name != null && !name.isEmpty())
+                .filter(item -> item != null && item.getName() != null && !item.getName().isEmpty())
+                .map(item -> {
+                    String name = item.getName();
+                    String amount = item.getAmountValue() != null ? item.getAmountValue().toString() : "";
+                    String unit = item.getAmountUnit() != null ? item.getAmountUnit() : "";
+                    if (!amount.isEmpty() && !unit.isEmpty()) {
+                        return name + "(" + amount + unit + ")";
+                    } else if (!amount.isEmpty()) {
+                        return name + "(" + amount + ")";
+                    }
+                    return name;
+                })
                 .collect(Collectors.joining(","));
-            sb.append(regularNames);
+            sb.append(regularItems);
         }
         sb.append("],");
         
@@ -157,7 +130,56 @@ public class SpringAiGeminiMenuGenerationService implements AiMenuGenerationServ
         }
         sb.append("DishCount:").append(dishCount);
         
-        // 4. 饮食限制（如果有）
+        // 4. 份数
+        if (filter.getServings() != null) {
+            sb.append(",Servings:").append(filter.getServings());
+        }
+        
+        // 5. 卡路里目标
+        if (filter.getCalorieTarget() != null) {
+            if (filter.getCalorieTarget().getMinTotalKcal() != null || filter.getCalorieTarget().getMaxTotalKcal() != null) {
+                sb.append(",Calories:");
+                if (filter.getCalorieTarget().getMinTotalKcal() != null && filter.getCalorieTarget().getMaxTotalKcal() != null) {
+                    if (filter.getCalorieTarget().getMinTotalKcal().equals(filter.getCalorieTarget().getMaxTotalKcal())) {
+                        sb.append(filter.getCalorieTarget().getMinTotalKcal().intValue());
+                    } else {
+                        sb.append(filter.getCalorieTarget().getMinTotalKcal().intValue())
+                          .append("-")
+                          .append(filter.getCalorieTarget().getMaxTotalKcal().intValue());
+                    }
+                } else if (filter.getCalorieTarget().getMinTotalKcal() != null) {
+                    sb.append(">=").append(filter.getCalorieTarget().getMinTotalKcal().intValue());
+                } else if (filter.getCalorieTarget().getMaxTotalKcal() != null) {
+                    sb.append("<=").append(filter.getCalorieTarget().getMaxTotalKcal().intValue());
+                }
+            }
+        }
+        
+        // 6. 最大烹饪时间
+        if (filter.getGenerationSettings() != null && filter.getGenerationSettings().getMaxCookingTimeMin() != null) {
+            sb.append(",MaxTime:").append(filter.getGenerationSettings().getMaxCookingTimeMin()).append("min");
+        }
+        
+        // 7. 难度目标
+        if (filter.getGenerationSettings() != null && filter.getGenerationSettings().getDifficultyTarget() != null) {
+            sb.append(",Difficulty:").append(filter.getGenerationSettings().getDifficultyTarget());
+        }
+        
+        // 8. 厨具列表
+        if (filter.getCookers() != null && !filter.getCookers().isEmpty()) {
+            sb.append(",Cookers:[");
+            sb.append(String.join(",", filter.getCookers()));
+            sb.append("]");
+        }
+        
+        // 9. 调料列表
+        if (filter.getSeasonings() != null && !filter.getSeasonings().isEmpty()) {
+            sb.append(",Seasonings:[");
+            sb.append(String.join(",", filter.getSeasonings()));
+            sb.append("]");
+        }
+        
+        // 10. 饮食限制和偏好
         if (filter.getDietPreferences() != null) {
             if (filter.getDietPreferences().getAllergies() != null && !filter.getDietPreferences().getAllergies().isEmpty()) {
                 sb.append(",Allergies:[");
@@ -174,6 +196,18 @@ public class SpringAiGeminiMenuGenerationService implements AiMenuGenerationServ
                 sb.append(String.join(",", filter.getDietPreferences().getAvoidIngredients()));
                 sb.append("]");
             }
+            // 11. 菜系偏好
+            if (filter.getDietPreferences().getCuisinePreferences() != null && !filter.getDietPreferences().getCuisinePreferences().isEmpty()) {
+                sb.append(",Cuisines:[");
+                sb.append(String.join(",", filter.getDietPreferences().getCuisinePreferences()));
+                sb.append("]");
+            }
+            // 12. 口味偏好
+            if (filter.getDietPreferences().getTastePreferences() != null && !filter.getDietPreferences().getTastePreferences().isEmpty()) {
+                sb.append(",Tastes:[");
+                sb.append(String.join(",", filter.getDietPreferences().getTastePreferences()));
+                sb.append("]");
+            }
         }
         
         sb.append("}");
@@ -181,77 +215,6 @@ public class SpringAiGeminiMenuGenerationService implements AiMenuGenerationServ
         return sb.toString();
     }
     
-    /**
-     * 解析错误消息中的等待时间
-     * 例如："Please retry in 41.188s." -> 41188 ms
-     */
-    private long parseWaitTime(Exception e) {
-        String msg = e.getMessage();
-        if (msg == null) {
-            return 0;
-        }
-        
-        Matcher matcher = RETRY_AFTER_PATTERN.matcher(msg);
-        if (matcher.find()) {
-            double seconds = Double.parseDouble(matcher.group(1));
-            return (long) (seconds * 1000);
-        }
-        
-        // 检查异常链中的消息
-        Throwable cause = e.getCause();
-        int depth = 0;
-        while (cause != null && depth < 5) {
-            String causeMsg = cause.getMessage();
-            if (causeMsg != null) {
-                matcher = RETRY_AFTER_PATTERN.matcher(causeMsg);
-                if (matcher.find()) {
-                    double seconds = Double.parseDouble(matcher.group(1));
-                    return (long) (seconds * 1000);
-                }
-            }
-            cause = cause.getCause();
-            depth++;
-        }
-        
-        return 0;
-    }
-
-    /**
-     * 检查异常是否是配额超限错误（429）
-     */
-    private boolean isQuotaExceededError(Exception e) {
-        String msg = e.getMessage();
-        if (msg != null) {
-            String lowerMsg = msg.toLowerCase();
-            if (lowerMsg.contains("429") || 
-                lowerMsg.contains("quota") || 
-                lowerMsg.contains("quota exceeded") ||
-                lowerMsg.contains("too many requests") ||
-                lowerMsg.contains("rate limit")) {
-                return true;
-            }
-        }
-        
-        // 检查异常链
-        Throwable cause = e.getCause();
-        int depth = 0;
-        while (cause != null && depth < 5) {
-            String causeMsg = cause.getMessage();
-            if (causeMsg != null) {
-                String lowerCauseMsg = causeMsg.toLowerCase();
-                if (lowerCauseMsg.contains("429") || 
-                    lowerCauseMsg.contains("quota") ||
-                    lowerCauseMsg.contains("too many requests") ||
-                    lowerCauseMsg.contains("rate limit")) {
-                    return true;
-                }
-            }
-            cause = cause.getCause();
-            depth++;
-        }
-        
-        return false;
-    }
 
     /**
      * Convert MenuGenerationFunction.MenuOption to MenuDTO
