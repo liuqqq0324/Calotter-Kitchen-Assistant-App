@@ -258,7 +258,7 @@ class _PassportPageViewState extends State<PassportPageView>
               widget.pageLabels[index],
               textAlign: TextAlign.center,
               style: GoogleFonts.kalam(
-                fontSize: isActive ? 13 : 11,
+                fontSize: isActive ? 16 : 14, // 调大导航标签字体，从 13/11 调大到 16/14
                 fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
                 color: isActive ? Colors.brown.shade900 : Colors.brown.shade700,
               ),

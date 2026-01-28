@@ -65,7 +65,7 @@ class _AllergiesListPageState extends State<AllergiesListPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to load standard allergens: $e'),
-            duration: const Duration(seconds: 3),
+            duration: const Duration(milliseconds: 800),
           ),
         );
       }
@@ -82,6 +82,7 @@ class _AllergiesListPageState extends State<AllergiesListPage> {
           SnackBar(
             content: Text('Allergies saved', style: GoogleFonts.kalam()),
             backgroundColor: Colors.green.shade300,
+            duration: const Duration(milliseconds: 800),
           ),
         );
         // ✅ 保存成功后直接返回上一页
@@ -96,6 +97,7 @@ class _AllergiesListPageState extends State<AllergiesListPage> {
               style: GoogleFonts.kalam(),
             ),
             backgroundColor: Colors.red.shade300,
+            duration: const Duration(milliseconds: 800),
           ),
         );
       }

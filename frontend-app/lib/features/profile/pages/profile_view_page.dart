@@ -46,7 +46,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
     'Tree Nut',
     'Fish',
     'Sesame',
-    'Shellfish'
+    'Shellfish',
   ];
 
   @override
@@ -157,7 +157,10 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
   Future<void> _saveHealthGoal() async {
     if (_selectedGoalType == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a health goal')),
+        const SnackBar(
+          content: Text('Please select a health goal'),
+          duration: Duration(milliseconds: 800),
+        ),
       );
       return;
     }
@@ -196,40 +199,32 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
       print('     Fiber: ${responseData['fiber']}g');
       print('===========================================');
 
-      // 先保存当前的 BMI（如果有）
-      final currentBmi = _healthInfo?['bmi'];
-
       // 直接使用保存返回的数据更新 UI（包含最新的营养数据）
+      // 使用全新的 Map 对象确保 Flutter 框架强制重绘
+      final updatedHealthInfo = Map<String, dynamic>.from(_healthInfo ?? {});
+
+      // 更新目标类型
+      updatedHealthInfo['goalType'] = goalTypeStr;
+
+      // 只有当保存返回的营养数据不为 null 时才设置，确保使用后端最新计算出的值
+      if (responseData['dailyCalories'] != null) {
+        updatedHealthInfo['dailyEnergy'] = responseData['dailyCalories'];
+      }
+      if (responseData['protein'] != null) {
+        updatedHealthInfo['dailyProtein'] = responseData['protein'];
+      }
+      if (responseData['fat'] != null) {
+        updatedHealthInfo['dailyFat'] = responseData['fat'];
+      }
+      if (responseData['carb'] != null) {
+        updatedHealthInfo['dailyCarbohydrates'] = responseData['carb'];
+      }
+      if (responseData['fiber'] != null) {
+        updatedHealthInfo['dailyFiber'] = responseData['fiber'];
+      }
+
       setState(() {
-        // 更新健康信息，使用保存返回的最新数据
-        // 只有当数据不为 null 时才设置，避免覆盖为 null
-        final updatedHealthInfo = <String, dynamic>{
-          'goalType': goalTypeStr,
-          // 保留原有的 BMI（如果有）
-          if (currentBmi != null) 'bmi': currentBmi,
-        };
-
-        // 只有当保存返回的营养数据不为 null 时才设置
-        if (responseData['dailyCalories'] != null) {
-          updatedHealthInfo['dailyEnergy'] = responseData['dailyCalories'];
-        }
-        if (responseData['protein'] != null) {
-          updatedHealthInfo['dailyProtein'] = responseData['protein'];
-        }
-        if (responseData['fat'] != null) {
-          updatedHealthInfo['dailyFat'] = responseData['fat'];
-        }
-        if (responseData['carb'] != null) {
-          updatedHealthInfo['dailyCarbohydrates'] = responseData['carb'];
-        }
-        if (responseData['fiber'] != null) {
-          updatedHealthInfo['dailyFiber'] = responseData['fiber'];
-        }
-
-        // 合并到现有的 _healthInfo（保留已有的数据）
-        _healthInfo = {...?_healthInfo, ...updatedHealthInfo};
-
-        // 确保选中状态与保存的数据一致
+        _healthInfo = updatedHealthInfo;
         _selectedGoalType = goalTypeStr;
       });
 
@@ -247,31 +242,31 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
       print('     Daily Fiber: ${_healthInfo?['dailyFiber']}g');
       print('================================================');
 
-      // 重新加载后，强制使用保存返回的最新营养数据（防止被旧数据覆盖）
+      // 重新加载后，再次强制使用保存返回的最新营养数据（防止被后端可能的事务延迟产生的旧数据覆盖）
       if (mounted) {
         setState(() {
           _selectedGoalType = goalTypeStr;
-          if (_healthInfo != null) {
-            // 确保 goalType 正确
-            _healthInfo!['goalType'] = goalTypeStr;
-            // 强制使用保存返回的最新营养数据（覆盖可能从数据库读取的旧数据）
-            // 只有当保存返回的数据不为 null 时才更新
-            if (responseData['dailyCalories'] != null) {
-              _healthInfo!['dailyEnergy'] = responseData['dailyCalories'];
-            }
-            if (responseData['protein'] != null) {
-              _healthInfo!['dailyProtein'] = responseData['protein'];
-            }
-            if (responseData['fat'] != null) {
-              _healthInfo!['dailyFat'] = responseData['fat'];
-            }
-            if (responseData['carb'] != null) {
-              _healthInfo!['dailyCarbohydrates'] = responseData['carb'];
-            }
-            if (responseData['fiber'] != null) {
-              _healthInfo!['dailyFiber'] = responseData['fiber'];
-            }
+
+          final finalHealthInfo = Map<String, dynamic>.from(_healthInfo ?? {});
+          finalHealthInfo['goalType'] = goalTypeStr;
+
+          if (responseData['dailyCalories'] != null) {
+            finalHealthInfo['dailyEnergy'] = responseData['dailyCalories'];
           }
+          if (responseData['protein'] != null) {
+            finalHealthInfo['dailyProtein'] = responseData['protein'];
+          }
+          if (responseData['fat'] != null) {
+            finalHealthInfo['dailyFat'] = responseData['fat'];
+          }
+          if (responseData['carb'] != null) {
+            finalHealthInfo['dailyCarbohydrates'] = responseData['carb'];
+          }
+          if (responseData['fiber'] != null) {
+            finalHealthInfo['dailyFiber'] = responseData['fiber'];
+          }
+
+          _healthInfo = finalHealthInfo;
         });
       }
 
@@ -285,12 +280,16 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
       print('===========================================');
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Health goal saved successfully')),
+        const SnackBar(
+          content: Text('Health goal saved successfully'),
+          duration: Duration(milliseconds: 800),
+        ),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(result['error'] ?? 'Failed to save health goal'),
+          duration: const Duration(milliseconds: 800),
         ),
       );
     }
@@ -328,12 +327,18 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
 
     if (result['success'] == true) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Preferences saved')),
+        const SnackBar(
+          content: Text('Preferences saved'),
+          duration: Duration(milliseconds: 800),
+        ),
       );
       setState(() => _expandedSection = null);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result['error'] ?? 'Failed to save')),
+        SnackBar(
+          content: Text(result['error'] ?? 'Failed to save'),
+          duration: const Duration(milliseconds: 800),
+        ),
       );
     }
   }
@@ -348,12 +353,18 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
 
     if (result['success'] == true) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Diet habits saved')),
+        const SnackBar(
+          content: Text('Diet habits saved'),
+          duration: Duration(milliseconds: 800),
+        ),
       );
       setState(() => _expandedSection = null);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result['error'] ?? 'Failed to save')),
+        SnackBar(
+          content: Text(result['error'] ?? 'Failed to save'),
+          duration: const Duration(milliseconds: 800),
+        ),
       );
     }
   }
@@ -368,12 +379,18 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
 
     if (result['success'] == true) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Allergies saved')),
+        const SnackBar(
+          content: Text('Allergies saved'),
+          duration: Duration(milliseconds: 800),
+        ),
       );
       setState(() => _expandedSection = null);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result['error'] ?? 'Failed to save')),
+        SnackBar(
+          content: Text(result['error'] ?? 'Failed to save'),
+          duration: const Duration(milliseconds: 800),
+        ),
       );
     }
   }
@@ -452,8 +469,8 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
       child: Row(
         children: [
           Container(
-            width: 20,
-            height: 20,
+            width: 24, // 增大单选框从 20 到 24
+            height: 24,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: isSelected ? color : Colors.transparent,
@@ -463,15 +480,15 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
               ),
             ),
             child: isSelected
-                ? const Icon(Icons.check, size: 14, color: Colors.white)
+                ? const Icon(Icons.check, size: 16, color: Colors.white) // 增大 Check 图标从 14 到 16
                 : null,
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 14), // 增大间距从 12 到 14
           Expanded(
             child: Text(
               label,
               style: GoogleFonts.kalam(
-                fontSize: 15,
+                fontSize: 18, // 调大字体从 15 到 18
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                 color: isSelected
                     ? color
@@ -586,7 +603,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
         Text(
           'Daily Nutrition Targets',
           style: GoogleFonts.kalam(
-            fontSize: 16,
+            fontSize: 20,
             fontWeight: FontWeight.bold,
             color: const Color(0xFF6B4F4F), // River Deep Brown - 与 Profile 页面一致
           ),
@@ -600,7 +617,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
           crossAxisSpacing: 12,
           // ✅ 修复：减小 childAspectRatio 以增加每个 item 的高度，避免溢出
           // childAspectRatio = width / height，值越小，高度越大
-          childAspectRatio: 1.8, // 从 2.2 改为 1.8，增加高度
+          childAspectRatio: 1.5, // 从 1.8 改为 1.5，进一步增加高度以适应大字体
           children: items,
         ),
       ],
@@ -631,7 +648,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
           Text(
             label,
             style: GoogleFonts.kalam(
-              fontSize: 13,
+              fontSize: 14, // 调大 13 -> 14
               fontWeight: FontWeight.bold,
               color: const Color(
                 0xFF6B4F4F,
@@ -649,7 +666,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                   label: Text(
                     _formatToTitleCase(v),
                     style: GoogleFonts.kalam(
-                      fontSize: 12,
+                      fontSize: 13, // 调大 12 -> 13
                       color: const Color(
                         0xFF6B4F4F,
                       ).withOpacity(0.8), // River Deep Brown - 与 Profile 页面一致
@@ -664,7 +681,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                   label: Text(
                     '+$remaining',
                     style: GoogleFonts.kalam(
-                      fontSize: 12,
+                      fontSize: 13, // 调大 12 -> 13
                       color: const Color(
                         0xFF6B4F4F,
                       ).withOpacity(0.8), // River Deep Brown - 与 Profile 页面一致
@@ -716,7 +733,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
             label: Text(
               _formatToTitleCase(item),
               style: GoogleFonts.kalam(
-                fontSize: 12,
+                fontSize: 13, // 调大 12 -> 13
                 color: const Color(
                   0xFF6B4F4F,
                 ).withOpacity(0.8), // River Deep Brown - 与 Profile 页面一致
@@ -731,7 +748,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
             label: Text(
               '+$remaining',
               style: GoogleFonts.kalam(
-                fontSize: 12,
+                fontSize: 13, // 调大 12 -> 13
                 color: const Color(
                   0xFF6B4F4F,
                 ).withOpacity(0.8), // River Deep Brown - 与 Profile 页面一致
@@ -798,32 +815,32 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
       backgroundColor: Colors.white,
       borderColor: const Color(0xFF6B4F4F), // River Deep Brown - 与出生日期一致
       borderWidth: 2.0,
-      padding: const EdgeInsets.all(10), // ✅ 修复：减小 padding 从 12 到 10
+      padding: const EdgeInsets.all(12), // 恢复并稍微增大 padding
       child: Row(
         children: [
-          Icon(icon, size: 20, color: accent),
-          const SizedBox(width: 10),
+          Icon(icon, size: 24, color: accent), // 增大图标
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min, // ✅ 修复：限制 Column 大小
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   label,
                   style: GoogleFonts.kalam(
-                    fontSize: 11, // ✅ 修复：减小字体从 12 到 11
+                    fontSize: 14, // 增大字体从 11 到 14
                     fontWeight: FontWeight.bold,
                     color: labelColor ?? Colors.grey[800],
                   ),
                   overflow: TextOverflow.ellipsis,
                   maxLines: 1,
                 ),
-                const SizedBox(height: 1), // ✅ 修复：减小间距从 2 到 1
+                const SizedBox(height: 4), // 增大间距从 1 到 4
                 Text(
                   valueText,
                   style: GoogleFonts.kalam(
-                    fontSize: 12, // ✅ 修复：减小字体从 13 到 12
+                    fontSize: 16, // 增大字体从 12 到 16
                     fontWeight: FontWeight.bold,
                     color: valueColor ?? accent,
                   ),
@@ -999,8 +1016,8 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                                     'Weight',
                                     user.weight.isNotEmpty
                                         ? (user.weight.endsWith(' kg')
-                                            ? user.weight
-                                            : '${user.weight} kg')
+                                              ? user.weight
+                                              : '${user.weight} kg')
                                         : '',
                                   ),
                                 ),
@@ -1010,8 +1027,8 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                                     'Height',
                                     user.height.isNotEmpty
                                         ? (user.height.endsWith(' cm')
-                                            ? user.height
-                                            : '${user.height} cm')
+                                              ? user.height
+                                              : '${user.height} cm')
                                         : '',
                                   ),
                                 ),
@@ -1051,13 +1068,17 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                               textColor: const Color(
                                 0xFF6B4F4F,
                               ), // 使用页面统一的深棕色文字
-                              onPressed: () {
-                                Navigator.push(
+                              onPressed: () async {
+                                final result = await Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) => const SettingsPage(),
                                   ),
                                 );
+                                // Modified by Chase: Refresh data if profile was updated / 由 Chase 修改：如果资料更新过，则刷新数据
+                                if (result == true && mounted) {
+                                  _loadUserData();
+                                }
                               },
                             ),
                             const SizedBox(
@@ -1182,7 +1203,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                         Text(
                           'BMI',
                           style: GoogleFonts.kalam(
-                            fontSize: 12,
+                            fontSize: 14, // 调大从 12 到 14，与营养卡片标签一致
                             fontWeight: FontWeight.bold,
                             color: const Color(
                               0xFF6B4F4F,
@@ -1210,7 +1231,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
             Text(
               'Health Goal',
               style: GoogleFonts.kalam(
-                fontSize: 16,
+                fontSize: 20, // 调大标题从 16 到 20，与 Nutrition Targets 保持一致
                 fontWeight: FontWeight.bold,
                 color: const Color(
                   0xFF6B4F4F,
@@ -1352,7 +1373,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
           title: Text(
             title,
             style: GoogleFonts.kalam(
-              fontSize: 16,
+              fontSize: 18, // 调大折叠栏标题从 16 到 18
               fontWeight: FontWeight.w600,
               color: const Color(0xFF6B4F4F),
             ),
@@ -1424,8 +1445,10 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Tastes',
-            style: GoogleFonts.kalam(fontSize: 14, fontWeight: FontWeight.bold)),
+        Text(
+          'Tastes',
+          style: GoogleFonts.kalam(fontSize: 16, fontWeight: FontWeight.bold), // 调大 14 -> 16
+        ),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
@@ -1433,20 +1456,27 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
           children: tasteOptions.map((taste) {
             final isSelected = _tastes.contains(taste);
             return FilterChip(
-              label: Text(_formatToTitleCase(taste), style: GoogleFonts.kalam(fontSize: 12)),
+              label: Text(
+                _formatToTitleCase(taste),
+                style: GoogleFonts.kalam(fontSize: 14), // 调大 12 -> 14
+              ),
               selected: isSelected,
               onSelected: (val) {
                 setState(() {
-                  if (val) _tastes.add(taste);
-                  else _tastes.remove(taste);
+                  if (val)
+                    _tastes.add(taste);
+                  else
+                    _tastes.remove(taste);
                 });
               },
             );
           }).toList(),
         ),
         const SizedBox(height: 16),
-        Text('Cuisines',
-            style: GoogleFonts.kalam(fontSize: 14, fontWeight: FontWeight.bold)),
+        Text(
+          'Cuisines',
+          style: GoogleFonts.kalam(fontSize: 16, fontWeight: FontWeight.bold), // 调大 14 -> 16
+        ),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
@@ -1454,12 +1484,17 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
           children: cuisineOptions.map((cuisine) {
             final isSelected = _cuisines.contains(cuisine);
             return FilterChip(
-              label: Text(_formatToTitleCase(cuisine), style: GoogleFonts.kalam(fontSize: 12)),
+              label: Text(
+                _formatToTitleCase(cuisine),
+                style: GoogleFonts.kalam(fontSize: 14), // 调大 12 -> 14
+              ),
               selected: isSelected,
               onSelected: (val) {
                 setState(() {
-                  if (val) _cuisines.add(cuisine);
-                  else _cuisines.remove(cuisine);
+                  if (val)
+                    _cuisines.add(cuisine);
+                  else
+                    _cuisines.remove(cuisine);
                 });
               },
             );
@@ -1481,12 +1516,14 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
         final label = option['label']!;
         final isSelected = kCurrentUser.dietHabits.contains(value);
         return FilterChip(
-          label: Text(label, style: GoogleFonts.kalam(fontSize: 12)),
+          label: Text(label, style: GoogleFonts.kalam(fontSize: 14)), // 调大 12 -> 14
           selected: isSelected,
           onSelected: (val) {
             setState(() {
-              if (val) kCurrentUser.dietHabits.add(value);
-              else kCurrentUser.dietHabits.remove(value);
+              if (val)
+                kCurrentUser.dietHabits.add(value);
+              else
+                kCurrentUser.dietHabits.remove(value);
             });
           },
         );
@@ -1499,9 +1536,9 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
     // 优先使用 API 返回的标准库，如果为空则使用兜底列表
     final List<String> options = _standardAllergens.isNotEmpty
         ? _standardAllergens
-            .map((e) => (e['name'] ?? e['label'] ?? '').toString())
-            .where((name) => name.isNotEmpty)
-            .toList()
+              .map((e) => (e['name'] ?? e['label'] ?? '').toString())
+              .where((name) => name.isNotEmpty)
+              .toList()
         : _fallbackAllergens;
 
     return Wrap(
@@ -1512,7 +1549,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
         return FilterChip(
           label: Text(
             _formatToTitleCase(name),
-            style: GoogleFonts.kalam(fontSize: 12),
+            style: GoogleFonts.kalam(fontSize: 14), // 调大 12 -> 14
           ),
           selected: isSelected,
           onSelected: (val) {

@@ -222,25 +222,13 @@ public class UserHealthService {
                 goal.setCarb(recommendation.getCarb());
                 goal.setFiber(recommendation.getFiber());
             } else {
-                // AI 返回 null，使用默认值
-                log.warn("⚠️ AI 服务返回 null，使用默认营养值");
-                log.warn("   默认值: 卡路里=2000, 蛋白质=70g, 脂肪=50g, 碳水=150g, 纤维=25g");
-                goal.setDailyCalories(2000);
-                goal.setProtein(70);
-                goal.setFat(50);
-                goal.setCarb(150);
-                goal.setFiber(25);
+                // AI 返回 null，执行科学公式兜底
+                calculateNutritionFallback(goal, user, age, activityLevel, goalType);
             }
         } catch (Exception e) {
-            log.error("❌ 调用 AI 服务获取营养建议失败，使用默认值", e);
+            log.error("❌ 调用 AI 服务获取营养建议失败，执行科学公式兜底", e);
             log.error("   异常信息: {}", e.getMessage());
-            log.error("   默认值: 卡路里=2000, 蛋白质=70g, 脂肪=50g, 碳水=150g, 纤维=25g");
-            // AI 调用失败，使用默认值
-            goal.setDailyCalories(2000);
-            goal.setProtein(70);
-            goal.setFat(50);
-            goal.setCarb(150);
-            goal.setFiber(25);
+            calculateNutritionFallback(goal, user, age, activityLevel, goalType);
         }
         
         log.info("📊 最终保存的营养数据:");
@@ -259,6 +247,66 @@ public class UserHealthService {
         return savedGoal;
     }
     
+    /**
+     * AI 失败时的科学公式兜底计算 (Mifflin-St Jeor 公式)
+     */
+    private void calculateNutritionFallback(HealthGoal goal, User user, Integer age, Double activityLevel, HealthGoal.GoalType goalType) {
+        log.info("🧪 执行 Mifflin-St Jeor 公式计算营养目标...");
+        
+        double weight = user.getCurrentWeight().doubleValue();
+        double height = user.getCurrentHeight().doubleValue();
+        int ageVal = (age != null) ? age : 25;
+        int gender = 1; // 默认男性
+        if (user.getGender() != null) {
+            gender = user.getGender();
+        }
+
+        // 1. 计算 BMR
+        double bmr;
+        if (gender == 2) { // Female
+            bmr = (10 * weight) + (6.25 * height) - (5 * ageVal) - 161;
+        } else { // Male
+            bmr = (10 * weight) + (6.25 * height) - (5 * ageVal) + 5;
+        }
+
+        // 2. 计算 TDEE
+        double tdee = bmr * activityLevel;
+        
+        // 3. 根据目标调整
+        int dailyCalories;
+        double proteinRatio; // 每公斤体重蛋白质克数
+        double fatPercentage = 0.25; // 脂肪占总热量比例
+
+        if (goalType == HealthGoal.GoalType.LOSE_FAT) {
+            dailyCalories = (int) (tdee - 500);
+            proteinRatio = 1.8; // 减脂期高蛋白
+        } else if (goalType == HealthGoal.GoalType.MUSCLE_GAIN) {
+            dailyCalories = (int) (tdee + 300);
+            proteinRatio = 2.0; // 增肌期极高蛋白
+        } else {
+            dailyCalories = (int) tdee;
+            proteinRatio = 1.2; // 维持期适中蛋白
+        }
+
+        // 限制最低热量，防止计算出过低数值
+        dailyCalories = Math.max(dailyCalories, gender == 2 ? 1200 : 1500);
+
+        // 4. 分配宏量营养素
+        int protein = (int) (weight * proteinRatio);
+        int fat = (int) (dailyCalories * fatPercentage / 9);
+        int carb = (dailyCalories - (protein * 4) - (fat * 9)) / 4;
+        int fiber = (int) (dailyCalories / 1000.0 * 14); // 每1000大卡14g纤维
+
+        log.info("📊 公式计算结果: Cal={}, P={}g, F={}g, C={}g, Fiber={}g", 
+                dailyCalories, protein, fat, carb, fiber);
+
+        goal.setDailyCalories(dailyCalories);
+        goal.setProtein(protein);
+        goal.setFat(fat);
+        goal.setCarb(carb);
+        goal.setFiber(fiber);
+    }
+
     /**
      * 计算 BMI
      * 
