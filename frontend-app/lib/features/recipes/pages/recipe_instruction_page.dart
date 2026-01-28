@@ -117,14 +117,50 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
       _createCookingSession();
       debugPrint('[RecipePage] 初始化语音助手...');
       _initializeVoiceAssistant();
-
-      // ✅ [新增] 开启专注模式：保持屏幕常亮
-      WakelockPlus.enable();
-      debugPrint('[RecipePage] 专注模式已开启 (屏幕常亮)');
+      debugPrint('[RecipePage] 启用屏幕常亮...');
+      _enableWakelock();
     } else {
       debugPrint('[RecipePage] View Mode: 跳过会话创建和语音初始化');
     }
     debugPrint('[RecipePage] ===== initState() 完成 =====');
+  }
+
+  /// 启用屏幕常亮（只在烹饪模式下）
+  Future<void> _enableWakelock() async {
+    try {
+      await WakelockPlus.enable();
+      debugPrint('[RecipePage] ✅ 屏幕常亮已启用');
+      
+      // 延迟显示Toast，确保页面已经完全加载
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.lightbulb, color: Colors.white, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Screen will stay on while cooking',
+                      style: GoogleFonts.kalam(fontSize: 15),
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: const Color(0xFF6B4F4F).withOpacity(0.9),
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 3),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          );
+        }
+      });
+    } catch (e) {
+      debugPrint('[RecipePage] ❌ 屏幕常亮启用失败: $e');
+    }
   }
 
   Future<void> _initializeVoiceAssistant() async {
@@ -230,8 +266,24 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
     _gestureService.dispose(); // ✅ 释放手势服务资源
     _tabController.dispose(); // ✅ Dispose TabController
     _pageController?.dispose(); // ✅ Dispose PageController（可空类型，需要安全调用）
+    
+    // 只在烹饪模式下禁用屏幕常亮
+    if (!widget.isViewMode) {
+      _disableWakelock();
+    }
+    
     debugPrint('[RecipePage] Recipe instruction page disposed');
     super.dispose();
+  }
+
+  /// 禁用屏幕常亮
+  Future<void> _disableWakelock() async {
+    try {
+      await WakelockPlus.disable();
+      debugPrint('[RecipePage] ✅ 屏幕常亮已禁用');
+    } catch (e) {
+      debugPrint('[RecipePage] ❌ 屏幕常亮禁用失败: $e');
+    }
   }
 
   int get _totalDishes => widget.menu.recipes.length;
@@ -285,9 +337,22 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
   void _toggleDishDone() {
     setState(() {
       if (_isCurrentDishDone) {
+        // 取消完成状态
         _completedDishes.remove(_currentIndex);
       } else {
+        // 标记为完成，停止该菜品所有步骤的计时器
         _completedDishes.add(_currentIndex);
+        
+        // 停止当前菜品所有步骤的计时器
+        final recipe = widget.menu.recipes[_currentIndex];
+        for (final step in recipe.steps) {
+          final key = _stepKey(_currentIndex, step.stepNumber);
+          if (_runningTimers.containsKey(key)) {
+            _runningTimers[key]?.cancel();
+            _runningTimers.remove(key);
+            _pausedSteps[key] = true; // 标记为暂停状态，保留时间
+          }
+        }
       }
     });
   }
@@ -332,6 +397,11 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
   }
 
   void _startTimerForStep(int dishIndex, int stepNumber, int minutes) {
+    // 如果当前菜品已完成，不允许启动计时器
+    if (_completedDishes.contains(dishIndex)) {
+      return;
+    }
+    
     final key = _stepKey(dishIndex, stepNumber);
     final totalSeconds = (minutes <= 0 ? 1 : minutes) * 60;
     final startFrom = _remainingSeconds[key] ?? totalSeconds;
@@ -855,7 +925,7 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
                   width: 64,
                   height: 64,
                   decoration: BoxDecoration(
-                    color: Colors.orange.shade50,
+                    color: Colors.transparent,
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: ClipRRect(
@@ -1483,6 +1553,9 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
     required bool isCompleted,
     required int dishIndex, // 添加菜谱索引参数
   }) {
+    // 如果菜品已完成，计时器不可交互
+    final isDishCompleted = _completedDishes.contains(dishIndex);
+    
     // State-specific styling
     Color backgroundColor;
     Color borderColor;
@@ -1490,81 +1563,105 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
     Color textColor;
     IconData icon;
     String displayText;
-    bool isInteractive = true;
+    bool isInteractive = !isDishCompleted; // 菜品完成时不可交互
 
-    switch (timerState) {
-      case 'running':
-        // State 1: Running (Counting Down)
-        backgroundColor = Colors.green.shade50;
-        borderColor = Colors.green.shade600;
-        iconColor = Colors.green.shade700;
-        textColor = Colors.green.shade700;
-        icon = Icons.pause;
-        final minutes = (remaining ?? 0) ~/ 60;
-        final seconds = (remaining ?? 0) % 60;
-        displayText = '$minutes:${seconds.toString().padLeft(2, '0')}';
-        break;
-
-      case 'paused':
-        // State 2: Paused (User Interrupted)
-        backgroundColor = Colors.amber.shade50;
-        borderColor = Colors.amber.shade600;
-        iconColor = Colors.amber.shade700;
-        textColor = Colors.amber.shade700;
-        icon = Icons.play_arrow;
-        final minutes = (remaining ?? 0) ~/ 60;
-        final seconds = (remaining ?? 0) % 60;
-        displayText = '$minutes:${seconds.toString().padLeft(2, '0')}';
-        break;
-
-      case 'overtime':
-        // State 3: Overtime (Counting Up)
-        backgroundColor = Colors.red.shade50;
-        borderColor = Colors.red.shade600;
-        iconColor = Colors.red.shade700;
-        textColor = Colors.red.shade700;
-        icon = Icons.alarm;
-        final overtimeSeconds = -(remaining ?? 0);
-        final minutes = overtimeSeconds ~/ 60;
-        final seconds = overtimeSeconds % 60;
-        displayText = '+ $minutes:${seconds.toString().padLeft(2, '0')}';
-        break;
-
-      case 'completed':
-        // ✅ State 4: Completed (Frozen/Finalized)
-        backgroundColor = Colors.grey.shade100;
-        borderColor = Colors.grey.shade400;
-        iconColor = Colors.grey.shade600;
-        textColor = Colors.grey.shade700;
-        icon = Icons.timer_off;
-        isInteractive = false; // No more interaction when completed
-
-        if (remaining != null) {
-          if (remaining <= 0) {
-            // Was overtime when completed
-            final overtimeSeconds = -remaining;
-            final minutes = overtimeSeconds ~/ 60;
-            final seconds = overtimeSeconds % 60;
-            displayText = '+ $minutes:${seconds.toString().padLeft(2, '0')}';
-          } else {
-            // Was paused/running when completed
-            final minutes = remaining ~/ 60;
-            final seconds = remaining % 60;
-            displayText = '$minutes:${seconds.toString().padLeft(2, '0')}';
-          }
+    // 如果菜品已完成，强制显示为灰色禁用状态
+    if (isDishCompleted) {
+      backgroundColor = Colors.grey.shade100;
+      borderColor = Colors.grey.shade400;
+      iconColor = Colors.grey.shade600;
+      textColor = Colors.grey.shade700;
+      icon = Icons.timer_off;
+      
+      if (remaining != null) {
+        if (remaining <= 0) {
+          final overtimeSeconds = -remaining;
+          final minutes = overtimeSeconds ~/ 60;
+          final seconds = overtimeSeconds % 60;
+          displayText = '+ $minutes:${seconds.toString().padLeft(2, '0')}';
         } else {
-          displayText = '~ ${step.stepTimeMin} min';
+          final minutes = remaining ~/ 60;
+          final seconds = remaining % 60;
+          displayText = '$minutes:${seconds.toString().padLeft(2, '0')}';
         }
-        break;
-
-      default:
-        // Inactive state (not started yet)
-        backgroundColor = Colors.grey.shade200;
-        borderColor = Colors.grey.shade400;
-        iconColor = Colors.grey.shade700;
-        textColor = Colors.grey.shade700;
-        icon = Icons.timer_outlined;
+      } else {
         displayText = '~ ${step.stepTimeMin} min';
+      }
+    } else {
+      switch (timerState) {
+        case 'running':
+          // State 1: Running (Counting Down)
+          backgroundColor = Colors.green.shade50;
+          borderColor = Colors.green.shade600;
+          iconColor = Colors.green.shade700;
+          textColor = Colors.green.shade700;
+          icon = Icons.pause;
+          final minutes = (remaining ?? 0) ~/ 60;
+          final seconds = (remaining ?? 0) % 60;
+          displayText = '$minutes:${seconds.toString().padLeft(2, '0')}';
+          break;
+
+        case 'paused':
+          // State 2: Paused (User Interrupted)
+          backgroundColor = Colors.amber.shade50;
+          borderColor = Colors.amber.shade600;
+          iconColor = Colors.amber.shade700;
+          textColor = Colors.amber.shade700;
+          icon = Icons.play_arrow;
+          final minutes = (remaining ?? 0) ~/ 60;
+          final seconds = (remaining ?? 0) % 60;
+          displayText = '$minutes:${seconds.toString().padLeft(2, '0')}';
+          break;
+
+        case 'overtime':
+          // State 3: Overtime (Counting Up)
+          backgroundColor = Colors.red.shade50;
+          borderColor = Colors.red.shade600;
+          iconColor = Colors.red.shade700;
+          textColor = Colors.red.shade700;
+          icon = Icons.alarm;
+          final overtimeSeconds = -(remaining ?? 0);
+          final minutes = overtimeSeconds ~/ 60;
+          final seconds = overtimeSeconds % 60;
+          displayText = '+ $minutes:${seconds.toString().padLeft(2, '0')}';
+          break;
+
+        case 'completed':
+          // ✅ State 4: Completed (Frozen/Finalized)
+          backgroundColor = Colors.grey.shade100;
+          borderColor = Colors.grey.shade400;
+          iconColor = Colors.grey.shade600;
+          textColor = Colors.grey.shade700;
+          icon = Icons.timer_off;
+          isInteractive = false; // No more interaction when completed
+
+          if (remaining != null) {
+            if (remaining <= 0) {
+              // Was overtime when completed
+              final overtimeSeconds = -remaining;
+              final minutes = overtimeSeconds ~/ 60;
+              final seconds = overtimeSeconds % 60;
+              displayText = '+ $minutes:${seconds.toString().padLeft(2, '0')}';
+            } else {
+              // Was paused/running when completed
+              final minutes = remaining ~/ 60;
+              final seconds = remaining % 60;
+              displayText = '$minutes:${seconds.toString().padLeft(2, '0')}';
+            }
+          } else {
+            displayText = '~ ${step.stepTimeMin} min';
+          }
+          break;
+
+        default:
+          // Inactive state (not started yet)
+          backgroundColor = Colors.grey.shade200;
+          borderColor = Colors.grey.shade400;
+          iconColor = Colors.grey.shade700;
+          textColor = Colors.grey.shade700;
+          icon = Icons.timer_outlined;
+          displayText = '~ ${step.stepTimeMin} min';
+      }
     }
 
     Widget chipContent = Container(

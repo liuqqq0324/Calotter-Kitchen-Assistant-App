@@ -76,6 +76,9 @@ dependencies:
   camera: ^0.10.5+5
   google_mlkit_pose_detection: ^0.14.0
 
+  # Screen wakelock for cooking mode
+  wakelock_plus: ^1.2.8
+
 
 dev_dependencies:
   flutter_test:

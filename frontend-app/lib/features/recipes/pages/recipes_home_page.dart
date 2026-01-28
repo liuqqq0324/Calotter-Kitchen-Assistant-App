@@ -274,36 +274,62 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 顶部标题 + 删除按钮 + Filter按钮 - 手绘风格
+              // 顶部标题 + Select/取消按钮 + Filter按钮 - 手绘风格
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Text(
-                        'My Recipes',
-                        style: GoogleFonts.caveat(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
+                  // 左侧：标题 + 小勾圈圈/取消按钮
+                  Expanded(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        // 标题
+                        Text(
+                          (_isEditMode || _selectedFavoriteIds.isNotEmpty)
+                              ? '${_selectedFavoriteIds.length} Selected'
+                              : 'My Recipes',
+                          style: GoogleFonts.caveat(
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      // 删除图标按钮
-                      _AnimatedDeleteButton(
-                        isEditMode: _isEditMode,
-                        onTap: () {
-                          setState(() {
-                            _isEditMode = !_isEditMode;
-                            if (!_isEditMode) {
-                              // 退出编辑模式时清空选择
-                              _selectedFavoriteIds.clear();
-                            }
-                          });
-                        },
-                      ),
-                    ],
+                        const SizedBox(width: 12),
+                        // 取消按钮（选择模式下）或 Select 图标
+                        if (_isEditMode || _selectedFavoriteIds.isNotEmpty)
+                          GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _isEditMode = false;
+                                _selectedFavoriteIds.clear();
+                              });
+                            },
+                            child: Text(
+                              'Cancel',
+                              style: GoogleFonts.kalam(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF6B4F4F),
+                              ).copyWith(
+                                decoration: TextDecoration.underline,
+                              ),
+                            ),
+                          )
+                        else
+                          GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _isEditMode = true;
+                              });
+                            },
+                            child: Icon(
+                              Icons.check_circle_outline,
+                              size: 26,
+                              color: const Color(0xFF6B4F4F).withOpacity(0.7),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                   // Filter按钮（厨师帽）
                   _AnimatedFilterButton(onTap: _openFilterPage),
@@ -456,120 +482,156 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                             },
                           ),
                         ),
+                        // 选择模式下的底部操作栏 - 手绘风格
                         if (_selectedFavoriteIds.isNotEmpty) ...[
                           const SizedBox(height: 8),
-                          LayoutBuilder(
-                            builder: (context, constraints) {
-                              const accent = Color(0xFFD68C5E); // Terracotta
-                              const shadow = Color(0x1F8C5E4A); // Rust Brown @ 12%
-                              
-                              // 如果在编辑模式，显示删除按钮（手绘风格）
-                              if (_isEditMode) {
-                                return Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                                  child: _SketchyDeleteButton(
-                                    onPressed: () async {
-                                      // 确认删除对话框
-                                      final confirmed = await _showDeleteConfirmation(
-                                        context,
-                                        _selectedFavoriteIds.length,
-                                      );
-                                      if (!confirmed) return;
-                                      
-                                      // 删除选中的菜谱（从原始列表中找）
-                                      final selectedRecipes = favorites
-                                          .where((r) => _selectedFavoriteIds.contains(r.id))
-                                          .toList();
-                                      
-                                      if (selectedRecipes.isEmpty) return;
-                                      
-                                      // 获取householdId
-                                      final householdId = await HouseholdService.getHouseholdId();
-                                      if (householdId == null) return;
-                                      
-                                      // 删除所有选中的菜谱
-                                      for (final recipe in selectedRecipes) {
-                                        try {
-                                          await CollectedRecipesStore.remove(
-                                            recipe,
-                                            householdId: householdId,
-                                          );
-                                        } catch (e) {
-                                          debugPrint('Failed to remove recipe: $e');
-                                        }
-                                      }
-                                      
-                                      // 退出编辑模式
-                                      setState(() {
-                                        _selectedFavoriteIds.clear();
-                                        _isEditMode = false;
-                                      });
-                                      
-                                      // 显示成功提示
-                                      if (mounted) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(
-                                            content: Text(
-                                              '${selectedRecipes.length} recipe(s) deleted',
-                                            ),
-                                            duration: const Duration(seconds: 2),
-                                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            child: Row(
+                              children: [
+                                // 左侧：删除按钮
+                                Expanded(
+                                  child: SizedBox(
+                                    height: 60,
+                                    child: _SketchyButtonWithAnimation(
+                                      backgroundColor: const Color(0xFFFFFFF0),
+                                      withShadow: false,
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                      onPressed: () async {
+                                        // 确认删除对话框
+                                        final confirmed = await _showDeleteConfirmation(
+                                          context,
+                                          _selectedFavoriteIds.length,
                                         );
-                                      }
-                                    },
-                                    label: 'Delete (${_selectedFavoriteIds.length} selected)',
-                                  ),
-                                );
-                              }
-                              
-                              // 否则显示Start cooking按钮
-                              return Center(
-                                child: SizedBox(
-                                  width: constraints.maxWidth * 0.90,
-                                  child: ElevatedButton.icon(
-                                    onPressed: () {
-                                      final selectedRecipes = filteredFavorites
-                                          .where(
-                                            (r) => _selectedFavoriteIds
-                                                .contains(r.id),
-                                          )
-                                          .toList();
-                                      if (selectedRecipes.isEmpty) return;
-                                      final tempMenu = RecipeMenuModel(
-                                        menuId: -1,
-                                        recipes: selectedRecipes,
-                                      );
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) => RecipeInstructionPage(
-                                            menu: tempMenu,
-                                            initialRecipeIndex: 0,
-                                            filter: _currentFilter,
-                                            isViewMode: false, // 批量烹饪模式
+                                        if (!confirmed) return;
+                                        
+                                        // 删除选中的菜谱
+                                        final selectedRecipes = favorites
+                                            .where((r) => _selectedFavoriteIds.contains(r.id))
+                                            .toList();
+                                        
+                                        if (selectedRecipes.isEmpty) return;
+                                        
+                                        // 获取householdId
+                                        final householdId = await HouseholdService.getHouseholdId();
+                                        if (householdId == null) return;
+                                        
+                                        // 删除所有选中的菜谱
+                                        for (final recipe in selectedRecipes) {
+                                          try {
+                                            await CollectedRecipesStore.remove(
+                                              recipe,
+                                              householdId: householdId,
+                                            );
+                                          } catch (e) {
+                                            debugPrint('Failed to remove recipe: $e');
+                                          }
+                                        }
+                                        
+                                        // 退出编辑模式
+                                        setState(() {
+                                          _selectedFavoriteIds.clear();
+                                          _isEditMode = false;
+                                        });
+                                        
+                                        // 显示成功提示
+                                        if (mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                '${selectedRecipes.length} recipe(s) deleted',
+                                              ),
+                                              duration: const Duration(seconds: 2),
+                                            ),
+                                          );
+                                        }
+                                      },
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(
+                                            Icons.delete_outline,
+                                            size: 20,
+                                            color: Colors.red.shade700,
                                           ),
-                                        ),
-                                      );
-                                    },
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: accent,
-                                      foregroundColor: Colors.white,
-                                      elevation: 8,
-                                      shadowColor: shadow,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(18),
+                                          const SizedBox(width: 6),
+                                          Flexible(
+                                            child: Text(
+                                              'Delete',
+                                              style: GoogleFonts.kalam(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.red.shade700,
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                    ),
-                                    icon: const Icon(Icons.play_arrow_rounded),
-                                    label: Text(
-                                      'Start cooking (${_selectedFavoriteIds.length} selected)',
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
                                 ),
-                              );
-                            },
+                                const SizedBox(width: 12),
+                                // 右侧：开始烹饪按钮
+                                Expanded(
+                                  flex: 2,
+                                  child: SizedBox(
+                                    height: 60,
+                                    child: _SketchyButtonWithAnimation(
+                                      backgroundColor: const Color(0xFFFFFFF0),
+                                      withShadow: false,
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                      onPressed: () {
+                                        final selectedRecipes = filteredFavorites
+                                            .where(
+                                              (r) => _selectedFavoriteIds.contains(r.id),
+                                            )
+                                            .toList();
+                                        if (selectedRecipes.isEmpty) return;
+                                        final tempMenu = RecipeMenuModel(
+                                          menuId: -1,
+                                          recipes: selectedRecipes,
+                                        );
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) => RecipeInstructionPage(
+                                              menu: tempMenu,
+                                              initialRecipeIndex: 0,
+                                              filter: _currentFilter,
+                                              isViewMode: false,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          const Icon(
+                                            Icons.play_arrow_rounded,
+                                            size: 22,
+                                            color: Color(0xFF6B4F4F),
+                                          ),
+                                          const SizedBox(width: 6),
+                                          Flexible(
+                                            child: Text(
+                                              'Start Cooking (${_selectedFavoriteIds.length})',
+                                              style: GoogleFonts.kalam(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                                color: const Color(0xFF6B4F4F),
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ],
@@ -613,7 +675,6 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
     required VoidCallback onToggleSelect,
   }) {
     const selectionAccent = Color(0xFFD68C5E); // Terracotta (#D68C5E)
-    const selectedCardShadow = Color(0xCCFFFFFF); // White shadow/glow for floating effect
     const selectedAccentShadow =
         Color(0x1F8C5E4A); // Rust Brown (#8C5E4A) @ 12% opacity
 
@@ -631,7 +692,50 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
     final tapeColor = const Color(0xFFEBE3CA).withOpacity(0.7); // 淡米色，70%透明度
     final tapeLeft = isEven ? 140.0 : 160.0; // 更靠近中间位置
 
-    return Transform.rotate(
+    return Dismissible(
+      key: Key(recipe.id),
+      direction: DismissDirection.endToStart, // 只允许从右向左滑动
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        margin: margin,
+        decoration: BoxDecoration(
+          color: Colors.red.shade600,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: const Icon(
+          Icons.delete_outline,
+          color: Colors.white,
+          size: 32,
+        ),
+      ),
+      confirmDismiss: (direction) async {
+        // 显示确认对话框
+        return await _showDeleteConfirmation(context, 1);
+      },
+      onDismissed: (direction) async {
+        // 删除单个菜谱
+        final householdId = await HouseholdService.getHouseholdId();
+        if (householdId != null) {
+          try {
+            await CollectedRecipesStore.remove(
+              recipe,
+              householdId: householdId,
+            );
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('${recipe.title} deleted'),
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            }
+          } catch (e) {
+            debugPrint('Failed to remove recipe: $e');
+          }
+        }
+      },
+      child: Transform.rotate(
       angle: rotation,
       child: Container(
         margin: margin,
@@ -662,19 +766,19 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                 duration: const Duration(milliseconds: 180),
                 curve: Curves.easeOut,
                 transformAlignment: Alignment.center,
-                transform: Matrix4.translationValues(0, selected ? -3 : 0, 0),
+                transform: Matrix4.translationValues(0, selected ? -5 : 0, 0),
                 child: Container(
                   height: 135,
                   decoration: BoxDecoration(
-                    boxShadow: [
-                      BoxShadow(
-                        color: selected
-                            ? selectedCardShadow
-                            : Colors.black.withOpacity(0.30),
-                        blurRadius: selected ? 18 : 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
+                    boxShadow: selected
+                        ? [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.30),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ]
+                        : null, // 非选中状态没有阴影
                   ),
                   child: CustomPaint(
                     painter: _GridPaperPainter(seed: index),
@@ -793,8 +897,8 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                   ),
                 ),
               ),
-              // 选中标记（右上角）
-              if (selected)
+              // 选中标记（右上角）- 在选择模式下始终显示
+              if (_isEditMode || _selectedFavoriteIds.isNotEmpty)
                 Positioned(
                   top: 6,
                   right: 6,
@@ -802,30 +906,35 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                     width: 28,
                     height: 28,
                     decoration: BoxDecoration(
-                      color: selectionAccent,
+                      color: selected ? selectionAccent : Colors.white,
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: const Color(0xFFFDFCF5),
+                        color: selected ? const Color(0xFFFDFCF5) : const Color(0xFF6B4F4F).withOpacity(0.3),
                         width: 2,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: selectedAccentShadow,
+                          color: selected 
+                              ? selectedAccentShadow 
+                              : Colors.black.withOpacity(0.1),
                           blurRadius: 10,
                           offset: const Offset(0, 4),
                         ),
                       ],
                     ),
-                    child: const Icon(
-                      Icons.check,
-                      size: 18,
-                      color: Colors.white,
-                    ),
+                    child: selected
+                        ? const Icon(
+                            Icons.check,
+                            size: 18,
+                            color: Colors.white,
+                          )
+                        : null, // 未选中时显示空心圆
                   ),
                 ),
             ],
           ),
         ),
+      ),
       ),
     );
   }
@@ -1712,6 +1821,96 @@ class _AnimatedFilterButtonState extends State<_AnimatedFilterButton> {
             'assets/dish_category/CHEF_HAT.png',
             fit: BoxFit.contain,
             filterQuality: FilterQuality.high,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 带点击加深动画的手绘按钮
+class _SketchyButtonWithAnimation extends StatefulWidget {
+  final VoidCallback? onPressed;
+  final Widget child;
+  final EdgeInsetsGeometry? padding;
+  final Color? backgroundColor;
+  final bool withShadow;
+
+  const _SketchyButtonWithAnimation({
+    required this.onPressed,
+    required this.child,
+    this.padding,
+    this.backgroundColor,
+    this.withShadow = false,
+  });
+
+  @override
+  State<_SketchyButtonWithAnimation> createState() =>
+      _SketchyButtonWithAnimationState();
+}
+
+class _SketchyButtonWithAnimationState
+    extends State<_SketchyButtonWithAnimation> {
+  bool _isPressed = false;
+
+  void _handleTapDown(TapDownDetails details) {
+    setState(() => _isPressed = true);
+  }
+
+  void _handleTapUp(TapUpDetails details) {
+    setState(() => _isPressed = false);
+  }
+
+  void _handleTapCancel() {
+    setState(() => _isPressed = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final borderColor = const Color(0xFF6B4F4F).withOpacity(
+      _isPressed ? 1.0 : 0.7,
+    );
+    
+    final effectivePadding = widget.padding ?? 
+        const EdgeInsets.symmetric(horizontal: 20, vertical: 12);
+    
+    return Material(
+      color: Colors.transparent,
+      child: GestureDetector(
+        onTapDown: _handleTapDown,
+        onTapUp: _handleTapUp,
+        onTapCancel: _handleTapCancel,
+        onTap: widget.onPressed,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 110),
+          curve: Curves.easeOut,
+          transformAlignment: Alignment.center,
+          transform: Matrix4.identity()
+            ..rotateZ(_isPressed ? -0.05 : 0.0)
+            ..scale(_isPressed ? 0.98 : 1.0),
+          padding: effectivePadding,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(4),
+            boxShadow: (widget.withShadow && !_isPressed) ? [
+              BoxShadow(
+                color: const Color(0xFF6B4F4F).withOpacity(0.15),
+                offset: const Offset(2, 3),
+                blurRadius: 4,
+              )
+            ] : null,
+          ),
+          child: CustomPaint(
+            painter: _SketchyButtonBorderPainter(
+              borderColor: borderColor,
+              backgroundColor: widget.backgroundColor,
+              borderWidth: _isPressed ? 2.0 : 1.5,
+              wobbleAmount: 1.5,
+              seed: 123,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(2.0),
+              child: Center(child: widget.child),
+            ),
           ),
         ),
       ),
