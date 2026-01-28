@@ -1,5 +1,4 @@
 // lib/services/recipe_api_service.dart
-import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -202,55 +201,6 @@ class RecipeApiService {
     return menusJson
         .map<RecipeMenuModel>((e) => RecipeMenuModel.fromJson(e))
         .toList();
-  }
-
-  /// 流式生成菜单 (SSE)：每收到一个菜单即 yield，供 UI 逐条展示。
-  static Stream<RecipeMenuModel> generateMenusStream(
-    Map<String, dynamic>? filter, {
-    int? householdId,
-  }) async* {
-    final hId = householdId ?? await HouseholdService.getHouseholdId();
-    if (hId == null) {
-      throw Exception('householdId is required');
-    }
-    final uri = Uri.parse(
-      '${ApiConfig.recipeBaseUrl}/api/ai/generate-menus/stream?householdId=$hId',
-    );
-    final body = _buildRequestBody(filter);
-    final request = http.Request('POST', uri);
-    request.headers['Content-Type'] = 'application/json';
-    request.headers['Accept'] = 'text/event-stream';
-    final token = await AuthService.getToken();
-    if (token != null) {
-      request.headers['Authorization'] = 'Bearer $token';
-    }
-    request.body = jsonEncode(body);
-    debugPrint('[RecipeApi] POST SSE $uri');
-    final client = http.Client();
-    try {
-      final streamed = await client.send(request);
-      if (streamed.statusCode != 200) {
-        final bytes = await streamed.stream.toList();
-        final msg = utf8.decode(bytes.expand((x) => x).toList());
-        throw Exception('SSE failed ${streamed.statusCode}: $msg');
-      }
-      await for (final line in streamed.stream
-          .transform(utf8.decoder)
-          .transform(const LineSplitter())) {
-        if (!line.startsWith('data:')) continue;
-        final jsonStr = line.substring(5).trim();
-        if (jsonStr.isEmpty) continue;
-        try {
-          final data = jsonDecode(jsonStr) as Map<String, dynamic>;
-          debugPrint('[SSE] Received menu: ${data['menuId']}');
-          yield RecipeMenuModel.fromJson(data);
-        } catch (e) {
-          debugPrint('[RecipeApi] SSE parse error: $e');
-        }
-      }
-    } finally {
-      client.close();
-    }
   }
 
   static Map<String, dynamic> _buildRequestBody(Map<String, dynamic>? filter) {

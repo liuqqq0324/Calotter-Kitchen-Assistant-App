@@ -31,10 +31,11 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
   void initState() {
     super.initState();
     _currentFilter = widget.filter;
-    _startMenuStream();
+    _fetchMenus(); // 改回普通的批量生成
   }
 
-  Future<void> _startMenuStream() async {
+  /// 批量生成菜单：一次性获取所有菜单
+  Future<void> _fetchMenus() async {
     setState(() {
       _menus = [];
       _loading = true;
@@ -43,21 +44,33 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
     });
 
     try {
-      final stream = RecipeApiService.generateMenusStream(
+      final householdId = await HouseholdService.getHouseholdId();
+      if (householdId == null) {
+        throw Exception('householdId is required');
+      }
+      
+      // ✅ 使用批量生成，一次性获取所有菜单
+      final menus = await RecipeApiService.generateMenus(
         _currentFilter,
-        householdId: await HouseholdService.getHouseholdId(),
+        householdId: householdId,
       );
-      await for (final menu in stream) {
-        if (!mounted) return;
-        setState(() => _menus.add(menu));
+      
+      if (mounted) {
+        setState(() {
+          _menus = menus;
+          // 自动选中第一个菜单
+          if (_menus.isNotEmpty) {
+            _selectedMenuId = _menus.first.menuId;
+          }
+          _loading = false;
+        });
       }
     } catch (e) {
       if (mounted) {
-        setState(() => _error = e.toString());
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _loading = false);
+        setState(() {
+          _error = e.toString();
+          _loading = false;
+        });
       }
     }
   }
@@ -85,7 +98,7 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
         _currentFilter = result;
       });
 
-      _startMenuStream();
+      _fetchMenus();
 
       // 小提示：让你知道已经保存了
       if (mounted) {
@@ -296,7 +309,7 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
                       backgroundColor: const Color(0xFFFFFFF0),
                       withShadow: true,
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      onPressed: _loading ? null : _startMenuStream,
+                      onPressed: _loading ? null : _fetchMenus,
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -334,17 +347,55 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
   Widget _buildMenuList() {
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
-      itemCount: _menus.length + (_loading ? 1 : 0),
+      itemCount: _menus.length + (_loading && _menus.isEmpty ? 1 : 0),
       itemBuilder: (context, index) {
-        if (index == _menus.length) {
-          return const Padding(
-            padding: EdgeInsets.all(24.0),
+        // 如果正在加载且还没有任何菜单，显示加载指示器
+        if (index == _menus.length && _loading && _menus.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.all(24.0),
             child: Center(
-              child: SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(strokeWidth: 2),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Generating menus...',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
               ),
+            ),
+          );
+        }
+        // 如果正在加载但已有菜单，在最后显示一个小的加载指示器
+        if (index == _menus.length && _loading && _menus.isNotEmpty) {
+          return Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Generating more menus...',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
             ),
           );
         }
@@ -469,7 +520,7 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // 第一行：Menu 1（去掉选中标记）
+                          // 第一行：Menu 1（显示菜单主题或编号）
                           Text(
                             'Menu ${menu.menuId}',
                             style: GoogleFonts.kalam(
@@ -479,17 +530,17 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
                             ),
                           ),
                           const SizedBox(height: 8),
-                          // 第二行：菜品名
+                          // 第二行：菜品名（支持多道菜显示）
                           Text(
                             recipeTitles.length == 1
                                 ? recipeTitles.first
-                                : recipeTitles.join(', '),
+                                : recipeTitles.join(' · '), // 使用 · 分隔多道菜
                             style: GoogleFonts.kalam(
                               fontSize: 18,
                               color: ink,
                               fontWeight: FontWeight.w600,
                             ),
-                            maxLines: 2,
+                            maxLines: recipeTitles.length == 1 ? 2 : 3, // 多道菜时允许更多行
                             overflow: TextOverflow.ellipsis,
                           ),
                           const SizedBox(height: 8),
@@ -807,7 +858,7 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
               ),
               const SizedBox(height: 12),
               ElevatedButton(
-                onPressed: _startMenuStream,
+                onPressed: _fetchMenus,
                 child: const Text('Retry'),
               ),
               if (isQuotaError) ...[

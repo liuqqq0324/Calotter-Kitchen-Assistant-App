@@ -29,17 +29,10 @@ spring:
         chat:
           options:
             model: gemini-2.5-flash
-            temperature: 0.7
+            temperature: 0.9  # ✅ 方案一：调高温度增加随机性和多样性，减少同质化
+            top-p: 0.95  # ✅ 方案一：设置 Top-P 防止在高温度下胡言乱语
             # 注意：Spring AI Google GenAI 通过结构化输出功能支持 Function Calling
             # response-format 可能不需要单独配置，Spring AI 会自动处理
-    # AWS Bedrock 配置（已弃用，保留配置以备后用）
-    # bedrock:
-    #   api-key: ${BEDROCK_API_KEY:}  # 从环境变量读取（短期 token）
-    #   region: us-east-1
-    #   model-id: us.meta.llama3-3-70b-instruct-v1:0  # Llama 3.3 70B Instruct (Inference Profile ID)
-    #   max-tokens: 4096
-    #   temperature: 0.2
-    #   top-p: 0.9
   # 营养估算器配置
   nutrition:
     provider: groq  # groq（Groq 是唯一可用的实现）
@@ -73,8 +66,8 @@ jwt:
   expiration: 3000 # seconds (50 minutes)
 
 # AI API 配置
-# 模式选择：spring-ai-gemini（Spring AI Gemini，使用 Function Calling，默认）/ bedrock（AWS Bedrock，可选）
-# 已废除：mock 和 groq 模式
+# 模式选择：spring-ai-gemini（Spring AI Gemini，使用 Function Calling，默认）
+# 已废除：mock、groq 和 bedrock 模式
 ai:
   api:
-    mode: spring-ai-gemini  # spring-ai-gemini（默认） / bedrock（可选）
+    mode: spring-ai-gemini  # spring-ai-gemini（默认，唯一可用）

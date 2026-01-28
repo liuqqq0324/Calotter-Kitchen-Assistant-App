@@ -20,7 +20,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import reactor.core.publisher.Flux;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -106,34 +105,6 @@ public class AiMenuService {
         return aiMenuGenerationService.generateMenus(filter);
     }
 
-    /**
-     * 流式生成菜单（SSE）：enrich + validate 后调用 AI 流式接口，每次生成 1 个并推送。
-     */
-    public Flux<MenuDTO> generateMenuStream(RecipeGenerationFilter filter, Long householdId) {
-        if (householdId != null) {
-            enrichFilterFromHousehold(filter, householdId);
-        }
-        if (filter != null && filter.getDietPreferences() != null) {
-            RecipeGenerationFilter.DietPreferences dp = filter.getDietPreferences();
-            List<String> allergies = dp.getAllergies();
-            if (allergies == null) {
-                allergies = new ArrayList<>();
-                dp.setAllergies(allergies);
-            } else if (!allergies.isEmpty()) {
-                if (allergies.size() == 1 && "none".equalsIgnoreCase(allergies.get(0))) {
-                    dp.setAllergies(new ArrayList<>());
-                } else if (allergies.stream().anyMatch(a -> "none".equalsIgnoreCase(a))) {
-                    List<String> filtered = allergies.stream()
-                            .filter(a -> !"none".equalsIgnoreCase(a))
-                            .collect(Collectors.toList());
-                    dp.setAllergies(filtered);
-                }
-            }
-        }
-        recipeFilterValidationService.validate(filter);
-        log.info("=== Starting menu stream ===");
-        return aiMenuGenerationService.generateMenuStream(filter);
-    }
 
     /**
      * 获取默认 Filter（基于用户的偏好和健康目标）
