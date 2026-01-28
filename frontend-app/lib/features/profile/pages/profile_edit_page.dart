@@ -86,14 +86,16 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
           _selectedBirthdate = null;
         }
         heightController = TextEditingController(
-          text: data['profile']?['height']
+          text:
+              data['profile']?['height']
                   ?.toString()
                   .replaceAll(' cm', '')
                   .trim() ??
               '',
         );
         weightController = TextEditingController(
-          text: data['profile']?['weight']
+          text:
+              data['profile']?['weight']
                   ?.toString()
                   .replaceAll(' kg', '')
                   .trim() ??
@@ -207,6 +209,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
               style: GoogleFonts.kalam(),
             ),
             backgroundColor: Colors.orange.shade300,
+            duration: const Duration(milliseconds: 800),
           ),
         );
         return;
@@ -227,6 +230,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
               style: GoogleFonts.kalam(),
             ),
             backgroundColor: Colors.orange.shade300,
+            duration: const Duration(milliseconds: 800),
           ),
         );
       }
@@ -440,6 +444,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                         style: GoogleFonts.kalam(),
                       ),
                       backgroundColor: Colors.green.shade300,
+                      duration: const Duration(milliseconds: 800),
                     ),
                   );
                 } else {
@@ -451,6 +456,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                         style: GoogleFonts.kalam(),
                       ),
                       backgroundColor: Colors.orange.shade300,
+                      duration: const Duration(milliseconds: 800),
                     ),
                   );
                 }
@@ -462,6 +468,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                       style: GoogleFonts.kalam(),
                     ),
                     backgroundColor: Colors.red.shade300,
+                    duration: const Duration(milliseconds: 800),
                   ),
                 );
               }
@@ -526,12 +533,15 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                 const SizedBox(width: 100, child: Text('Gender')),
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: (_selectedGender == '1' || _selectedGender == '2') 
-                        ? _selectedGender 
+                    value: (_selectedGender == '1' || _selectedGender == '2')
+                        ? _selectedGender
                         : null,
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                     ),
                     items: const [
                       DropdownMenuItem(value: '1', child: Text('Male')),
@@ -612,7 +622,9 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                       border: OutlineInputBorder(),
                       suffixText: 'cm',
                     ),
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                   ),
                 ),
               ],
@@ -628,7 +640,9 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                       border: OutlineInputBorder(),
                       suffixText: 'kg',
                     ),
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                   ),
                 ),
               ],

@@ -59,6 +59,7 @@ class _DietHabitsListPageState extends State<DietHabitsListPage> {
           SnackBar(
             content: Text('Dietary habits saved', style: GoogleFonts.kalam()),
             backgroundColor: Colors.green.shade300,
+            duration: const Duration(milliseconds: 800),
           ),
         );
         // ✅ 保存成功后直接返回上一页
@@ -73,6 +74,7 @@ class _DietHabitsListPageState extends State<DietHabitsListPage> {
               style: GoogleFonts.kalam(),
             ),
             backgroundColor: Colors.red.shade300,
+            duration: const Duration(milliseconds: 800),
           ),
         );
       }

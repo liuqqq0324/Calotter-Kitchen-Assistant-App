@@ -65,6 +65,7 @@ class _PreferencesListPageState extends State<PreferencesListPage> {
           SnackBar(
             content: Text('Preferences saved', style: GoogleFonts.kalam()),
             backgroundColor: Colors.green.shade300,
+            duration: const Duration(milliseconds: 800),
           ),
         );
         // ✅ 保存成功后直接返回上一页
@@ -79,6 +80,7 @@ class _PreferencesListPageState extends State<PreferencesListPage> {
               style: GoogleFonts.kalam(),
             ),
             backgroundColor: Colors.red.shade300,
+            duration: const Duration(milliseconds: 800),
           ),
         );
       }

@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:personal_sous_chef/core/theme/fallback_google_fonts.dart';
 import 'profile_edit_page.dart';
-// Modified by Chase: Import user static data and auth service / 由 Chase 修改：导入用户静态数据和认证服务
-import '../../../data/models/user_profile.dart';
-
+// Modified by Chase: Import auth service / 由 Chase 修改：导入认证服务
 import '../../../services/business/auth_service.dart';
 import '../../auth/pages/login_page.dart';
 import '../../auth/pages/landing_page.dart';
@@ -31,13 +29,17 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             title: const Text('Edit Profile'),
             trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-            onTap: () {
-              Navigator.push(
+            onTap: () async {
+              final result = await Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (context) => const ProfileEditPage(),
                 ),
               );
+              // Modified by Chase: If profile was edited, notify the parent page when popping / 由 Chase 修改：如果资料已修改，则在返回时通知父页面
+              if (result == true && mounted) {
+                Navigator.pop(context, true);
+              }
             },
           ),
           const Divider(),
@@ -50,6 +52,7 @@ class _SettingsPageState extends State<SettingsPage> {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Change Password (To be implemented)'),
+                  duration: Duration(milliseconds: 800),
                 ),
               );
             },
@@ -107,6 +110,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         style: GoogleFonts.kalam(),
                       ),
                       backgroundColor: Colors.green.shade300,
+                      duration: const Duration(milliseconds: 800),
                     ),
                   );
                 }
@@ -139,6 +143,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text('Delete Account (To be implemented)'),
+                            duration: Duration(milliseconds: 800),
                           ),
                         );
                       },
