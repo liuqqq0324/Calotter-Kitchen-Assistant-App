@@ -121,35 +121,16 @@ class LeftoverCard extends StatelessWidget {
 
                       const SizedBox(height: 8),
 
-                      // Remaining weight and calories
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Flexible(
-                            child: Text(
-                              'Remaining: ${item.formattedWeight}',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.grey[700],
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                      // Calories only (weight hidden, using percentage instead)
+                      if (item.currentCalories != null)
+                        Text(
+                          '${item.currentCalories} kcal',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey[700],
                           ),
-                          if (item.currentCalories != null) ...[
-                            const SizedBox(width: 8),
-                            Flexible(
-                              child: Text(
-                                '• ${item.currentCalories} kcal',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey[600],
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
 
                       const SizedBox(height: 10),
 

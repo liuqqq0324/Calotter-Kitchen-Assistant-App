@@ -27,25 +27,17 @@ jwt:
   audience: CalotterFrontend
   expiration: 3000
 
-# AI API配置（测试时使用mock）
+# AI API配置（测试时使用 spring-ai-gemini，Mock 模式已删除）
 ai:
   api:
-    mode: mock  # 测试时使用 mock 模式，不调用真实 API
+    mode: spring-ai-gemini  # 使用 Spring AI Gemini 实现
     gemini:
       api-key: test-api-key
       base-url: http://localhost:9999
-      model: test-model
-    groq:
-      api-key: test-api-key
-      url: http://localhost:9999/mock-ai-api
       model: test-model
   nutrition:
     provider: gemini
     gemini:
-      base-url: http://localhost:9999
-      api-key: test-api-key
-      model: test-model
-    groq:
       base-url: http://localhost:9999
       api-key: test-api-key
       model: test-model
