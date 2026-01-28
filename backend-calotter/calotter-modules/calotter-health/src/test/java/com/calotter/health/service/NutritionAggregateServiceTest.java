@@ -10,6 +10,7 @@ import com.calotter.user.repository.UserRepository;
 import com.calotter.user.repository.HealthGoalRepository;
 import com.calotter.user.service.UserHealthService;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -32,6 +33,7 @@ import static org.mockito.Mockito.*;
  * NutritionAggregateService 单元测试
  */
 @ExtendWith(MockitoExtension.class)
+@DisplayName("营养聚合服务测试")
 class NutritionAggregateServiceTest {
 
     @Mock
@@ -84,6 +86,7 @@ class NutritionAggregateServiceTest {
     }
 
     @Test
+    @DisplayName("更新聚合 - 新记录")
     void testUpdateAggregate_NewRecord() {
         // Given: 聚合表不存在，需要创建新记录
         when(aggregateRepository.findByUserAndDate(user, LocalDate.now()))
@@ -111,6 +114,7 @@ class NutritionAggregateServiceTest {
     }
 
     @Test
+    @DisplayName("更新聚合 - 累加")
     void testUpdateAggregate_Accumulate() {
         // Given: 已存在聚合记录
         DailyNutrientAggregate existing = new DailyNutrientAggregate();
@@ -143,6 +147,7 @@ class NutritionAggregateServiceTest {
     }
 
     @Test
+    @DisplayName("更新聚合 - 无目标")
     void testUpdateAggregate_NoGoal() {
         // Given: 没有健康目标
         when(aggregateRepository.findByUserAndDate(user, LocalDate.now()))
@@ -166,6 +171,7 @@ class NutritionAggregateServiceTest {
     }
 
     @Test
+    @DisplayName("更新聚合 - null值")
     void testUpdateAggregate_NullValues() {
         // Given: 日志中的某些营养值为null
         log.setEnergy(null);
@@ -194,6 +200,7 @@ class NutritionAggregateServiceTest {
     }
 
     @Test
+    @DisplayName("重建日聚合 - 成功")
     void testRebuildDailyAggregate_Success() {
         // Given
         NutritionLog log2 = new NutritionLog();
@@ -233,6 +240,7 @@ class NutritionAggregateServiceTest {
     }
 
     @Test
+    @DisplayName("重建日聚合 - 已存在记录")
     void testRebuildDailyAggregate_ExistingRecord() {
         // Given: 已存在聚合记录
         DailyNutrientAggregate existing = new DailyNutrientAggregate();
@@ -259,6 +267,7 @@ class NutritionAggregateServiceTest {
     }
 
     @Test
+    @DisplayName("获取周报告 - 成功")
     void testGetWeeklyReport_Success() {
         // Given: 7天的聚合数据
         LocalDate weekStart = LocalDate.of(2024, 1, 1); // 周一
@@ -315,6 +324,7 @@ class NutritionAggregateServiceTest {
     }
 
     @Test
+    @DisplayName("获取周报告 - 无目标")
     void testGetWeeklyReport_NoGoal() {
         // Given: 没有健康目标
         LocalDate weekStart = LocalDate.now().minusDays(7);
@@ -340,6 +350,7 @@ class NutritionAggregateServiceTest {
     }
 
     @Test
+    @DisplayName("获取周报告 - 用户不存在")
     void testGetWeeklyReport_UserNotFound() {
         // Given
         when(userRepository.findById(999L)).thenReturn(Optional.empty());
@@ -351,6 +362,7 @@ class NutritionAggregateServiceTest {
     }
 
     @Test
+    @DisplayName("获取或创建日聚合 - 已存在")
     void testGetOrCreateDailyAggregate_Existing() {
         // Given
         DailyNutrientAggregate existing = new DailyNutrientAggregate();
@@ -370,6 +382,7 @@ class NutritionAggregateServiceTest {
     }
 
     @Test
+    @DisplayName("获取或创建日聚合 - 新建")
     void testGetOrCreateDailyAggregate_New() {
         // Given
         when(aggregateRepository.findByUserAndDate(user, LocalDate.now()))
@@ -391,6 +404,7 @@ class NutritionAggregateServiceTest {
     }
 
     @Test
+    @DisplayName("获取周摘要 - 成功")
     void testGetWeeklySummary_Success() {
         // Given
         LocalDate weekStart = LocalDate.of(2024, 1, 1);

@@ -21,6 +21,7 @@ import com.calotter.user.repository.HouseholdRepository;
 import com.calotter.user.repository.UserRepository;
 import com.calotter.user.repository.HealthGoalRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -40,6 +41,7 @@ import static org.mockito.Mockito.*;
  * AiMenuService 单元测试
  */
 @ExtendWith(MockitoExtension.class)
+@DisplayName("AI菜单服务测试")
 class AiMenuServiceTest {
 
     @Mock

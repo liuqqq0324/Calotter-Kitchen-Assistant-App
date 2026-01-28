@@ -39,6 +39,13 @@ public class FinishCookingRequest {
      */
     private LocalDateTime consumedAt = LocalDateTime.now();
 
+    /**
+     * 每个dish的总质量（可选）
+     * 如果提供，后端会更新对应dish的totalWeightGram
+     * 可以通过recipeId（recipe的title）或dishId来匹配
+     */
+    private List<DishTotalWeight> dishTotalWeights;
+
     @Data
     public static class FinalIngredient {
         private String name;
@@ -67,5 +74,28 @@ public class FinishCookingRequest {
         private Double portionPercentage; // 例如 0.25 代表吃了 1/4
         
         private String note;
+    }
+
+    /**
+     * Dish总质量信息
+     */
+    @Data
+    public static class DishTotalWeight {
+        /**
+         * Recipe ID（可以是recipe的title，用于匹配dish的name）
+         * 如果前端传递的是recipeId（字符串），后端会通过dish的name匹配
+         */
+        private String recipeId;
+        
+        /**
+         * Dish ID（可选，如果提供则直接使用dishId匹配）
+         */
+        private Long dishId;
+        
+        /**
+         * 总质量（克）
+         */
+        @NotNull
+        private Integer totalWeightGram;
     }
 }

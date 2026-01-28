@@ -13,6 +13,7 @@ import com.calotter.user.domain.entity.User;
 import com.calotter.user.repository.HouseholdRepository;
 import com.calotter.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -34,6 +35,7 @@ import static org.mockito.Mockito.*;
  * IntakeServiceImpl 单元测试
  */
 @ExtendWith(MockitoExtension.class)
+@DisplayName("摄入服务实现测试")
 class IntakeServiceImplTest {
 
     @Mock
@@ -114,6 +116,7 @@ class IntakeServiceImplTest {
     // ==================== getTodayIntakes 测试 ====================
 
     @Test
+    @DisplayName("获取今日摄入 - 手动记录成功")
     void testGetTodayIntakes_Manual_Success() {
         // Given
         LocalDate today = LocalDate.now();
@@ -135,6 +138,7 @@ class IntakeServiceImplTest {
     }
 
     @Test
+    @DisplayName("获取今日摄入 - 食谱记录成功")
     void testGetTodayIntakes_Recipe_Success() {
         // Given
         LocalDate today = LocalDate.now();
@@ -167,6 +171,7 @@ class IntakeServiceImplTest {
     }
 
     @Test
+    @DisplayName("获取今日摄入 - 全部记录成功")
     void testGetTodayIntakes_All_Success() {
         // Given
         LocalDate today = LocalDate.now();
@@ -184,6 +189,7 @@ class IntakeServiceImplTest {
     }
 
     @Test
+    @DisplayName("获取今日摄入 - 用户不存在")
     void testGetTodayIntakes_UserNotFound() {
         // Given
         when(userRepository.findById(999L)).thenReturn(Optional.empty());
@@ -197,6 +203,7 @@ class IntakeServiceImplTest {
     // ==================== getDishOptions 测试 ====================
 
     @Test
+    @DisplayName("获取菜品选项 - 成功")
     void testGetDishOptions_Success() {
         // Given
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
@@ -218,6 +225,7 @@ class IntakeServiceImplTest {
     }
 
     @Test
+    @DisplayName("获取菜品选项 - 无家庭")
     void testGetDishOptions_NoHousehold() {
         // Given
         user.setCurrentHouseholdId(null);
@@ -233,6 +241,7 @@ class IntakeServiceImplTest {
     }
 
     @Test
+    @DisplayName("获取菜品选项 - 过滤零数量")
     void testGetDishOptions_FiltersZeroQuantity() {
         // Given
         LeftoverDish zeroLeftover = new LeftoverDish();
@@ -258,6 +267,7 @@ class IntakeServiceImplTest {
     // ==================== addDishIntake 测试 ====================
 
     @Test
+    @DisplayName("添加菜品摄入 - 成功")
     void testAddDishIntake_Success() {
         // Given
         IIntakeService.AddDishIntakeRequest request = new IIntakeService.AddDishIntakeRequest();
@@ -300,6 +310,7 @@ class IntakeServiceImplTest {
     }
 
     @Test
+    @DisplayName("添加菜品摄入 - 批量成功")
     void testAddDishIntake_Batch_Success() {
         // Given
         LeftoverDish leftover2 = new LeftoverDish();
@@ -349,6 +360,7 @@ class IntakeServiceImplTest {
     }
 
     @Test
+    @DisplayName("添加菜品摄入 - 无效类型")
     void testAddDishIntake_InvalidType() {
         // Given
         IIntakeService.AddDishIntakeRequest request = new IIntakeService.AddDishIntakeRequest();
@@ -365,6 +377,7 @@ class IntakeServiceImplTest {
     }
 
     @Test
+    @DisplayName("添加菜品摄入 - 未提供ID")
     void testAddDishIntake_NoIdOrIds() {
         // Given
         IIntakeService.AddDishIntakeRequest request = new IIntakeService.AddDishIntakeRequest();
@@ -380,6 +393,7 @@ class IntakeServiceImplTest {
     }
 
     @Test
+    @DisplayName("添加菜品摄入 - 剩菜不存在")
     void testAddDishIntake_LeftoverNotFound() {
         // Given
         IIntakeService.AddDishIntakeRequest request = new IIntakeService.AddDishIntakeRequest();
@@ -399,6 +413,7 @@ class IntakeServiceImplTest {
     // ==================== updateIntakePercentage 测试 ====================
 
     @Test
+    @DisplayName("更新摄入百分比 - 成功")
     void testUpdateIntakePercentage_Success() {
         // Given
         nutritionLog.setBaseEnergy(1000);
@@ -443,6 +458,7 @@ class IntakeServiceImplTest {
     }
 
     @Test
+    @DisplayName("更新摄入百分比 - 剩菜同步数量")
     void testUpdateIntakePercentage_Leftover_SyncsQuantity() {
         // Given
         NutritionLog leftoverLog = new NutritionLog();
@@ -484,6 +500,7 @@ class IntakeServiceImplTest {
     }
 
     @Test
+    @DisplayName("更新摄入百分比 - 用户不存在")
     void testUpdateIntakePercentage_UserNotFound() {
         // Given
         when(userRepository.findById(999L)).thenReturn(Optional.empty());
@@ -495,6 +512,7 @@ class IntakeServiceImplTest {
     }
 
     @Test
+    @DisplayName("更新摄入百分比 - 摄入记录不存在")
     void testUpdateIntakePercentage_IntakeNotFound() {
         // Given
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
@@ -510,6 +528,7 @@ class IntakeServiceImplTest {
     // ==================== addManualIntake 测试 ====================
 
     @Test
+    @DisplayName("添加手动摄入 - 成功")
     void testAddManualIntake_Success() {
         // Given
         LocalDate date = LocalDate.now();
@@ -557,6 +576,7 @@ class IntakeServiceImplTest {
     }
 
     @Test
+    @DisplayName("添加手动摄入 - 用户不存在")
     void testAddManualIntake_UserNotFound() {
         // Given
         when(userRepository.findById(999L)).thenReturn(Optional.empty());
@@ -568,6 +588,7 @@ class IntakeServiceImplTest {
     }
 
     @Test
+    @DisplayName("添加手动摄入 - 估算器不存在")
     void testAddManualIntake_EstimatorNotFound() {
         // Given
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
@@ -582,6 +603,7 @@ class IntakeServiceImplTest {
     // ==================== deleteIntake 测试 ====================
 
     @Test
+    @DisplayName("删除摄入 - 成功")
     void testDeleteIntake_Success() {
         // Given
         LocalDate date = LocalDate.now();
@@ -616,6 +638,7 @@ class IntakeServiceImplTest {
     }
 
     @Test
+    @DisplayName("删除摄入 - 用户不存在")
     void testDeleteIntake_UserNotFound() {
         // Given
         when(userRepository.findById(999L)).thenReturn(Optional.empty());
@@ -627,6 +650,7 @@ class IntakeServiceImplTest {
     }
 
     @Test
+    @DisplayName("删除摄入 - 摄入记录不存在")
     void testDeleteIntake_IntakeNotFound() {
         // Given
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));

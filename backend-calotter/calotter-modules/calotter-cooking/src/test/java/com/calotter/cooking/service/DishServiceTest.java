@@ -6,6 +6,7 @@ import com.calotter.cooking.repository.DishRepository;
 import com.calotter.cooking.service.dto.AiRecipeResponse;
 import com.calotter.user.domain.entity.Household;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -25,6 +26,7 @@ import static org.mockito.Mockito.when;
  * DishService 单元测试
  */
 @ExtendWith(MockitoExtension.class)
+@DisplayName("菜品服务测试")
 class DishServiceTest {
 
     @Mock
@@ -93,6 +95,7 @@ class DishServiceTest {
     }
 
     @Test
+    @DisplayName("从AI响应创建Dish - 成功")
     void testCreateDishFromAiResponse_Success() {
         // Given
         when(dishRepository.save(any(Dish.class))).thenAnswer(invocation -> {
@@ -428,5 +431,83 @@ class DishServiceTest {
 
         // Then: 重量应该累加所有菜品：520g (第一个) + 200g (第二个) = 720g
         assertThat(result.getTotalWeightGram()).isEqualTo(720);
+    }
+
+    @Test
+    @DisplayName("从AI响应创建Dish - 包含分类")
+    void testCreateDishFromAiResponse_WithCategory() {
+        // Given
+        aiResponse.getDishes().get(0).setCategory("MAIN_COURSE");
+
+        when(dishRepository.save(any(Dish.class))).thenAnswer(invocation -> {
+            Dish dish = invocation.getArgument(0);
+            dish.setId(1L);
+            return dish;
+        });
+
+        // When
+        Dish result = dishService.createDishFromAiResponse(aiResponse, household);
+
+        // Then
+        assertThat(result.getCategory()).isNotNull();
+        assertThat(result.getCategory().name()).isEqualTo("MAIN_COURSE");
+    }
+
+    @Test
+    @DisplayName("从AI响应创建Dish - 无效分类")
+    void testCreateDishFromAiResponse_InvalidCategory() {
+        // Given
+        aiResponse.getDishes().get(0).setCategory("INVALID_CATEGORY");
+
+        when(dishRepository.save(any(Dish.class))).thenAnswer(invocation -> {
+            Dish dish = invocation.getArgument(0);
+            dish.setId(1L);
+            return dish;
+        });
+
+        // When
+        Dish result = dishService.createDishFromAiResponse(aiResponse, household);
+
+        // Then: 无效分类应该设置为null
+        assertThat(result.getCategory()).isNull();
+    }
+
+    @Test
+    @DisplayName("从AI响应创建Dish - 分类为null")
+    void testCreateDishFromAiResponse_NullCategory() {
+        // Given
+        aiResponse.getDishes().get(0).setCategory(null);
+
+        when(dishRepository.save(any(Dish.class))).thenAnswer(invocation -> {
+            Dish dish = invocation.getArgument(0);
+            dish.setId(1L);
+            return dish;
+        });
+
+        // When
+        Dish result = dishService.createDishFromAiResponse(aiResponse, household);
+
+        // Then: null分类应该保持为null
+        assertThat(result.getCategory()).isNull();
+    }
+
+    @Test
+    @DisplayName("从AI响应创建Dish - 小写分类")
+    void testCreateDishFromAiResponse_LowercaseCategory() {
+        // Given
+        aiResponse.getDishes().get(0).setCategory("main_course");
+
+        when(dishRepository.save(any(Dish.class))).thenAnswer(invocation -> {
+            Dish dish = invocation.getArgument(0);
+            dish.setId(1L);
+            return dish;
+        });
+
+        // When
+        Dish result = dishService.createDishFromAiResponse(aiResponse, household);
+
+        // Then: 应该转换为大写
+        assertThat(result.getCategory()).isNotNull();
+        assertThat(result.getCategory().name()).isEqualTo("MAIN_COURSE");
     }
 }

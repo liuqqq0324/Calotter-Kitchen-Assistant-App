@@ -312,7 +312,7 @@ class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              'Select leftovers',
+                              'Select dishes',
                               style: GoogleFonts.kalam(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,

@@ -30,6 +30,8 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
   late final Map<String, double> _percentEaten; // recipeId -> percent
   late final Map<String, Map<String, TextEditingController>>
   _ingredientControllers; // recipeId -> ingredient name -> controller
+  late final Map<String, TextEditingController>
+      _totalWeightControllers; // recipeId -> total weight controller
 
   List<RecipeModel> get _completedRecipes {
     final recipes = widget.menu.recipes;
@@ -46,6 +48,7 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
     super.initState();
     _percentEaten = {};
     _ingredientControllers = {};
+    _totalWeightControllers = {};
 
     // 只为已完成的菜品初始化
     for (int i = 0; i < widget.menu.recipes.length; i++) {
@@ -62,6 +65,12 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
           );
         }
         _ingredientControllers[recipe.id] = controllers;
+
+        // 初始化总质量控制器，默认值为所有以g为单位的ingredients相加
+        final defaultTotalWeight = _calculateDefaultTotalWeight(recipe);
+        _totalWeightControllers[recipe.id] = TextEditingController(
+          text: defaultTotalWeight.toStringAsFixed(0),
+        );
       }
     }
   }
@@ -73,7 +82,21 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
         controller.dispose();
       }
     }
+    for (final controller in _totalWeightControllers.values) {
+      controller.dispose();
+    }
     super.dispose();
+  }
+
+  /// 计算默认总质量：将所有以g为单位的ingredients相加
+  double _calculateDefaultTotalWeight(RecipeModel recipe) {
+    double total = 0.0;
+    for (final ing in recipe.ingredients) {
+      if (ing.amountUnit.toLowerCase() == 'g' && ing.amountValue != null) {
+        total += ing.amountValue;
+      }
+    }
+    return total > 0 ? total : 1000.0; // 如果没有g单位的食材，默认1000g
   }
 
   double? get _targetCaloriesPerPerson {
@@ -219,6 +242,22 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
           return;
         }
 
+        // 收集每个dish的总质量
+        final dishTotalWeights = <Map<String, dynamic>>[];
+        for (final recipe in completedRecipes) {
+          final weightController = _totalWeightControllers[recipe.id];
+          if (weightController != null) {
+            final totalWeight = double.tryParse(weightController.text.trim());
+            if (totalWeight != null && totalWeight > 0) {
+              // 使用recipe.title作为recipeId，后端会通过dish的name匹配
+              dishTotalWeights.add({
+                'recipeId': recipe.title, // 使用title，后端通过dish的name匹配
+                'totalWeightGram': totalWeight.toInt(),
+              });
+            }
+          }
+        }
+
         // 调用finish cooking API
         // 注意：后端会自动完成 session 中的所有 dish，不再需要传递 completedDishIds
         await CookingApiService.finishCooking(
@@ -230,6 +269,7 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
             'fat': totalFat,
             'carbs': totalCarbs,
           },
+          dishTotalWeights: dishTotalWeights.isNotEmpty ? dishTotalWeights : null,
           // diners: 可选，后续可以添加用餐者信息输入
         );
 
@@ -354,174 +394,24 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
             child: ListView(
               padding: const EdgeInsets.all(20),
               children: [
-              Text(
-                'Nice work! You finished this meal.',
-                style: GoogleFonts.kalam(
-                  fontSize: 20, // 增大字体
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey[800],
+                Text(
+                  'Nice work! You finished this meal.',
+                  style: GoogleFonts.kalam(
+                    fontSize: 20, // 增大字体
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[800],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
+                const SizedBox(height: 16),
 
-              // 卡路里卡片 - 便签样式（带胶带和锯齿边框）
-              Stack(
-                alignment: Alignment.topCenter,
-                clipBehavior: Clip.none,
-                children: [
-                  // 1. Background Layer: Sketchy paper container
-                  Container(
-                    width: double.infinity, // 确保宽度填满
-                    margin: const EdgeInsets.only(top: 14), // Space for tape
-                    padding: const EdgeInsets.all(16),
-                    decoration: ShapeDecoration(
-                      color: const Color(0xFFFFFFF0), // Off-white/cream color
-                      shape: const SketchyRectBorder(
-                        borderWidth: 1.0,
-                        wobbleAmount: 2.5,
-                        seed: 42, // Fixed seed for consistent appearance
-                      ),
-                      shadows: [
-                        BoxShadow(
-                          color: const Color(0xFF6B4F4F).withOpacity(0.12),
-                          blurRadius: 10,
-                          offset: const Offset(2, 6),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Calories eaten (estimated)',
-                          style: GoogleFonts.kalam(
-                            fontSize: 18, // 增大字体
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey[800],
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          '${totalCalories.toStringAsFixed(0)} kcal total',
-                          style: GoogleFonts.kalam(
-                            fontSize: 24, // 增大字体
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey[900],
-                          ),
-                        ),
-                        if (caloriesPerPerson != null) ...[
-                          const SizedBox(height: 4),
-                          Text(
-                            '≈ ${caloriesPerPerson.toStringAsFixed(0)} kcal per person'
-                            '${servings != null ? '  ($servings servings)' : ''}',
-                            style: GoogleFonts.kalam(
-                              fontSize: 16, // 增大字体
-                              color: Colors.grey[700],
-                            ),
-                          ),
-                        ],
-
-                        if (targetPerPerson != null) ...[
-                          const SizedBox(height: 12),
-                          const Divider(),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Your target',
-                            style: GoogleFonts.kalam(
-                              fontSize: 16, // 增大字体
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '≤ ${targetPerPerson.toStringAsFixed(0)} kcal per person',
-                            style: GoogleFonts.kalam(
-                              fontSize: 18, // 增大字体
-                              fontWeight: FontWeight.w500,
-                              color: Colors.grey[800],
-                            ),
-                          ),
-                          if (comparison != null) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              comparison,
-                              style: GoogleFonts.kalam(
-                                fontSize: 16, // 增大字体
-                                color: comparison.startsWith('Within')
-                                    ? Colors.green
-                                    : Colors.redAccent,
-                              ),
-                            ),
-                          ],
-                        ],
-                      ],
-                    ),
-                  ),
-                  // 2. Tape Layer: Programmatic tape effect
-                  Positioned(
-                    top: 4, // Position tape slightly above the card
-                    child: Transform.rotate(
-                      angle: -0.05, // Slight rotation for natural look
-                      child: Container(
-                        width: 85, // Shortened tape length
-                        height: 18,
-                        decoration: BoxDecoration(
-                          // Semi-transparent yellowish-white tape color
-                          color: const Color(0xFFFFF8DC).withOpacity(0.4),
-                          borderRadius: BorderRadius.circular(2),
-                          // Add a subtle border to make it look more like tape
-                          border: Border.all(
-                            color: const Color(0xFFD4AF37).withOpacity(0.3),
-                            width: 0.5,
-                          ),
-                          // Add a subtle shadow to make the tape pop
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 2,
-                              offset: const Offset(0, 1),
-                            ),
-                          ],
-                        ),
-                        // Add some texture lines to simulate tape texture
-                        child: CustomPaint(painter: _TapeTexturePainter()),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-
-            const SizedBox(height: 20),
-
-            Text(
-              'Record what you used and ate',
-              style: GoogleFonts.kalam(
-                fontSize: 20, // 增大字体
-                fontWeight: FontWeight.bold,
-                color: Colors.grey[800],
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Adjust ingredient usage for the dishes you marked as done.',
-              style: GoogleFonts.kalam(
-                fontSize: 16, // 增大字体
-                color: Colors.grey[600],
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            ...completedRecipes.map((recipe) {
-              final ingControllers = _ingredientControllers[recipe.id] ?? {};
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: Stack(
+                // 卡路里卡片 - 便签样式（带胶带和锯齿边框）
+                Stack(
                   alignment: Alignment.topCenter,
                   clipBehavior: Clip.none,
                   children: [
                     // 1. Background Layer: Sketchy paper container
                     Container(
-                      width: double.infinity, // 确保宽度填满，与卡路里便签对齐
+                      width: double.infinity, // 确保宽度填满
                       margin: const EdgeInsets.only(top: 14), // Space for tape
                       padding: const EdgeInsets.all(16),
                       decoration: ShapeDecoration(
@@ -529,7 +419,7 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
                         shape: const SketchyRectBorder(
                           borderWidth: 1.0,
                           wobbleAmount: 2.5,
-                          seed: 43, // Different seed for variety
+                          seed: 42, // Fixed seed for consistent appearance
                         ),
                         shadows: [
                           BoxShadow(
@@ -542,25 +432,8 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  recipe.title,
-                                  style: GoogleFonts.kalam(
-                                    fontSize: 20, // 增大字体
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.grey[800],
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                  maxLines: 2,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
                           Text(
-                            'Ingredients used',
+                            'Calories eaten (estimated)',
                             style: GoogleFonts.kalam(
                               fontSize: 18, // 增大字体
                               fontWeight: FontWeight.bold,
@@ -568,67 +441,59 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
                             ),
                           ),
                           const SizedBox(height: 8),
-                          if (recipe.ingredients.isEmpty)
+                          Text(
+                            '${totalCalories.toStringAsFixed(0)} kcal total',
+                            style: GoogleFonts.kalam(
+                              fontSize: 24, // 增大字体
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey[900],
+                            ),
+                          ),
+                          if (caloriesPerPerson != null) ...[
+                            const SizedBox(height: 4),
                             Text(
-                              'No ingredients listed.',
+                              '≈ ${caloriesPerPerson.toStringAsFixed(0)} kcal per person'
+                              '${servings != null ? '  ($servings servings)' : ''}',
+                              style: GoogleFonts.kalam(
+                                fontSize: 16, // 增大字体
+                                color: Colors.grey[700],
+                              ),
+                            ),
+                          ],
+
+                          if (targetPerPerson != null) ...[
+                            const SizedBox(height: 12),
+                            const Divider(),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Your target',
                               style: GoogleFonts.kalam(
                                 fontSize: 16, // 增大字体
                                 color: Colors.grey[600],
                               ),
-                            )
-                          else
-                            Column(
-                              children: recipe.ingredients.map((ing) {
-                                final controller = ingControllers[ing.name];
-                                return Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 6.0,
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          ing.name,
-                                          style: GoogleFonts.kalam(
-                                            fontSize: 18, // 增大字体
-                                            color: Colors.grey[800],
-                                          ),
-                                        ),
-                                      ),
-                                      SizedBox(
-                                        width: 110,
-                                        child: TextField(
-                                          controller: controller,
-                                          keyboardType:
-                                              const TextInputType.numberWithOptions(
-                                                decimal: true,
-                                              ),
-                                          style: GoogleFonts.kalam(
-                                            fontSize: 16, // 增大字体
-                                          ),
-                                          decoration: InputDecoration(
-                                            labelText: 'Used',
-                                            labelStyle: GoogleFonts.kalam(
-                                              fontSize: 14, // 增大字体
-                                            ),
-                                            suffixText: ing.amountUnit,
-                                            suffixStyle: GoogleFonts.kalam(
-                                              fontSize: 14, // 增大字体
-                                            ),
-                                            isDense: true,
-                                            border: const OutlineInputBorder(),
-                                            contentPadding: const EdgeInsets.symmetric(
-                                              horizontal: 12,
-                                              vertical: 8,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              }).toList(),
                             ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '≤ ${targetPerPerson.toStringAsFixed(0)} kcal per person',
+                              style: GoogleFonts.kalam(
+                                fontSize: 18, // 增大字体
+                                fontWeight: FontWeight.w500,
+                                color: Colors.grey[800],
+                              ),
+                            ),
+                            if (comparison != null) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                comparison,
+                                style: GoogleFonts.kalam(
+                                  fontSize: 16, // 增大字体
+                                  color: comparison.startsWith('Within')
+                                      ? Colors.green
+                                      : Colors.redAccent,
+                                ),
+                              ),
+                            ],
+                          ],
                         ],
                       ),
                     ),
@@ -665,47 +530,289 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
                     ),
                   ],
                 ),
-              );
-            }).toList(),
 
-            const SizedBox(height: 20),
+                const SizedBox(height: 20),
 
-            // Save record 按钮 - 使用手绘风格（棕色背景，无阴影）
-            SizedBox(
-              height: 70,
-              child: _SketchyButtonWithAnimation(
-                backgroundColor: const Color(0xFFD2B48C), // 棕色背景
-                withShadow: false, // 关闭阴影
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                onPressed: () => _saveConsumption(context),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.save_alt,
-                      size: 22,
-                      color: const Color(0xFF6B4F4F),
+                Text(
+                  'Record what you used and ate',
+                  style: GoogleFonts.kalam(
+                    fontSize: 20, // 增大字体
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[800],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Adjust ingredient usage for the dishes you marked as done.',
+                  style: GoogleFonts.kalam(
+                    fontSize: 16, // 增大字体
+                    color: Colors.grey[600],
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                ...completedRecipes.map((recipe) {
+                  final ingControllers =
+                      _ingredientControllers[recipe.id] ?? {};
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: Stack(
+                      alignment: Alignment.topCenter,
+                      clipBehavior: Clip.none,
+                      children: [
+                        // 1. Background Layer: Sketchy paper container
+                        Container(
+                          width: double.infinity, // 确保宽度填满，与卡路里便签对齐
+                          margin: const EdgeInsets.only(
+                            top: 14,
+                          ), // Space for tape
+                          padding: const EdgeInsets.all(16),
+                          decoration: ShapeDecoration(
+                            color: const Color(
+                              0xFFFFFFF0,
+                            ), // Off-white/cream color
+                            shape: const SketchyRectBorder(
+                              borderWidth: 1.0,
+                              wobbleAmount: 2.5,
+                              seed: 43, // Different seed for variety
+                            ),
+                            shadows: [
+                              BoxShadow(
+                                color: const Color(
+                                  0xFF6B4F4F,
+                                ).withOpacity(0.12),
+                                blurRadius: 10,
+                                offset: const Offset(2, 6),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      recipe.title,
+                                      style: GoogleFonts.kalam(
+                                        fontSize: 20, // 增大字体
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.grey[800],
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                      maxLines: 2,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                'Ingredients used',
+                                style: GoogleFonts.kalam(
+                                  fontSize: 18, // 增大字体
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.grey[800],
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              if (recipe.ingredients.isEmpty)
+                                Text(
+                                  'No ingredients listed.',
+                                  style: GoogleFonts.kalam(
+                                    fontSize: 16, // 增大字体
+                                    color: Colors.grey[600],
+                                  ),
+                                )
+                              else
+                                Column(
+                                  children: recipe.ingredients.map((ing) {
+                                    final controller = ingControllers[ing.name];
+                                    return Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 6.0,
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              ing.name,
+                                              style: GoogleFonts.kalam(
+                                                fontSize: 18, // 增大字体
+                                                color: Colors.grey[800],
+                                              ),
+                                            ),
+                                          ),
+                                          SizedBox(
+                                            width: 110,
+                                            child: TextField(
+                                              controller: controller,
+                                              keyboardType:
+                                                  const TextInputType.numberWithOptions(
+                                                    decimal: true,
+                                                  ),
+                                              style: GoogleFonts.kalam(
+                                                fontSize: 16, // 增大字体
+                                              ),
+                                              decoration: InputDecoration(
+                                                labelText: 'Used',
+                                                labelStyle: GoogleFonts.kalam(
+                                                  fontSize: 14, // 增大字体
+                                                ),
+                                                suffixText: ing.amountUnit,
+                                                suffixStyle: GoogleFonts.kalam(
+                                                  fontSize: 14, // 增大字体
+                                                ),
+                                                isDense: true,
+                                                border:
+                                                    const OutlineInputBorder(),
+                                                contentPadding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 12,
+                                                      vertical: 8,
+                                                    ),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'Total weight',
+                                style: GoogleFonts.kalam(
+                                  fontSize: 18, // 增大字体
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.grey[800],
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      'Total weight of this dish (default: sum of all ingredients in g)',
+                                      style: GoogleFonts.kalam(
+                                        fontSize: 14,
+                                        color: Colors.grey[600],
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    width: 120,
+                                    child: TextField(
+                                      controller: _totalWeightControllers[recipe.id],
+                                      keyboardType: const TextInputType.numberWithOptions(
+                                        decimal: true,
+                                      ),
+                                      style: GoogleFonts.kalam(
+                                        fontSize: 16, // 增大字体
+                                      ),
+                                      decoration: InputDecoration(
+                                        labelText: 'Weight',
+                                        labelStyle: GoogleFonts.kalam(
+                                          fontSize: 14, // 增大字体
+                                        ),
+                                        suffixText: 'g',
+                                        suffixStyle: GoogleFonts.kalam(
+                                          fontSize: 14, // 增大字体
+                                        ),
+                                        isDense: true,
+                                        border: const OutlineInputBorder(),
+                                        contentPadding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 8,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        // 2. Tape Layer: Programmatic tape effect
+                        Positioned(
+                          top: 4, // Position tape slightly above the card
+                          child: Transform.rotate(
+                            angle: -0.05, // Slight rotation for natural look
+                            child: Container(
+                              width: 85, // Shortened tape length
+                              height: 18,
+                              decoration: BoxDecoration(
+                                // Semi-transparent yellowish-white tape color
+                                color: const Color(0xFFFFF8DC).withOpacity(0.4),
+                                borderRadius: BorderRadius.circular(2),
+                                // Add a subtle border to make it look more like tape
+                                border: Border.all(
+                                  color: const Color(
+                                    0xFFD4AF37,
+                                  ).withOpacity(0.3),
+                                  width: 0.5,
+                                ),
+                                // Add a subtle shadow to make the tape pop
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.1),
+                                    blurRadius: 2,
+                                    offset: const Offset(0, 1),
+                                  ),
+                                ],
+                              ),
+                              // Add some texture lines to simulate tape texture
+                              child: CustomPaint(
+                                painter: _TapeTexturePainter(),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 8),
-                    Flexible(
-                      child: Text(
-                        'Save record',
-                        style: GoogleFonts.kalam(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                  );
+                }).toList(),
+
+                const SizedBox(height: 20),
+
+                // Save record 按钮 - 使用手绘风格（棕色背景，无阴影）
+                SizedBox(
+                  height: 70,
+                  child: _SketchyButtonWithAnimation(
+                    backgroundColor: const Color(0xFFD2B48C), // 棕色背景
+                    withShadow: false, // 关闭阴影
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    onPressed: () => _saveConsumption(context),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.save_alt,
+                          size: 22,
                           color: const Color(0xFF6B4F4F),
                         ),
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
-                      ),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            'Save record',
+                            style: GoogleFonts.kalam(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF6B4F4F),
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
-            ],
           ),
-        ),
         ),
       ),
     );
@@ -764,14 +871,16 @@ class _GridPaperPainter extends CustomPainter {
 
     // 2. 绘制背景
     final backgroundPaint = Paint()
-      ..color = const Color(0xFFF8F8F5) // 网格纸背景色
+      ..color =
+          const Color(0xFFF8F8F5) // 网格纸背景色
       ..style = PaintingStyle.fill;
 
     canvas.drawPath(path, backgroundPaint);
 
     // 3. 绘制网格线
     final gridPaint = Paint()
-      ..color = const Color(0xFFE3E6E8) // 网格线颜色
+      ..color =
+          const Color(0xFFE3E6E8) // 网格线颜色
       ..strokeWidth = 1.0
       ..style = PaintingStyle.stroke;
 
@@ -823,7 +932,8 @@ class _GridPaperPainter extends CustomPainter {
     // 右侧边缘
     for (double y = step; y < effectiveHeight; y += step) {
       final noise = random.nextDouble() * edgeNoise * 2 - edgeNoise;
-      final x = (effectiveWidth + noise.clamp(-edgeNoise, edgeNoise)).toDouble();
+      final x = (effectiveWidth + noise.clamp(-edgeNoise, edgeNoise))
+          .toDouble();
       path.lineTo(x, y);
     }
     path.lineTo(effectiveWidth, effectiveHeight);
@@ -831,7 +941,8 @@ class _GridPaperPainter extends CustomPainter {
     // 底部边缘
     for (double x = effectiveWidth - step; x > 0; x -= step) {
       final noise = random.nextDouble() * edgeNoise * 2 - edgeNoise;
-      final y = (effectiveHeight + noise.clamp(-edgeNoise, edgeNoise)).toDouble();
+      final y = (effectiveHeight + noise.clamp(-edgeNoise, edgeNoise))
+          .toDouble();
       path.lineTo(x, y);
     }
     path.lineTo(0, effectiveHeight);
@@ -889,7 +1000,7 @@ class _SketchyButtonBorderPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final path = _createSketchyPath(size);
-    
+
     // 1. 先画背景（如果有）
     if (backgroundColor != null) {
       final fillPaint = Paint()
@@ -990,14 +1101,15 @@ class _SketchyButtonWithAnimationState
 
   @override
   Widget build(BuildContext context) {
-    final borderColor = const Color(0xFF6B4F4F).withOpacity(
-      _isPressed ? 1.0 : 0.7,
-    );
-    
+    final borderColor = const Color(
+      0xFF6B4F4F,
+    ).withOpacity(_isPressed ? 1.0 : 0.7);
+
     // 计算 Padding：如果有传入则用传入的，否则用默认较小的值
-    final effectivePadding = widget.padding ?? 
+    final effectivePadding =
+        widget.padding ??
         const EdgeInsets.symmetric(horizontal: 20, vertical: 12);
-    
+
     return Material(
       color: Colors.transparent,
       child: GestureDetector(
@@ -1016,13 +1128,15 @@ class _SketchyButtonWithAnimationState
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(4),
             // 只有当开启阴影且未按下时显示阴影（模拟按压感）
-            boxShadow: (widget.withShadow && !_isPressed) ? [
-              BoxShadow(
-                color: const Color(0xFF6B4F4F).withOpacity(0.15),
-                offset: const Offset(2, 3),
-                blurRadius: 4,
-              )
-            ] : null,
+            boxShadow: (widget.withShadow && !_isPressed)
+                ? [
+                    BoxShadow(
+                      color: const Color(0xFF6B4F4F).withOpacity(0.15),
+                      offset: const Offset(2, 3),
+                      blurRadius: 4,
+                    ),
+                  ]
+                : null,
           ),
           child: CustomPaint(
             painter: _SketchyButtonBorderPainter(

@@ -289,7 +289,9 @@ class _AddFoodDialogState extends State<AddFoodDialog> {
     required Widget child,
     double? width,
   }) {
-    final borderColor = const Color(0xFF6B4F4F).withOpacity(0.7); // Same as text color
+    final borderColor = const Color(
+      0xFF6B4F4F,
+    ).withOpacity(0.7); // Same as text color
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -350,155 +352,175 @@ class _AddFoodDialogState extends State<AddFoodDialog> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-              // 标题栏
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.add_circle,
-                          color: const Color(0xFF6B4F4F).withOpacity(0.7), // Lighter brown
-                          size: 28,
-                        ),
-                        const SizedBox(width: 10),
-                        Flexible(
-                          child: Text(
-                            "What Else Did You Eat?",
-                            style: GoogleFonts.caveat(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: const Color(0xFF6B4F4F).withOpacity(0.7), // Lighter brown
+                  // 标题栏
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.add_circle,
+                              color: const Color(
+                                0xFF6B4F4F,
+                              ).withOpacity(0.7), // Lighter brown
+                              size: 28,
                             ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    icon: Icon(Icons.close, color: Colors.grey[600]),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                "Add any extra food you ate today",
-                style: GoogleFonts.kalam(fontSize: 14, color: Colors.grey[600]),
-              ),
-              const SizedBox(height: 20),
-
-              // 输入框
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _foodController,
-                      decoration: InputDecoration(
-                        hintText: "Enter food name...",
-                        hintStyle: GoogleFonts.kalam(color: Colors.grey[400]),
-                        filled: true,
-                        fillColor: const Color(0xFF6B4F4F).withOpacity(0.05), // Light brown background
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: const Color(0xFF6B4F4F).withOpacity(0.2)),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: const Color(0xFF6B4F4F).withOpacity(0.2)),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                            color: const Color(0xFF6B4F4F),
-                            width: 2,
-                          ),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 14,
+                            const SizedBox(width: 10),
+                            Flexible(
+                              child: Text(
+                                "What Else Did You Eat?",
+                                style: GoogleFonts.caveat(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(
+                                    0xFF6B4F4F,
+                                  ).withOpacity(0.7), // Lighter brown
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      style: GoogleFonts.kalam(fontSize: 16),
-                      onSubmitted: (_) => _addFood(),
+                      IconButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: Icon(Icons.close, color: Colors.grey[600]),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    "Add any extra food you ate today",
+                    style: GoogleFonts.kalam(
+                      fontSize: 14,
+                      color: Colors.grey[600],
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  _buildSketchyButton(
-                    onPressed: _isLoading ? null : _addFood,
-                    child: _isLoading
-                        ? const SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Color(0xFF6B4F4F),
+                  const SizedBox(height: 20),
+
+                  // 输入框
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _foodController,
+                          decoration: InputDecoration(
+                            hintText: "Enter food name...",
+                            hintStyle: GoogleFonts.kalam(
+                              color: Colors.grey[400],
                             ),
-                          )
-                        : Icon(Icons.add, size: 24, color: const Color(0xFF6B4F4F).withOpacity(0.7)),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 20),
-
-              // 已添加食物列表
-              Text(
-                "Added Foods",
-                style: GoogleFonts.kalam(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey[700],
-                ),
-              ),
-              const SizedBox(height: 10),
-
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 200),
-                child: (_isLoadingTodayFoods && _addedFoods.isEmpty)
-                    ? const Center(child: CircularProgressIndicator())
-                    : _addedFoods.isEmpty
-                    ? _buildEmptyState()
-                    : ListView.separated(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: _addedFoods.length,
-                        separatorBuilder: (_, _) => const SizedBox(height: 10),
-                        itemBuilder: (context, index) {
-                          return _buildFoodItem(_addedFoods[index], index);
-                        },
+                            filled: true,
+                            fillColor: const Color(
+                              0xFF6B4F4F,
+                            ).withOpacity(0.05), // Light brown background
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: const Color(0xFF6B4F4F).withOpacity(0.2),
+                              ),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: const Color(0xFF6B4F4F).withOpacity(0.2),
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: const Color(0xFF6B4F4F),
+                                width: 2,
+                              ),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 14,
+                            ),
+                          ),
+                          style: GoogleFonts.kalam(fontSize: 16),
+                          onSubmitted: (_) => _addFood(),
+                        ),
                       ),
-              ),
+                      const SizedBox(width: 12),
+                      _buildSketchyButton(
+                        onPressed: _isLoading ? null : _addFood,
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Color(0xFF6B4F4F),
+                                ),
+                              )
+                            : Icon(
+                                Icons.add,
+                                size: 24,
+                                color: const Color(0xFF6B4F4F).withOpacity(0.7),
+                              ),
+                      ),
+                    ],
+                  ),
 
-              const SizedBox(height: 20),
+                  const SizedBox(height: 20),
 
-              // 总计营养
-              if (_addedFoods.isNotEmpty) _buildNutritionSummary(),
-
-              const SizedBox(height: 16),
-
-              // 确认按钮
-              Center(
-                child: _buildSketchyButton(
-                  onPressed: _isLoading
-                      ? null
-                      : () {
-                          Navigator.of(context).pop(_addedFoods);
-                        },
-                  width: 200, // Fixed width, not too long
-                  child: Text(
-                    "Done",
+                  // 已添加食物列表
+                  Text(
+                    "Added Foods",
                     style: GoogleFonts.kalam(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: const Color(0xFF6B4F4F).withOpacity(0.7),
+                      color: Colors.grey[700],
                     ),
-                    textAlign: TextAlign.center,
                   ),
-                ),
-              ),
+                  const SizedBox(height: 10),
+
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 200),
+                    child: (_isLoadingTodayFoods && _addedFoods.isEmpty)
+                        ? const Center(child: CircularProgressIndicator())
+                        : _addedFoods.isEmpty
+                        ? _buildEmptyState()
+                        : ListView.separated(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: _addedFoods.length,
+                            separatorBuilder: (_, _) =>
+                                const SizedBox(height: 10),
+                            itemBuilder: (context, index) {
+                              return _buildFoodItem(_addedFoods[index], index);
+                            },
+                          ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // 总计营养
+                  if (_addedFoods.isNotEmpty) _buildNutritionSummary(),
+
+                  const SizedBox(height: 16),
+
+                  // 确认按钮
+                  Center(
+                    child: _buildSketchyButton(
+                      onPressed: _isLoading
+                          ? null
+                          : () {
+                              Navigator.of(context).pop(_addedFoods);
+                            },
+                      width: 200, // Fixed width, not too long
+                      child: Text(
+                        "Done",
+                        style: GoogleFonts.kalam(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF6B4F4F).withOpacity(0.7),
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -531,9 +553,7 @@ class _AddFoodDialogState extends State<AddFoodDialog> {
                   ],
                 ),
                 // Add some texture lines to simulate tape texture
-                child: CustomPaint(
-                  painter: _TapeTexturePainter(),
-                ),
+                child: CustomPaint(painter: _TapeTexturePainter()),
               ),
             ),
           ),
@@ -565,7 +585,9 @@ class _AddFoodDialogState extends State<AddFoodDialog> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF6B4F4F).withOpacity(0.05), // Light brown background
+        color: const Color(
+          0xFF6B4F4F,
+        ).withOpacity(0.05), // Light brown background
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0xFF6B4F4F).withOpacity(0.15)),
       ),
@@ -579,7 +601,11 @@ class _AddFoodDialogState extends State<AddFoodDialog> {
               color: const Color(0xFF6B4F4F).withOpacity(0.1),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(Icons.fastfood, color: const Color(0xFF6B4F4F), size: 22),
+            child: Icon(
+              Icons.fastfood,
+              color: const Color(0xFF6B4F4F),
+              size: 22,
+            ),
           ),
           const SizedBox(width: 12),
 
@@ -611,7 +637,10 @@ class _AddFoodDialogState extends State<AddFoodDialog> {
           // 删除按钮
           IconButton(
             onPressed: _isLoading ? null : () => _deleteFood(food, index),
-            icon: Icon(Icons.remove_circle_outline, color: const Color(0xFF6B4F4F).withOpacity(0.6)),
+            icon: Icon(
+              Icons.remove_circle_outline,
+              color: const Color(0xFF6B4F4F).withOpacity(0.6),
+            ),
             iconSize: 22,
           ),
         ],
@@ -664,7 +693,10 @@ class _AddFoodDialogState extends State<AddFoodDialog> {
         ),
         Text(
           "$label ($unit)",
-          style: GoogleFonts.kalam(fontSize: 10, color: const Color(0xFF6B4F4F).withOpacity(0.7)),
+          style: GoogleFonts.kalam(
+            fontSize: 10,
+            color: const Color(0xFF6B4F4F).withOpacity(0.7),
+          ),
         ),
       ],
     );
@@ -682,11 +714,7 @@ class _TapeTexturePainter extends CustomPainter {
 
     // Draw horizontal lines to simulate tape texture
     for (double y = 2; y < size.height; y += 3) {
-      canvas.drawLine(
-        Offset(0, y),
-        Offset(size.width, y),
-        paint,
-      );
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
     }
   }
 

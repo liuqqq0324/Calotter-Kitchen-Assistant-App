@@ -14,6 +14,7 @@ import com.calotter.inventory.repository.LeftoverDishRepository;
 import com.calotter.user.domain.entity.User;
 import com.calotter.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -37,6 +38,7 @@ import static org.mockito.Mockito.*;
  * NutritionLogService 单元测试
  */
 @ExtendWith(MockitoExtension.class)
+@DisplayName("营养日志服务测试")
 class NutritionLogServiceTest {
 
     @Mock
@@ -96,6 +98,7 @@ class NutritionLogServiceTest {
     }
 
     @Test
+    @DisplayName("从事件创建营养日志 - 成功")
     void testCreateFromEvent_Success() {
         // Given
         User user2 = new User();
@@ -140,6 +143,7 @@ class NutritionLogServiceTest {
     }
 
     @Test
+    @DisplayName("从事件创建营养日志 - 无效餐次类型")
     void testCreateFromEvent_InvalidMealType() {
         // Given: 使用无效的餐次类型
         event.setMealType("INVALID_TYPE");
@@ -155,6 +159,7 @@ class NutritionLogServiceTest {
     }
 
     @Test
+    @DisplayName("从事件创建营养日志 - 用户不存在")
     void testCreateFromEvent_UserNotFound() {
         // Given
         when(userRepository.findById(1L)).thenReturn(Optional.empty());
@@ -166,6 +171,7 @@ class NutritionLogServiceTest {
     }
 
     @Test
+    @DisplayName("从事件创建营养日志 - 营养值为null")
     void testCreateFromEvent_NullNutritionValues() {
         // Given: 营养值为null
         CookingSessionCompletedEvent.DishNutritionSnapshot nutrition = 
@@ -187,6 +193,7 @@ class NutritionLogServiceTest {
     }
 
     @Test
+    @DisplayName("从剩菜创建营养日志 - 成功")
     void testCreateFromLeftover_Success() {
         // Given: 剩菜300g，吃100g
         NutritionInfo nutritionInfo = NutritionInfo.builder()
@@ -234,6 +241,7 @@ class NutritionLogServiceTest {
     }
 
     @Test
+    @DisplayName("从剩菜创建营养日志 - 超过剩余数量")
     void testCreateFromLeftover_ExceedsQuantity() {
         // Given: 剩菜300g，尝试吃500g
         when(leftoverDishRepository.findById(1L)).thenReturn(Optional.of(leftoverDish));
@@ -248,6 +256,7 @@ class NutritionLogServiceTest {
     }
 
     @Test
+    @DisplayName("从剩菜创建营养日志 - 重量为0")
     void testCreateFromLeftover_InvalidWeight_Zero() {
         // Given
         when(leftoverDishRepository.findById(1L)).thenReturn(Optional.of(leftoverDish));
@@ -259,6 +268,7 @@ class NutritionLogServiceTest {
     }
 
     @Test
+    @DisplayName("从剩菜创建营养日志 - 重量为null")
     void testCreateFromLeftover_InvalidWeight_Null() {
         // Given
         when(leftoverDishRepository.findById(1L)).thenReturn(Optional.of(leftoverDish));
@@ -270,6 +280,7 @@ class NutritionLogServiceTest {
     }
 
     @Test
+    @DisplayName("从剩菜创建营养日志 - 剩菜不存在")
     void testCreateFromLeftover_LeftoverNotFound() {
         // Given
         when(leftoverDishRepository.findById(1L)).thenReturn(Optional.empty());
@@ -281,6 +292,7 @@ class NutritionLogServiceTest {
     }
 
     @Test
+    @DisplayName("从剩菜创建营养日志 - 用户不存在")
     void testCreateFromLeftover_UserNotFound() {
         // Given
         when(leftoverDishRepository.findById(1L)).thenReturn(Optional.of(leftoverDish));
@@ -293,6 +305,7 @@ class NutritionLogServiceTest {
     }
 
     @Test
+    @DisplayName("手动创建营养日志 - 成功")
     void testCreateManual_Success() {
         // Given
         ManualNutritionLogRequest request = new ManualNutritionLogRequest();
@@ -332,6 +345,7 @@ class NutritionLogServiceTest {
     }
 
     @Test
+    @DisplayName("手动创建营养日志 - 自动判断餐次类型")
     void testCreateManual_AutoDetermineMealType() {
         // Given: 不指定mealType，应该根据时间自动判断
         ManualNutritionLogRequest request = new ManualNutritionLogRequest();
@@ -355,6 +369,7 @@ class NutritionLogServiceTest {
     }
 
     @Test
+    @DisplayName("手动创建营养日志 - 自动判断为早餐")
     void testCreateManual_AutoDetermineMealType_Breakfast() {
         // Given: 7点，应该是BREAKFAST
         ManualNutritionLogRequest request = new ManualNutritionLogRequest();
@@ -378,6 +393,7 @@ class NutritionLogServiceTest {
     }
 
     @Test
+    @DisplayName("手动创建营养日志 - 自动判断为晚餐")
     void testCreateManual_AutoDetermineMealType_Dinner() {
         // Given: 18点，应该是DINNER
         ManualNutritionLogRequest request = new ManualNutritionLogRequest();
@@ -401,6 +417,7 @@ class NutritionLogServiceTest {
     }
 
     @Test
+    @DisplayName("手动创建营养日志 - 自动判断为零食")
     void testCreateManual_AutoDetermineMealType_Snack() {
         // Given: 22点，应该是SNACK
         ManualNutritionLogRequest request = new ManualNutritionLogRequest();
@@ -424,6 +441,7 @@ class NutritionLogServiceTest {
     }
 
     @Test
+    @DisplayName("手动创建营养日志 - 用户不存在")
     void testCreateManual_UserNotFound() {
         // Given
         ManualNutritionLogRequest request = new ManualNutritionLogRequest();
@@ -439,6 +457,7 @@ class NutritionLogServiceTest {
     }
 
     @Test
+    @DisplayName("手动创建营养日志 - 默认单位")
     void testCreateManual_DefaultUnit() {
         // Given: 不指定unit，应该使用默认值"g"
         ManualNutritionLogRequest request = new ManualNutritionLogRequest();

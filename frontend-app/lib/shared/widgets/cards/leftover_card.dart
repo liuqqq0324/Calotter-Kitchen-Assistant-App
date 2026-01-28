@@ -121,16 +121,15 @@ class LeftoverCard extends StatelessWidget {
 
                       const SizedBox(height: 8),
 
-                      // Calories only (weight hidden, using percentage instead)
-                      if (item.currentCalories != null)
-                        Text(
-                          '${item.currentCalories} kcal',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey[700],
-                          ),
-                          overflow: TextOverflow.ellipsis,
+                      // 显示剩余质量（以g为单位）
+                      Text(
+                        '${item.quantityGram}g',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey[700],
                         ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
 
                       const SizedBox(height: 10),
 

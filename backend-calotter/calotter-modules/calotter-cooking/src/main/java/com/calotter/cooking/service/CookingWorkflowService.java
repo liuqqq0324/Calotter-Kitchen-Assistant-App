@@ -125,6 +125,40 @@ public class CookingWorkflowService {
         session.setStatus(CookingSession.SessionStatus.COOKED);
         sessionRepository.save(session);
 
+        // 更新每个dish的总质量（如果前端提供了）
+        if (req.getDishTotalWeights() != null && !req.getDishTotalWeights().isEmpty()) {
+            for (FinishCookingRequest.DishTotalWeight weightInfo : req.getDishTotalWeights()) {
+                Dish targetDish = null;
+                
+                // 优先使用dishId匹配
+                if (weightInfo.getDishId() != null) {
+                    targetDish = allDishes.stream()
+                            .filter(d -> d.getId().equals(weightInfo.getDishId()))
+                            .findFirst()
+                            .orElse(null);
+                }
+                
+                // 如果dishId匹配失败，使用recipeId（通过dish的name匹配）
+                if (targetDish == null && weightInfo.getRecipeId() != null) {
+                    targetDish = allDishes.stream()
+                            .filter(d -> d.getName() != null && d.getName().equals(weightInfo.getRecipeId()))
+                            .findFirst()
+                            .orElse(null);
+                }
+                
+                // 如果找到匹配的dish，更新总质量
+                if (targetDish != null && weightInfo.getTotalWeightGram() != null && weightInfo.getTotalWeightGram() > 0) {
+                    targetDish.setTotalWeightGram(weightInfo.getTotalWeightGram());
+                    dishRepository.save(targetDish);
+                    log.info("更新dish总质量: dishId={}, name={}, totalWeightGram={}", 
+                            targetDish.getId(), targetDish.getName(), weightInfo.getTotalWeightGram());
+                } else {
+                    log.warn("未找到匹配的dish或总质量无效: dishId={}, recipeId={}, totalWeightGram={}", 
+                            weightInfo.getDishId(), weightInfo.getRecipeId(), weightInfo.getTotalWeightGram());
+                }
+            }
+        }
+
         // 扣减库存（所有已完成的菜品用到的食材）
         if (req.getFinalIngredients() != null && !req.getFinalIngredients().isEmpty()) {
             deductInventory(session.getHouseholdId(), req.getFinalIngredients());

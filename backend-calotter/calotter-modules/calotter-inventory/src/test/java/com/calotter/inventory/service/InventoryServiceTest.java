@@ -307,6 +307,68 @@ class InventoryServiceTest {
     }
 
     @Test
+    @DisplayName("更新食材 - 更新标准食材ID")
+    void testUpdateIngredient_UpdateStandardIngredientId() {
+        // Given
+        Ingredient existingIngredient = new Ingredient();
+        existingIngredient.setId(1L);
+        existingIngredient.setHousehold(household);
+        existingIngredient.setMetadata(standardIngredient);
+        existingIngredient.setQuantity(10.0);
+        existingIngredient.setUnit("pcs");
+
+        StandardIngredient newStandardIngredient = new StandardIngredient();
+        newStandardIngredient.setId(1002L);
+        newStandardIngredient.setName("牛奶");
+        newStandardIngredient.setPrimaryUnit("ml");
+        newStandardIngredient.setSecondaryUnit("L");
+
+        IngredientRequest request = new IngredientRequest();
+        request.setStandardIngredientId(1002L);
+        request.setQuantity(500.0);
+        request.setUnit("ml");
+
+        when(ingredientRepository.findById(1L)).thenReturn(Optional.of(existingIngredient));
+        when(standardIngredientRepository.findById(1002L)).thenReturn(Optional.of(newStandardIngredient));
+        when(ingredientRepository.save(any(Ingredient.class))).thenReturn(existingIngredient);
+        doNothing().when(unitValidationService).validateUnit(anyLong(), anyString());
+
+        // When
+        IngredientResponse response = inventoryService.updateIngredient(1L, request);
+
+        // Then
+        assertThat(response).isNotNull();
+        assertThat(existingIngredient.getMetadata().getId()).isEqualTo(1002L);
+        assertThat(existingIngredient.getQuantity()).isEqualTo(500.0);
+        assertThat(existingIngredient.getUnit()).isEqualTo("ml");
+        verify(unitValidationService, times(1)).validateUnit(1002L, "ml");
+        verify(ingredientRepository, times(1)).save(existingIngredient);
+    }
+
+    @Test
+    @DisplayName("更新食材 - 更新标准食材ID但标准食材不存在")
+    void testUpdateIngredient_StandardIngredientNotFound() {
+        // Given
+        Ingredient existingIngredient = new Ingredient();
+        existingIngredient.setId(1L);
+        existingIngredient.setHousehold(household);
+        existingIngredient.setMetadata(standardIngredient);
+
+        IngredientRequest request = new IngredientRequest();
+        request.setStandardIngredientId(9999L);
+
+        when(ingredientRepository.findById(1L)).thenReturn(Optional.of(existingIngredient));
+        when(standardIngredientRepository.findById(9999L)).thenReturn(Optional.empty());
+
+        // When & Then
+        assertThatThrownBy(() -> inventoryService.updateIngredient(1L, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("标准食材不存在");
+
+        verify(ingredientRepository, never()).save(any());
+    }
+
+    @Test
     @DisplayName("获取食材详情 - 成功")
     void testGetIngredient_Success() {
         // Given
@@ -518,6 +580,26 @@ class InventoryServiceTest {
     }
 
     @Test
+    @DisplayName("创建调料 - 标准调料不存在")
+    void testCreateSpice_StandardSpiceNotFound() {
+        // Given
+        SpiceRequest request = new SpiceRequest();
+        request.setHouseholdId(1L);
+        request.setStandardSpiceId(9999L);
+        request.setIsAvailable(true);
+
+        when(householdRepository.findById(1L)).thenReturn(Optional.of(household));
+        when(standardSpiceRepository.findById(9999L)).thenReturn(Optional.empty());
+
+        // When & Then
+        assertThatThrownBy(() -> inventoryService.createSpice(request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("标准调料不存在");
+
+        verify(spiceRepository, never()).save(any());
+    }
+
+    @Test
     @DisplayName("更新调料 - 成功")
     void testUpdateSpice_Success() {
         // Given
@@ -542,6 +624,59 @@ class InventoryServiceTest {
         assertThat(spice.getIsAvailable()).isFalse();
         assertThat(spice.getRemark()).isEqualTo("用完了");
         verify(spiceRepository, times(1)).save(spice);
+    }
+
+    @Test
+    @DisplayName("更新调料 - 更新标准调料ID")
+    void testUpdateSpice_UpdateStandardSpiceId() {
+        // Given
+        HouseholdSpice spice = new HouseholdSpice();
+        spice.setId(1L);
+        spice.setHousehold(household);
+        spice.setMetadata(standardSpice);
+
+        StandardSpice newStandardSpice = new StandardSpice();
+        newStandardSpice.setId(3002L);
+        newStandardSpice.setName("盐");
+
+        SpiceRequest request = new SpiceRequest();
+        request.setStandardSpiceId(3002L);
+        request.setIsAvailable(true);
+
+        when(spiceRepository.findById(1L)).thenReturn(Optional.of(spice));
+        when(standardSpiceRepository.findById(3002L)).thenReturn(Optional.of(newStandardSpice));
+        when(spiceRepository.save(any(HouseholdSpice.class))).thenReturn(spice);
+
+        // When
+        SpiceResponse response = inventoryService.updateSpice(1L, request);
+
+        // Then
+        assertThat(response).isNotNull();
+        assertThat(spice.getMetadata().getId()).isEqualTo(3002L);
+        verify(spiceRepository, times(1)).save(spice);
+    }
+
+    @Test
+    @DisplayName("更新调料 - 标准调料不存在")
+    void testUpdateSpice_StandardSpiceNotFound() {
+        // Given
+        HouseholdSpice spice = new HouseholdSpice();
+        spice.setId(1L);
+        spice.setHousehold(household);
+        spice.setMetadata(standardSpice);
+
+        SpiceRequest request = new SpiceRequest();
+        request.setStandardSpiceId(9999L);
+
+        when(spiceRepository.findById(1L)).thenReturn(Optional.of(spice));
+        when(standardSpiceRepository.findById(9999L)).thenReturn(Optional.empty());
+
+        // When & Then
+        assertThatThrownBy(() -> inventoryService.updateSpice(1L, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("标准调料不存在");
+
+        verify(spiceRepository, never()).save(any());
     }
 
     @Test
@@ -663,6 +798,20 @@ class InventoryServiceTest {
         assertThat(spice.getIsAvailable()).isTrue();
     }
 
+    @Test
+    @DisplayName("切换调料可用性 - 调料不存在")
+    void testToggleSpiceAvailability_NotFound() {
+        // Given
+        when(spiceRepository.findById(1L)).thenReturn(Optional.empty());
+
+        // When & Then
+        assertThatThrownBy(() -> inventoryService.toggleSpiceAvailability(1L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("调料不存在");
+
+        verify(spiceRepository, never()).save(any());
+    }
+
     // ==================== 厨具管理测试 ====================
 
     @Test
@@ -695,6 +844,45 @@ class InventoryServiceTest {
     }
 
     @Test
+    @DisplayName("创建厨具 - 家庭不存在")
+    void testCreateUtensil_HouseholdNotFound() {
+        // Given
+        UtensilRequest request = new UtensilRequest();
+        request.setHouseholdId(999L);
+        request.setStandardUtensilId(2001L);
+        request.setIsAvailable(true);
+
+        when(householdRepository.findById(999L)).thenReturn(Optional.empty());
+
+        // When & Then
+        assertThatThrownBy(() -> inventoryService.createUtensil(request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("家庭不存在");
+
+        verify(utensilRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("创建厨具 - 标准厨具不存在")
+    void testCreateUtensil_StandardUtensilNotFound() {
+        // Given
+        UtensilRequest request = new UtensilRequest();
+        request.setHouseholdId(1L);
+        request.setStandardUtensilId(9999L);
+        request.setIsAvailable(true);
+
+        when(householdRepository.findById(1L)).thenReturn(Optional.of(household));
+        when(standardUtensilRepository.findById(9999L)).thenReturn(Optional.empty());
+
+        // When & Then
+        assertThatThrownBy(() -> inventoryService.createUtensil(request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("标准厨具不存在");
+
+        verify(utensilRepository, never()).save(any());
+    }
+
+    @Test
     @DisplayName("更新厨具 - 成功")
     void testUpdateUtensil_Success() {
         // Given
@@ -718,6 +906,59 @@ class InventoryServiceTest {
         assertThat(response).isNotNull();
         assertThat(utensil.getIsAvailable()).isFalse();
         assertThat(utensil.getRemark()).isEqualTo("坏了");
+    }
+
+    @Test
+    @DisplayName("更新厨具 - 更新标准厨具ID")
+    void testUpdateUtensil_UpdateStandardUtensilId() {
+        // Given
+        HouseholdUtensil utensil = new HouseholdUtensil();
+        utensil.setId(1L);
+        utensil.setHousehold(household);
+        utensil.setMetadata(standardUtensil);
+
+        StandardUtensil newStandardUtensil = new StandardUtensil();
+        newStandardUtensil.setId(2002L);
+        newStandardUtensil.setName("炒锅");
+
+        UtensilRequest request = new UtensilRequest();
+        request.setStandardUtensilId(2002L);
+        request.setIsAvailable(true);
+
+        when(utensilRepository.findById(1L)).thenReturn(Optional.of(utensil));
+        when(standardUtensilRepository.findById(2002L)).thenReturn(Optional.of(newStandardUtensil));
+        when(utensilRepository.save(any(HouseholdUtensil.class))).thenReturn(utensil);
+
+        // When
+        UtensilResponse response = inventoryService.updateUtensil(1L, request);
+
+        // Then
+        assertThat(response).isNotNull();
+        assertThat(utensil.getMetadata().getId()).isEqualTo(2002L);
+        verify(utensilRepository, times(1)).save(utensil);
+    }
+
+    @Test
+    @DisplayName("更新厨具 - 标准厨具不存在")
+    void testUpdateUtensil_StandardUtensilNotFound() {
+        // Given
+        HouseholdUtensil utensil = new HouseholdUtensil();
+        utensil.setId(1L);
+        utensil.setHousehold(household);
+        utensil.setMetadata(standardUtensil);
+
+        UtensilRequest request = new UtensilRequest();
+        request.setStandardUtensilId(9999L);
+
+        when(utensilRepository.findById(1L)).thenReturn(Optional.of(utensil));
+        when(standardUtensilRepository.findById(9999L)).thenReturn(Optional.empty());
+
+        // When & Then
+        assertThatThrownBy(() -> inventoryService.updateUtensil(1L, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("标准厨具不存在");
+
+        verify(utensilRepository, never()).save(any());
     }
 
     @Test
@@ -798,6 +1039,39 @@ class InventoryServiceTest {
         // Then
         assertThat(response).isNotNull();
         assertThat(utensil.getIsAvailable()).isFalse();
+    }
+
+    @Test
+    @DisplayName("切换厨具可用性 - 从null到true")
+    void testToggleUtensilAvailability_NullToTrue() {
+        // Given
+        HouseholdUtensil utensil = new HouseholdUtensil();
+        utensil.setId(1L);
+        utensil.setIsAvailable(null);
+
+        when(utensilRepository.findById(1L)).thenReturn(Optional.of(utensil));
+        when(utensilRepository.save(any(HouseholdUtensil.class))).thenReturn(utensil);
+
+        // When
+        UtensilResponse response = inventoryService.toggleUtensilAvailability(1L);
+
+        // Then
+        assertThat(response).isNotNull();
+        assertThat(utensil.getIsAvailable()).isTrue();
+    }
+
+    @Test
+    @DisplayName("切换厨具可用性 - 厨具不存在")
+    void testToggleUtensilAvailability_NotFound() {
+        // Given
+        when(utensilRepository.findById(1L)).thenReturn(Optional.empty());
+
+        // When & Then
+        assertThatThrownBy(() -> inventoryService.toggleUtensilAvailability(1L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("厨具不存在");
+
+        verify(utensilRepository, never()).save(any());
     }
 
     // ==================== 剩菜管理测试 ====================
@@ -1110,6 +1384,81 @@ class InventoryServiceTest {
                 .hasMessageContaining("消费后剩余重量不能小于0");
     }
 
+    @Test
+    @DisplayName("部分更新剩菜 - 剩菜不存在")
+    void testPatchLeftover_NotFound() {
+        // Given
+        BigDecimal consumedPercentage = new BigDecimal("30.0");
+        when(leftoverRepository.findById(1L)).thenReturn(Optional.empty());
+
+        // When & Then
+        assertThatThrownBy(() -> inventoryService.patchLeftover(1L, consumedPercentage))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("剩菜不存在");
+
+        verify(leftoverRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("部分更新剩菜 - 消费百分比为0")
+    void testPatchLeftover_ZeroPercentage() {
+        // Given
+        LeftoverDish leftover = new LeftoverDish();
+        leftover.setId(1L);
+        leftover.setHousehold(household);
+        leftover.setCurrentQuantityGram(500);
+        leftover.setInitialQuantityGram(1000);
+        leftover.setDishName("测试菜品");
+        leftover.setCoverImage("image.jpg");
+        leftover.setCaloriesPer100g(200);
+
+        BigDecimal consumedPercentage = new BigDecimal("0.0");
+
+        when(leftoverRepository.findById(1L)).thenReturn(Optional.of(leftover));
+        when(leftoverRepository.save(any(LeftoverDish.class))).thenAnswer(invocation -> {
+            LeftoverDish saved = invocation.getArgument(0);
+            saved.setId(1L);
+            return saved;
+        });
+
+        // When
+        LeftoverResponse response = inventoryService.patchLeftover(1L, consumedPercentage);
+
+        // Then
+        assertThat(response).isNotNull();
+        assertThat(leftover.getCurrentQuantityGram()).isEqualTo(500); // 没有变化
+    }
+
+    @Test
+    @DisplayName("部分更新剩菜 - 消费百分比为100")
+    void testPatchLeftover_OneHundredPercentage() {
+        // Given
+        LeftoverDish leftover = new LeftoverDish();
+        leftover.setId(1L);
+        leftover.setHousehold(household);
+        leftover.setCurrentQuantityGram(1000);
+        leftover.setInitialQuantityGram(1000);
+        leftover.setDishName("测试菜品");
+        leftover.setCoverImage("image.jpg");
+        leftover.setCaloriesPer100g(200);
+
+        BigDecimal consumedPercentage = new BigDecimal("100.0");
+
+        when(leftoverRepository.findById(1L)).thenReturn(Optional.of(leftover));
+        when(leftoverRepository.save(any(LeftoverDish.class))).thenAnswer(invocation -> {
+            LeftoverDish saved = invocation.getArgument(0);
+            saved.setId(1L);
+            return saved;
+        });
+
+        // When
+        LeftoverResponse response = inventoryService.patchLeftover(1L, consumedPercentage);
+
+        // Then
+        assertThat(response).isNotNull();
+        assertThat(leftover.getCurrentQuantityGram()).isEqualTo(0); // 全部消费完
+    }
+
     // ==================== 标准库查询测试 ====================
 
     @Test
@@ -1240,5 +1589,129 @@ class InventoryServiceTest {
         // Then
         assertThat(results).hasSize(2);
         assertThat(results).containsExactly("pcs", "g");
+    }
+
+    // ==================== 边界情况测试 ====================
+
+    @Test
+    @DisplayName("创建食材 - 单位为null（允许）")
+    void testCreateIngredient_UnitNull() {
+        // Given
+        IngredientRequest request = new IngredientRequest();
+        request.setHouseholdId(1L);
+        request.setStandardIngredientId(1001L);
+        request.setQuantity(10.0);
+        request.setUnit(null); // 单位可以为null
+
+        when(householdRepository.findById(1L)).thenReturn(Optional.of(household));
+        when(standardIngredientRepository.findById(1001L)).thenReturn(Optional.of(standardIngredient));
+        when(ingredientRepository.save(any(Ingredient.class))).thenAnswer(invocation -> {
+            Ingredient saved = invocation.getArgument(0);
+            saved.setId(1L);
+            return saved;
+        });
+
+        // When
+        IngredientResponse response = inventoryService.createIngredient(request);
+
+        // Then
+        assertThat(response).isNotNull();
+        assertThat(response.getUnit()).isNull();
+        verify(unitValidationService, never()).validateUnit(anyLong(), anyString());
+    }
+
+    @Test
+    @DisplayName("更新调料 - 调料不存在")
+    void testUpdateSpice_NotFound() {
+        // Given
+        SpiceRequest request = new SpiceRequest();
+        request.setIsAvailable(false);
+
+        when(spiceRepository.findById(1L)).thenReturn(Optional.empty());
+
+        // When & Then
+        assertThatThrownBy(() -> inventoryService.updateSpice(1L, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("调料不存在");
+
+        verify(spiceRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("获取调料详情 - 调料不存在")
+    void testGetSpice_NotFound() {
+        // Given
+        when(spiceRepository.findById(1L)).thenReturn(Optional.empty());
+
+        // When & Then
+        assertThatThrownBy(() -> inventoryService.getSpice(1L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("调料不存在");
+    }
+
+    @Test
+    @DisplayName("获取厨具详情 - 厨具不存在")
+    void testGetUtensil_NotFound() {
+        // Given
+        when(utensilRepository.findById(1L)).thenReturn(Optional.empty());
+
+        // When & Then
+        assertThatThrownBy(() -> inventoryService.getUtensil(1L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("厨具不存在");
+    }
+
+    @Test
+    @DisplayName("更新厨具 - 厨具不存在")
+    void testUpdateUtensil_NotFound() {
+        // Given
+        UtensilRequest request = new UtensilRequest();
+        request.setIsAvailable(false);
+
+        when(utensilRepository.findById(1L)).thenReturn(Optional.empty());
+
+        // When & Then
+        assertThatThrownBy(() -> inventoryService.updateUtensil(1L, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("厨具不存在");
+
+        verify(utensilRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("扣减食材库存 - 数量为0")
+    void testDeductIngredient_ZeroAmount() {
+        // Given
+        Ingredient ingredient = new Ingredient();
+        ingredient.setId(1L);
+        ingredient.setQuantity(100.0);
+
+        when(ingredientRepository.findById(1L)).thenReturn(Optional.of(ingredient));
+        when(ingredientRepository.save(any(Ingredient.class))).thenReturn(ingredient);
+
+        // When
+        inventoryService.deductIngredient(1L, 0.0);
+
+        // Then
+        assertThat(ingredient.getQuantity()).isEqualTo(100.0); // 没有变化
+        verify(ingredientRepository, times(1)).save(ingredient);
+    }
+
+    @Test
+    @DisplayName("扣减食材库存 - 数量为负数")
+    void testDeductIngredient_NegativeAmount() {
+        // Given
+        Ingredient ingredient = new Ingredient();
+        ingredient.setId(1L);
+        ingredient.setQuantity(100.0);
+
+        when(ingredientRepository.findById(1L)).thenReturn(Optional.of(ingredient));
+
+        // When & Then
+        assertThatThrownBy(() -> inventoryService.deductIngredient(1L, -10.0))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("库存不足");
+
+        verify(ingredientRepository, never()).save(any());
     }
 }

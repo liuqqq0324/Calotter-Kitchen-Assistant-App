@@ -9,6 +9,7 @@ import com.calotter.inventory.domain.entity.LeftoverDish;
 import com.calotter.inventory.repository.LeftoverDishRepository;
 import com.calotter.user.domain.entity.Household;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -31,6 +32,7 @@ import static org.mockito.Mockito.*;
  * LeftoverDishService 单元测试
  */
 @ExtendWith(MockitoExtension.class)
+@DisplayName("剩菜服务测试")
 class LeftoverDishServiceTest {
 
     @Mock

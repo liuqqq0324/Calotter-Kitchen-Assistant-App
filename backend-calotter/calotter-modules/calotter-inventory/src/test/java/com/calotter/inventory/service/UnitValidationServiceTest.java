@@ -247,5 +247,41 @@ class UnitValidationServiceTest {
         assertThatThrownBy(() -> unitValidationService.validateUnit(1002L, "pcs"))
                 .isInstanceOf(IllegalArgumentException.class);
     }
+
+    @Test
+    @DisplayName("验证单位 - 错误消息包含食材名称和允许单位")
+    void testValidateUnit_ErrorMessageContainsDetails() {
+        // Given
+        when(standardIngredientRepository.findById(1001L)).thenReturn(Optional.of(standardIngredient));
+
+        // When & Then
+        assertThatThrownBy(() -> unitValidationService.validateUnit(1001L, "kg"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("单位 'kg' 不合法")
+                .hasMessageContaining("鸡蛋") // 包含食材名称
+                .hasMessageContaining("pcs") // 包含允许的单位
+                .hasMessageContaining("g");
+    }
+
+    @Test
+    @DisplayName("获取允许的单位列表 - 两个单位都存在")
+    void testGetAllowedUnits_BothUnitsExist() {
+        // Given
+        StandardIngredient ingredient = new StandardIngredient();
+        ingredient.setId(1004L);
+        ingredient.setName("测试食材");
+        ingredient.setPrimaryUnit("kg");
+        ingredient.setSecondaryUnit("g");
+
+        when(standardIngredientRepository.findById(1004L)).thenReturn(Optional.of(ingredient));
+
+        // When
+        List<String> allowedUnits = unitValidationService.getAllowedUnits(1004L);
+
+        // Then
+        assertThat(allowedUnits).isNotNull();
+        assertThat(allowedUnits).hasSize(2);
+        assertThat(allowedUnits).containsExactly("kg", "g");
+    }
 }
 

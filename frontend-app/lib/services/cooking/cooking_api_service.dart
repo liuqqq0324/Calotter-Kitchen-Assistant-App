@@ -75,6 +75,7 @@ class CookingApiService {
     required List<Map<String, dynamic>> finalIngredients,
     required Map<String, dynamic> totalNutrition,
     List<Map<String, dynamic>>? diners, // 用餐者信息（可选）
+    List<Map<String, dynamic>>? dishTotalWeights, // 每个dish的总质量（可选）
   }) async {
     final url = Uri.parse('${ApiConfig.recipeBaseUrl}/api/cooking/finish');
     final body = <String, dynamic>{
@@ -84,6 +85,9 @@ class CookingApiService {
     };
     if (diners != null && diners.isNotEmpty) {
       body['diners'] = diners;
+    }
+    if (dishTotalWeights != null && dishTotalWeights.isNotEmpty) {
+      body['dishTotalWeights'] = dishTotalWeights;
     }
 
     print('[CookingApi] POST $url');

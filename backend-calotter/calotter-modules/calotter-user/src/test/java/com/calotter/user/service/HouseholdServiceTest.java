@@ -469,4 +469,190 @@ class HouseholdServiceTest {
 
         verify(householdRepository, never()).deleteById(any());
     }
+
+    // ==================== 邀请用户测试 ====================
+
+    @Test
+    @DisplayName("邀请用户加入厨房 - 成功（owner邀请）")
+    void testInviteUserToHousehold_Success_AsOwner() {
+        // Given
+        User inviter = new User();
+        inviter.setId(1L);
+        inviter.setJoinedHouseholds(new ArrayList<>());
+        
+        User invitedUser = new User();
+        invitedUser.setId(2L);
+        invitedUser.setUsername("inviteduser");
+        invitedUser.setJoinedHouseholds(new ArrayList<>());
+
+        when(householdRepository.findById(1L)).thenReturn(Optional.of(household));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(inviter));
+        when(userRepository.findByUsername("inviteduser")).thenReturn(Optional.of(invitedUser));
+        when(userRepository.findById(2L)).thenReturn(Optional.of(invitedUser));
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // When
+        householdService.inviteUserToHousehold(1L, "inviteduser", 1L);
+
+        // Then
+        verify(userRepository, times(1)).save(any(User.class));
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(captor.capture());
+        assertThat(captor.getValue().getJoinedHouseholds()).contains(household);
+    }
+
+    @Test
+    @DisplayName("邀请用户加入厨房 - 用户已加入")
+    void testInviteUserToHousehold_UserAlreadyJoined() {
+        // Given
+        User inviter = new User();
+        inviter.setId(1L);
+        inviter.setJoinedHouseholds(Arrays.asList(household));
+        
+        User invitedUser = new User();
+        invitedUser.setId(2L);
+        invitedUser.setUsername("inviteduser");
+        invitedUser.setJoinedHouseholds(new ArrayList<>(Arrays.asList(household)));
+
+        when(householdRepository.findById(1L)).thenReturn(Optional.of(household));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(inviter));
+        when(userRepository.findByUsername("inviteduser")).thenReturn(Optional.of(invitedUser));
+        when(userRepository.findById(2L)).thenReturn(Optional.of(invitedUser));
+
+        // When & Then
+        assertThatThrownBy(() -> householdService.inviteUserToHousehold(1L, "inviteduser", 1L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("用户已加入该厨房");
+    }
+
+    // ==================== 通过邀请码加入测试 ====================
+
+    @Test
+    @DisplayName("通过邀请码加入厨房 - 成功")
+    void testJoinHouseholdByInviteCode_Success() {
+        // Given
+        User user = new User();
+        user.setId(2L);
+        user.setJoinedHouseholds(new ArrayList<>());
+        user.setCurrentHouseholdId(null);
+
+        when(householdRepository.findByInviteCode("ABC123")).thenReturn(Optional.of(household));
+        when(userRepository.findById(2L)).thenReturn(Optional.of(user));
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // When
+        HouseholdResponse response = householdService.joinHouseholdByInviteCode("ABC123", 2L);
+
+        // Then
+        assertThat(response).isNotNull();
+        assertThat(response.getId()).isEqualTo(1L);
+        verify(userRepository, times(1)).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("通过邀请码加入厨房 - 无效邀请码")
+    void testJoinHouseholdByInviteCode_InvalidCode() {
+        // Given
+        when(householdRepository.findByInviteCode("INVALID")).thenReturn(Optional.empty());
+
+        // When & Then
+        assertThatThrownBy(() -> householdService.joinHouseholdByInviteCode("INVALID", 2L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("邀请码无效");
+    }
+
+    // ==================== 退出厨房测试 ====================
+
+    @Test
+    @DisplayName("退出厨房 - 成功")
+    void testLeaveHousehold_Success() {
+        // Given
+        User user = new User();
+        user.setId(2L);
+        user.setJoinedHouseholds(new ArrayList<>(Arrays.asList(household)));
+        user.setCurrentHouseholdId(1L);
+
+        Household otherHousehold = new Household();
+        otherHousehold.setId(3L);
+        user.getJoinedHouseholds().add(otherHousehold);
+
+        when(householdRepository.findById(1L)).thenReturn(Optional.of(household));
+        when(userRepository.findById(2L)).thenReturn(Optional.of(user));
+        when(householdRepository.findAll()).thenReturn(Collections.emptyList());
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // When
+        householdService.leaveHousehold(1L, 2L);
+
+        // Then
+        verify(userRepository, times(1)).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("退出厨房 - owner不能退出")
+    void testLeaveHousehold_OwnerCannotLeave() {
+        // Given
+        when(householdRepository.findById(1L)).thenReturn(Optional.of(household));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(owner));
+
+        // When & Then
+        assertThatThrownBy(() -> householdService.leaveHousehold(1L, 1L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("厨房所有者不能退出");
+    }
+
+    // ==================== 切换当前厨房测试 ====================
+
+    @Test
+    @DisplayName("切换当前厨房 - 成功")
+    void testSwitchCurrentHousehold_Success() {
+        // Given
+        User user = new User();
+        user.setId(2L);
+        user.setJoinedHouseholds(new ArrayList<>(Arrays.asList(household)));
+
+        when(householdRepository.findById(1L)).thenReturn(Optional.of(household));
+        when(userRepository.findById(2L)).thenReturn(Optional.of(user));
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // When
+        HouseholdResponse response = householdService.switchCurrentHousehold(1L, 2L);
+
+        // Then
+        assertThat(response).isNotNull();
+        assertThat(response.getId()).isEqualTo(1L);
+        verify(userRepository, times(1)).save(any(User.class));
+    }
+
+    // ==================== 重新生成邀请码测试 ====================
+
+    @Test
+    @DisplayName("重新生成邀请码 - 成功")
+    void testRegenerateInviteCode_Success() {
+        // Given
+        when(householdRepository.findById(1L)).thenReturn(Optional.of(household));
+        when(householdRepository.findByInviteCode(anyString())).thenReturn(Optional.empty());
+        when(householdRepository.save(any(Household.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // When
+        HouseholdResponse response = householdService.regenerateInviteCode(1L, 1L);
+
+        // Then
+        assertThat(response).isNotNull();
+        assertThat(response.getInviteCode()).isNotNull();
+        assertThat(response.getInviteCode()).isNotEqualTo("ABC123"); // 应该是新的邀请码
+        verify(householdRepository, times(1)).save(any(Household.class));
+    }
+
+    @Test
+    @DisplayName("重新生成邀请码 - 非owner")
+    void testRegenerateInviteCode_NotOwner() {
+        // Given
+        when(householdRepository.findById(1L)).thenReturn(Optional.of(household));
+
+        // When & Then
+        assertThatThrownBy(() -> householdService.regenerateInviteCode(1L, 2L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("只有厨房所有者可以重新生成邀请码");
+    }
 }

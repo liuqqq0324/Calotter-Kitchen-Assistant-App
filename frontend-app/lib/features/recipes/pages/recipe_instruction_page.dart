@@ -62,7 +62,8 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
   bool _isIngredientsExpanded = true; // 默认展开
 
   // Map 来存储每个步骤的 GlobalKey，用于自动滚动
-  final Map<int, GlobalKey> _stepKeys = {};
+  // 使用复合key (dishIndex:stepNumber) 确保每个recipe的步骤都有唯一的key
+  final Map<String, GlobalKey> _stepKeys = {};
 
   String _stepKey(int dishIndex, int stepNumber) => '$dishIndex:$stepNumber';
 
@@ -95,7 +96,9 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
         });
         // 触发自动滚动到第一个步骤
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          _scrollToStep(1);
+          if (mounted) {
+            _scrollToStep(1);
+          }
         });
         // 同步 PageController（确保已初始化）
         if (_pageController != null &&
@@ -150,6 +153,7 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
               ),
               backgroundColor: const Color(0xFF6B4F4F).withOpacity(0.9),
               behavior: SnackBarBehavior.floating,
+              margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
               duration: const Duration(seconds: 3),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -267,6 +271,9 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
     _tabController.dispose(); // ✅ Dispose TabController
     _pageController?.dispose(); // ✅ Dispose PageController（可空类型，需要安全调用）
     
+    // 清理所有 GlobalKeys
+    _stepKeys.clear();
+    
     // 只在烹饪模式下禁用屏幕常亮
     if (!widget.isViewMode) {
       _disableWakelock();
@@ -319,7 +326,12 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
-          SnackBar(content: Text(text), duration: const Duration(seconds: 1)),
+          SnackBar(
+            content: Text(text),
+            duration: const Duration(seconds: 1),
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+          ),
         );
     } catch (e) {
       if (!mounted) return;
@@ -329,6 +341,8 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
           SnackBar(
             content: Text('Failed to update favorites: $e'),
             duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
           ),
         );
     }
@@ -375,9 +389,11 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
-          const SnackBar(
-            content: Text('Please mark at least one dish as done.'),
-            duration: Duration(seconds: 2),
+          SnackBar(
+            content: const Text('Please mark at least one dish as done.'),
+            duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
           ),
         );
       return;
@@ -496,21 +512,44 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
       });
       // ✅ 触发自动滚动
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _scrollToStep(stepNumber);
+        if (mounted) {
+          _scrollToStep(stepNumber);
+        }
       });
     }
   }
 
   /// 滚动到指定步骤
   void _scrollToStep(int stepNumber) {
-    final key = _stepKeys[stepNumber];
+    // 检查widget是否仍然mounted
+    if (!mounted) return;
+    
+    // 使用当前dishIndex和stepNumber构建唯一key
+    final keyString = _stepKey(_currentIndex, stepNumber);
+    final key = _stepKeys[keyString];
+    
     if (key != null && key.currentContext != null) {
-      Scrollable.ensureVisible(
-        key.currentContext!,
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeInOut,
-        alignment: 0.1, // 0.0=顶部, 0.5=中间, 1.0=底部. 0.1表示稍微留点顶距
-      );
+      final context = key.currentContext!;
+      
+      // 检查context是否仍然有效
+      if (!context.mounted) return;
+      
+      // 尝试获取Scrollable，如果不存在则返回
+      final scrollable = Scrollable.maybeOf(context);
+      if (scrollable == null) return;
+      
+      try {
+        // 使用try-catch捕获所有可能的滚动错误
+        Scrollable.ensureVisible(
+          context,
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeInOut,
+          alignment: 0.1, // 0.0=顶部, 0.5=中间, 1.0=底部. 0.1表示稍微留点顶距
+        );
+      } catch (e) {
+        // 忽略滚动错误，避免崩溃（包括position未attached等错误）
+        debugPrint('[RecipeInstructionPage] 滚动到步骤失败: $e');
+      }
     }
   }
 
@@ -528,7 +567,9 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
           });
           // 触发自动滚动
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            _scrollToStep(nextStep.stepNumber);
+            if (mounted) {
+              _scrollToStep(nextStep.stepNumber);
+            }
           });
           await _voiceAssistant.speakStep(nextStep);
         } else {
@@ -544,7 +585,9 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
           });
           // 触发自动滚动
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            _scrollToStep(prevStep.stepNumber);
+            if (mounted) {
+              _scrollToStep(prevStep.stepNumber);
+            }
           });
           await _voiceAssistant.speakStep(prevStep);
         } else {
@@ -570,7 +613,9 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
           });
           // 触发自动滚动
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            _scrollToStep(stepNumber);
+            if (mounted) {
+              _scrollToStep(stepNumber);
+            }
           });
           await _voiceAssistant.speakStep(targetStep);
         } else {
@@ -753,6 +798,8 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
                       )
                     : null,
                 duration: const Duration(seconds: 5),
+                behavior: SnackBarBehavior.floating,
+                margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
               ),
             );
         }
@@ -781,9 +828,11 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
       // 显示一个提示，因为相机启动可能有 0.5~1秒 的延迟
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Starting camera for gestures...'),
-            duration: Duration(milliseconds: 800),
+          SnackBar(
+            content: const Text('Starting camera for gestures...'),
+            duration: const Duration(milliseconds: 800),
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
           ),
         );
       }
@@ -797,9 +846,13 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
         } catch (e) {
           debugPrint('[RecipePage] Gesture init failed: $e');
           if (mounted) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text('Camera error: $e')));
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Camera error: $e'),
+                behavior: SnackBarBehavior.floating,
+                margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+              ),
+            );
           }
           return; // 初始化失败，直接返回，不改变状态
         }
@@ -837,16 +890,37 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
               if (_runningTimers.containsKey(key)) {
                  _pauseTimer(_currentIndex, currentStep.stepNumber);
                  debugPrint('[RecipePage] Gesture: Pause Timer');
-                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('⏸️ Timer Paused'), duration: Duration(milliseconds: 500)));
+                 ScaffoldMessenger.of(context).showSnackBar(
+                   SnackBar(
+                     content: const Text('⏸️ Timer Paused'),
+                     duration: const Duration(milliseconds: 500),
+                     behavior: SnackBarBehavior.floating,
+                     margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+                   ),
+                 );
               } else {
                  // 如果是暂停状态，继续；否则重新开始
                  // 这里简单处理为开始
                  _startTimerForStep(_currentIndex, currentStep.stepNumber, currentStep.stepTimeMin);
                  debugPrint('[RecipePage] Gesture: Start Timer');
-                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('⏳ Timer Started'), duration: Duration(milliseconds: 500)));
+                 ScaffoldMessenger.of(context).showSnackBar(
+                   SnackBar(
+                     content: const Text('⏳ Timer Started'),
+                     duration: const Duration(milliseconds: 500),
+                     behavior: SnackBarBehavior.floating,
+                     margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+                   ),
+                 );
               }
             } else {
-                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No timer for this step'), duration: Duration(milliseconds: 500)));
+                 ScaffoldMessenger.of(context).showSnackBar(
+                   SnackBar(
+                     content: const Text('No timer for this step'),
+                     duration: const Duration(milliseconds: 500),
+                     behavior: SnackBarBehavior.floating,
+                     margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+                   ),
+                 );
             }
             break;
 
@@ -856,7 +930,14 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
             if (currentStep != null) {
               _stopAndCompleteStep(_currentIndex, currentStep.stepNumber);
               debugPrint('[RecipePage] Gesture: Mark Done');
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('✅ Step Completed'), duration: Duration(milliseconds: 500)));
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Text('✅ Step Completed'),
+                  duration: const Duration(milliseconds: 500),
+                  behavior: SnackBarBehavior.floating,
+                  margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+                ),
+              );
               
               // 自动跳到下一步? 可选
               // final next = _getNextStep();
@@ -894,6 +975,8 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
               SnackBar(
                 content: Text('Voice recognition error: $error'),
                 duration: const Duration(seconds: 2),
+                behavior: SnackBarBehavior.floating,
+                margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
               ),
             );
         }
@@ -912,10 +995,11 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
     final steps = recipe.steps;
     final theme = Theme.of(context);
       
-      return Padding(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+      return SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
             // 头部：emoji + 简介 + 时间卡路里
             Row(
@@ -1185,45 +1269,8 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
           ),
           const SizedBox(height: 8),
 
-          Expanded(
-            child: steps.isNotEmpty
-                ? ListView.builder(
-                    itemCount: steps.length,
-                    itemBuilder: (context, stepIndex) {
-                      final step = steps[stepIndex];
-                      return _buildStepItem(step: step, dishIndex: index);
-                    },
-                  )
-                : ListView(
-                    children: [
-                      _buildStepItem(
-                        step: const RecipeStepModel(
-                          stepNumber: 1,
-                          instruction: 'Beat the eggs with a pinch of salt.',
-                          stepTimeMin: 3,
-                        ),
-                        dishIndex: index,
-                      ),
-                      _buildStepItem(
-                        step: const RecipeStepModel(
-                          stepNumber: 2,
-                          instruction:
-                              'Stir-fry tomatoes until soft, then add eggs.',
-                          stepTimeMin: 7,
-                        ),
-                        dishIndex: index,
-                      ),
-                      _buildStepItem(
-                        step: const RecipeStepModel(
-                          stepNumber: 3,
-                          instruction: 'Season to taste and serve hot.',
-                          stepTimeMin: 5,
-                        ),
-                        dishIndex: index,
-                      ),
-                    ],
-                  ),
-          ),
+          // 使用 Column 直接渲染步骤，而不是 ListView，避免嵌套滚动问题
+          ...steps.map((step) => _buildStepItem(step: step, dishIndex: index)),
         ],
       ),
     );
@@ -1309,14 +1356,22 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
                 ? PageView.builder(
                     controller: _pageController!,
                     itemCount: widget.menu.recipes.length,
+                    allowImplicitScrolling: false,
+                    // 不缓存页面，避免GlobalKey冲突
+                    physics: const PageScrollPhysics(),
                     onPageChanged: (index) {
+                      // 清理旧recipe的keys，避免GlobalKey冲突
+                      _stepKeys.removeWhere((key, _) => key.startsWith('${_currentIndex}:'));
+                      
                       setState(() {
                         _currentIndex = index;
                         _currentFocusedStepNumber = 1; // Reset to first step
                       });
                       // 触发自动滚动到第一个步骤
                       WidgetsBinding.instance.addPostFrameCallback((_) {
-                        _scrollToStep(1);
+                        if (mounted) {
+                          _scrollToStep(1);
+                        }
                       });
                       // 同步 TabController
                       if (_tabController.index != index) {
@@ -1384,8 +1439,21 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
     final isFocused = _currentFocusedStepNumber == step.stepNumber;
 
     // [新增] 2. 为每个步骤分配或获取一个 GlobalKey (用于后续的自动滚动功能)
-    if (!_stepKeys.containsKey(step.stepNumber)) {
-      _stepKeys[step.stepNumber] = GlobalKey();
+    // 使用复合key确保每个recipe的步骤都有唯一的GlobalKey
+    final stepKeyString = _stepKey(effectiveDishIndex, step.stepNumber);
+    
+    // 如果key不存在，或者key存在但对应的widget已被销毁，创建新的key
+    final existingKey = _stepKeys[stepKeyString];
+    if (existingKey == null) {
+      _stepKeys[stepKeyString] = GlobalKey();
+    } else {
+      // 检查现有的key是否仍然有效
+      final context = existingKey.currentContext;
+      if (context == null || !context.mounted) {
+        // 旧的key已失效，创建新的
+        _stepKeys[stepKeyString] = GlobalKey();
+      }
+      // 如果key仍然有效，继续使用它
     }
 
     // Handler for toggling completion
@@ -1409,7 +1477,9 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
         });
         // 触发自动滚动
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          _scrollToStep(step.stepNumber);
+          if (mounted) {
+            _scrollToStep(step.stepNumber);
+          }
         });
       }
     }
@@ -1417,7 +1487,7 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
     return GestureDetector(
       onTap: setFocus, // 点击整行也能切换焦点
       child: AnimatedContainer(
-        key: _stepKeys[step.stepNumber], // 绑定 Key
+        key: _stepKeys[stepKeyString], // 绑定 Key
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
         margin: const EdgeInsets.symmetric(vertical: 4),

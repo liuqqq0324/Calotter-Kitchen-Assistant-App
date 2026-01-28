@@ -1,4 +1,5 @@
 // lib/pages/recipes/recipe_generate_page.dart
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:personal_sous_chef/core/theme/fallback_google_fonts.dart';
@@ -11,7 +12,7 @@ import 'package:personal_sous_chef/shared/widgets/common/sketchy_card.dart';
 import 'package:personal_sous_chef/shared/widgets/common/programmatic_sketchy_widgets.dart';
 
 class RecipeGeneratePage extends StatefulWidget {
-  /// 从 RecipesHomePage 传过来的筛选条件（可为空）
+  /// ?RecipesHomePage 传过来的筛选条件（可为空）
   final Map<String, dynamic>? filter;
 
   const RecipeGeneratePage({super.key, this.filter});
@@ -25,7 +26,8 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
   bool _loading = false;
   String? _error;
   int? _selectedMenuId;
-  Map<String, dynamic>? _currentFilter; // 保存当前的 filter 设置
+  Map<String, dynamic>? _currentFilter; // 保存当前?filter 设置
+  bool _isStreaming = false; // 标记是否正在请求中，防止重复请求
 
   @override
   void initState() {
@@ -34,13 +36,19 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
     _fetchMenus(); // 改回普通的批量生成
   }
 
-  /// 批量生成菜单：一次性获取所有菜单
+  /// 批量生成菜单：一次性获取所有菜?
   Future<void> _fetchMenus() async {
+    // 如果已经在请求中，直接返回，防止重复请求
+    if (_isStreaming) {
+      debugPrint('[RecipeGeneratePage] 请求已在进行中，跳过重复请求');
+      return;
+    }
     setState(() {
       _menus = [];
       _loading = true;
       _error = null;
       _selectedMenuId = null;
+      _isStreaming = true; // 标记为正在请?
     });
 
     try {
@@ -49,7 +57,7 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
         throw Exception('householdId is required');
       }
       
-      // ✅ 使用批量生成，一次性获取所有菜单
+      // ?使用批量生成，一次性获取所有菜?
       final menus = await RecipeApiService.generateMenus(
         _currentFilter,
         householdId: householdId,
@@ -58,7 +66,7 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
       if (mounted) {
         setState(() {
           _menus = menus;
-          // 自动选中第一个菜单
+          // 自动选中第一个菜?
           if (_menus.isNotEmpty) {
             _selectedMenuId = _menus.first.menuId;
           }
@@ -67,15 +75,19 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
       }
     } catch (e) {
       if (mounted) {
+        setState(() => _error = e.toString());
+      }
+    } finally {
+      if (mounted) {
         setState(() {
-          _error = e.toString();
           _loading = false;
+          _isStreaming = false; // 请求完成，重置标?
         });
       }
     }
   }
 
-  /// 右上角 Filter 图标，使用弹窗方式打开过滤页面
+  /// 右上?Filter 图标，使用弹窗方式打开过滤页面
   Future<void> _openFilter() async {
     final result = await showModalBottomSheet<Map<String, dynamic>>(
       context: context,
@@ -100,7 +112,7 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
 
       _fetchMenus();
 
-      // 小提示：让你知道已经保存了
+      // 小提示：让你知道已经保存?
       if (mounted) {
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
@@ -114,7 +126,7 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
     }
   }
 
-  /// 把传入的 filter 转成一行 summary 文本，显示在页面顶部
+  /// 把传入的 filter 转成一?summary 文本，显示在页面顶部
   String? get filterSummary {
     final filter = _currentFilter; // 使用 state 中的 filter
     if (filter == null) return null;
@@ -134,12 +146,12 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
       parts.add('$dishCount dishes');
     }
     if (calorieTarget != null) {
-      parts.add('≤ $calorieTarget kcal / person');
+      parts.add('?$calorieTarget kcal / person');
     }
     if (maxTime != null) {
-      parts.add('≤ $maxTime min / dish');
+      parts.add('?$maxTime min / dish');
     }
-    // 只在 difficulty 有效且非空时才显示
+    // 只在 difficulty 有效且非空时才显?
     if (difficulty != null) {
       if (difficulty is List) {
         if (difficulty.isNotEmpty) {
@@ -157,7 +169,7 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final summaryText = filterSummary; // 顶部那条 summary 用
+    final summaryText = filterSummary; // 顶部那条 summary ?
     const terracotta = Color(0xFFD68C5E);
     const terracottaDeep = Color(0xFF8C5E4A);
 
@@ -193,7 +205,7 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
         body: _GridPaper(
           child: Column(
             children: [
-              // 如果有筛选条件，就在最上面显示一条橘色小条
+              // 如果有筛选条件，就在最上面显示一条橘色小?
               if (summaryText != null) ...[
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
@@ -224,7 +236,7 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
 
               Expanded(
                 child: _menus.isEmpty && _loading
-                    ? const Center(child: CircularProgressIndicator())
+                    ? const Center(child: _ThreeFrameAnimation())
                     : _menus.isEmpty && !_loading && _error != null
                     ? _buildErrorState(theme)
                     : _menus.isEmpty && !_loading
@@ -235,10 +247,10 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
           ),
         ),
 
-        // 底部操作：Start cooking（选中的 menu）+ Generate again
+        // 底部操作：Start cooking（选中?menu? Generate again
         bottomNavigationBar: SafeArea(
           child: Container(
-            // 【修改点】删掉了 decoration (那个渐变背景)，只留 padding
+            // 【修改点】删掉了 decoration (那个渐变背景)，只?padding
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             child: Row(
               children: [
@@ -354,23 +366,10 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
           return Padding(
             padding: const EdgeInsets.all(24.0),
             child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Generating menus...',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                ],
+              child: SizedBox(
+                width: 80,
+                height: 80,
+                child: _ThreeFrameAnimation(),
               ),
             ),
           );
@@ -404,7 +403,7 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
     );
   }
 
-  /// 单个菜单卡片 UI，使用 Today's Intake 样式
+  /// 单个菜单卡片 UI，使?Today's Intake 样式
   Widget _buildMenuCard(
     BuildContext context,
     RecipeMenuModel menu,
@@ -445,18 +444,18 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
           clipBehavior: Clip.none,
           alignment: Alignment.topCenter,
           children: [
-            // 1. 卡片主体 - 使用锯齿状边框
+            // 1. 卡片主体 - 使用锯齿状边?
             Container(
-              margin: const EdgeInsets.only(top: 14, bottom: 16), // 为胶带留出空间
+              margin: const EdgeInsets.only(top: 14, bottom: 16), // 为胶带留出空?
               padding: const EdgeInsets.all(16),
               decoration: ShapeDecoration(
                 color: isSelected
                     ? const Color(0xFFFFFFF0) // 选中时保持米黄色
-                    : const Color(0xFFFFFFF0), // Paper White / 米黄色便签
+                    : const Color(0xFFFFFFF0), // Paper White / 米黄色便?
                 shape: SketchyRectBorder(
                   borderWidth: isSelected ? 2.8 : 2.2,
                   wobbleAmount: 2.5,
-                  seed: menu.menuId, // 使用 menuId 作为种子，确保每个卡片一致
+                  seed: menu.menuId, // 使用 menuId 作为种子，确保每个卡片一?
                   color: isSelected
                       ? const Color(0xFF6B4F4F)
                       : const Color(0xFF6B4F4F).withOpacity(0.85),
@@ -497,7 +496,7 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
                                 height: 80,
                                 fit: BoxFit.cover,
                                 errorBuilder: (context, error, stackTrace) {
-                                  // 如果图片加载失败，显示 emoji
+                                  // 如果图片加载失败，显?emoji
                                   return Center(
                                     child: Text(
                                       primaryRecipe.emoji,
@@ -515,12 +514,12 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
                       ),
                     ),
                     const SizedBox(width: 16),
-                    // 右侧：三行信息
+                    // 右侧：三行信?
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // 第一行：Menu 1（显示菜单主题或编号）
+                          // 第一行：Menu 1（显示菜单主题或编号?
                           Text(
                             'Menu ${menu.menuId}',
                             style: GoogleFonts.kalam(
@@ -534,17 +533,17 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
                           Text(
                             recipeTitles.length == 1
                                 ? recipeTitles.first
-                                : recipeTitles.join(' · '), // 使用 · 分隔多道菜
+                                : recipeTitles.join(' · '), // 使用 · 分隔多道?
                             style: GoogleFonts.kalam(
                               fontSize: 18,
                               color: ink,
                               fontWeight: FontWeight.w600,
                             ),
-                            maxLines: recipeTitles.length == 1 ? 2 : 3, // 多道菜时允许更多行
+                            maxLines: recipeTitles.length == 1 ? 2 : 3, // 多道菜时允许更多?
                             overflow: TextOverflow.ellipsis,
                           ),
                           const SizedBox(height: 8),
-                          // 第三行：难度、时间和卡路里
+                          // 第三行：难度、时间和卡路?
                           Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
@@ -594,7 +593,7 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                // 按钮行
+                // 按钮?
                 Row(
                   children: [
                     Expanded(
@@ -705,7 +704,7 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
     );
   }
 
-  // 构建手绘边框按钮（带点击加深动画）
+  // 构建手绘边框按钮（带点击加深动画?
   Widget _buildSketchyButton({
     required VoidCallback? onPressed,
     required Widget child,
@@ -713,8 +712,8 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
   }) {
     return _SketchyButtonWithAnimation(
       onPressed: onPressed,
-      // 关键点：减少 padding 以适应 height: 60 的容器
-      // 垂直 8px * 2 = 16px，剩下 44px 给内容，足够放图标和文字了
+      // 关键点：减少 padding 以适应 height: 60 的容?
+      // 垂直 8px * 2 = 16px，剩?44px 给内容，足够放图标和文字?
       // 水平 12px 避免过宽
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       // 选中时显示透明棕色背景
@@ -808,7 +807,7 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
   }
 
   Widget _buildErrorState(ThemeData theme) {
-    // 解析错误信息，提取关键信息
+    // 解析错误信息，提取关键信?
     String errorMessage = _error ?? 'Unknown error';
     String displayMessage = errorMessage;
     bool isQuotaError =
@@ -821,7 +820,7 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
       displayMessage =
           'API quota exceeded\n\nPlease try again later or check your API quota limits.';
     } else if (errorMessage.length > 200) {
-      // 如果错误信息太长，截取前200个字符
+      // 如果错误信息太长，截取前200个字?
       displayMessage = errorMessage.substring(0, 200) + '...';
     }
 
@@ -853,8 +852,8 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
                   color: Colors.grey[600],
                 ),
                 textAlign: TextAlign.center,
-                maxLines: 10, // 限制最大行数
-                overflow: TextOverflow.ellipsis, // 超出部分显示省略号
+                maxLines: 10, // 限制最大行?
+                overflow: TextOverflow.ellipsis, // 超出部分显示省略?
               ),
               const SizedBox(height: 12),
               ElevatedButton(
@@ -898,7 +897,7 @@ class _SketchyButtonBorderPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final path = _createSketchyPath(size);
     
-    // 1. 先画背景（如果有）
+    // 1. 先画背景（如果有?
     if (backgroundColor != null) {
       final fillPaint = Paint()
         ..color = backgroundColor!
@@ -959,7 +958,7 @@ class _SketchyButtonBorderPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-/// 手绘风格标签绘制器
+/// 手绘风格标签绘制?
 class _SketchyBadgePainter extends CustomPainter {
   final Color borderColor;
   final Color backgroundColor;
@@ -1037,7 +1036,7 @@ class _SketchyButtonWithAnimation extends StatefulWidget {
   final Widget child;
   final EdgeInsetsGeometry? padding; // 新增参数
   final Color? backgroundColor; // 新增：背景色
-  final bool withShadow; // 新增：是否开启阴影
+  final bool withShadow; // 新增：是否开启阴?
 
   const _SketchyButtonWithAnimation({
     required this.onPressed,
@@ -1074,7 +1073,7 @@ class _SketchyButtonWithAnimationState
       _isPressed ? 1.0 : 0.7,
     );
     
-    // 计算 Padding：如果有传入则用传入的，否则用默认较小的值
+    // 计算 Padding：如果有传入则用传入的，否则用默认较小的?
     // 默认值：vertical 12, horizontal 20
     final effectivePadding = widget.padding ?? 
         const EdgeInsets.symmetric(horizontal: 20, vertical: 12);
@@ -1095,9 +1094,9 @@ class _SketchyButtonWithAnimationState
             ..scale(_isPressed ? 0.98 : 1.0), // 点击稍微缩小一点点
           padding: effectivePadding, // 使用计算后的 Padding
           decoration: BoxDecoration(
-            // 移除这里的 color，因为我们用 Painter 画背景
+            // 移除这里?color，因为我们用 Painter 画背?
             borderRadius: BorderRadius.circular(4),
-            // 只有当开启阴影且未按下时显示阴影（模拟按压感）
+            // 只有当开启阴影且未按下时显示阴影（模拟按压感?
             boxShadow: (widget.withShadow && !_isPressed) ? [
               BoxShadow(
                 color: const Color(0xFF6B4F4F).withOpacity(0.15),
@@ -1109,7 +1108,7 @@ class _SketchyButtonWithAnimationState
           child: CustomPaint(
             painter: _SketchyButtonBorderPainter(
               borderColor: borderColor,
-              backgroundColor: widget.backgroundColor, // 传入背景色
+              backgroundColor: widget.backgroundColor, // 传入背景?
               borderWidth: _isPressed ? 2.0 : 1.5,
               wobbleAmount: 1.5,
               seed: 123,
@@ -1179,7 +1178,7 @@ class _AnimatedFilterButtonState extends State<_AnimatedFilterButton> {
   }
 }
 
-/// 胶带纹理绘制器
+/// 胶带纹理绘制?
 class _TapeTexturePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
@@ -1198,7 +1197,7 @@ class _TapeTexturePainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-/// 格子纸组件
+/// 格子纸组?
 class _GridPaper extends StatelessWidget {
   final Widget child;
 
@@ -1236,10 +1235,10 @@ class _GridPaperPainter extends CustomPainter {
 
     final random = math.Random(42);
 
-    // 创建不规则边缘路径
+    // 创建不规则边缘路?
     final path = _createIrregularPath(size, random);
 
-    // 1. 先绘制阴影效果
+    // 1. 先绘制阴影效?
     final shadowPaint = Paint()
       ..color = Colors.black.withOpacity(0.12)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10);
@@ -1255,9 +1254,9 @@ class _GridPaperPainter extends CustomPainter {
 
     canvas.drawPath(path, backgroundPaint);
 
-    // 3. 绘制网格线
+    // 3. 绘制网格?
     final gridPaint = Paint()
-      ..color = const Color(0xFFE3E6E8) // 网格线颜色
+      ..color = const Color(0xFFE3E6E8) // 网格线颜?
       ..strokeWidth = 1.0
       ..style = PaintingStyle.stroke;
 
@@ -1266,12 +1265,12 @@ class _GridPaperPainter extends CustomPainter {
     canvas.save();
     canvas.clipPath(path);
 
-    // 绘制垂直线
+    // 绘制垂直?
     for (double x = 0; x <= size.width; x += gridSpacing) {
       canvas.drawLine(Offset(x, 0), Offset(x, size.height), gridPaint);
     }
 
-    // 绘制水平线
+    // 绘制水平?
     for (double y = 0; y <= size.height; y += gridSpacing) {
       canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
     }
@@ -1335,4 +1334,66 @@ class _GridPaperPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+/// 三帧动画组件，循环播?frame1, frame2, frame3
+class _ThreeFrameAnimation extends StatefulWidget {
+  final double? width;
+  final double? height;
+
+  const _ThreeFrameAnimation({
+    this.width,
+    this.height,
+  });
+
+  @override
+  State<_ThreeFrameAnimation> createState() => _ThreeFrameAnimationState();
+}
+
+class _ThreeFrameAnimationState extends State<_ThreeFrameAnimation> {
+  int _currentFrame = 1;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _startAnimation();
+  }
+
+  void _startAnimation() {
+    _timer = Timer.periodic(const Duration(milliseconds: 400), (timer) {
+      if (mounted) {
+        setState(() {
+          _currentFrame = (_currentFrame % 3) + 1; // 循环 1 -> 2 -> 3 -> 1
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final framePath = 'assets/dish_category/frame$_currentFrame.png';
+    
+    return Image.asset(
+      framePath,
+      width: widget.width,
+      height: widget.height,
+      fit: BoxFit.contain,
+      errorBuilder: (context, error, stackTrace) {
+        // 如果图片加载失败，显示一个占位符
+        return Container(
+          width: widget.width ?? 80,
+          height: widget.height ?? 80,
+          color: Colors.grey[200],
+          child: const Icon(Icons.image, color: Colors.grey),
+        );
+      },
+    );
+  }
 }

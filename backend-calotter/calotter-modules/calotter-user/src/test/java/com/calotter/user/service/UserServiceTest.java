@@ -99,21 +99,49 @@ class UserServiceTest {
         when(userRepository.existsByUsername("testuser")).thenReturn(false);
         when(userRepository.existsByEmail("test@example.com")).thenReturn(false);
         when(passwordEncoder.encode("password123")).thenReturn("$2a$10$encodedPasswordHash");
+        
+        // Mock第一次save（创建用户）
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
             User saved = invocation.getArgument(0);
             saved.setId(1L);
             return saved;
         });
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
-        when(householdService.createHousehold(any(HouseholdRequest.class))).thenAnswer(invocation -> {
-            HouseholdResponse response = new HouseholdResponse();
-            response.setId(1L);
-            response.setName("testuser's Home");
-            response.setOwnerId(1L);
-            response.setInviteCode("ABC123");
-            return response;
+        
+        // Mock findById（用于重新加载用户以获取joinedHouseholds）
+        User userWithHouseholds = new User();
+        userWithHouseholds.setId(1L);
+        userWithHouseholds.setUsername("testuser");
+        userWithHouseholds.setEmail("test@example.com");
+        userWithHouseholds.setPasswordHash("$2a$10$encodedPasswordHash");
+        userWithHouseholds.setRole("ROLE_USER");
+        userWithHouseholds.setStatus(1);
+        userWithHouseholds.setIsOnboarded(false);
+        userWithHouseholds.setJoinedHouseholds(new ArrayList<>());
+        when(userRepository.findById(1L)).thenReturn(Optional.of(userWithHouseholds));
+        
+        // Mock创建家庭
+        HouseholdResponse householdResponse = new HouseholdResponse();
+        householdResponse.setId(1L);
+        householdResponse.setName("testuser's Home");
+        householdResponse.setOwnerId(1L);
+        householdResponse.setInviteCode("ABC123");
+        when(householdService.createHousehold(any(HouseholdRequest.class))).thenReturn(householdResponse);
+        
+        // Mock查找家庭实体
+        Household householdEntity = new Household();
+        householdEntity.setId(1L);
+        householdEntity.setName("testuser's Home");
+        householdEntity.setOwnerId(1L);
+        householdEntity.setInviteCode("ABC123");
+        when(householdRepository.findById(1L)).thenReturn(Optional.of(householdEntity));
+        
+        // Mock第二次save（更新用户，添加joinedHouseholds）
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
+            User saved = invocation.getArgument(0);
+            saved.setId(1L);
+            return saved;
         });
-        when(householdRepository.findById(1L)).thenReturn(Optional.of(new Household()));
+        
         when(jwtService.generateToken(1L, "testuser")).thenReturn("test-token");
 
         // When
@@ -162,16 +190,46 @@ class UserServiceTest {
         verify(userRepository, never()).save(any());
     }
 
+    @Test
+    @DisplayName("注册 - 创建家庭失败但不影响注册")
+    void testRegister_HouseholdCreationFails_StillSucceeds() {
+        // Given
+        when(userRepository.existsByUsername("testuser")).thenReturn(false);
+        when(userRepository.existsByEmail("test@example.com")).thenReturn(false);
+        when(passwordEncoder.encode("password123")).thenReturn("$2a$10$encodedPasswordHash");
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
+            User saved = invocation.getArgument(0);
+            saved.setId(1L);
+            return saved;
+        });
+        // Mock创建家庭失败
+        when(householdService.createHousehold(any(HouseholdRequest.class)))
+                .thenThrow(new RuntimeException("Failed to create household"));
+        when(jwtService.generateToken(1L, "testuser")).thenReturn("test-token");
+
+        // When
+        AuthResponse response = userService.register(registerRequest);
+
+        // Then - 注册应该成功，但householdId为null
+        assertThat(response).isNotNull();
+        assertThat(response.getToken()).isEqualTo("test-token");
+        assertThat(response.getUserId()).isEqualTo(1L);
+        assertThat(response.getHouseholdId()).isNull();
+
+        verify(userRepository, atLeastOnce()).save(any(User.class));
+        verify(jwtService, times(1)).generateToken(1L, "testuser");
+    }
+
     // ==================== 登录测试 ====================
 
     @Test
-    @DisplayName("登录 - 使用用户名成功")
+    @DisplayName("登录 - 使用用户名成功（已有householdId）")
     void testLogin_WithUsername_Success() {
         // Given
+        user.setCurrentHouseholdId(1L);
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("password123", user.getPasswordHash())).thenReturn(true);
         when(jwtService.generateToken(1L, "testuser")).thenReturn("test-token");
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
 
         // When
         AuthResponse response = userService.login(loginRequest);
@@ -181,21 +239,42 @@ class UserServiceTest {
         assertThat(response.getToken()).isEqualTo("test-token");
         assertThat(response.getUserId()).isEqualTo(1L);
         assertThat(response.getUsername()).isEqualTo("testuser");
+        assertThat(response.getHouseholdId()).isEqualTo(1L);
 
         verify(userRepository, times(1)).findByUsername("testuser");
         verify(userRepository, never()).findByEmail(anyString());
     }
-
+    
     @Test
-    @DisplayName("登录 - 使用邮箱成功")
-    void testLogin_WithEmail_Success() {
+    @DisplayName("登录 - 使用用户名成功（自动设置householdId）")
+    void testLogin_WithUsername_AutoSetHouseholdId() {
         // Given
-        loginRequest.setUsernameOrEmail("test@example.com");
-        when(userRepository.findByUsername("test@example.com")).thenReturn(Optional.empty());
-        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
+        user.setCurrentHouseholdId(null);
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("password123", user.getPasswordHash())).thenReturn(true);
         when(jwtService.generateToken(1L, "testuser")).thenReturn("test-token");
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        
+        // Mock获取拥有的家庭
+        HouseholdResponse householdResponse = new HouseholdResponse();
+        householdResponse.setId(1L);
+        householdResponse.setName("testuser's Home");
+        householdResponse.setOwnerId(1L);
+        when(householdService.getHouseholdsByOwner(1L)).thenReturn(Arrays.asList(householdResponse));
+        
+        // Mock重新加载用户
+        User userWithHouseholds = new User();
+        userWithHouseholds.setId(1L);
+        userWithHouseholds.setUsername("testuser");
+        userWithHouseholds.setJoinedHouseholds(new ArrayList<>());
+        when(userRepository.findById(1L)).thenReturn(Optional.of(userWithHouseholds));
+        
+        // Mock查找家庭实体
+        Household householdEntity = new Household();
+        householdEntity.setId(1L);
+        when(householdRepository.findById(1L)).thenReturn(Optional.of(householdEntity));
+        
+        // Mock保存用户
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         // When
         AuthResponse response = userService.login(loginRequest);
@@ -203,6 +282,31 @@ class UserServiceTest {
         // Then
         assertThat(response).isNotNull();
         assertThat(response.getToken()).isEqualTo("test-token");
+        assertThat(response.getUserId()).isEqualTo(1L);
+        assertThat(response.getHouseholdId()).isEqualTo(1L);
+
+        verify(userRepository, atLeastOnce()).save(any(User.class));
+        verify(householdService, times(1)).getHouseholdsByOwner(1L);
+    }
+
+    @Test
+    @DisplayName("登录 - 使用邮箱成功")
+    void testLogin_WithEmail_Success() {
+        // Given
+        user.setCurrentHouseholdId(1L);
+        loginRequest.setUsernameOrEmail("test@example.com");
+        when(userRepository.findByUsername("test@example.com")).thenReturn(Optional.empty());
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("password123", user.getPasswordHash())).thenReturn(true);
+        when(jwtService.generateToken(1L, "testuser")).thenReturn("test-token");
+
+        // When
+        AuthResponse response = userService.login(loginRequest);
+
+        // Then
+        assertThat(response).isNotNull();
+        assertThat(response.getToken()).isEqualTo("test-token");
+        assertThat(response.getHouseholdId()).isEqualTo(1L);
         verify(userRepository, times(1)).findByEmail("test@example.com");
     }
 

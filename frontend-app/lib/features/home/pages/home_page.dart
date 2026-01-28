@@ -439,8 +439,10 @@ class _HomePageState extends State<HomePage> {
               'assets/wood_background.png',
               fit: BoxFit.cover,
               // 如果背景图路径不对/资源未打包，先用现有的 sketch_paper_transparent.png 兜底，避免崩溃
-              errorBuilder: (context, error, stackTrace) =>
-                  Image.asset('assets/images/sketch_paper_transparent.png', fit: BoxFit.cover),
+              errorBuilder: (context, error, stackTrace) => Image.asset(
+                'assets/images/sketch_paper_transparent.png',
+                fit: BoxFit.cover,
+              ),
             ),
           ),
           // 可选：加一层轻薄的“纸张泛黄”蒙版，让内容更易读
@@ -453,7 +455,12 @@ class _HomePageState extends State<HomePage> {
             child: Center(
               child: _GridPaper(
                 child: Padding(
-                  padding: const EdgeInsets.all(24.0),
+                  padding: const EdgeInsets.only(
+                    left: 24.0,
+                    right: 24.0,
+                    top: 24.0,
+                    bottom: 36.0,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -524,7 +531,9 @@ class _HomePageState extends State<HomePage> {
                             ? "Daily Nutrition Dashboard"
                             : "Weekly Nutrition Dashboard",
                         style: SketchyTextStyle.heading(context).copyWith(
-                          color: const Color(0xFF6B4F4F), // River Deep Brown - 与 greeting 一致
+                          color: const Color(
+                            0xFF6B4F4F,
+                          ), // River Deep Brown - 与 greeting 一致
                         ),
                       ),
                       const SizedBox(height: 15),
@@ -631,7 +640,12 @@ class _GridPaper extends StatelessWidget {
 
     return Container(
       width: double.infinity, // 占满父级宽度
-      margin: EdgeInsets.symmetric(horizontal: margin5mm, vertical: 20),
+      margin: EdgeInsets.only(
+        left: margin5mm,
+        right: margin5mm,
+        top: 20,
+        bottom: 24,
+      ),
       child: LayoutBuilder(
         builder: (context, constraints) {
           // constraints.maxWidth 已经是减去 margin 后的宽度
