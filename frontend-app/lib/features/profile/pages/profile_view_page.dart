@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:personal_sous_chef/core/theme/fallback_google_fonts.dart';
 import 'settings_page.dart';
-// Modified by Chase: Fixed import paths after moving preferences pages to ums/preferences/ folder / 由 Chase 修改：偏好页面移动到 ums/preferences/ 文件夹后修复导入路径
-// Need to go up to ums/ then into preferences/ folder / 需要向上到 ums/ 然后进入 preferences/ 文件夹
-import '../preferences/preferences_list_page.dart';
-import '../preferences/diet_habits_list_page.dart';
-import '../preferences/allergies_list_page.dart';
-// Modified by Chase: Import user static data / 由 Chase 修改：导入用户静态数据
+// Modified by Chase: Removed separate list pages after implementing accordion UI / 由 Chase 修改：实现折叠 UI 后移除单独的列表页面导入
+import '../../../services/business/standard_library_service.dart';
 import '../../../data/models/user_profile.dart';
 
 import '../../../shared/widgets/common/sketchy_card.dart';
@@ -34,6 +30,25 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
   String? _selectedGoalType; // "MAINTENANCE", "LOSE_FAT", "MUSCLE_GAIN"
   bool _isSavingGoal = false;
 
+  // 新增：用于偏好设置页面的折叠交互和数据
+  String? _expandedSection; // "preferences", "diet", "allergies"
+  List<Map<String, dynamic>> _standardAllergens = [];
+  bool _isSavingPrefs = false;
+
+  // 兜底过敏原列表，防止 API 返回为空
+  static const List<String> _fallbackAllergens = [
+    'Peanut',
+    'Milk',
+    'Egg',
+    'Soybean',
+    'Wheat',
+    'Seafood',
+    'Tree Nut',
+    'Fish',
+    'Sesame',
+    'Shellfish'
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -49,15 +64,9 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
     if (result['success'] == true && mounted) {
       setState(() {
         _userData = result['data'];
-        _isLoading = false;
       });
     } else {
       // Fallback to static data if API fails
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
     }
 
     // Also load lists data
@@ -65,6 +74,13 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
 
     // Load health info
     await _loadHealthInfo();
+
+    // 所有数据加载完成后，最后关闭 loading
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _loadHealthInfo() async {
@@ -301,6 +317,67 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
         .join(' ');
   }
 
+  // 保存偏好设置 (Tastes & Cuisines)
+  Future<void> _savePreferencesMap() async {
+    setState(() => _isSavingPrefs = true);
+    final result = await UserService.updateUserPreferencesMap(
+      tastes: _tastes,
+      cuisines: _cuisines,
+    );
+    setState(() => _isSavingPrefs = false);
+
+    if (result['success'] == true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Preferences saved')),
+      );
+      setState(() => _expandedSection = null);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result['error'] ?? 'Failed to save')),
+      );
+    }
+  }
+
+  // 保存饮食习惯
+  Future<void> _saveDietHabits() async {
+    setState(() => _isSavingPrefs = true);
+    final result = await UserService.updateUserDietHabits(
+      dietHabits: kCurrentUser.dietHabits,
+    );
+    setState(() => _isSavingPrefs = false);
+
+    if (result['success'] == true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Diet habits saved')),
+      );
+      setState(() => _expandedSection = null);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result['error'] ?? 'Failed to save')),
+      );
+    }
+  }
+
+  // 保存过敏原
+  Future<void> _saveAllergies() async {
+    setState(() => _isSavingPrefs = true);
+    final result = await UserService.updateUserAllergies(
+      allergies: kCurrentUser.allergies,
+    );
+    setState(() => _isSavingPrefs = false);
+
+    if (result['success'] == true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Allergies saved')),
+      );
+      setState(() => _expandedSection = null);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result['error'] ?? 'Failed to save')),
+      );
+    }
+  }
+
   Future<void> _loadListsData() async {
     // Load preferences map (TASTE, CUISINE, DISLIKE)
     final prefsResult = await UserService.getUserPreferencesMap();
@@ -332,6 +409,18 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
       setState(() {
         kCurrentUser.allergies = allergiesList;
       });
+    }
+
+    // Load standard allergens for editing
+    try {
+      final allergens = await StandardLibraryService.getStandardAllergens();
+      if (mounted) {
+        setState(() {
+          _standardAllergens = allergens;
+        });
+      }
+    } catch (e) {
+      print('Failed to load standard allergens: $e');
     }
   }
 
@@ -879,7 +968,10 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                       ),
                       const SizedBox(height: 24),
                       Transform.translate(
-                        offset: const Offset(24, 58), // 再次下移 32 像素 (26 + 32 = 58)
+                        offset: const Offset(
+                          24,
+                          58,
+                        ), // 再次下移 32 像素 (26 + 32 = 58)
                         child: Column(
                           children: [
                             Row(
@@ -903,11 +995,25 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                             Row(
                               children: [
                                 Expanded(
-                                  child: _buildMiniInfo('Weight', user.weight),
+                                  child: _buildMiniInfo(
+                                    'Weight',
+                                    user.weight.isNotEmpty
+                                        ? (user.weight.endsWith(' kg')
+                                            ? user.weight
+                                            : '${user.weight} kg')
+                                        : '',
+                                  ),
                                 ),
                                 const SizedBox(width: 16),
                                 Expanded(
-                                  child: _buildMiniInfo('Height', user.height),
+                                  child: _buildMiniInfo(
+                                    'Height',
+                                    user.height.isNotEmpty
+                                        ? (user.height.endsWith(' cm')
+                                            ? user.height
+                                            : '${user.height} cm')
+                                        : '',
+                                  ),
                                 ),
                               ],
                             ),
@@ -936,11 +1042,15 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                               text: 'Settings',
                               fontSize: 23, // 调整字体 (原为 26)
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 54,
-                                vertical: 18,
-                              ), // 调整按钮大小 (原为 60, 22)
-                              backgroundColor: Colors.grey.shade400,
-                              borderColor: Colors.grey.shade700,
+                                horizontal: 70,
+                                vertical: 24,
+                              ), // 再次调大按钮 (原为 54, 18)
+                              backgroundImage:
+                                  'assets/icons/Ingredients.png', // 使用 Ingredients 的纹理
+                              borderColor: Colors.orange.shade700,
+                              textColor: const Color(
+                                0xFF6B4F4F,
+                              ), // 使用页面统一的深棕色文字
                               onPressed: () {
                                 Navigator.push(
                                   context,
@@ -950,16 +1060,22 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                                 );
                               },
                             ),
-                            const SizedBox(height: 16), // 缩小间距，使 Setting 向 Invite 靠近 (原为 24)
+                            const SizedBox(
+                              height: 8,
+                            ), // 减小间距，使 Invite 向上移动 (原为 20)
                             SketchyButton(
                               text: 'Invite',
                               fontSize: 23, // 调整字体 (原为 26)
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 54,
-                                vertical: 18,
-                              ), // 调整按钮大小 (原为 60, 22)
-                              backgroundColor: Colors.orange.shade100,
-                              borderColor: Colors.orange.shade700,
+                                horizontal: 70,
+                                vertical: 24,
+                              ), // 再次调大按钮 (原为 54, 18)
+                              backgroundImage:
+                                  'assets/icons/Dishes.png', // 使用 Dishes 的纹理
+                              borderColor: Colors.yellow.shade700,
+                              textColor: const Color(
+                                0xFF6B4F4F,
+                              ), // 使用页面统一的深棕色文字
                               onPressed: () {
                                 Navigator.push(
                                   context,
@@ -1104,14 +1220,20 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
             const SizedBox(height: 12),
             _buildGoalTypeSelector(),
             const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
+            Center(
               child: _isSavingGoal
-                  ? const Center(child: CircularProgressIndicator())
+                  ? const CircularProgressIndicator()
                   : SketchyButton(
                       text: 'Save Goal',
-                      backgroundColor: Colors.green.shade100,
+                      fontSize: 23, // 统一字体大小
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 70,
+                        vertical: 24,
+                      ), // 统一按钮大小，与 Settings/Invite 一致
+                      backgroundImage:
+                          'assets/icons/seasonings.png', // 使用 Seasonings 的绿色纹理
                       borderColor: Colors.green.shade700,
+                      textColor: const Color(0xFF6B4F4F),
                       onPressed: () {
                         _saveHealthGoal();
                       },
@@ -1172,100 +1294,238 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _sectionTitle('Preferences'),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(
-                    'Preferences',
-                    style: GoogleFonts.kalam(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(
-                        0xFF6B4F4F,
-                      ), // River Deep Brown - 与 Profile 页面一致
-                    ),
-                  ),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 8),
-                      _buildPreferencesSummary(),
-                    ],
-                  ),
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                  onTap: () async {
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const PreferencesListPage(),
-                      ),
-                    );
-                    await _loadListsData();
-                    setState(() {});
-                  },
-                ),
-                const SizedBox(height: 12),
-                Divider(color: Colors.grey.shade300, height: 1),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(
-                    'Diet Habits',
-                    style: GoogleFonts.kalam(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(
-                        0xFF6B4F4F,
-                      ), // River Deep Brown - 与 Profile 页面一致
-                    ),
-                  ),
-                  subtitle: _buildItemsSummary(kCurrentUser.dietHabits),
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                  onTap: () async {
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const DietHabitsListPage(),
-                      ),
-                    );
-                    await _loadListsData();
-                    setState(() {});
-                  },
-                ),
-                const SizedBox(height: 12),
-                Divider(color: Colors.grey.shade300, height: 1),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(
-                    'Allergies',
-                    style: GoogleFonts.kalam(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(
-                        0xFF6B4F4F,
-                      ), // River Deep Brown - 与 Profile 页面一致
-                    ),
-                  ),
-                  subtitle: _buildItemsSummary(kCurrentUser.allergies),
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                  onTap: () async {
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const AllergiesListPage(),
-                      ),
-                    );
-                    await _loadListsData();
-                    setState(() {});
-                  },
-                ),
-              ],
+            // 已删除：_sectionTitle('Preferences')，用户要求去掉左上角多出的 Preferences
+
+            // 1. Preferences Section (Tastes & Cuisines)
+            _buildExpandableSection(
+              id: 'preferences',
+              title: 'Preferences',
+              subtitle: _buildPreferencesSummary(),
+              expandedChild: _buildPreferencesEditUI(),
+              onSave: _savePreferencesMap,
+            ),
+
+            const SizedBox(height: 12),
+            Divider(color: Colors.grey.shade300, height: 1),
+
+            // 2. Diet Habits Section
+            _buildExpandableSection(
+              id: 'diet',
+              title: 'Diet Habits',
+              subtitle: _buildItemsSummary(kCurrentUser.dietHabits),
+              expandedChild: _buildDietHabitsEditUI(),
+              onSave: _saveDietHabits,
+            ),
+
+            const SizedBox(height: 12),
+            Divider(color: Colors.grey.shade300, height: 1),
+
+            // 3. Allergies Section
+            _buildExpandableSection(
+              id: 'allergies',
+              title: 'Allergies',
+              subtitle: _buildItemsSummary(kCurrentUser.allergies),
+              expandedChild: _buildAllergiesEditUI(),
+              onSave: _saveAllergies,
             ),
           ],
         ),
       ),
+    );
+  }
+
+  // 核心辅助方法：构建可折叠的编辑区域
+  Widget _buildExpandableSection({
+    required String id,
+    required String title,
+    required Widget subtitle,
+    required Widget expandedChild,
+    required VoidCallback onSave,
+  }) {
+    final bool isExpanded = _expandedSection == id;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          title: Text(
+            title,
+            style: GoogleFonts.kalam(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF6B4F4F),
+            ),
+          ),
+          subtitle: isExpanded ? null : subtitle,
+          trailing: Icon(
+            isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+            color: const Color(0xFF6B4F4F),
+          ),
+          onTap: () {
+            setState(() {
+              _expandedSection = isExpanded ? null : id;
+            });
+          },
+        ),
+        if (isExpanded) ...[
+          const SizedBox(height: 8),
+          SketchyCard(
+            backgroundColor: Colors.white.withOpacity(0.5),
+            borderColor: const Color(0xFF6B4F4F),
+            borderWidth: 1.5,
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                expandedChild,
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => setState(() => _expandedSection = null),
+                      child: Text('Cancel', style: GoogleFonts.kalam()),
+                    ),
+                    const SizedBox(width: 8),
+                    _isSavingPrefs
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : TextButton(
+                            onPressed: onSave,
+                            child: Text(
+                              'Save',
+                              style: GoogleFonts.kalam(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue,
+                              ),
+                            ),
+                          ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+      ],
+    );
+  }
+
+  // 偏好设置编辑 UI
+  Widget _buildPreferencesEditUI() {
+    final standard = StandardLibraryService.getStandardPreferences();
+    final tasteOptions = standard['tastes'] ?? [];
+    final cuisineOptions = standard['cuisines'] ?? [];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Tastes',
+            style: GoogleFonts.kalam(fontSize: 14, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: tasteOptions.map((taste) {
+            final isSelected = _tastes.contains(taste);
+            return FilterChip(
+              label: Text(_formatToTitleCase(taste), style: GoogleFonts.kalam(fontSize: 12)),
+              selected: isSelected,
+              onSelected: (val) {
+                setState(() {
+                  if (val) _tastes.add(taste);
+                  else _tastes.remove(taste);
+                });
+              },
+            );
+          }).toList(),
+        ),
+        const SizedBox(height: 16),
+        Text('Cuisines',
+            style: GoogleFonts.kalam(fontSize: 14, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: cuisineOptions.map((cuisine) {
+            final isSelected = _cuisines.contains(cuisine);
+            return FilterChip(
+              label: Text(_formatToTitleCase(cuisine), style: GoogleFonts.kalam(fontSize: 12)),
+              selected: isSelected,
+              onSelected: (val) {
+                setState(() {
+                  if (val) _cuisines.add(cuisine);
+                  else _cuisines.remove(cuisine);
+                });
+              },
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
+  // 饮食习惯编辑 UI
+  Widget _buildDietHabitsEditUI() {
+    final options = StandardLibraryService.getStandardDietHabits();
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: options.map((option) {
+        final value = option['value']!;
+        final label = option['label']!;
+        final isSelected = kCurrentUser.dietHabits.contains(value);
+        return FilterChip(
+          label: Text(label, style: GoogleFonts.kalam(fontSize: 12)),
+          selected: isSelected,
+          onSelected: (val) {
+            setState(() {
+              if (val) kCurrentUser.dietHabits.add(value);
+              else kCurrentUser.dietHabits.remove(value);
+            });
+          },
+        );
+      }).toList(),
+    );
+  }
+
+  // 过敏原编辑 UI
+  Widget _buildAllergiesEditUI() {
+    // 优先使用 API 返回的标准库，如果为空则使用兜底列表
+    final List<String> options = _standardAllergens.isNotEmpty
+        ? _standardAllergens
+            .map((e) => (e['name'] ?? e['label'] ?? '').toString())
+            .where((name) => name.isNotEmpty)
+            .toList()
+        : _fallbackAllergens;
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: options.map((name) {
+        final isSelected = kCurrentUser.allergies.contains(name);
+        return FilterChip(
+          label: Text(
+            _formatToTitleCase(name),
+            style: GoogleFonts.kalam(fontSize: 12),
+          ),
+          selected: isSelected,
+          onSelected: (val) {
+            setState(() {
+              if (val) {
+                kCurrentUser.allergies.add(name);
+              } else {
+                kCurrentUser.allergies.remove(name);
+              }
+            });
+          },
+        );
+      }).toList(),
     );
   }
 

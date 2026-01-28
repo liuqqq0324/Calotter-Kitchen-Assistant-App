@@ -169,3 +169,63 @@ class _SketchyBorderPainter extends CustomPainter {
   }
 }
 
+/// 新增：与 SketchyBorder 形状完全一致的裁切器
+class SketchyClipper extends CustomClipper<Path> {
+  final double borderRadius;
+  final double roughness;
+
+  SketchyClipper({this.borderRadius = 12.0, this.roughness = 3.0});
+
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    final w = size.width;
+    final h = size.height;
+    final r = borderRadius;
+    final random = math.Random(42); // 保持种子一致，确保形状重合
+
+    double ro(double base) => base + (random.nextDouble() - 0.5) * roughness;
+
+    path.moveTo(ro(r), ro(r));
+
+    // 上边
+    final topPoints = 8;
+    for (int i = 1; i < topPoints; i++) {
+      path.lineTo(ro(r + (w - 2 * r) * (i / topPoints)), ro(r));
+    }
+
+    // 右上角
+    path.lineTo(ro(w - r), ro(r));
+
+    // 右边
+    final rightPoints = 8;
+    for (int i = 1; i < rightPoints; i++) {
+      path.lineTo(ro(w - r), ro(r + (h - 2 * r) * (i / rightPoints)));
+    }
+
+    // 右下角
+    path.lineTo(ro(w - r), ro(h - r));
+
+    // 下边
+    final bottomPoints = 8;
+    for (int i = bottomPoints - 1; i > 0; i--) {
+      path.lineTo(ro(r + (w - 2 * r) * (i / bottomPoints)), ro(h - r));
+    }
+
+    // 左下角
+    path.lineTo(ro(r), ro(h - r));
+
+    // 左边
+    final leftPoints = 8;
+    for (int i = leftPoints - 1; i > 0; i--) {
+      path.lineTo(ro(r), ro(r + (h - 2 * r) * (i / leftPoints)));
+    }
+
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
+}
+

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:personal_sous_chef/core/theme/fallback_google_fonts.dart';
-import 'dart:math' as math;
 
 /// 护照翻页效果的PageView组件
 /// 支持翻页动画和底部标签导航
@@ -176,31 +175,6 @@ class _PassportPageViewState extends State<PassportPageView>
                   Expanded(
                     child: Stack(
                       children: [
-                        // 浮木装饰（右上角）
-                        Positioned(
-                          top: 20,
-                          right: -30,
-                          child: Transform.rotate(
-                            angle: -0.3,
-                            child: Container(
-                              width: 120,
-                              height: 20,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF8B6F47),
-                                borderRadius: BorderRadius.circular(10),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.brown.shade300.withOpacity(
-                                      0.5,
-                                    ),
-                                    blurRadius: 8,
-                                    offset: const Offset(2, 2),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
                         // PageView with page styling
                         PageView.builder(
                           controller: _pageController,
@@ -294,72 +268,4 @@ class _PassportPageViewState extends State<PassportPageView>
       ),
     );
   }
-}
-
-/// 手绘页面边框绘制器
-class _PageBorderPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.brown.shade400
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.5
-      ..strokeCap = StrokeCap.round;
-
-    final path = Path();
-    final roughness = 3.0;
-    final random = math.Random(42);
-
-    // 绘制手绘风格的边框
-    path.moveTo(
-      _randomOffset(0, roughness, random),
-      _randomOffset(0, roughness, random),
-    );
-
-    // 上边
-    for (int i = 1; i <= 20; i++) {
-      final t = i / 20.0;
-      path.lineTo(
-        _randomOffset(size.width * t, roughness, random),
-        _randomOffset(0, roughness, random),
-      );
-    }
-
-    // 右边
-    for (int i = 1; i <= 20; i++) {
-      final t = i / 20.0;
-      path.lineTo(
-        _randomOffset(size.width, roughness, random),
-        _randomOffset(size.height * t, roughness, random),
-      );
-    }
-
-    // 下边
-    for (int i = 19; i >= 0; i--) {
-      final t = i / 20.0;
-      path.lineTo(
-        _randomOffset(size.width * t, roughness, random),
-        _randomOffset(size.height, roughness, random),
-      );
-    }
-
-    // 左边
-    for (int i = 19; i >= 0; i--) {
-      final t = i / 20.0;
-      path.lineTo(
-        _randomOffset(0, roughness, random),
-        _randomOffset(size.height * t, roughness, random),
-      );
-    }
-
-    path.close();
-    canvas.drawPath(path, paint);
-  }
-
-  double _randomOffset(double base, double roughness, math.Random random) {
-    return base + (random.nextDouble() - 0.5) * roughness;
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

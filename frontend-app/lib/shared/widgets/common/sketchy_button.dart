@@ -14,6 +14,7 @@ class SketchyButton extends StatefulWidget {
   final EdgeInsets? padding;
   final bool isFullWidth;
   final double fontSize;
+  final String? backgroundImage; // 新增：背景图片支持
 
   const SketchyButton({
     super.key,
@@ -27,6 +28,7 @@ class SketchyButton extends StatefulWidget {
     this.padding,
     this.isFullWidth = false,
     this.fontSize = 20,
+    this.backgroundImage,
   });
 
   @override
@@ -54,46 +56,65 @@ class _SketchyButtonState extends State<SketchyButton> {
         return SketchyBorder(
           borderColor: widget.borderColor,
           borderWidth: widget.borderWidth,
-          backgroundColor: bg ?? baseBg,
+          backgroundColor:
+              widget.backgroundImage != null ? null : (bg ?? baseBg),
           borderRadius: 30.0,
           roughness: 3.0,
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: widget.onPressed,
-              onHighlightChanged: (v) => setState(() => _pressed = v),
-              borderRadius: BorderRadius.circular(30),
-              child: Container(
-                padding:
-                    widget.padding ??
-                    const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                width: widget.isFullWidth ? double.infinity : null,
-                child: Row(
-                  mainAxisSize:
-                      widget.isFullWidth ? MainAxisSize.max : MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Flexible(
-                      child: Text(
-                        widget.text,
-                        style: GoogleFonts.caveat(
-                          fontSize: widget.fontSize,
-                          fontWeight: FontWeight.bold,
-                          color: txtColor,
-                          letterSpacing: 1.5,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
+          child: Stack(
+            children: [
+              // 如果有背景图，使用裁切器裁切出不规则形状
+              if (widget.backgroundImage != null)
+                Positioned.fill(
+                  child: ClipPath(
+                    clipper: SketchyClipper(borderRadius: 30.0, roughness: 3.0),
+                    child: Opacity(
+                      opacity: _pressed ? 0.8 : 1.0,
+                      child: Image.asset(
+                        widget.backgroundImage!,
+                        fit: BoxFit.cover,
                       ),
                     ),
-                    if (widget.icon != null) ...[
-                      const SizedBox(width: 12),
-                      Icon(widget.icon, color: txtColor, size: 24),
-                    ],
-                  ],
+                  ),
+                ),
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: widget.onPressed,
+                  onHighlightChanged: (v) => setState(() => _pressed = v),
+                  borderRadius: BorderRadius.circular(30),
+                  child: Container(
+                    padding: widget.padding ??
+                        const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                    width: widget.isFullWidth ? double.infinity : null,
+                    child: Row(
+                      mainAxisSize: widget.isFullWidth
+                          ? MainAxisSize.max
+                          : MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            widget.text,
+                            style: GoogleFonts.caveat(
+                              fontSize: widget.fontSize,
+                              fontWeight: FontWeight.bold,
+                              color: txtColor,
+                              letterSpacing: 1.5,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                        ),
+                        if (widget.icon != null) ...[
+                          const SizedBox(width: 12),
+                          Icon(widget.icon, color: txtColor, size: 24),
+                        ],
+                      ],
+                    ),
+                  ),
                 ),
               ),
-            ),
+            ],
           ),
         );
       },

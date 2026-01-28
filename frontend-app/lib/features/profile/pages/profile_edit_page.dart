@@ -86,10 +86,18 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
           _selectedBirthdate = null;
         }
         heightController = TextEditingController(
-          text: data['profile']?['height']?.toString() ?? '',
+          text: data['profile']?['height']
+                  ?.toString()
+                  .replaceAll(' cm', '')
+                  .trim() ??
+              '',
         );
         weightController = TextEditingController(
-          text: data['profile']?['weight']?.toString() ?? '',
+          text: data['profile']?['weight']
+                  ?.toString()
+                  .replaceAll(' kg', '')
+                  .trim() ??
+              '',
         );
       });
     } else {
@@ -115,10 +123,10 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
           _selectedBirthdate = null;
         }
         heightController = TextEditingController(
-          text: user.height.isNotEmpty ? user.height : '',
+          text: user.height.replaceAll(' cm', '').trim(),
         );
         weightController = TextEditingController(
-          text: user.weight.isNotEmpty ? user.weight : '',
+          text: user.weight.replaceAll(' kg', '').trim(),
         );
       }
     }
@@ -378,12 +386,12 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                     )[0] // YYYY-MM-DD format
                   : null;
               final gender = _selectedGender;
-              final height = int.tryParse(
+              final height = double.tryParse(
                 heightController.text.replaceAll(' cm', '').trim(),
-              );
-              final weight = int.tryParse(
+              )?.toInt();
+              final weight = double.tryParse(
                 weightController.text.replaceAll(' kg', '').trim(),
-              );
+              )?.toInt();
 
               // Save user basic info
               final result = await UserService.updateUserInfo(
@@ -602,7 +610,9 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                     controller: heightController,
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
+                      suffixText: 'cm',
                     ),
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   ),
                 ),
               ],
@@ -616,7 +626,9 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                     controller: weightController,
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
+                      suffixText: 'kg',
                     ),
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   ),
                 ),
               ],
