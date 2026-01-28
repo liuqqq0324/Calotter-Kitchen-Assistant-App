@@ -360,6 +360,59 @@ class InventoryManagementIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data").isArray())
-                .andExpect(jsonPath("$.data.length()").value(2));
+                // setUp() 已创建了“五花肉”，也会命中“肉”
+                .andExpect(jsonPath("$.data.length()").value(3));
+    }
+
+    @Test
+    @DisplayName("更新食材时更新标准食材ID")
+    void testUpdateIngredient_UpdateStandardIngredientId() throws Exception {
+        // Given: 创建食材
+        IngredientRequest createRequest = new IngredientRequest();
+        createRequest.setHouseholdId(household.getId());
+        createRequest.setStandardIngredientId(standardIngredient.getId());
+        createRequest.setQuantity(500.0);
+        createRequest.setUnit("g");
+
+        String createResponse = mockMvc.perform(post("/api/inventory/ingredients")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(createRequest)))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        Long ingredientId = objectMapper.readTree(createResponse)
+                .at("/data/id")
+                .asLong();
+
+        // 创建新的标准食材
+        StandardIngredient newStandardIngredient = new StandardIngredient();
+        newStandardIngredient.setId(2001L);
+        newStandardIngredient.setName("牛肉");
+        newStandardIngredient.setCategory("MEAT");
+        newStandardIngredient.setPrimaryUnit("g");
+        newStandardIngredient.setSecondaryUnit("kg");
+        newStandardIngredient.setUnitConversionFactor(0.001);
+        newStandardIngredient.setStandardUnit("g");
+        newStandardIngredient = standardIngredientRepository.save(newStandardIngredient);
+
+        // When: 更新食材的标准食材ID
+        IngredientRequest updateRequest = new IngredientRequest();
+        updateRequest.setHouseholdId(household.getId());
+        updateRequest.setStandardIngredientId(newStandardIngredient.getId());
+        updateRequest.setQuantity(500.0);
+        updateRequest.setUnit("g");
+
+        mockMvc.perform(put("/api/inventory/ingredients/{id}", ingredientId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
+
+        // Then: 验证标准食材ID已更新
+        Ingredient updatedIngredient = ingredientRepository.findById(ingredientId).orElse(null);
+        assertThat(updatedIngredient).isNotNull();
+        assertThat(updatedIngredient.getMetadata().getId()).isEqualTo(newStandardIngredient.getId());
     }
 }

@@ -23,6 +23,7 @@ import java.time.LocalDateTime;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -189,7 +190,7 @@ class NutritionControllerApiTest {
         log.setBaseEnergy(400);
         log.setEnergy(400);
 
-        when(nutritionLogService.createFromLeftover(100L, 1L, 200, any(LocalDateTime.class))).thenReturn(log);
+        when(nutritionLogService.createFromLeftover(eq(100L), eq(1L), eq(200), any(LocalDateTime.class))).thenReturn(log);
 
         // When & Then
         mockMvc.perform(post("/api/nutrition/log/leftover")
@@ -213,7 +214,7 @@ class NutritionControllerApiTest {
         log.setUser(user);
         log.setDishId(100L);
 
-        when(nutritionLogService.createFromLeftover(100L, 1L, 200, any(LocalDateTime.class))).thenReturn(log);
+        when(nutritionLogService.createFromLeftover(eq(100L), eq(1L), eq(200), any(LocalDateTime.class))).thenReturn(log);
 
         // When & Then
         mockMvc.perform(post("/api/nutrition/log/leftover")

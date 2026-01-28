@@ -26,6 +26,7 @@ import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -246,7 +247,7 @@ class UserControllerApiTest {
                 .profile(profile)
                 .build();
 
-        when(userService.updateUserInfo(1L, any(UserRequest.class))).thenReturn(response);
+        when(userService.updateUserInfo(eq(1L), any(UserRequest.class))).thenReturn(response);
 
         // When & Then
         mockMvc.perform(put("/api/user")
@@ -292,7 +293,7 @@ class UserControllerApiTest {
                 .preferences(new HashMap<>())
                 .build();
 
-        when(userService.updateUserPreferences(1L, any(PreferencesRequest.class))).thenReturn(response);
+        when(userService.updateUserPreferences(eq(1L), any(PreferencesRequest.class))).thenReturn(response);
 
         // When & Then
         mockMvc.perform(put("/api/user/preferences")
@@ -336,7 +337,7 @@ class UserControllerApiTest {
                 .dietHabits(Arrays.asList("low_sodium", "low_sugar"))
                 .build();
 
-        when(userService.updateUserDietHabits(1L, any(DietHabitsRequest.class))).thenReturn(response);
+        when(userService.updateUserDietHabits(eq(1L), any(DietHabitsRequest.class))).thenReturn(response);
 
         // When & Then
         mockMvc.perform(put("/api/user/diet-habits")
@@ -380,7 +381,7 @@ class UserControllerApiTest {
                 .allergies(Arrays.asList("Peanuts", "Shellfish"))
                 .build();
 
-        when(userService.updateUserAllergies(1L, any(AllergiesRequest.class))).thenReturn(response);
+        when(userService.updateUserAllergies(eq(1L), any(AllergiesRequest.class))).thenReturn(response);
 
         // When & Then
         mockMvc.perform(put("/api/user/allergies")
@@ -518,7 +519,7 @@ class UserControllerApiTest {
                 .cuisines(Arrays.asList("chinese", "japanese"))
                 .build();
 
-        when(userService.updateUserPreferencesMap(1L, any(UserPreferencesRequest.class))).thenReturn(response);
+        when(userService.updateUserPreferencesMap(eq(1L), any(UserPreferencesRequest.class))).thenReturn(response);
 
         // When & Then
         mockMvc.perform(put("/api/user/preferences-map")

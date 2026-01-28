@@ -8,6 +8,13 @@ spring:
     username: sa
     password: 
   
+  ai:
+    google:
+      genai:
+        # 测试环境使用 Public API（API Key 模式），避免触发需要 location 的 Vertex 路径
+        # 优先读取 .env 里的 GEMINI_API_KEY；若未提供则使用占位值（仅为通过上下文启动）
+        api-key: ${GEMINI_API_KEY:test-api-key}
+
   jpa:
     hibernate:
       ddl-auto: create-drop

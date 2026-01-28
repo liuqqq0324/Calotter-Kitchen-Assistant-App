@@ -83,11 +83,34 @@ public class NutritionServiceImpl implements INutritionService {
         // 获取实际摄入（从 NutritionLog 汇总）
         Object[] consumedArray = nutritionLogRepository.sumNutritionByDateRange(user, weekStart, weekEnd);
         
+        // ✅ 修复：处理 Hibernate 可能返回嵌套 Object[] 的情况
+        // Hibernate 可能返回：
+        // 1. Object[] 包含4个标量值：[energy, fat, carbs, protein] - 正常情况
+        // 2. Object[] 包含1个元素，该元素是 Object[]：[Object[]{energy, fat, carbs, protein}] - 嵌套情况
+        // 3. Object[] 中的每个元素本身是 Object[]（Hibernate 在某些配置下可能这样返回）
+        Object[] actualArray = consumedArray;
+        if (consumedArray != null) {
+            if (consumedArray.length == 1 && consumedArray[0] instanceof Object[]) {
+                // 情况2：展开嵌套数组
+                actualArray = (Object[]) consumedArray[0];
+            } else if (consumedArray.length > 0 && consumedArray[0] instanceof Object[]) {
+                // 情况3：第一个元素是数组，但还有其他元素（异常情况，取第一个元素）
+                actualArray = (Object[]) consumedArray[0];
+            }
+        }
+        
         // 安全地将 Object 转换为 BigDecimal
-        BigDecimal consumedEnergy = convertToBigDecimal(consumedArray != null && consumedArray.length > 0 ? consumedArray[0] : null);
-        BigDecimal consumedFat = convertToBigDecimal(consumedArray != null && consumedArray.length > 1 ? consumedArray[1] : null);
-        BigDecimal consumedCarbs = convertToBigDecimal(consumedArray != null && consumedArray.length > 2 ? consumedArray[2] : null);
-        BigDecimal consumedProtein = convertToBigDecimal(consumedArray != null && consumedArray.length > 3 ? consumedArray[3] : null);
+        // 注意：如果 actualArray 中的元素本身是 Object[]，convertToBigDecimal 会递归处理
+        // 但需要确保我们传递的是单个元素，而不是整个数组
+        Object energyValue = actualArray != null && actualArray.length > 0 ? actualArray[0] : null;
+        Object fatValue = actualArray != null && actualArray.length > 1 ? actualArray[1] : null;
+        Object carbsValue = actualArray != null && actualArray.length > 2 ? actualArray[2] : null;
+        Object proteinValue = actualArray != null && actualArray.length > 3 ? actualArray[3] : null;
+        
+        BigDecimal consumedEnergy = convertToBigDecimal(energyValue);
+        BigDecimal consumedFat = convertToBigDecimal(fatValue);
+        BigDecimal consumedCarbs = convertToBigDecimal(carbsValue);
+        BigDecimal consumedProtein = convertToBigDecimal(proteinValue);
 
         // 计算剩余
         BigDecimal remainingEnergy = weeklyTarget.getEnergy() != null
@@ -188,12 +211,39 @@ public class NutritionServiceImpl implements INutritionService {
     /**
      * 安全地将 Object 转换为 BigDecimal
      * 支持 Number、BigDecimal、Integer、Double、Long 等类型
+     * 
+     * 修复说明：
+     * - 处理 Object[] 嵌套情况（Hibernate 查询可能返回嵌套数组）
+     * - 如果 value 是 Object[]，递归处理第一个元素
+     * - 如果 value 是 List，取第一个元素
      */
     private BigDecimal convertToBigDecimal(Object value) {
         if (value == null) {
             return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
         }
         
+        // ✅ 修复：处理 Object[] 嵌套情况（递归处理）
+        if (value instanceof Object[]) {
+            Object[] array = (Object[]) value;
+            if (array.length > 0) {
+                // 递归处理第一个元素（可能还是 Object[]）
+                return convertToBigDecimal(array[0]);
+            } else {
+                return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+            }
+        }
+        
+        // 处理 List 类型（Hibernate 有时可能返回 List）
+        if (value instanceof java.util.List) {
+            java.util.List<?> list = (java.util.List<?>) value;
+            if (!list.isEmpty()) {
+                return convertToBigDecimal(list.get(0));
+            } else {
+                return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+            }
+        }
+        
+        // 处理基本数值类型
         if (value instanceof BigDecimal) {
             return ((BigDecimal) value).setScale(2, RoundingMode.HALF_UP);
         } else if (value instanceof Number) {
@@ -202,12 +252,17 @@ public class NutritionServiceImpl implements INutritionService {
             try {
                 return new BigDecimal((String) value).setScale(2, RoundingMode.HALF_UP);
             } catch (NumberFormatException e) {
+                log.warn("无法将字符串转换为 BigDecimal: {}", value);
                 return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
             }
         } else {
             // 如果类型不匹配，尝试转换为字符串再解析
             try {
-                return new BigDecimal(value.toString()).setScale(2, RoundingMode.HALF_UP);
+                String strValue = value.toString().trim();
+                if (strValue.isEmpty()) {
+                    return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+                }
+                return new BigDecimal(strValue).setScale(2, RoundingMode.HALF_UP);
             } catch (NumberFormatException e) {
                 log.warn("无法将值转换为 BigDecimal: {}, 类型: {}", value, value.getClass().getName());
                 return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);

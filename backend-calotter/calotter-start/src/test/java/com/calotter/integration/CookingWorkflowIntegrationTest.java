@@ -4,8 +4,10 @@ import com.calotter.cooking.controller.dto.FinishCookingRequest;
 import com.calotter.cooking.controller.dto.StartCookingRequest;
 import com.calotter.cooking.domain.entity.CookingSession;
 import com.calotter.cooking.domain.entity.Dish;
+import com.calotter.cooking.domain.entity.UserRecipe;
 import com.calotter.cooking.repository.CookingSessionRepository;
 import com.calotter.cooking.repository.DishRepository;
+import com.calotter.cooking.repository.UserRecipeRepository;
 import com.calotter.cooking.service.dto.MenuDTO;
 import com.calotter.common.core.domain.entity.StandardIngredient;
 import com.calotter.inventory.domain.entity.Ingredient;
@@ -77,9 +79,12 @@ class CookingWorkflowIntegrationTest {
     @Autowired
     private StandardIngredientRepository standardIngredientRepository;
 
+    @Autowired
+    private UserRecipeRepository userRecipeRepository;
+
     private User user;
     private Household household;
-    private Dish dish;
+    private UserRecipe favoriteRecipe;
     private Ingredient ingredient;
 
     @BeforeEach
@@ -89,6 +94,7 @@ class CookingWorkflowIntegrationTest {
         ingredientRepository.deleteAll();
         sessionRepository.deleteAll();
         dishRepository.deleteAll();
+        userRecipeRepository.deleteAll();
         householdRepository.deleteAll();
         userRepository.deleteAll();
         standardIngredientRepository.deleteAll();
@@ -114,15 +120,16 @@ class CookingWorkflowIntegrationTest {
         user.setCurrentHouseholdId(household.getId());
         userRepository.save(user);
 
-        // 创建测试菜品
-        dish = new Dish();
-        dish.setName("红烧肉");
-        dish.setTotalCalories(2000);
-        dish.setTotalProtein(100.0);
-        dish.setTotalFat(150.0);
-        dish.setTotalCarb(50.0);
-        dish.setTotalWeightGram(1000);
-        dish = dishRepository.save(dish);
+        // 创建测试收藏菜谱（注意：startCooking 的 dishId 实际是 UserRecipe ID）
+        favoriteRecipe = new UserRecipe();
+        favoriteRecipe.setHouseholdId(household.getId());
+        favoriteRecipe.setName("红烧肉");
+        favoriteRecipe.setTotalCalories(2000);
+        favoriteRecipe.setTotalProtein(100.0);
+        favoriteRecipe.setTotalFat(150.0);
+        favoriteRecipe.setTotalCarb(50.0);
+        favoriteRecipe.setTotalWeightGram(1000);
+        favoriteRecipe = userRecipeRepository.save(favoriteRecipe);
 
         // 创建标准食材
         StandardIngredient standardIngredient = new StandardIngredient();
@@ -151,7 +158,7 @@ class CookingWorkflowIntegrationTest {
         StartCookingRequest startRequest = new StartCookingRequest();
         startRequest.setHouseholdId(household.getId());
         startRequest.setInitiatorId(user.getId());
-        startRequest.setDishId(dish.getId());
+        startRequest.setDishId(favoriteRecipe.getId());
         startRequest.setMenuId(1);
 
         String startResponse = mockMvc.perform(post("/api/cooking/start")
@@ -177,7 +184,8 @@ class CookingWorkflowIntegrationTest {
         assertThat(session.getMenuId()).isEqualTo(1);
         assertThat(session.getStatus()).isEqualTo(CookingSession.SessionStatus.PENDING);
         assertThat(session.getFinalDish()).isNotNull();
-        assertThat(session.getFinalDish().getId()).isEqualTo(dish.getId());
+        assertThat(session.getFinalDish().getName()).isEqualTo("红烧肉");
+        Long cookedDishId = session.getFinalDish().getId();
 
         // ==================== 步骤2：完成烹饪 ====================
         FinishCookingRequest finishRequest = new FinishCookingRequest();
@@ -221,7 +229,7 @@ class CookingWorkflowIntegrationTest {
         // 验证剩菜已创建
         List<LeftoverDish> leftovers = leftoverDishRepository.findByHouseholdId(household.getId());
         assertThat(leftovers).hasSize(1);
-        assertThat(leftovers.get(0).getOriginalDishId()).isEqualTo(dish.getId());
+        assertThat(leftovers.get(0).getOriginalDishId()).isEqualTo(cookedDishId);
         assertThat(leftovers.get(0).getCurrentQuantityGram()).isEqualTo(1000); // 初始100%
     }
 
@@ -269,7 +277,7 @@ class CookingWorkflowIntegrationTest {
         StartCookingRequest startRequest = new StartCookingRequest();
         startRequest.setHouseholdId(household.getId());
         startRequest.setInitiatorId(user.getId());
-        startRequest.setDishId(dish.getId());
+        startRequest.setDishId(favoriteRecipe.getId());
 
         String startResponse = mockMvc.perform(post("/api/cooking/start")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -312,13 +320,13 @@ class CookingWorkflowIntegrationTest {
         StartCookingRequest startRequest = new StartCookingRequest();
         startRequest.setHouseholdId(999L);
         startRequest.setInitiatorId(user.getId());
-        startRequest.setDishId(dish.getId());
+        startRequest.setDishId(favoriteRecipe.getId());
 
         // When & Then: 应该返回错误
         mockMvc.perform(post("/api/cooking/start")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(startRequest)))
-                .andExpect(status().isOk())
+                .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value(400));
     }
 
@@ -329,7 +337,7 @@ class CookingWorkflowIntegrationTest {
         StartCookingRequest startRequest = new StartCookingRequest();
         startRequest.setHouseholdId(household.getId());
         startRequest.setInitiatorId(user.getId());
-        startRequest.setDishId(dish.getId());
+        startRequest.setDishId(favoriteRecipe.getId());
 
         String startResponse = mockMvc.perform(post("/api/cooking/start")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -360,5 +368,173 @@ class CookingWorkflowIntegrationTest {
         CookingSession session = sessionRepository.findById(sessionId).orElse(null);
         assertThat(session).isNotNull();
         assertThat(session.getStatus()).isEqualTo(CookingSession.SessionStatus.COOKED);
+    }
+
+    @Test
+    @DisplayName("完成烹饪时更新dish总质量")
+    void testCookingWorkflow_FinishWithDishTotalWeights() throws Exception {
+        // Given: 创建Session
+        StartCookingRequest startRequest = new StartCookingRequest();
+        startRequest.setHouseholdId(household.getId());
+        startRequest.setInitiatorId(user.getId());
+        startRequest.setDishId(favoriteRecipe.getId());
+
+        String startResponse = mockMvc.perform(post("/api/cooking/start")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(startRequest)))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        Long sessionId = objectMapper.readTree(startResponse)
+                .at("/data")
+                .asLong();
+
+        // When: 完成烹饪并更新dish总质量
+        FinishCookingRequest finishRequest = new FinishCookingRequest();
+        finishRequest.setSessionId(sessionId);
+        finishRequest.setConsumedAt(LocalDateTime.now());
+
+        // 设置dish总质量（通过recipeId匹配）
+        FinishCookingRequest.DishTotalWeight weightInfo = new FinishCookingRequest.DishTotalWeight();
+        weightInfo.setRecipeId("红烧肉"); // 使用dish的name匹配
+        weightInfo.setTotalWeightGram(1200); // 更新为1200g
+        finishRequest.setDishTotalWeights(Arrays.asList(weightInfo));
+
+        mockMvc.perform(post("/api/cooking/finish")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(finishRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.status").value("COOKED"));
+
+        // Then: 验证dish总质量已更新
+        CookingSession session = sessionRepository.findById(sessionId).orElse(null);
+        assertThat(session).isNotNull();
+        Dish updatedDish = dishRepository.findById(session.getFinalDish().getId()).orElse(null);
+        assertThat(updatedDish).isNotNull();
+        assertThat(updatedDish.getTotalWeightGram()).isEqualTo(1200);
+    }
+
+    @Test
+    @DisplayName("完成烹饪时通过dishId更新dish总质量")
+    void testCookingWorkflow_FinishWithDishTotalWeightsByDishId() throws Exception {
+        // Given: 创建Session
+        StartCookingRequest startRequest = new StartCookingRequest();
+        startRequest.setHouseholdId(household.getId());
+        startRequest.setInitiatorId(user.getId());
+        startRequest.setDishId(favoriteRecipe.getId());
+
+        String startResponse = mockMvc.perform(post("/api/cooking/start")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(startRequest)))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        Long sessionId = objectMapper.readTree(startResponse)
+                .at("/data")
+                .asLong();
+
+        // When: 完成烹饪并通过dishId更新dish总质量
+        FinishCookingRequest finishRequest = new FinishCookingRequest();
+        finishRequest.setSessionId(sessionId);
+        finishRequest.setConsumedAt(LocalDateTime.now());
+
+        // 设置dish总质量（通过dishId匹配）
+        FinishCookingRequest.DishTotalWeight weightInfo = new FinishCookingRequest.DishTotalWeight();
+        // 注意：finishCooking 只允许更新本次 session 新创建的 dishId
+        CookingSession sessionForDishId = sessionRepository.findById(sessionId).orElseThrow();
+        weightInfo.setDishId(sessionForDishId.getFinalDish().getId());
+        weightInfo.setTotalWeightGram(1500); // 更新为1500g
+        finishRequest.setDishTotalWeights(Arrays.asList(weightInfo));
+
+        mockMvc.perform(post("/api/cooking/finish")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(finishRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
+
+        // Then: 验证dish总质量已更新
+        Dish updatedDish = dishRepository.findById(sessionForDishId.getFinalDish().getId()).orElse(null);
+        assertThat(updatedDish).isNotNull();
+        assertThat(updatedDish.getTotalWeightGram()).isEqualTo(1500);
+    }
+
+    @Test
+    @DisplayName("完成烹饪时更新多个dish的总质量")
+    void testCookingWorkflow_FinishWithMultipleDishTotalWeights() throws Exception {
+        // Given: 创建第二个dish
+        Dish dish2 = new Dish();
+        dish2.setHousehold(household);
+        dish2.setName("清炒时蔬");
+        dish2.setTotalCalories(500);
+        dish2.setTotalProtein(20.0);
+        dish2.setTotalFat(10.0);
+        dish2.setTotalCarb(30.0);
+        dish2.setTotalWeightGram(500);
+        dish2 = dishRepository.save(dish2);
+
+        // 创建Session（使用recipes创建多个dish）
+        MenuDTO.RecipeDTO recipe1 = new MenuDTO.RecipeDTO();
+        recipe1.setTitle("红烧肉");
+        MenuDTO.RecipeDTO recipe2 = new MenuDTO.RecipeDTO();
+        recipe2.setTitle("清炒时蔬");
+
+        StartCookingRequest startRequest = new StartCookingRequest();
+        startRequest.setHouseholdId(household.getId());
+        startRequest.setInitiatorId(user.getId());
+        startRequest.setRecipes(Arrays.asList(recipe1, recipe2));
+
+        String startResponse = mockMvc.perform(post("/api/cooking/start")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(startRequest)))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        Long sessionId = objectMapper.readTree(startResponse)
+                .at("/data")
+                .asLong();
+
+        // When: 完成烹饪并更新多个dish的总质量
+        FinishCookingRequest finishRequest = new FinishCookingRequest();
+        finishRequest.setSessionId(sessionId);
+        finishRequest.setConsumedAt(LocalDateTime.now());
+
+        FinishCookingRequest.DishTotalWeight weightInfo1 = new FinishCookingRequest.DishTotalWeight();
+        weightInfo1.setRecipeId("红烧肉");
+        weightInfo1.setTotalWeightGram(1200);
+
+        FinishCookingRequest.DishTotalWeight weightInfo2 = new FinishCookingRequest.DishTotalWeight();
+        weightInfo2.setRecipeId("清炒时蔬");
+        weightInfo2.setTotalWeightGram(600);
+
+        finishRequest.setDishTotalWeights(Arrays.asList(weightInfo1, weightInfo2));
+
+        mockMvc.perform(post("/api/cooking/finish")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(finishRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
+
+        // Then: 验证所有dish的总质量已更新
+        CookingSession session = sessionRepository.findById(sessionId).orElse(null);
+        assertThat(session).isNotNull();
+        assertThat(session.getDishes()).hasSize(2);
+        
+        // 验证每个dish的总质量
+        for (Dish d : session.getDishes()) {
+            Dish updatedDish = dishRepository.findById(d.getId()).orElse(null);
+            assertThat(updatedDish).isNotNull();
+            if ("红烧肉".equals(updatedDish.getName())) {
+                assertThat(updatedDish.getTotalWeightGram()).isEqualTo(1200);
+            } else if ("清炒时蔬".equals(updatedDish.getName())) {
+                assertThat(updatedDish.getTotalWeightGram()).isEqualTo(600);
+            }
+        }
     }
 }

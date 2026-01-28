@@ -70,6 +70,7 @@ class UserRegistrationAndLoginIntegrationTest {
                 .andExpect(jsonPath("$.data.userId").exists())
                 .andExpect(jsonPath("$.data.username").value("testuser"))
                 .andExpect(jsonPath("$.data.email").value("test@example.com"))
+                .andExpect(jsonPath("$.data.householdId").exists()) // 验证householdId存在
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
@@ -80,6 +81,8 @@ class UserRegistrationAndLoginIntegrationTest {
         assertThat(savedUser.getEmail()).isEqualTo("test@example.com");
         assertThat(savedUser.getStatus()).isEqualTo(1); // 1: 可用
         assertThat(savedUser.getIsOnboarded()).isFalse();
+        // 验证注册时自动创建了家庭
+        assertThat(savedUser.getCurrentHouseholdId()).isNotNull();
 
         // ==================== 步骤2：用户登录（使用用户名） ====================
         LoginRequest loginRequest = new LoginRequest();
@@ -93,7 +96,8 @@ class UserRegistrationAndLoginIntegrationTest {
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data.token").exists())
                 .andExpect(jsonPath("$.data.userId").value(savedUser.getId()))
-                .andExpect(jsonPath("$.data.username").value("testuser"));
+                .andExpect(jsonPath("$.data.username").value("testuser"))
+                .andExpect(jsonPath("$.data.householdId").exists()); // 验证householdId存在
 
         // ==================== 步骤3：用户登录（使用邮箱） ====================
         loginRequest.setUsernameOrEmail("test@example.com");

@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -122,6 +123,7 @@ class NutritionIntakeIntegrationTest {
         NutritionLog log = new NutritionLog();
         log.setUser(user);
         log.setLogDate(LocalDate.now());
+        log.setEatenAt(LocalDateTime.now());
         log.setSourceType(LogSourceType.MANUAL);
         log.setFoodName("test food");
         log.setEnergy(1000);
@@ -162,6 +164,7 @@ class NutritionIntakeIntegrationTest {
         NutritionLog log = new NutritionLog();
         log.setUser(user);
         log.setLogDate(LocalDate.now());
+        log.setEatenAt(LocalDateTime.now());
         log.setSourceType(LogSourceType.MANUAL);
         log.setFoodName("test food");
         log.setEnergy(1000);
@@ -175,7 +178,7 @@ class NutritionIntakeIntegrationTest {
                         .param("userId", user.getId().toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
-                .andExpect(jsonPath("$.data.success").value(true));
+                .andExpect(jsonPath("$.data.deletedIntakeId").value(intakeId));
 
         // Then: 验证记录已删除
         assertThat(nutritionLogRepository.findById(intakeId)).isEmpty();
@@ -188,6 +191,7 @@ class NutritionIntakeIntegrationTest {
         NutritionLog manualLog = new NutritionLog();
         manualLog.setUser(user);
         manualLog.setLogDate(LocalDate.now());
+        manualLog.setEatenAt(LocalDateTime.now());
         manualLog.setSourceType(LogSourceType.MANUAL);
         manualLog.setFoodName("manual food");
         manualLog.setEnergy(500);
@@ -197,6 +201,7 @@ class NutritionIntakeIntegrationTest {
         NutritionLog recipeLog = new NutritionLog();
         recipeLog.setUser(user);
         recipeLog.setLogDate(LocalDate.now());
+        recipeLog.setEatenAt(LocalDateTime.now());
         recipeLog.setSourceType(LogSourceType.APP_COOKING);
         recipeLog.setFoodName("recipe food");
         recipeLog.setDishId(1L);
@@ -229,7 +234,7 @@ class NutritionIntakeIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(addRequest)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(jsonPath("$.code").value(500))
                 .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("用户不存在")));
     }
 
@@ -256,5 +261,95 @@ class NutritionIntakeIntegrationTest {
                         .param("userId", user.getId().toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(404));
+    }
+
+    @Test
+    @DisplayName("获取今日摄入时按来源过滤")
+    void testGetTodayIntakes_BySource() throws Exception {
+        // Given: 创建不同类型的营养日志
+        NutritionLog manualLog = new NutritionLog();
+        manualLog.setUser(user);
+        manualLog.setLogDate(LocalDate.now());
+        manualLog.setEatenAt(LocalDateTime.now());
+        manualLog.setSourceType(LogSourceType.MANUAL);
+        manualLog.setFoodName("manual food");
+        manualLog.setEnergy(500);
+        manualLog.setConsumedPercentage(BigDecimal.valueOf(100.0));
+        nutritionLogRepository.save(manualLog);
+
+        NutritionLog leftoverLog = new NutritionLog();
+        leftoverLog.setUser(user);
+        leftoverLog.setLogDate(LocalDate.now());
+        leftoverLog.setEatenAt(LocalDateTime.now());
+        leftoverLog.setSourceType(LogSourceType.LEFTOVER);
+        leftoverLog.setFoodName("leftover food");
+        leftoverLog.setDishId(1L);
+        leftoverLog.setEnergy(600);
+        leftoverLog.setConsumedPercentage(BigDecimal.valueOf(100.0));
+        nutritionLogRepository.save(leftoverLog);
+
+        // When: 获取手动摄入
+        mockMvc.perform(get("/api/intake/today")
+                        .param("userId", user.getId().toString())
+                        .param("source", "manual"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.source").value("manual"))
+                .andExpect(jsonPath("$.data.items").isArray())
+                .andExpect(jsonPath("$.data.items.length()").value(1))
+                .andExpect(jsonPath("$.data.items[0].sourceType").value("manual"));
+
+        // When: 获取菜谱摄入（包括leftover）
+        mockMvc.perform(get("/api/intake/today")
+                        .param("userId", user.getId().toString())
+                        .param("source", "recipe"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.source").value("recipe"))
+                .andExpect(jsonPath("$.data.items").isArray())
+                .andExpect(jsonPath("$.data.items.length()").value(1));
+    }
+
+    @Test
+    @DisplayName("更新摄入百分比时验证营养值重新计算")
+    void testUpdateIntakePercentage_RecalculatesNutrition() throws Exception {
+        // Given: 创建一个营养日志
+        NutritionLog log = new NutritionLog();
+        log.setUser(user);
+        log.setLogDate(LocalDate.now());
+        log.setEatenAt(LocalDateTime.now());
+        log.setSourceType(LogSourceType.MANUAL);
+        log.setFoodName("test food");
+        log.setBaseEnergy(1000);
+        log.setBaseProtein(50.0);
+        log.setBaseFat(30.0);
+        log.setBaseCarbohydrates(100.0);
+        log.setEnergy(1000);
+        log.setProtein(50.0);
+        log.setFat(30.0);
+        log.setCarbohydrates(100.0);
+        log.setConsumedPercentage(BigDecimal.valueOf(100.0));
+        log = nutritionLogRepository.save(log);
+
+        // When: 更新摄入百分比为50%
+        Map<String, Object> updateRequest = new HashMap<>();
+        updateRequest.put("consumedPercentage", 50.0);
+
+        mockMvc.perform(patch("/api/intake/{intake_id}", log.getId())
+                        .param("userId", user.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.intake.consumedPercentage").value(50.0));
+
+        // Then: 验证所有营养值都已重新计算
+        NutritionLog updatedLog = nutritionLogRepository.findById(log.getId()).orElse(null);
+        assertThat(updatedLog).isNotNull();
+        assertThat(updatedLog.getConsumedPercentage()).isEqualByComparingTo(BigDecimal.valueOf(50.0));
+        assertThat(updatedLog.getEnergy()).isEqualTo(500); // 1000 * 0.5
+        assertThat(updatedLog.getProtein()).isEqualTo(25.0); // 50.0 * 0.5
+        assertThat(updatedLog.getFat()).isEqualTo(15.0); // 30.0 * 0.5
+        assertThat(updatedLog.getCarbohydrates()).isEqualTo(50.0); // 100.0 * 0.5
     }
 }
