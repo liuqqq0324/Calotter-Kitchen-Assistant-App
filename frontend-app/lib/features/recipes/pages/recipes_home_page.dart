@@ -692,7 +692,50 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
     final tapeColor = const Color(0xFFEBE3CA).withOpacity(0.7); // 淡米色，70%透明度
     final tapeLeft = isEven ? 140.0 : 160.0; // 更靠近中间位置
 
-    return Transform.rotate(
+    return Dismissible(
+      key: Key(recipe.id),
+      direction: DismissDirection.endToStart, // 只允许从右向左滑动
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        margin: margin,
+        decoration: BoxDecoration(
+          color: Colors.red.shade600,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: const Icon(
+          Icons.delete_outline,
+          color: Colors.white,
+          size: 32,
+        ),
+      ),
+      confirmDismiss: (direction) async {
+        // 显示确认对话框
+        return await _showDeleteConfirmation(context, 1);
+      },
+      onDismissed: (direction) async {
+        // 删除单个菜谱
+        final householdId = await HouseholdService.getHouseholdId();
+        if (householdId != null) {
+          try {
+            await CollectedRecipesStore.remove(
+              recipe,
+              householdId: householdId,
+            );
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('${recipe.title} deleted'),
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            }
+          } catch (e) {
+            debugPrint('Failed to remove recipe: $e');
+          }
+        }
+      },
+      child: Transform.rotate(
       angle: rotation,
       child: Container(
         margin: margin,
@@ -891,6 +934,7 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
             ],
           ),
         ),
+      ),
       ),
     );
   }
