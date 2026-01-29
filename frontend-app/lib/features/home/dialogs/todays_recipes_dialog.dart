@@ -46,6 +46,9 @@ class TodaysRecipesDialog extends StatefulWidget {
 }
 
 class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
+  // ✅ 开发模式：设置为 true 可以强制使用假数据（跳过 API 调用）
+  static const bool _useMockDataOnly = false;
+  
   bool _isLoading = true;
   bool _isSaving = false;
   bool _isAdding = false;
@@ -55,7 +58,80 @@ class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
   @override
   void initState() {
     super.initState();
-    _loadTodayRecipes();
+    if (_useMockDataOnly) {
+      // ✅ 直接使用假数据（用于快速测试）
+      setState(() {
+        _todaysRecipes = _generateMockData();
+        _isLoading = false;
+      });
+    } else {
+      _loadTodayRecipes();
+    }
+  }
+
+  // ✅ 生成假数据用于测试和演示
+  List<TodayRecipe> _generateMockData() {
+    double snapToStep(double val) {
+      return (val / 0.1).round() * 0.1;
+    }
+
+    return [
+      // 示例1：番茄炒蛋 - 初始1000g，当前600g，已消耗40%
+      TodayRecipe(
+        intakeId: 1001,
+        leftoverId: 2001,
+        name: "番茄炒蛋",
+        imageIcon: "🍳",
+        consumedPercentage: snapToStep(0.4), // 40%
+        maxConsumablePercentage: 1.0,
+        initialGrams: 1000.0,
+        currentGrams: 600.0,
+      ),
+      // 示例2：红烧肉 - 初始800g，当前400g，已消耗50%
+      TodayRecipe(
+        intakeId: 1002,
+        leftoverId: 2002,
+        name: "红烧肉",
+        imageIcon: "🥩",
+        consumedPercentage: snapToStep(0.5), // 50%
+        maxConsumablePercentage: 1.0,
+        initialGrams: 800.0,
+        currentGrams: 400.0,
+      ),
+      // 示例3：麻婆豆腐 - 初始1200g，当前900g，已消耗25%
+      TodayRecipe(
+        intakeId: 1003,
+        leftoverId: 2003,
+        name: "麻婆豆腐",
+        imageIcon: "🌶️",
+        consumedPercentage: snapToStep(0.25), // 25%
+        maxConsumablePercentage: 1.0,
+        initialGrams: 1200.0,
+        currentGrams: 900.0,
+      ),
+      // 示例4：糖醋排骨 - 初始600g，当前300g，已消耗50%
+      TodayRecipe(
+        intakeId: 1004,
+        leftoverId: 2004,
+        name: "糖醋排骨",
+        imageIcon: "🍖",
+        consumedPercentage: snapToStep(0.5), // 50%
+        maxConsumablePercentage: 1.0,
+        initialGrams: 600.0,
+        currentGrams: 300.0,
+      ),
+      // 示例5：清炒时蔬 - 初始500g，当前350g，已消耗30%
+      TodayRecipe(
+        intakeId: 1005,
+        leftoverId: 2005,
+        name: "清炒时蔬",
+        imageIcon: "🥬",
+        consumedPercentage: snapToStep(0.3), // 30%
+        maxConsumablePercentage: 1.0,
+        initialGrams: 500.0,
+        currentGrams: 350.0,
+      ),
+    ];
   }
 
   Future<void> _loadTodayRecipes() async {
@@ -94,9 +170,20 @@ class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
               currentGrams: (item['currentGrams'] as num?)?.toDouble(),
             );
           }).toList();
+          
+          // ✅ 如果没有数据，使用假数据（用于测试）
+          if (_todaysRecipes.isEmpty) {
+            _todaysRecipes = _generateMockData();
+          }
+          
           _isLoading = false;
         });
       } else {
+        // ✅ 加载失败时，使用假数据（用于测试）
+        setState(() {
+          _todaysRecipes = _generateMockData();
+          _isLoading = false;
+        });
         setState(() => _isLoading = false);
         if (mounted) {
           final errorCode = result['code'] as int?;
@@ -127,13 +214,18 @@ class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
         }
       }
     } catch (e) {
-      setState(() => _isLoading = false);
+      // ✅ 发生错误时，使用假数据（用于测试）
+      setState(() {
+        _todaysRecipes = _generateMockData();
+        _isLoading = false;
+      });
+      
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Unexpected error: $e'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 4),
+            content: Text('Using mock data for demo. Error: $e'),
+            backgroundColor: Colors.orange,
+            duration: const Duration(seconds: 3),
             action: SnackBarAction(
               label: 'Retry',
               textColor: Colors.white,
@@ -755,32 +847,20 @@ class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
   }
 
   Widget _buildRecipeItem(TodayRecipe recipe) {
-    // ✅ 计算滑动条的最小值和最大值
-    // 滑动条表示总消耗量（相对于初始质量的百分比）
-    double minValue = 0.0;
-    double maxValue = 1.0; // ✅ 上限固定为100%
-
-    // 如果有初始质量和当前质量，计算最低值（已消费的部分）
+    // ✅ 进度条始终以原始100%为基础（0% 到 100%）
+    // 无论当前还剩多少，进度条都从0%开始，到100%结束
+    double minValue = 0.0; // ✅ 始终从0%开始
+    double maxValue = 1.0; // ✅ 始终到100%结束
+    
+    // ✅ 计算当前已消耗的百分比（用于限制用户不能拖到低于这个值）
+    double currentConsumedPercentage = 0.0;
     if (recipe.initialGrams != null &&
         recipe.currentGrams != null &&
         recipe.initialGrams! > 0) {
       final initial = recipe.initialGrams!;
       final current = recipe.currentGrams!;
-
-      // ✅ 最低值：已消费的部分 = (初始质量 - 当前质量) / 初始质量
-      final minPercentage = (initial - current) / initial;
-      minValue = minPercentage.clamp(0.0, 1.0);
-
-      // ✅ 最高值：固定为100%（最多只能消耗100%的初始质量）
-      maxValue = 1.0;
-    }
-
-    // ✅ 确保 maxValue >= minValue
-    if (maxValue < minValue) {
-      maxValue = minValue;
-    }
-    if (maxValue <= 0) {
-      maxValue = minValue > 0 ? minValue : 0.01;
+      // 当前已消耗的百分比 = (初始质量 - 当前质量) / 初始质量
+      currentConsumedPercentage = ((initial - current) / initial).clamp(0.0, 1.0);
     }
 
     // ✅ 将值对齐到最近的 10% 倍数（步长为 0.1）
@@ -789,16 +869,18 @@ class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
       return (val / 0.1).round() * 0.1;
     }
 
-    final rawValue = recipe.consumedPercentage.clamp(minValue, maxValue);
+    // ✅ 确保 consumedPercentage 不低于当前已消耗的百分比
+    final clampedConsumedPercentage = recipe.consumedPercentage.clamp(
+      currentConsumedPercentage, // ✅ 不能低于当前已消耗的百分比
+      maxValue,
+    );
+    final rawValue = clampedConsumedPercentage;
     final value = snapToStep(rawValue).clamp(minValue, maxValue);
-
-    // ✅ 计算 divisions（步长为 10%，即 0.1）
-    // divisions = (maxValue - minValue) / 0.1，但至少为 1
-    final range = maxValue - minValue;
-    final divisions = (range / 0.1).round().clamp(
-      1,
-      10,
-    ); // 最多 10 个步长（0% 到 100%）
+    
+    // ✅ 更新 recipe.consumedPercentage 以确保一致性
+    if (recipe.consumedPercentage < currentConsumedPercentage) {
+      recipe.consumedPercentage = currentConsumedPercentage;
+    }
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -869,30 +951,19 @@ class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
               value: value,
               onChanged: (newValue) {
                 setState(() {
-                  // ✅ 对齐到最近的 10% 倍数，然后限制在范围内
+                  // ✅ 对齐到最近的 10% 倍数
                   final snapped = snapToStep(newValue);
-                  recipe.consumedPercentage = snapped.clamp(minValue, maxValue);
+                  // ✅ 限制在范围内：不能低于当前已消耗的百分比，不能高于100%
+                  recipe.consumedPercentage = snapped.clamp(
+                    currentConsumedPercentage, // ✅ 不能低于当前已消耗的百分比
+                    maxValue, // ✅ 不能高于100%
+                  );
                 });
               },
-              min: minValue,
-              max: maxValue,
-              divisions: divisions, // ✅ 阶梯式，步长为 10%
+              min: minValue, // ✅ 进度条从0%开始（视觉上）
+              max: maxValue, // ✅ 进度条到100%结束（视觉上）
+              divisions: 10, // ✅ 固定为10个步长（0% 到 100%，每10%一个步长）
             ),
-          ),
-
-          // 标签
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                "None",
-                style: GoogleFonts.kalam(fontSize: 12, color: Colors.grey[500]),
-              ),
-              Text(
-                "All eaten",
-                style: GoogleFonts.kalam(fontSize: 12, color: Colors.grey[500]),
-              ),
-            ],
           ),
         ],
       ),

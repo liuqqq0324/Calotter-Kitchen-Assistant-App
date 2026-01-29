@@ -225,7 +225,6 @@ class _HomePageState extends State<HomePage> {
   Widget _buildNutritionDashboardCard({
     required String title,
     required Map<String, double> nutritionData,
-    required VoidCallback onRefresh,
     required String targetPeriodLabel, // "daily" | "weekly"
   }) {
     return SketchyCard(
@@ -262,15 +261,6 @@ class _HomePageState extends State<HomePage> {
                           fontWeight: FontWeight.bold,
                           color: const Color(0xFF6B4F4F), // River Deep Brown
                         ),
-                      ),
-                      const Spacer(),
-                      IconButton(
-                        icon: const Icon(
-                          Icons.refresh,
-                          color: Color(0xFF6B4F4F), // River Deep Brown
-                        ),
-                        onPressed: onRefresh,
-                        tooltip: 'Refresh',
                       ),
                     ],
                   ),
@@ -357,12 +347,51 @@ class _HomePageState extends State<HomePage> {
                 ),
               ],
             ),
-            Text(
-              "${current.toStringAsFixed(0)} / ${target.toStringAsFixed(0)} $unit",
-              style: _pangolin(
-                fontSize: 14,
-                color: const Color(0xFF6B4F4F).withOpacity(0.8),
-              ),
+            // ✅ 根据超标程度使用不同颜色
+            Builder(
+              builder: (context) {
+                Color currentValueColor;
+                FontWeight currentValueWeight;
+                
+                if (target > 0) {
+                  final percentage = (current / target) * 100;
+                  if (percentage > 100) {
+                    // 超标 (>100%)：深红色
+                    currentValueColor = const Color(0xFF8B0000); // 深红色
+                    currentValueWeight = FontWeight.bold;
+                  } else {
+                    // 未超标 (≤100%)：正常颜色
+                    currentValueColor = const Color(0xFF6B4F4F).withOpacity(0.8);
+                    currentValueWeight = FontWeight.normal;
+                  }
+                } else {
+                  // target 为 0 的情况
+                  currentValueColor = const Color(0xFF6B4F4F).withOpacity(0.8);
+                  currentValueWeight = FontWeight.normal;
+                }
+                
+                return RichText(
+                  text: TextSpan(
+                    children: [
+                      TextSpan(
+                        text: "${current.toStringAsFixed(0)}",
+                        style: _pangolin(
+                          fontSize: 14,
+                          color: currentValueColor,
+                          fontWeight: currentValueWeight,
+                        ),
+                      ),
+                      TextSpan(
+                        text: " / ${target.toStringAsFixed(0)} $unit",
+                        style: _pangolin(
+                          fontSize: 14,
+                          color: const Color(0xFF6B4F4F).withOpacity(0.8),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
           ],
         ),
@@ -553,13 +582,11 @@ class _HomePageState extends State<HomePage> {
                                 _buildNutritionDashboardCard(
                                   title: "Today's Intake",
                                   nutritionData: _dailyNutritionData,
-                                  onRefresh: _loadNutritionData,
                                   targetPeriodLabel: "daily",
                                 ),
                                 _buildNutritionDashboardCard(
                                   title: "This Week's Intake",
                                   nutritionData: _nutritionData,
-                                  onRefresh: _loadNutritionData,
                                   targetPeriodLabel: "weekly",
                                 ),
                               ],
