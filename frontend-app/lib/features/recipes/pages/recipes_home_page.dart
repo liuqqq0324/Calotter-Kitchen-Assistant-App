@@ -462,11 +462,8 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                       children: [
                         Expanded(
                           child: ListView.builder(
-                            // Extra bottom padding so the last card can scroll above floating buttons.
-                            padding: EdgeInsets.only(
-                              bottom: _selectedFavoriteIds.isNotEmpty ? 180 : 100,
-                              top: 6,
-                            ),
+                            // Extra bottom padding so the last card can scroll above the action bar.
+                            padding: const EdgeInsets.only(bottom: 100, top: 6),
                             itemCount: filteredFavorites.length,
                             itemBuilder: (context, index) {
                               final recipe = filteredFavorites[index];
@@ -501,170 +498,161 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
             ),
           ),
         ),
-      // 选择模式下：Delete 与 Start Cooking 悬浮在 Generate Recipes 上方
-      if (_selectedFavoriteIds.isNotEmpty)
-        Positioned(
-          left: 20,
-          right: 20,
-          bottom: 92,
-          child: SafeArea(
-            top: false,
-            child: Row(
-              children: [
-                Expanded(
-                  child: SizedBox(
-                    height: 56,
-                    child: _SketchyButtonWithAnimation(
-                      backgroundColor: const Color(0xFFFFFFF0),
-                      withShadow: false,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      onPressed: () async {
-                        final confirmed = await _showDeleteConfirmation(
-                          context,
-                          _selectedFavoriteIds.length,
-                        );
-                        if (!confirmed) return;
-                        final favorites = CollectedRecipesStore.favorites.value;
-                        final selectedRecipes = favorites
-                            .where((r) => _selectedFavoriteIds.contains(r.id))
-                            .toList();
-                        if (selectedRecipes.isEmpty) return;
-                        final householdId = await HouseholdService.getHouseholdId();
-                        if (householdId == null) return;
-                        for (final recipe in selectedRecipes) {
-                          try {
-                            await CollectedRecipesStore.remove(
-                              recipe,
-                              householdId: householdId,
-                            );
-                          } catch (e) {
-                            debugPrint('Failed to remove recipe: $e');
-                          }
-                        }
-                        setState(() {
-                          _selectedFavoriteIds.clear();
-                          _isEditMode = false;
-                        });
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                '${selectedRecipes.length} recipe(s) deleted',
-                              ),
-                              duration: const Duration(seconds: 2),
-                            ),
-                          );
-                        }
-                      },
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.delete_outline,
-                            size: 20,
-                            color: Colors.red.shade700,
-                          ),
-                          const SizedBox(width: 6),
-                          Flexible(
-                            child: Text(
-                              'Delete',
-                              style: GoogleFonts.kalam(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.red.shade700,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  flex: 2,
-                  child: SizedBox(
-                    height: 56,
-                    child: _SketchyButtonWithAnimation(
-                      backgroundColor: const Color(0xFFFFFFF0),
-                      withShadow: false,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      onPressed: () {
-                        final favorites = CollectedRecipesStore.favorites.value;
-                        final selectedRecipes = favorites
-                            .where((r) => _selectedFavoriteIds.contains(r.id))
-                            .toList();
-                        if (selectedRecipes.isEmpty) return;
-                        final tempMenu = RecipeMenuModel(
-                          menuId: -1,
-                          recipes: selectedRecipes,
-                        );
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => RecipeInstructionPage(
-                              menu: tempMenu,
-                              initialRecipeIndex: 0,
-                              filter: _currentFilter,
-                              isViewMode: false,
-                            ),
-                          ),
-                        );
-                      },
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.play_arrow_rounded,
-                            size: 22,
-                            color: Color(0xFF6B4F4F),
-                          ),
-                          const SizedBox(width: 6),
-                          Flexible(
-                            child: Text(
-                              'Start Cooking (${_selectedFavoriteIds.length})',
-                              style: GoogleFonts.kalam(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: const Color(0xFF6B4F4F),
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      // Floating "Generate Recipes" button over the content & static background
+      // Contextual Action Bar: selection bar or Generate Recipes (AnimatedSwitcher)
       Positioned(
         left: 20,
         right: 20,
         bottom: 16,
         child: SafeArea(
           top: false,
-          child: GenerateRecipeButton(
-            isFullWidth: true,
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => RecipeGeneratePage(filter: _currentFilter),
-                ),
-              );
-            },
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            child: _selectedFavoriteIds.isNotEmpty
+                ? KeyedSubtree(
+                    key: const ValueKey<String>('selection_bar'),
+                    child: _buildSelectionActionBar(context),
+                  )
+                : GenerateRecipeButton(
+                    key: const ValueKey<String>('generate'),
+                    isFullWidth: true,
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => RecipeGeneratePage(filter: _currentFilter),
+                        ),
+                      );
+                    },
+                  ),
           ),
         ),
       ),
     ],
   );
 }
+
+  Widget _buildSelectionActionBar(BuildContext context) {
+    const cream = Color(0xFFFFFFF0);
+    const ink = Color(0xFF6B4F4F);
+    return SizedBox(
+      height: 70,
+      child: Row(
+        children: [
+          // Delete - 与 Generated Menus 同款：米白底、手绘棕边，图标红色区分
+          SizedBox(
+            width: 70,
+            height: 70,
+            child: _SketchyButtonWithAnimation(
+              backgroundColor: cream,
+              withShadow: false,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              onPressed: () async {
+                final confirmed = await _showDeleteConfirmation(
+                  context,
+                  _selectedFavoriteIds.length,
+                );
+                if (!confirmed) return;
+                final favorites = CollectedRecipesStore.favorites.value;
+                final selectedRecipes = favorites
+                    .where((r) => _selectedFavoriteIds.contains(r.id))
+                    .toList();
+                if (selectedRecipes.isEmpty) return;
+                final householdId = await HouseholdService.getHouseholdId();
+                if (householdId == null) return;
+                for (final recipe in selectedRecipes) {
+                  try {
+                    await CollectedRecipesStore.remove(
+                      recipe,
+                      householdId: householdId,
+                    );
+                  } catch (e) {
+                    debugPrint('Failed to remove recipe: $e');
+                  }
+                }
+                setState(() {
+                  _selectedFavoriteIds.clear();
+                  _isEditMode = false;
+                });
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        '${selectedRecipes.length} recipe(s) deleted',
+                      ),
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                }
+              },
+              child: const Icon(
+                Icons.delete_outline,
+                color: Color(0xFFB91C1C),
+                size: 28,
+              ),
+            ),
+          ),
+          const SizedBox(width: 4),
+          // Start Cooking - 与 Generated Menus 同款：米白底、棕边、Kalam 棕字
+          Expanded(
+            child: SizedBox(
+              height: 70,
+              child: _SketchyButtonWithAnimation(
+                backgroundColor: cream,
+                withShadow: false,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                onPressed: () {
+                  final favorites = CollectedRecipesStore.favorites.value;
+                  final selectedRecipes = favorites
+                      .where((r) => _selectedFavoriteIds.contains(r.id))
+                      .toList();
+                  if (selectedRecipes.isEmpty) return;
+                  final tempMenu = RecipeMenuModel(
+                    menuId: -1,
+                    recipes: selectedRecipes,
+                  );
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => RecipeInstructionPage(
+                        menu: tempMenu,
+                        initialRecipeIndex: 0,
+                        filter: _currentFilter,
+                        isViewMode: false,
+                      ),
+                    ),
+                  );
+                },
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.play_arrow_rounded,
+                      size: 22,
+                      color: ink.withOpacity(0.9),
+                    ),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        'Start Cooking (${_selectedFavoriteIds.length})',
+                        style: GoogleFonts.kalam(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: ink,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildCollectedCard(
     BuildContext context,
@@ -1849,6 +1837,7 @@ class _SketchyButtonWithAnimation extends StatefulWidget {
   final Widget child;
   final EdgeInsetsGeometry? padding;
   final Color? backgroundColor;
+  final Color? borderColor; // null = default brown (0xFF6B4F4F)
   final bool withShadow;
 
   const _SketchyButtonWithAnimation({
@@ -1856,6 +1845,7 @@ class _SketchyButtonWithAnimation extends StatefulWidget {
     required this.child,
     this.padding,
     this.backgroundColor,
+    this.borderColor,
     this.withShadow = false,
   });
 
@@ -1882,13 +1872,12 @@ class _SketchyButtonWithAnimationState
 
   @override
   Widget build(BuildContext context) {
-    final borderColor = const Color(0xFF6B4F4F).withOpacity(
-      _isPressed ? 1.0 : 0.7,
-    );
-    
-    final effectivePadding = widget.padding ?? 
+    final baseColor = widget.borderColor ?? const Color(0xFF6B4F4F);
+    final borderColor = baseColor.withOpacity(_isPressed ? 1.0 : 0.7);
+
+    final effectivePadding = widget.padding ??
         const EdgeInsets.symmetric(horizontal: 20, vertical: 12);
-    
+
     return Material(
       color: Colors.transparent,
       child: GestureDetector(
@@ -1906,13 +1895,15 @@ class _SketchyButtonWithAnimationState
           padding: effectivePadding,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(4),
-            boxShadow: (widget.withShadow && !_isPressed) ? [
-              BoxShadow(
-                color: const Color(0xFF6B4F4F).withOpacity(0.15),
-                offset: const Offset(2, 3),
-                blurRadius: 4,
-              )
-            ] : null,
+            boxShadow: (widget.withShadow && !_isPressed)
+                ? [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.06),
+                      offset: const Offset(1, 2),
+                      blurRadius: 2,
+                    )
+                  ]
+                : null,
           ),
           child: CustomPaint(
             painter: _SketchyButtonBorderPainter(
