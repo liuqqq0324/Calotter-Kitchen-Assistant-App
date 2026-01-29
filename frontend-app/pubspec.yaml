@@ -104,6 +104,12 @@ flutter:
     - assets/videos/
     - assets/
     - assets/icons/
+    - assets/icons/FRUIT/
+    - assets/icons/VEG/
+    - assets/icons/MEAT/
+    - assets/icons/GRAIN/
+    - assets/icons/DAIRY/
+    - assets/icons/OTHER/
     - assets/dish_category/
     - assets/images/sketch_paper_transparent.png
     - assets/images/frame_0.png

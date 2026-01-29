@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:personal_sous_chef/core/config/ingredient_icon_config.dart';
 import 'package:personal_sous_chef/data/models/ingredient.dart';
 import 'package:personal_sous_chef/shared/widgets/forms/quantity_selector.dart';
 import 'package:personal_sous_chef/shared/widgets/tags/expiry_tag.dart';
@@ -30,6 +31,38 @@ class IngredientCard extends StatelessWidget {
     this.useStatusColors = true, // 默认开启变色
     this.unitOptions,
   });
+
+  /// 左侧图标：优先标准食材资源图（ingredient_icon_config），否则默认占位图或 emoji
+  Widget _buildIngredientIcon() {
+    final path = getIngredientIconPath(item.name);
+    if (path != null) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(6),
+        child: Image.asset(
+          path,
+          width: 56,
+          height: 56,
+          fit: BoxFit.contain,
+          errorBuilder: (_, __, ___) => _emojiPlaceholder(),
+        ),
+      );
+    }
+    final defaultPath = defaultIngredientIconPath;
+    return Image.asset(
+      defaultPath,
+      width: 56,
+      height: 56,
+      fit: BoxFit.contain,
+      errorBuilder: (_, __, ___) => _emojiPlaceholder(),
+    );
+  }
+
+  Widget _emojiPlaceholder() {
+    return Text(
+      item.imagePlaceholder,
+      style: const TextStyle(fontSize: 28),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -87,7 +120,7 @@ class IngredientCard extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // --- 左侧：手绘风图标框 ---
+                // --- 左侧：手绘风图标框（优先标准食材资源图，否则 emoji 占位）---
                 Container(
                   width: 75,
                   height: 75,
@@ -95,10 +128,7 @@ class IngredientCard extends StatelessWidget {
                   child: CustomPaint(
                     painter: SketchyBoxPainter(color: const Color(0xFF8D6E63)),
                     child: Center(
-                      child: Text(
-                        item.imagePlaceholder,
-                        style: const TextStyle(fontSize: 28),
-                      ),
+                      child: _buildIngredientIcon(),
                     ),
                   ),
                 ),
