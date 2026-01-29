@@ -29,7 +29,7 @@ spring:
         api-key: ${GEMINI_API_KEY:}
         chat:
           options:
-            model: gemini-2.5-flash
+            model: gemini-2.5-flash-lite
             temperature: 0.9  # ✅ 方案一：调高温度增加随机性和多样性，减少同质化
             top-p: 0.95  # ✅ 方案一：设置 Top-P 防止在高温度下胡言乱语
             # 注意：Spring AI Google GenAI 通过结构化输出功能支持 Function Calling
@@ -41,7 +41,7 @@ spring:
     gemini:
       base-url: https://generativelanguage.googleapis.com
       api-key: ${GEMINI_API_KEY:}  # 复用同一个 API Key
-      model: gemini-2.5-pro
+      model: gemini-2.5-flash-lite
     # Groq 配置（保留）
     groq:
       base-url: https://api.groq.com
