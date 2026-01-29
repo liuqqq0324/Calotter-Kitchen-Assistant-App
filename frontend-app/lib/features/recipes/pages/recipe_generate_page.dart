@@ -66,10 +66,7 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
       if (mounted) {
         setState(() {
           _menus = menus;
-          // 自动选中第一个菜?
-          if (_menus.isNotEmpty) {
-            _selectedMenuId = _menus.first.menuId;
-          }
+          _selectedMenuId = null; // 不默认选中任一菜单，由用户手动选择
           _loading = false;
         });
       }
@@ -208,21 +205,21 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
               // 如果有筛选条件，就在最上面显示一条橘色小?
               if (summaryText != null) ...[
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+              padding: const EdgeInsets.fromLTRB(8, 12, 8, 4),
               child: SketchyCard(
                 backgroundColor: terracotta.withOpacity(0.12),
                 borderColor: terracottaDeep,
                 borderWidth: 2.0,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                 child: Row(
                   children: [
-                    const Icon(Icons.tune, size: 18, color: terracottaDeep),
-                    const SizedBox(width: 8),
+                    Icon(Icons.tune, size: 22, color: terracottaDeep),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         summaryText,
                         style: GoogleFonts.kalam(
-                          fontSize: 14,
+                          fontSize: 18,
                           color: terracottaDeep,
                           fontWeight: FontWeight.w600,
                         ),
@@ -236,7 +233,12 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
 
               Expanded(
                 child: _menus.isEmpty && _loading
-                    ? const Center(child: _ThreeFrameAnimation())
+                    ? Center(
+                        child: _ThreeFrameAnimation(
+                          width: 200,
+                          height: 200,
+                        ),
+                      )
                     : _menus.isEmpty && !_loading && _error != null
                     ? _buildErrorState(theme)
                     : _menus.isEmpty && !_loading
@@ -1152,6 +1154,7 @@ class _AnimatedFilterButtonState extends State<_AnimatedFilterButton> {
 
   @override
   Widget build(BuildContext context) {
+    const ink = Color(0xFF6B4F4F);
     return GestureDetector(
       onTapDown: _handleTapDown,
       onTapUp: _handleTapUp,
@@ -1162,15 +1165,35 @@ class _AnimatedFilterButtonState extends State<_AnimatedFilterButton> {
         curve: Curves.easeOut,
         transformAlignment: Alignment.center,
         transform: Matrix4.identity()
-          ..scale(_isPressed ? 1.1 : 1.0)
+          // Keep the animation subtle to avoid overflowing AppBar constraints.
+          ..scale(_isPressed ? 1.06 : 1.0)
           ..rotateZ(_isPressed ? _pressedTiltAngle : 0.0),
+        // Constrain to AppBar toolbar height to prevent overflow.
         child: SizedBox(
-          height: 42,
-          width: 42,
-          child: Image.asset(
-            'assets/dish_category/CHEF_HAT.png',
-            fit: BoxFit.contain,
-            filterQuality: FilterQuality.high,
+          height: kToolbarHeight,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                height: 34,
+                width: 34,
+                child: Image.asset(
+                  'assets/dish_category/CHEF_HAT.png',
+                  fit: BoxFit.contain,
+                  filterQuality: FilterQuality.high,
+                ),
+              ),
+              const SizedBox(height: 0),
+              Text(
+                'Prefs',
+                style: GoogleFonts.kalam(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: ink.withOpacity(0.75),
+                ).copyWith(height: 1.0),
+              ),
+            ],
           ),
         ),
       ),

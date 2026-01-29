@@ -4,6 +4,7 @@ import 'package:personal_sous_chef/services/api/recipe_api_service.dart';
 import 'package:personal_sous_chef/services/business/household_service.dart';
 import 'package:personal_sous_chef/services/business/standard_library_service.dart';
 import 'package:personal_sous_chef/shared/widgets/common/sketchy_card.dart';
+import 'package:personal_sous_chef/core/theme/fallback_google_fonts.dart';
 
 class RecipeFilterPage extends StatefulWidget {
   final bool isBottomSheet;
@@ -418,6 +419,7 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> with SingleTickerPr
                             runSpacing: 4,
                             children: _selectedAllergies.map((allergy) {
                               return _buildSelectedValueChip(
+                                context,
                                 label: allergy,
                                 onDeleted: () {
                                   setState(() {
@@ -576,7 +578,9 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> with SingleTickerPr
                             runSpacing: 4,
                             children: _selectedDietHabits.map((t) {
                               return _buildSelectedValueChip(
-                                label: t,
+                                context,
+                                // Format diet habit for display: remove underscores & capitalize words.
+                                label: _formatDietHabitLabel(t),
                                 onDeleted: () {
                                   setState(() {
                                     _selectedDietHabits.remove(t);
@@ -643,6 +647,7 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> with SingleTickerPr
                             runSpacing: 4,
                             children: _selectedAvoidIngredients.map((ing) {
                               return _buildSelectedValueChip(
+                                context,
                                 label: ing,
                                 onDeleted: () {
                                   setState(() {
@@ -757,7 +762,8 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> with SingleTickerPr
                           children: _difficultyOptions.map((d) {
                             final selected = _selectedDifficulties.contains(d);
                             return _buildThemedFilterChip(
-                              label: d,
+                              // Capitalize difficulty label (e.g. "easy" -> "Easy")
+                              label: _formatDietHabitLabel(d),
                               selected: selected,
                               selectedFill: terracottaSelectedFill,
                               selectedBorder: terracottaSelectedBorder,
@@ -785,7 +791,8 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> with SingleTickerPr
                           children: _cuisineOptions.map((c) {
                             final selected = _selectedCuisines.contains(c);
                             return _buildThemedFilterChip(
-                              label: c,
+                              // Capitalize cuisine label (e.g. "asian fusion" -> "Asian fusion")
+                              label: _formatDietHabitLabel(c),
                               selected: selected,
                               selectedFill: terracottaSelectedFill,
                               selectedBorder: terracottaSelectedBorder,
@@ -813,7 +820,8 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> with SingleTickerPr
                           children: _tasteOptions.map((t) {
                             final selected = _selectedTastes.contains(t);
                             return _buildThemedFilterChip(
-                              label: t,
+                              // Capitalize taste label
+                              label: _formatDietHabitLabel(t),
                               selected: selected,
                               selectedFill: terracottaSelectedFill,
                               selectedBorder: terracottaSelectedBorder,
@@ -866,7 +874,8 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> with SingleTickerPr
         color: Colors.transparent,
         child: MediaQuery(
           data: MediaQuery.of(context).copyWith(
-            textScaler: const TextScaler.linear(1.12),
+            // Slightly enlarge all text inside the Menu Preferences sheet
+            textScaler: const TextScaler.linear(1.18),
           ),
           child: SafeArea(
             top: false,
@@ -952,9 +961,10 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> with SingleTickerPr
     return FilterChip(
       label: Text(
         label,
-        style: TextStyle(
-          color: _deepBrown,
+        style: GoogleFonts.kalam(
+          fontSize: 14,
           fontWeight: FontWeight.w600,
+          color: _deepBrown,
         ),
       ),
       selected: selected,
@@ -969,33 +979,53 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> with SingleTickerPr
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
       ),
-      showCheckmark: true,
+      // We use color and border to indicate selection; no extra checkmark needed.
+      showCheckmark: false,
     );
   }
 
-  Widget _buildSelectedValueChip({
+  String _formatDietHabitLabel(String raw) {
+    // Convert values like "low_sodium" -> "Low sodium"
+    final cleaned = raw.replaceAll('_', ' ').trim();
+    if (cleaned.isEmpty) return raw;
+
+    final words = cleaned.split(RegExp(r'\s+'));
+    final formattedWords = words.map((w) {
+      if (w.isEmpty) return w;
+      final lower = w.toLowerCase();
+      return '${lower[0].toUpperCase()}${lower.substring(1)}';
+    }).toList();
+
+    return formattedWords.join(' ');
+  }
+
+  Widget _buildSelectedValueChip(
+    BuildContext context, {
     required String label,
     required VoidCallback onDeleted,
   }) {
-    final fill = Color.lerp(_terracotta, _deepBrown, 0.35)!; // deeper “brown”
-    final border = Color.lerp(_terracotta, _deepBrown, 0.55)!;
+    // Use the same selected fill/border tones as difficulty / cuisine / taste chips
+    final fill = Color.lerp(_lightBeige, _terracotta, 0.52)!;
+    final border = Color.lerp(_terracotta, _deepBrown, 0.25)!;
 
     return Chip(
       label: Text(
         label,
-        style: const TextStyle(
-          color: Colors.white,
+        style: GoogleFonts.kalam(
+          fontSize: 14,
           fontWeight: FontWeight.w700,
+          // Match cuisine/difficulty/taste chip label color
+          color: _deepBrown,
         ),
       ),
       backgroundColor: fill,
-      deleteIcon: const Icon(Icons.close, size: 18, color: Colors.white),
-      deleteIconColor: Colors.white,
+      deleteIcon: Icon(Icons.close, size: 18, color: _deepBrown),
+      deleteIconColor: _deepBrown,
       onDeleted: onDeleted,
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: border.withOpacity(0.65), width: 1.1),
+        side: BorderSide(color: border.withOpacity(0.85), width: 1.1),
       ),
     );
   }
@@ -1003,7 +1033,7 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> with SingleTickerPr
   Widget _buildSectionTitle(String text) {
     return Text(
       text,
-      style: TextStyle(
+      style: GoogleFonts.kalam(
         fontSize: 17,
         fontWeight: FontWeight.w700,
         color: _deepBrown,
@@ -1014,7 +1044,7 @@ class _RecipeFilterPageState extends State<RecipeFilterPage> with SingleTickerPr
   Widget _buildSubTitle(String text) {
     return Text(
       text,
-      style: TextStyle(
+      style: GoogleFonts.kalam(
         fontSize: 15,
         fontWeight: FontWeight.w600,
         color: _deepBrown.withOpacity(0.7),

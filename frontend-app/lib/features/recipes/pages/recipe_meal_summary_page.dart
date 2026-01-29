@@ -379,7 +379,7 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
           title: Text(
             'Meal summary',
             style: GoogleFonts.caveat(
-              fontSize: 32,
+              fontSize: 36,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -397,7 +397,7 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
                 Text(
                   'Nice work! You finished this meal.',
                   style: GoogleFonts.kalam(
-                    fontSize: 20, // 增大字体
+                    fontSize: 24,
                     fontWeight: FontWeight.bold,
                     color: Colors.grey[800],
                   ),
@@ -435,7 +435,7 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
                           Text(
                             'Calories eaten (estimated)',
                             style: GoogleFonts.kalam(
-                              fontSize: 18, // 增大字体
+                              fontSize: 21,
                               fontWeight: FontWeight.bold,
                               color: Colors.grey[800],
                             ),
@@ -444,7 +444,7 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
                           Text(
                             '${totalCalories.toStringAsFixed(0)} kcal total',
                             style: GoogleFonts.kalam(
-                              fontSize: 24, // 增大字体
+                              fontSize: 28,
                               fontWeight: FontWeight.bold,
                               color: Colors.grey[900],
                             ),
@@ -455,7 +455,7 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
                               '≈ ${caloriesPerPerson.toStringAsFixed(0)} kcal per person'
                               '${servings != null ? '  ($servings servings)' : ''}',
                               style: GoogleFonts.kalam(
-                                fontSize: 16, // 增大字体
+                                fontSize: 18,
                                 color: Colors.grey[700],
                               ),
                             ),
@@ -468,7 +468,7 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
                             Text(
                               'Your target',
                               style: GoogleFonts.kalam(
-                                fontSize: 16, // 增大字体
+                                fontSize: 18,
                                 color: Colors.grey[600],
                               ),
                             ),
@@ -476,7 +476,7 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
                             Text(
                               '≤ ${targetPerPerson.toStringAsFixed(0)} kcal per person',
                               style: GoogleFonts.kalam(
-                                fontSize: 18, // 增大字体
+                                fontSize: 21,
                                 fontWeight: FontWeight.w500,
                                 color: Colors.grey[800],
                               ),
@@ -486,7 +486,7 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
                               Text(
                                 comparison,
                                 style: GoogleFonts.kalam(
-                                  fontSize: 16, // 增大字体
+                                  fontSize: 18,
                                   color: comparison.startsWith('Within')
                                       ? Colors.green
                                       : Colors.redAccent,
@@ -536,7 +536,7 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
                 Text(
                   'Record what you used and ate',
                   style: GoogleFonts.kalam(
-                    fontSize: 20, // 增大字体
+                    fontSize: 24,
                     fontWeight: FontWeight.bold,
                     color: Colors.grey[800],
                   ),
@@ -545,7 +545,7 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
                 Text(
                   'Adjust ingredient usage for the dishes you marked as done.',
                   style: GoogleFonts.kalam(
-                    fontSize: 16, // 增大字体
+                    fontSize: 18,
                     color: Colors.grey[600],
                   ),
                 ),
@@ -595,7 +595,7 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
                                     child: Text(
                                       recipe.title,
                                       style: GoogleFonts.kalam(
-                                        fontSize: 20, // 增大字体
+                                        fontSize: 24,
                                         fontWeight: FontWeight.bold,
                                         color: Colors.grey[800],
                                       ),
@@ -609,7 +609,7 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
                               Text(
                                 'Ingredients used',
                                 style: GoogleFonts.kalam(
-                                  fontSize: 18, // 增大字体
+                                  fontSize: 21,
                                   fontWeight: FontWeight.bold,
                                   color: Colors.grey[800],
                                 ),
@@ -619,7 +619,7 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
                                 Text(
                                   'No ingredients listed.',
                                   style: GoogleFonts.kalam(
-                                    fontSize: 16, // 增大字体
+                                    fontSize: 18,
                                     color: Colors.grey[600],
                                   ),
                                 )
@@ -637,7 +637,7 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
                                             child: Text(
                                               ing.name,
                                               style: GoogleFonts.kalam(
-                                                fontSize: 18, // 增大字体
+                                                fontSize: 21,
                                                 color: Colors.grey[800],
                                               ),
                                             ),
@@ -651,16 +651,16 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
                                                     decimal: true,
                                                   ),
                                               style: GoogleFonts.kalam(
-                                                fontSize: 16, // 增大字体
+                                                fontSize: 18,
                                               ),
                                               decoration: InputDecoration(
                                                 labelText: 'Used',
                                                 labelStyle: GoogleFonts.kalam(
-                                                  fontSize: 14, // 增大字体
+                                                  fontSize: 16,
                                                 ),
                                                 suffixText: ing.amountUnit,
                                                 suffixStyle: GoogleFonts.kalam(
-                                                  fontSize: 14, // 增大字体
+                                                  fontSize: 16,
                                                 ),
                                                 isDense: true,
                                                 border:
@@ -682,7 +682,7 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
                               Text(
                                 'Total weight',
                                 style: GoogleFonts.kalam(
-                                  fontSize: 18, // 增大字体
+                                  fontSize: 21,
                                   fontWeight: FontWeight.bold,
                                   color: Colors.grey[800],
                                 ),
@@ -694,7 +694,7 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
                                     child: Text(
                                       'Total weight of this dish (default: sum of all ingredients in g)',
                                       style: GoogleFonts.kalam(
-                                        fontSize: 14,
+                                        fontSize: 16,
                                         color: Colors.grey[600],
                                       ),
                                     ),
@@ -707,16 +707,16 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
                                         decimal: true,
                                       ),
                                       style: GoogleFonts.kalam(
-                                        fontSize: 16, // 增大字体
+                                        fontSize: 18,
                                       ),
                                       decoration: InputDecoration(
                                         labelText: 'Weight',
                                         labelStyle: GoogleFonts.kalam(
-                                          fontSize: 14, // 增大字体
+                                          fontSize: 16,
                                         ),
                                         suffixText: 'g',
                                         suffixStyle: GoogleFonts.kalam(
-                                          fontSize: 14, // 增大字体
+                                          fontSize: 16,
                                         ),
                                         isDense: true,
                                         border: const OutlineInputBorder(),
@@ -798,7 +798,7 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
                           child: Text(
                             'Save record',
                             style: GoogleFonts.kalam(
-                              fontSize: 18,
+                              fontSize: 21,
                               fontWeight: FontWeight.bold,
                               color: const Color(0xFF6B4F4F),
                             ),
