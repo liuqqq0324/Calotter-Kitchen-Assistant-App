@@ -117,6 +117,20 @@ public class FavoriteRecipeService {
     }
 
     /**
+     * 根据收藏菜谱 ID 查询烹饪分类（用于 LeftoverDish 回填 category）
+     * 当 Dish 的 category 为 null 时（例如历史数据或收藏时未传），可从来源 UserRecipe 补全。
+     */
+    @Transactional(readOnly = true)
+    public CookingCategory getCategoryByRecipeId(Long recipeId) {
+        if (recipeId == null) {
+            return null;
+        }
+        return userRecipeRepository.findById(recipeId)
+                .map(UserRecipe::getCategory)
+                .orElse(null);
+    }
+
+    /**
      * 从 RecipeDTO 创建 Dish 快照（AI 生成的临时菜谱直接烹饪）
      */
     @Transactional
@@ -396,11 +410,27 @@ public class FavoriteRecipeService {
         }
     }
 
+    /**
+     * 解析烹饪分类，支持 LLM 常见返回格式（如 "Stir Fry"、"stir-fry"、"STIR_FRY_PAN_FRY"）。
+     * 先规范化（去空格、转大写、空格/连字符转下划线），再按枚举或别名映射。
+     */
     private CookingCategory parseCategory(String c) {
-        try {
-            return c == null ? null : CookingCategory.valueOf(c.toUpperCase());
-        } catch (Exception e) {
+        if (c == null || c.isBlank()) {
             return null;
+        }
+        String normalized = c.trim().toUpperCase().replace(' ', '_').replace("-", "_");
+        try {
+            return CookingCategory.valueOf(normalized);
+        } catch (IllegalArgumentException e) {
+            // LLM 可能返回简写，如 "STIR_FRY" 对应 STIR_FRY_PAN_FRY
+            return switch (normalized) {
+                case "STIR_FRY", "STIRFRY", "PAN_FRY", "PANFRY" -> CookingCategory.STIR_FRY_PAN_FRY;
+                case "STEAM", "BOIL", "STEAMBOIL" -> CookingCategory.STEAM_BOIL;
+                case "BRAISE", "STEW", "BRAISESTEW" -> CookingCategory.BRAISE_STEW;
+                case "COLD", "SALAD", "COLDSALAD" -> CookingCategory.COLD_SALAD;
+                case "ROAST", "BAKE", "ROASTBAKE" -> CookingCategory.ROAST_BAKE;
+                default -> null;
+            };
         }
     }
 

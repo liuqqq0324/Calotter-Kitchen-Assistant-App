@@ -6,11 +6,9 @@ import com.calotter.health.service.event.NutritionLogCreatedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Profile;
-import org.springframework.context.event.EventListener;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionalEventListener;
 
 /**
@@ -40,7 +38,6 @@ public class NutritionLogEventListener {
      */
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @Async
-    @Transactional
     public void handleNutritionLogCreated(NutritionLogCreatedEvent event) {
         try {
             log.info("收到营养日志创建事件，日志数量: {}", 

@@ -5,6 +5,7 @@ import 'package:personal_sous_chef/features/add_item/pages/review_ingredients_pa
 import 'package:personal_sous_chef/services/ai/yolo_service.dart';
 import 'package:personal_sous_chef/data/models/ingredient.dart';
 import 'package:personal_sous_chef/shared/widgets/common/programmatic_sketchy_card.dart';
+import 'package:personal_sous_chef/navigation/main_scaffold.dart';
 
 class AddItemPage extends StatefulWidget {
   const AddItemPage({super.key});
@@ -107,9 +108,21 @@ class _AddItemPageState extends State<AddItemPage> {
       );
 
       // 7. 处理返回结果
-      if (result != null && mounted) {
-        Navigator.pop(context, result);
+      if (!mounted) return;
+      
+      if (result == 'kitchen') {
+        // 🔥 切换到厨房页面（索引3）
+        // ReviewIngredientsPage 已经通过 Navigator.pop 关闭了
+        // 现在只需要切换到厨房 tab
+        context.findAncestorStateOfType<MainScaffoldState>()?.switchTab(3);
+      } else if (result == 'recipe') {
+        // 🔥 切换到食谱页面（索引1）
+        // ReviewIngredientsPage 已经通过 Navigator.pop 关闭了
+        // 现在只需要切换到食谱 tab
+        context.findAncestorStateOfType<MainScaffoldState>()?.switchTab(1);
       }
+      // 如果 result 为 null 或其他值，不需要特殊处理
+      // ReviewIngredientsPage 已经通过 Navigator.pop 关闭了
     } catch (e) {
       setState(() => _isLoading = false);
       if (mounted) {

@@ -6,6 +6,8 @@ class Leftover {
   final int quantityGram; // 当前剩余重量（克）
   final DateTime producedTime; // 制作时间
   final String? coverImage; // 封面图URL（从后端获取）
+  /** 烹饪分类（与后端 CookingCategory 一致，如 STIR_FRY_PAN_FRY, SOUP 等） */
+  final String? category;
   final int? caloriesPer100g; // 每100克的卡路里（从后端获取）
   final String? imagePlaceholder; // 图片占位符（如果 coverImage 为空时使用）
 
@@ -16,6 +18,7 @@ class Leftover {
     required this.quantityGram,
     required this.producedTime,
     this.coverImage,
+    this.category,
     this.caloriesPer100g,
     this.imagePlaceholder = '🍽️',
   });

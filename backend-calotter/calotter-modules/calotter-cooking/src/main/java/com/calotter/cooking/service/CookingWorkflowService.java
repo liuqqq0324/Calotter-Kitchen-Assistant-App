@@ -4,6 +4,7 @@ import com.calotter.cooking.controller.dto.FinishCookingRequest;
 import com.calotter.cooking.controller.dto.StartCookingRequest;
 import com.calotter.cooking.domain.entity.CookingSession;
 import com.calotter.cooking.domain.entity.Dish;
+import com.calotter.cooking.domain.enums.CookingCategory;
 import com.calotter.cooking.repository.CookingSessionRepository;
 import com.calotter.cooking.repository.DishRepository;
 import com.calotter.cooking.service.dto.MenuDTO;
@@ -177,7 +178,16 @@ public class CookingWorkflowService {
                 // ✅ 保存菜品信息快照（避免查询时 JOIN 和循环依赖）
                 leftover.setDishName(dish.getName());
                 leftover.setCoverImage(dish.getCoverImage());
-                leftover.setCategory(dish.getCategory() != null ? dish.getCategory().name() : null);
+                // category：优先用 Dish，若为 null 且来自收藏菜谱则从 UserRecipe 回填
+                String categoryStr = dish.getCategory() != null ? dish.getCategory().name() : null;
+                if (categoryStr == null && dish.getSourceRecipeId() != null) {
+                    CookingCategory fromRecipe =
+                            favoriteRecipeService.getCategoryByRecipeId(dish.getSourceRecipeId());
+                    if (fromRecipe != null) {
+                        categoryStr = fromRecipe.name();
+                    }
+                }
+                leftover.setCategory(categoryStr);
                 leftover.setCaloriesPer100g(dish.getCaloriesPer100g());
                 
                 // ✅ 计算并保存每100g的营养素快照

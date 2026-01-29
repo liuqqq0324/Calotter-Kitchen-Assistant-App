@@ -198,6 +198,7 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
       }
 
       // 将整个 Menu 的所有菜品转换为后端需要的格式（使用驼峰命名）
+      // ✅ 必须包含 category，否则 LeftoverDish 的 category 会为 null
       final recipesJson = widget.menu.recipes
           .map(
             (recipe) => {
@@ -206,6 +207,7 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
               'servings': recipe.servings,
               'cookingTimeMin': recipe.cookingTimeMin,
               'difficulty': recipe.difficulty,
+              'category': recipe.category, // 烹饪分类（与后端 CookingCategory 一致）
               'nutritionEstimate': {
                 'calories': recipe.totalCaloriesEstimate,
                 'proteinG': recipe.totalProtein ?? 0.0,

@@ -3,6 +3,16 @@ import 'package:personal_sous_chef/data/models/leftover.dart';
 import 'package:personal_sous_chef/core/theme/app_style.dart';
 import 'package:personal_sous_chef/shared/widgets/painters/sketchy_box_painter.dart';
 
+/// 烹饪分类与 dish_category 下非 SKETCH 图标的映射（与后端 CookingCategory 枚举一致）
+const Map<String, String> _dishCategoryAssetMap = {
+  'STIR_FRY_PAN_FRY': 'assets/dish_category/STIR_FRY_PAN_FRY.png',
+  'STEAM_BOIL': 'assets/dish_category/STEAM_BOIL.png',
+  'BRAISE_STEW': 'assets/dish_category/BRAISE_STEW.png',
+  'COLD_SALAD': 'assets/dish_category/COLD_SALAD.png',
+  'SOUP': 'assets/dish_category/SOUP.png',
+  'ROAST_BAKE': 'assets/dish_category/ROAST_BAKE.png',
+};
+
 class LeftoverCard extends StatelessWidget {
   final Leftover item;
 
@@ -10,6 +20,50 @@ class LeftoverCard extends StatelessWidget {
   final VoidCallback? onTap; // 点击卡片本身
 
   const LeftoverCard({super.key, required this.item, this.onTap});
+
+  /// 左侧图标：优先封面图，否则按 category 显示 assets/dish_category 下非 SKETCH 的 PNG
+  Widget _buildLeftoverIcon(BuildContext context) {
+    if (item.coverImage != null && item.coverImage!.isNotEmpty) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Image.network(
+          item.coverImage!,
+          width: 75,
+          height: 75,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => _categoryOrPlaceholder(),
+        ),
+      );
+    }
+    return _categoryOrPlaceholder();
+  }
+
+  Widget _categoryOrPlaceholder() {
+    final assetPath = item.category != null ? _dishCategoryAssetMap[item.category!] : null;
+    if (assetPath != null) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Image.asset(
+          assetPath,
+          width: 75,
+          height: 75,
+          fit: BoxFit.contain,
+          errorBuilder: (context, error, stackTrace) => Center(
+            child: Text(
+              item.imagePlaceholder ?? '🍽️',
+              style: const TextStyle(fontSize: 28),
+            ),
+          ),
+        ),
+      );
+    }
+    return Center(
+      child: Text(
+        item.imagePlaceholder ?? '🍽️',
+        style: const TextStyle(fontSize: 28),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -62,39 +116,14 @@ class LeftoverCard extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // --- 左侧：手绘风图标框 ---
+                // --- 左侧：手绘风图标框（优先封面图，否则按 category 显示 dish_category 下非 SKETCH 图标）---
                 Container(
                   width: 75,
                   height: 75,
                   decoration: const BoxDecoration(color: Colors.transparent),
                   child: CustomPaint(
                     painter: SketchyBoxPainter(color: const Color(0xFF8D6E63)),
-                    child:
-                        item.coverImage != null && item.coverImage!.isNotEmpty
-                        ? ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.network(
-                              item.coverImage!,
-                              width: 75,
-                              height: 75,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                // 如果图片加载失败，显示占位符
-                                return Center(
-                                  child: Text(
-                                    item.imagePlaceholder ?? '🍽️',
-                                    style: const TextStyle(fontSize: 28),
-                                  ),
-                                );
-                              },
-                            ),
-                          )
-                        : Center(
-                            child: Text(
-                              item.imagePlaceholder ?? '🍽️',
-                              style: const TextStyle(fontSize: 28),
-                            ),
-                          ),
+                    child: _buildLeftoverIcon(context),
                   ),
                 ),
 
@@ -121,9 +150,11 @@ class LeftoverCard extends StatelessWidget {
 
                       const SizedBox(height: 8),
 
-                      // 显示剩余质量（以g为单位）
+                      // 显示每100克卡路里（calories_per_100g）
                       Text(
-                        '${item.quantityGram}g',
+                        item.caloriesPer100g != null
+                            ? '${item.caloriesPer100g} kcal/100g'
+                            : '— kcal/100g',
                         style: TextStyle(
                           fontSize: 16,
                           color: Colors.grey[700],

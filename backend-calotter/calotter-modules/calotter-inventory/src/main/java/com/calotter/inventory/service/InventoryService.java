@@ -402,6 +402,7 @@ public class InventoryService {
                 .originalDishId(leftover.getOriginalDishId())
                 .dishName(leftover.getDishName()) // ✅ 从快照获取
                 .coverImage(leftover.getCoverImage()) // ✅ 从快照获取
+                .category(leftover.getCategory()) // ✅ 烹饪分类快照
                 .currentQuantityGram(leftover.getCurrentQuantityGram())
                 .producedTime(leftover.getProducedTime())
                 .caloriesPer100g(leftover.getCaloriesPer100g()) // ✅ 从快照获取
@@ -420,6 +421,7 @@ public class InventoryService {
                         .originalDishId(leftover.getOriginalDishId())
                         .dishName(leftover.getDishName()) // ✅ 从快照获取
                         .coverImage(leftover.getCoverImage()) // ✅ 从快照获取
+                        .category(leftover.getCategory()) // ✅ 烹饪分类快照
                         .currentQuantityGram(leftover.getCurrentQuantityGram())
                         .producedTime(leftover.getProducedTime())
                         .caloriesPer100g(leftover.getCaloriesPer100g()) // ✅ 从快照获取

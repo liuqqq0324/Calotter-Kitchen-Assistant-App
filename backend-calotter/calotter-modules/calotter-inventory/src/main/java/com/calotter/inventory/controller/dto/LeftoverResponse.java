@@ -25,7 +25,9 @@ public class LeftoverResponse {
     // ✅ 菜品信息（从 Dish 获取）
     private String dishName;        // 菜品名称
     private String coverImage;     // 封面图（可选）
-    
+    /** 烹饪分类（与 CookingCategory 枚举一致，如 STIR_FRY_PAN_FRY, SOUP 等） */
+    private String category;
+
     // ✅ 剩菜信息
     private Integer currentQuantityGram; // 当前剩余重量（克）
     private LocalDateTime producedTime;  // 制作时间
