@@ -39,6 +39,7 @@ class AddFoodDialog extends StatefulWidget {
 class _AddFoodDialogState extends State<AddFoodDialog> {
   final TextEditingController _foodController = TextEditingController();
   final List<ExtraFood> _addedFoods = [];
+  final Set<int?> _sessionAddedFoodIds = {}; // ✅ 跟踪本次会话中添加的食物（通过 intakeId 或 name 标识）
   bool _isLoading = false;
   bool _isLoadingTodayFoods = false;
   final ScrollController _foodsScrollController = ScrollController();
@@ -114,6 +115,9 @@ class _AddFoodDialogState extends State<AddFoodDialog> {
 
   void _applyTodayManualFoodsList(List<dynamic> foods) {
     setState(() {
+      // ✅ 保存当前会话中添加的食物 ID（避免刷新时丢失）
+      final currentSessionIds = Set<int?>.from(_sessionAddedFoodIds);
+      
       _addedFoods
         ..clear()
         ..addAll(
@@ -132,6 +136,14 @@ class _AddFoodDialogState extends State<AddFoodDialog> {
               })
               .where((f) => f.name.trim().isNotEmpty),
         );
+      
+      // ✅ 恢复会话跟踪：保留那些在刷新后仍然存在的会话添加的食物
+      _sessionAddedFoodIds.clear();
+      for (final food in _addedFoods) {
+        if (currentSessionIds.contains(food.intakeId)) {
+          _sessionAddedFoodIds.add(food.intakeId);
+        }
+      }
     });
   }
 
@@ -154,6 +166,7 @@ class _AddFoodDialogState extends State<AddFoodDialog> {
     setState(() {
       _isLoading = true;
       _addedFoods.insert(0, optimisticFood);
+      _sessionAddedFoodIds.add(null); // ✅ 标记为本次会话添加（使用 null 作为临时标识）
       _foodController.clear();
     });
 
@@ -170,6 +183,17 @@ class _AddFoodDialogState extends State<AddFoodDialog> {
       if (result['success'] == true) {
         final data = result['data'] as Map<String, dynamic>?;
         if (data != null) {
+          // ✅ 从响应中获取新添加的 intakeId，更新会话跟踪
+          final intake = data['intake'] as Map<String, dynamic>?;
+          if (intake != null) {
+            final newIntakeId = (intake['intakeId'] as num?)?.toInt();
+            if (newIntakeId != null) {
+              setState(() {
+                _sessionAddedFoodIds.remove(null); // 移除临时标识
+                _sessionAddedFoodIds.add(newIntakeId); // 添加实际的 intakeId
+              });
+            }
+          }
           _applyTodayManualFoodsFromAddResponse(data);
         } else {
           await _refreshTodayManualFoods();
@@ -224,15 +248,32 @@ class _AddFoodDialogState extends State<AddFoodDialog> {
 
   Future<void> _deleteFood(ExtraFood food, int index) async {
     final intakeId = food.intakeId;
+    
+    // ✅ 找到原始列表中的索引（因为列表是排序的，需要重新查找）
+    int originalIndex = _addedFoods.indexWhere((f) => 
+      f.intakeId == food.intakeId && f.name == food.name
+    );
+    
+    // ✅ 从会话跟踪中移除
+    if (intakeId == null) {
+      _sessionAddedFoodIds.remove(null);
+    } else {
+      _sessionAddedFoodIds.remove(intakeId);
+    }
+    
     if (intakeId == null) {
       // Not persisted yet (optimistic item); local remove only.
-      setState(() => _addedFoods.removeAt(index));
+      final actualIndex = originalIndex >= 0 ? originalIndex : index;
+      setState(() {
+        _addedFoods.removeAt(actualIndex);
+      });
       return;
     }
 
     final removed = food;
+    final actualIndex = originalIndex >= 0 ? originalIndex : index;
     setState(() {
-      _addedFoods.removeAt(index);
+      _addedFoods.removeAt(actualIndex);
       _isLoading = true;
     });
 
@@ -251,8 +292,10 @@ class _AddFoodDialogState extends State<AddFoodDialog> {
         }
       } else {
         // revert on failure
+        final revertIndex = originalIndex >= 0 ? originalIndex : index;
         setState(() {
-          _addedFoods.insert(index.clamp(0, _addedFoods.length), removed);
+          _addedFoods.insert(revertIndex.clamp(0, _addedFoods.length), removed);
+          _sessionAddedFoodIds.add(intakeId); // ✅ 恢复会话跟踪
         });
         final errorMsg = result['error'] as String? ?? 'Unknown error';
         if (mounted) {
@@ -267,9 +310,11 @@ class _AddFoodDialogState extends State<AddFoodDialog> {
       }
     } catch (e) {
       if (!mounted) return;
+      final revertIndex = originalIndex >= 0 ? originalIndex : index;
       setState(() {
         _isLoading = false;
-        _addedFoods.insert(index.clamp(0, _addedFoods.length), removed);
+        _addedFoods.insert(revertIndex.clamp(0, _addedFoods.length), removed);
+        _sessionAddedFoodIds.add(intakeId); // ✅ 恢复会话跟踪
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -360,7 +405,7 @@ class _AddFoodDialogState extends State<AddFoodDialog> {
                         child: Row(
                           children: [
                             Icon(
-                              Icons.add_circle,
+                              Icons.cookie, // ✅ 改为零食图标
                               color: const Color(
                                 0xFF6B4F4F,
                               ).withOpacity(0.7), // Lighter brown
@@ -482,14 +527,36 @@ class _AddFoodDialogState extends State<AddFoodDialog> {
                         ? const Center(child: CircularProgressIndicator())
                         : _addedFoods.isEmpty
                         ? _buildEmptyState()
-                        : ListView.separated(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: _addedFoods.length,
-                            separatorBuilder: (_, _) =>
-                                const SizedBox(height: 10),
-                            itemBuilder: (context, index) {
-                              return _buildFoodItem(_addedFoods[index], index);
+                        : Builder(
+                            builder: (context) {
+                              // ✅ 排序：没有done的食物（intakeId == null 或在 _sessionAddedFoodIds 中）显示在最上面
+                              final sortedFoods = List<ExtraFood>.from(_addedFoods);
+                              sortedFoods.sort((a, b) {
+                                final aIsSessionAdded = a.intakeId == null || _sessionAddedFoodIds.contains(a.intakeId);
+                                final bIsSessionAdded = b.intakeId == null || _sessionAddedFoodIds.contains(b.intakeId);
+                                
+                                // 如果一个是会话添加的，另一个不是，会话添加的排在前面
+                                if (aIsSessionAdded && !bIsSessionAdded) return -1;
+                                if (!aIsSessionAdded && bIsSessionAdded) return 1;
+                                
+                                // 如果都是或都不是会话添加的，保持原有顺序
+                                return 0;
+                              });
+                              
+                              return ListView.separated(
+                                controller: _foodsScrollController,
+                                shrinkWrap: true,
+                                physics: const AlwaysScrollableScrollPhysics(), // ✅ 启用滚动
+                                itemCount: sortedFoods.length,
+                                separatorBuilder: (_, _) =>
+                                    const SizedBox(height: 10),
+                                itemBuilder: (context, index) {
+                                  // ✅ 找到原始索引，用于删除操作
+                                  final food = sortedFoods[index];
+                                  final originalIndex = _addedFoods.indexOf(food);
+                                  return _buildFoodItem(food, originalIndex >= 0 ? originalIndex : index);
+                                },
+                              );
                             },
                           ),
                   ),
@@ -634,15 +701,17 @@ class _AddFoodDialogState extends State<AddFoodDialog> {
             ),
           ),
 
-          // 删除按钮
-          IconButton(
-            onPressed: _isLoading ? null : () => _deleteFood(food, index),
-            icon: Icon(
-              Icons.remove_circle_outline,
-              color: const Color(0xFF6B4F4F).withOpacity(0.6),
+          // 删除按钮：只有本次会话中添加的食物才显示删除键
+          // 判断逻辑：intakeId == null（未保存）或 intakeId 在 _sessionAddedFoodIds 中（本次会话添加的）
+          if (food.intakeId == null || _sessionAddedFoodIds.contains(food.intakeId))
+            IconButton(
+              onPressed: _isLoading ? null : () => _deleteFood(food, index),
+              icon: Icon(
+                Icons.remove_circle_outline,
+                color: const Color(0xFF6B4F4F).withOpacity(0.6),
+              ),
+              iconSize: 22,
             ),
-            iconSize: 22,
-          ),
         ],
       ),
     );
