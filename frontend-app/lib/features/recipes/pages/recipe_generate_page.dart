@@ -235,8 +235,8 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
                 child: _menus.isEmpty && _loading
                     ? Center(
                         child: _ThreeFrameAnimation(
-                          width: 200,
-                          height: 200,
+                          width: 280,
+                          height: 280,
                         ),
                       )
                     : _menus.isEmpty && !_loading && _error != null

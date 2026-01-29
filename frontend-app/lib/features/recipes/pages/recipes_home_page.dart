@@ -462,9 +462,11 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                       children: [
                         Expanded(
                           child: ListView.builder(
-                            // Extra bottom padding so the last card can scroll
-                            // above the floating "Generate Recipes" button.
-                            padding: const EdgeInsets.only(bottom: 100, top: 6),
+                            // Extra bottom padding so the last card can scroll above floating buttons.
+                            padding: EdgeInsets.only(
+                              bottom: _selectedFavoriteIds.isNotEmpty ? 180 : 100,
+                              top: 6,
+                            ),
                             itemCount: filteredFavorites.length,
                             itemBuilder: (context, index) {
                               final recipe = filteredFavorites[index];
@@ -490,161 +492,150 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                             },
                           ),
                           ),
-                          // 选择模式下的底部操作栏 - 手绘风格
-                          if (_selectedFavoriteIds.isNotEmpty) ...[
-                            const SizedBox(height: 8),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 8),
-                              child: Row(
-                                children: [
-                                  // 左侧：删除按钮
-                                  Expanded(
-                                    child: SizedBox(
-                                      height: 60,
-                                      child: _SketchyButtonWithAnimation(
-                                      backgroundColor: const Color(0xFFFFFFF0),
-                                      withShadow: false,
-                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                                      onPressed: () async {
-                                        // 确认删除对话框
-                                        final confirmed = await _showDeleteConfirmation(
-                                          context,
-                                          _selectedFavoriteIds.length,
-                                        );
-                                        if (!confirmed) return;
-                                        
-                                        // 删除选中的菜谱
-                                        final selectedRecipes = favorites
-                                            .where((r) => _selectedFavoriteIds.contains(r.id))
-                                            .toList();
-                                        
-                                        if (selectedRecipes.isEmpty) return;
-                                        
-                                        // 获取householdId
-                                        final householdId = await HouseholdService.getHouseholdId();
-                                        if (householdId == null) return;
-                                        
-                                        // 删除所有选中的菜谱
-                                        for (final recipe in selectedRecipes) {
-                                          try {
-                                            await CollectedRecipesStore.remove(
-                                              recipe,
-                                              householdId: householdId,
-                                            );
-                                          } catch (e) {
-                                            debugPrint('Failed to remove recipe: $e');
-                                          }
-                                        }
-                                        
-                                        // 退出编辑模式
-                                        setState(() {
-                                          _selectedFavoriteIds.clear();
-                                          _isEditMode = false;
-                                        });
-                                        
-                                        // 显示成功提示
-                                        if (mounted) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(
-                                              content: Text(
-                                                '${selectedRecipes.length} recipe(s) deleted',
-                                              ),
-                                              duration: const Duration(seconds: 2),
-                                            ),
-                                          );
-                                        }
-                                      },
-                                      child: Row(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            Icons.delete_outline,
-                                            size: 20,
-                                            color: Colors.red.shade700,
-                                          ),
-                                          const SizedBox(width: 6),
-                                          Flexible(
-                                            child: Text(
-                                              'Delete',
-                                              style: GoogleFonts.kalam(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.red.shade700,
-                                              ),
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  // 右侧：开始烹饪按钮
-                                  Expanded(
-                                    flex: 2,
-                                    child: SizedBox(
-                                      height: 60,
-                                      child: _SketchyButtonWithAnimation(
-                                      backgroundColor: const Color(0xFFFFFFF0),
-                                      withShadow: false,
-                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                                      onPressed: () {
-                                        final selectedRecipes = filteredFavorites
-                                            .where(
-                                              (r) => _selectedFavoriteIds.contains(r.id),
-                                            )
-                                            .toList();
-                                        if (selectedRecipes.isEmpty) return;
-                                        final tempMenu = RecipeMenuModel(
-                                          menuId: -1,
-                                          recipes: selectedRecipes,
-                                        );
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (_) => RecipeInstructionPage(
-                                              menu: tempMenu,
-                                              initialRecipeIndex: 0,
-                                              filter: _currentFilter,
-                                              isViewMode: false,
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                      child: Row(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          const Icon(
-                                            Icons.play_arrow_rounded,
-                                            size: 22,
-                                            color: Color(0xFF6B4F4F),
-                                          ),
-                                          const SizedBox(width: 6),
-                                          Flexible(
-                                            child: Text(
-                                              'Start Cooking (${_selectedFavoriteIds.length})',
-                                              style: GoogleFonts.kalam(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.bold,
-                                                color: const Color(0xFF6B4F4F),
-                                              ),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
                         ],
                       );
                     },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      // 选择模式下：Delete 与 Start Cooking 悬浮在 Generate Recipes 上方
+      if (_selectedFavoriteIds.isNotEmpty)
+        Positioned(
+          left: 20,
+          right: 20,
+          bottom: 92,
+          child: SafeArea(
+            top: false,
+            child: Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 56,
+                    child: _SketchyButtonWithAnimation(
+                      backgroundColor: const Color(0xFFFFFFF0),
+                      withShadow: false,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      onPressed: () async {
+                        final confirmed = await _showDeleteConfirmation(
+                          context,
+                          _selectedFavoriteIds.length,
+                        );
+                        if (!confirmed) return;
+                        final favorites = CollectedRecipesStore.favorites.value;
+                        final selectedRecipes = favorites
+                            .where((r) => _selectedFavoriteIds.contains(r.id))
+                            .toList();
+                        if (selectedRecipes.isEmpty) return;
+                        final householdId = await HouseholdService.getHouseholdId();
+                        if (householdId == null) return;
+                        for (final recipe in selectedRecipes) {
+                          try {
+                            await CollectedRecipesStore.remove(
+                              recipe,
+                              householdId: householdId,
+                            );
+                          } catch (e) {
+                            debugPrint('Failed to remove recipe: $e');
+                          }
+                        }
+                        setState(() {
+                          _selectedFavoriteIds.clear();
+                          _isEditMode = false;
+                        });
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                '${selectedRecipes.length} recipe(s) deleted',
+                              ),
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
+                        }
+                      },
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.delete_outline,
+                            size: 20,
+                            color: Colors.red.shade700,
+                          ),
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              'Delete',
+                              style: GoogleFonts.kalam(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.red.shade700,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 2,
+                  child: SizedBox(
+                    height: 56,
+                    child: _SketchyButtonWithAnimation(
+                      backgroundColor: const Color(0xFFFFFFF0),
+                      withShadow: false,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      onPressed: () {
+                        final favorites = CollectedRecipesStore.favorites.value;
+                        final selectedRecipes = favorites
+                            .where((r) => _selectedFavoriteIds.contains(r.id))
+                            .toList();
+                        if (selectedRecipes.isEmpty) return;
+                        final tempMenu = RecipeMenuModel(
+                          menuId: -1,
+                          recipes: selectedRecipes,
+                        );
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => RecipeInstructionPage(
+                              menu: tempMenu,
+                              initialRecipeIndex: 0,
+                              filter: _currentFilter,
+                              isViewMode: false,
+                            ),
+                          ),
+                        );
+                      },
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.play_arrow_rounded,
+                            size: 22,
+                            color: Color(0xFF6B4F4F),
+                          ),
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              'Start Cooking (${_selectedFavoriteIds.length})',
+                              style: GoogleFonts.kalam(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF6B4F4F),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ],
