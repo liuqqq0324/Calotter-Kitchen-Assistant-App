@@ -118,6 +118,10 @@ public interface IIntakeService {
          * For leftover intakes: current quantity in grams (当前质量，克)
          */
         private Integer currentGrams;
+        /**
+         * For leftover intakes: category (烹饪分类，用于前端显示图标)
+         */
+        private String category;
         private Nutrition baseNutrition;
         private Nutrition effectiveNutrition;
     }
@@ -252,6 +256,10 @@ public interface IIntakeService {
          * ✅ 当前质量（克）
          */
         private Integer currentGrams;
+        /**
+         * ✅ 烹饪分类（用于前端显示图标）
+         */
+        private String category;
     }
 
     /**
