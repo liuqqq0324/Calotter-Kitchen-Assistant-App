@@ -9,7 +9,6 @@ import '../../../shared/widgets/common/sketchy_card.dart';
 import '../../../shared/widgets/common/sketchy_button.dart';
 import '../../../shared/widgets/common/sketchy_border.dart';
 import '../../../shared/widgets/common/passport_page_view.dart';
-import '../../../shared/widgets/common/otter_approved_stamp.dart';
 import '../../../services/business/user_service.dart';
 import '../../household/pages/household_manage_page.dart';
 
@@ -1113,34 +1112,8 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 80), // 增加间距，避免与印章重叠
+                const SizedBox(height: 24),
               ],
-            ),
-          ), // SingleChildScrollView 结束，需要逗号因为后面还有元素
-          // 参考图元素：精准裁剪的红色爪印 + 代码生成的艺术字印章（半透明，不挡信息）
-          Positioned(
-            top: 182,
-            right: -4,
-            child: IgnorePointer(
-              child: Opacity(
-                opacity: 0.38,
-                child: Image.asset(
-                  'assets/profile_passport/paw.png',
-                  width: 160,
-                  fit: BoxFit.contain,
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            top: 320,
-            right: -18,
-            child: IgnorePointer(
-              child: OtterApprovedStamp(
-                width: 240,
-                opacity: 0.52,
-                rotation: -0.20,
-              ),
             ),
           ),
         ],

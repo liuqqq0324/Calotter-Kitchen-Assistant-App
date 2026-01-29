@@ -1,5 +1,31 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:personal_sous_chef/core/theme/fallback_google_fonts.dart';
+
+/// 淡淡的网格覆盖层，叠在木纹背景之上
+class _GridOverlayPainter extends CustomPainter {
+  static const double _spacing = 24.0;
+  static const double _opacity = 0.06;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (size.width <= 0 || size.height <= 0) return;
+    final paint = Paint()
+      ..color = Colors.grey.withOpacity(_opacity)
+      ..strokeWidth = 1.0
+      ..style = PaintingStyle.stroke;
+    for (double x = 0; x <= size.width; x += _spacing) {
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
+    }
+    for (double y = 0; y <= size.height; y += _spacing) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
 
 /// 护照翻页效果的PageView组件
 /// 支持翻页动画和底部标签导航
@@ -105,34 +131,23 @@ class _PassportPageViewState extends State<PassportPageView>
                 ),
               ),
             ),
-            // 中间层背景：容器背景（缩短到标签之上2.5cm的位置）
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 100, // 2.5cm ≈ 100 像素，在底部导航栏上方
-              child: Container(
-                decoration: BoxDecoration(
-                  image: DecorationImage(
-                    image: const AssetImage('assets/images/inventory_container.png'),
-                    fit: BoxFit.fill,
-                    // 使用 centerSlice 保持边缘不变形
-                    centerSlice: const Rect.fromLTWH(25, 15, 360, 380),
-                  ),
-                ),
-              ),
-            ),
-            // 背景：沙色纹理（作为半透明层，可选）
+            // 背景：沙色纹理（作为半透明层）
             Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    const Color(0xFFE8DCC6).withOpacity(0.3), // 沙色，降低透明度以显示木纹
+                    const Color(0xFFE8DCC6).withOpacity(0.3),
                     const Color(0xFFD4C4A8).withOpacity(0.3),
                   ],
                 ),
+              ),
+            ),
+            // 淡淡网格/纹理覆盖层
+            Positioned.fill(
+              child: IgnorePointer(
+                child: CustomPaint(painter: _GridOverlayPainter()),
               ),
             ),
             // 封面（动画）
@@ -172,27 +187,99 @@ class _PassportPageViewState extends State<PassportPageView>
               opacity: _coverAnimation.value,
               child: Column(
                 children: [
-                  Expanded(
-                    child: Stack(
-                      children: [
-                        // PageView with page styling
-                        PageView.builder(
-                          controller: _pageController,
-                          onPageChanged: _onPageChanged,
-                          itemCount: widget.pages.length,
-                          itemBuilder: (context, index) {
-                            return _buildPageWithStyle(widget.pages[index]);
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
+                  Expanded(child: _buildPaperStack()),
                   // 底部标签导航（粘贴效果）
                   _buildBottomNavigation(),
                 ],
               ),
             ),
           ],
+        );
+      },
+    );
+  }
+
+  /// 纸堆叠：填满内容区，由下而上 Piled1 → Piled2 → Main Paper，Main Paper 为内容容器
+  Widget _buildPaperStack() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final w = constraints.maxWidth;
+        final h = constraints.maxHeight;
+        return SizedBox(
+          width: w,
+          height: h,
+          child: Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.center,
+            fit: StackFit.expand,
+            children: [
+              // 最底层：基准
+              Positioned.fill(
+                child: Image.asset(
+                  'assets/profile_passport/Piled Paper1.png',
+                  fit: BoxFit.contain,
+                ),
+              ),
+              // 中层：稍向右下偏移并旋转（约 2.3°）
+              Positioned.fill(
+                child: Transform.translate(
+                  offset: const Offset(8, 10),
+                  child: Transform.rotate(
+                    angle: 0.04,
+                    child: Image.asset(
+                      'assets/profile_passport/Piled Paper2.png',
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
+              ),
+              // 最顶层：主内容容器，偏左上，露出底层边缘形成厚度感
+              Positioned.fill(
+                child: Transform.translate(
+                  offset: const Offset(-4, -5),
+                  child: Transform.rotate(
+                    angle: -0.01,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        Positioned.fill(
+                          child: Image.asset(
+                            'assets/profile_passport/Main Paper.png',
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                        Positioned.fill(
+                          child: LayoutBuilder(
+                            builder: (context, c) {
+                              final cw = c.maxWidth;
+                              final ch = c.maxHeight;
+                              final pad = math.max(
+                                24.0,
+                                math.min(48.0, math.min(cw, ch) * 0.08),
+                              );
+                              return Padding(
+                                padding: EdgeInsets.all(pad),
+                                child: PageView.builder(
+                                  controller: _pageController,
+                                  onPageChanged: _onPageChanged,
+                                  itemCount: widget.pages.length,
+                                  itemBuilder: (context, index) {
+                                    return _buildPageWithStyle(
+                                      widget.pages[index],
+                                    );
+                                  },
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         );
       },
     );
