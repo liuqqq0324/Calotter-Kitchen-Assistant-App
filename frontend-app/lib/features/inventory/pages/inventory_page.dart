@@ -13,6 +13,7 @@ import 'package:personal_sous_chef/services/business/household_service.dart';
 import 'package:personal_sous_chef/data/models/leftover.dart';
 import 'package:personal_sous_chef/shared/widgets/cards/leftover_card.dart';
 import 'package:personal_sous_chef/shared/widgets/cards/stop_motion_dismissible.dart'; // 引入定格动画滑动删除组件
+import 'package:personal_sous_chef/shared/widgets/common/sketchy_confirm_dialog.dart';
 
 class InventoryPage extends StatefulWidget {
   const InventoryPage({super.key});
@@ -908,6 +909,15 @@ class _InventoryPageState extends State<InventoryPage>
         // 🔥 使用定格动画滑动删除组件
         return StopMotionDismissible(
           dismissKey: item.name + item.expiryDate.toString(),
+          confirmDismiss: (direction) async {
+            return await showSketchyConfirmDeleteDialog(
+              context,
+              title: '确认丢弃？',
+              message: '确定要丢弃 ${item.name} 吗？',
+              cancelLabel: '取消',
+              confirmLabel: '丢弃',
+            );
+          },
           onDismissed: (direction) async {
             final deletedItem = item;
             if (deletedItem.inventoryId == null) {
@@ -1018,6 +1028,15 @@ class _InventoryPageState extends State<InventoryPage>
         // 🔥 使用定格动画滑动删除组件
         return StopMotionDismissible(
           dismissKey: leftover.id,
+          confirmDismiss: (direction) async {
+            return await showSketchyConfirmDeleteDialog(
+              context,
+              title: '确认删除？',
+              message: '确定要删除该剩菜吗？',
+              cancelLabel: '取消',
+              confirmLabel: '删除',
+            );
+          },
           onDismissed: (direction) async {
             final deletedLeftover = leftover;
             try {

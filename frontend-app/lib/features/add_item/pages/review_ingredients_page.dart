@@ -5,6 +5,7 @@ import 'package:personal_sous_chef/shared/widgets/cards/ingredient_card.dart';
 import 'package:personal_sous_chef/features/inventory/pages/edit_ingredient_page.dart'; // 🔥 引入编辑页
 import 'package:personal_sous_chef/services/api/inventory_api_service.dart'; // 🔥 引入 API 服务
 import 'package:personal_sous_chef/shared/widgets/cards/stop_motion_dismissible.dart'; // 引入定格动画滑动删除组件
+import 'package:personal_sous_chef/shared/widgets/common/sketchy_confirm_dialog.dart';
 import 'package:personal_sous_chef/shared/widgets/common/programmatic_sketchy_card.dart'; // 引入 SketchyRectBorder
 
 class ReviewIngredientsPage extends StatefulWidget {
@@ -462,6 +463,15 @@ class _ReviewIngredientsPageState extends State<ReviewIngredientsPage> {
           // 🔥 使用定格动画滑动删除组件
           return StopMotionDismissible(
             dismissKey: ObjectKey(item).toString(),
+            confirmDismiss: (direction) async {
+              return await showSketchyConfirmDeleteDialog(
+                context,
+                title: '确认移除？',
+                message: '确定要从列表中移除 ${item.name} 吗？',
+                cancelLabel: '取消',
+                confirmLabel: '移除',
+              );
+            },
             onDismissed: (direction) {
               final removedItem = item;
               final index = _detectedItems.indexOf(item);

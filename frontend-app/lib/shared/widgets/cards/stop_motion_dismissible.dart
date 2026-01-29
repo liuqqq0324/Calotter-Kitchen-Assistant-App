@@ -9,6 +9,8 @@ import 'package:flutter/material.dart';
 class StopMotionDismissible extends StatefulWidget {
   final Widget child;
   final Function(DismissDirection)? onDismissed;
+  /// 滑动后、真正删除前调用；返回 true 则继续删除并触发 onDismissed，返回 false 则取消删除并恢复卡片
+  final Future<bool?> Function(DismissDirection)? confirmDismiss;
   final String dismissKey;
 
   // 两帧关键帧图片路径（已移除中间帧 frame_1）
@@ -22,6 +24,7 @@ class StopMotionDismissible extends StatefulWidget {
     required this.child,
     required this.dismissKey,
     required this.onDismissed,
+    this.confirmDismiss,
   });
 
   @override
@@ -44,6 +47,7 @@ class _StopMotionDismissibleState extends State<StopMotionDismissible> {
         });
       },
 
+      confirmDismiss: widget.confirmDismiss,
       onDismissed: widget.onDismissed,
 
       // 背景设为透明，因为我们用关键帧完全覆盖
