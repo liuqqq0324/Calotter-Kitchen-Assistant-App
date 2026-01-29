@@ -31,7 +31,8 @@ class LeftoverCard extends StatelessWidget {
           width: 75,
           height: 75,
           fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) => _categoryOrPlaceholder(),
+          errorBuilder: (context, error, stackTrace) =>
+              _categoryOrPlaceholder(),
         ),
       );
     }
@@ -39,7 +40,9 @@ class LeftoverCard extends StatelessWidget {
   }
 
   Widget _categoryOrPlaceholder() {
-    final assetPath = item.category != null ? _dishCategoryAssetMap[item.category!] : null;
+    final assetPath = item.category != null
+        ? _dishCategoryAssetMap[item.category!]
+        : null;
     if (assetPath != null) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(8),
@@ -92,8 +95,8 @@ class LeftoverCard extends StatelessWidget {
         // 使用 IntrinsicHeight 让容器根据内容自动调整高度
         child: IntrinsicHeight(
           child: Container(
-            // 🔥 修复：减小上下 padding 各 10px（从 20, 35 改为 10, 25）
-            padding: const EdgeInsets.fromLTRB(40, 10, 25, 25),
+            // 🔥 修复：减小上下 padding 各 10px（从 20, 35 改为 10, 25）；上 padding 再增加 5px
+            padding: const EdgeInsets.fromLTRB(40, 15, 25, 25),
             decoration: BoxDecoration(
               image: DecorationImage(
                 // 使用手绘纸张背景图片（410px * 410px）
@@ -150,15 +153,12 @@ class LeftoverCard extends StatelessWidget {
 
                       const SizedBox(height: 8),
 
-                      // 显示每100克卡路里（calories_per_100g）
+                      // 显示总卡路里（当前剩余重量对应的卡路里）
                       Text(
-                        item.caloriesPer100g != null
-                            ? '${item.caloriesPer100g} kcal/100g'
-                            : '— kcal/100g',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.grey[700],
-                        ),
+                        item.currentCalories != null
+                            ? '${item.currentCalories} kcal'
+                            : '— kcal',
+                        style: TextStyle(fontSize: 16, color: Colors.grey[700]),
                         overflow: TextOverflow.ellipsis,
                       ),
 

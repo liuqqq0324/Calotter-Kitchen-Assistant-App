@@ -63,8 +63,8 @@ class IngredientCard extends StatelessWidget {
         child: IntrinsicHeight(
           child: Container(
             // 必须设置 padding，防止内容盖住图片边缘的毛边
-            // 🔥 修复：减小上下 padding 各 10px（从 20, 35 改为 10, 25）
-            padding: const EdgeInsets.fromLTRB(40, 10, 25, 25),
+            // 🔥 修复：减小上下 padding 各 10px（从 20, 35 改为 10, 25）；上 padding 再增加 5px
+            padding: const EdgeInsets.fromLTRB(40, 15, 25, 25),
             decoration: BoxDecoration(
               image: DecorationImage(
                 // 使用手绘纸张背景图片（410px * 410px）

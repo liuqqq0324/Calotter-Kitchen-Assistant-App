@@ -126,38 +126,11 @@ public class CookingWorkflowService {
         session.setStatus(CookingSession.SessionStatus.COOKED);
         sessionRepository.save(session);
 
-        // 更新每个dish的总质量（如果前端提供了）
-        if (req.getDishTotalWeights() != null && !req.getDishTotalWeights().isEmpty()) {
-            for (FinishCookingRequest.DishTotalWeight weightInfo : req.getDishTotalWeights()) {
-                Dish targetDish = null;
-                
-                // 优先使用dishId匹配
-                if (weightInfo.getDishId() != null) {
-                    targetDish = allDishes.stream()
-                            .filter(d -> d.getId().equals(weightInfo.getDishId()))
-                            .findFirst()
-                            .orElse(null);
-                }
-                
-                // 如果dishId匹配失败，使用recipeId（通过dish的name匹配）
-                if (targetDish == null && weightInfo.getRecipeId() != null) {
-                    targetDish = allDishes.stream()
-                            .filter(d -> d.getName() != null && d.getName().equals(weightInfo.getRecipeId()))
-                            .findFirst()
-                            .orElse(null);
-                }
-                
-                // 如果找到匹配的dish，更新总质量
-                if (targetDish != null && weightInfo.getTotalWeightGram() != null && weightInfo.getTotalWeightGram() > 0) {
-                    targetDish.setTotalWeightGram(weightInfo.getTotalWeightGram());
-                    dishRepository.save(targetDish);
-                    log.info("更新dish总质量: dishId={}, name={}, totalWeightGram={}", 
-                            targetDish.getId(), targetDish.getName(), weightInfo.getTotalWeightGram());
-                } else {
-                    log.warn("未找到匹配的dish或总质量无效: dishId={}, recipeId={}, totalWeightGram={}", 
-                            weightInfo.getDishId(), weightInfo.getRecipeId(), weightInfo.getTotalWeightGram());
-                }
-            }
+        // 固定使用 1000g 作为每个 dish 的总质量和 leftover 的初始/当前质量（不再接受前端 dishTotalWeights）
+        final int fixedTotalWeightGram = 1000;
+        for (Dish dish : completedDishes) {
+            dish.setTotalWeightGram(fixedTotalWeightGram);
+            dishRepository.save(dish);
         }
 
         // 扣减库存（所有已完成的菜品用到的食材）
@@ -171,43 +144,40 @@ public class CookingWorkflowService {
                 .orElseThrow(() -> new IllegalArgumentException("家庭不存在"));
         
         for (Dish dish : completedDishes) {
-            if (dish.getTotalWeightGram() != null && dish.getTotalWeightGram() > 0) {
-                LeftoverDish leftover = new LeftoverDish();
-                leftover.setHousehold(household);
-                leftover.setOriginalDishId(dish.getId());
-                // ✅ 保存菜品信息快照（避免查询时 JOIN 和循环依赖）
-                leftover.setDishName(dish.getName());
-                leftover.setCoverImage(dish.getCoverImage());
-                // category：优先用 Dish，若为 null 且来自收藏菜谱则从 UserRecipe 回填
-                String categoryStr = dish.getCategory() != null ? dish.getCategory().name() : null;
-                if (categoryStr == null && dish.getSourceRecipeId() != null) {
-                    CookingCategory fromRecipe =
-                            favoriteRecipeService.getCategoryByRecipeId(dish.getSourceRecipeId());
-                    if (fromRecipe != null) {
-                        categoryStr = fromRecipe.name();
-                    }
+            // dish 的 totalWeightGram 已在上文统一设为 1000
+            LeftoverDish leftover = new LeftoverDish();
+            leftover.setHousehold(household);
+            leftover.setOriginalDishId(dish.getId());
+            leftover.setDishName(dish.getName());
+            leftover.setCoverImage(dish.getCoverImage());
+            String categoryStr = dish.getCategory() != null ? dish.getCategory().name() : null;
+            if (categoryStr == null && dish.getSourceRecipeId() != null) {
+                CookingCategory fromRecipe =
+                        favoriteRecipeService.getCategoryByRecipeId(dish.getSourceRecipeId());
+                if (fromRecipe != null) {
+                    categoryStr = fromRecipe.name();
                 }
-                leftover.setCategory(categoryStr);
-                leftover.setCaloriesPer100g(dish.getCaloriesPer100g());
-                
-                // ✅ 计算并保存每100g的营养素快照
-                Integer totalWeight = dish.getTotalWeightGram();
-                if (totalWeight > 0) {
-                    leftover.setProteinPer100g(dish.getTotalProtein() != null ? 
-                        (dish.getTotalProtein() * 100.0 / totalWeight) : null);
-                    leftover.setFatPer100g(dish.getTotalFat() != null ? 
-                        (dish.getTotalFat() * 100.0 / totalWeight) : null);
-                    leftover.setCarbPer100g(dish.getTotalCarb() != null ? 
-                        (dish.getTotalCarb() * 100.0 / totalWeight) : null);
-                    leftover.setFiberPer100g(dish.getTotalFiber() != null ? 
-                        (dish.getTotalFiber() * 100.0 / totalWeight) : null);
-                }
-                
-                leftover.setCurrentQuantityGram(dish.getTotalWeightGram());
-                leftover.setInitialQuantityGram(dish.getTotalWeightGram()); // 保存初始重量快照
-                leftover.setProducedTime(req.getConsumedAt() != null ? req.getConsumedAt() : LocalDateTime.now());
-                leftoverDishRepository.save(leftover);
             }
+            leftover.setCategory(categoryStr);
+            leftover.setCaloriesPer100g(dish.getCaloriesPer100g());
+
+            int totalWeight = dish.getTotalWeightGram() != null && dish.getTotalWeightGram() > 0
+                    ? dish.getTotalWeightGram() : fixedTotalWeightGram;
+            if (totalWeight > 0) {
+                leftover.setProteinPer100g(dish.getTotalProtein() != null ?
+                        (dish.getTotalProtein() * 100.0 / totalWeight) : null);
+                leftover.setFatPer100g(dish.getTotalFat() != null ?
+                        (dish.getTotalFat() * 100.0 / totalWeight) : null);
+                leftover.setCarbPer100g(dish.getTotalCarb() != null ?
+                        (dish.getTotalCarb() * 100.0 / totalWeight) : null);
+                leftover.setFiberPer100g(dish.getTotalFiber() != null ?
+                        (dish.getTotalFiber() * 100.0 / totalWeight) : null);
+            }
+
+            leftover.setCurrentQuantityGram(fixedTotalWeightGram);
+            leftover.setInitialQuantityGram(fixedTotalWeightGram);
+            leftover.setProducedTime(req.getConsumedAt() != null ? req.getConsumedAt() : LocalDateTime.now());
+            leftoverDishRepository.save(leftover);
         }
 
         // 注意：不发布事件，健康模块需要时自己查询数据库

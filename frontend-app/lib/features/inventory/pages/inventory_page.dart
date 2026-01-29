@@ -370,7 +370,8 @@ class _InventoryPageState extends State<InventoryPage>
               quantityGram: item['currentQuantityGram'] ?? 0,
               producedTime: producedTime,
               coverImage: item['coverImage']?.toString(), // ✅ 从后端获取
-              category: item['category']?.toString(), // ✅ 烹饪分类（与 CookingCategory 一致）
+              category: item['category']
+                  ?.toString(), // ✅ 烹饪分类（与 CookingCategory 一致）
               caloriesPer100g: item['caloriesPer100g'] != null
                   ? (item['caloriesPer100g'] as num).toInt()
                   : null, // ✅ 从后端获取

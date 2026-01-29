@@ -15,51 +15,59 @@ class ExpiryTag extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 颜色逻辑：保持之前的逻辑，但颜色调成偏深色的墨水色，而不是背景色
+    final now = DateTime.now();
+    final isExpired = now.isAfter(expiryDate);
+    final diffDays = expiryDate.difference(now).inDays;
+    final isExpiringSoon = diffDays >= 0 && diffDays <= 3;
+
+    // 颜色与图标（与 leftover_card 一致：红/橙/灰）
     Color iconColor;
-    IconData icon;
+    IconData icon = Icons.access_time;
 
     if (useStatusColors) {
-      // --- 模式 A: 智能状态色 (Inventory Page) ---
-      final now = DateTime.now();
-      final isExpired = now.isAfter(expiryDate);
-      final diff = expiryDate.difference(now).inDays;
-      final isExpiringSoon = diff >= 0 && diff <= 3;
-
       if (isExpired) {
-        iconColor = Colors.red.shade800; // 深红警告
+        iconColor = Colors.red.shade800;
         icon = Icons.warning_amber_rounded;
       } else if (isExpiringSoon) {
-        iconColor = AppStyle.accentColor; // 深橙
-        icon = Icons.access_time_rounded;
+        iconColor = AppStyle.accentColor;
       } else {
-        iconColor = AppStyle.inkColor; // 正常棕色
-        icon = Icons.access_time_rounded;
+        iconColor = Colors.grey[600]!;
       }
     } else {
-      // --- 模式 B: 固定样式 (Review Page) ---
       iconColor = AppStyle.accentColor;
-      icon = Icons.access_time_rounded;
     }
 
-    // 极简风格：去掉背景色块，保留图标和日期
+    // 易读文案（参考 leftover_card：过期 X 天 / 即将过期 X 天 / 还有 X 天）
+    String label;
+    if (isExpired) {
+      final daysAgo = now.difference(expiryDate).inDays;
+      label = daysAgo <= 0
+          ? 'Expired today'
+          : 'Expired $daysAgo day${daysAgo == 1 ? '' : 's'} ago';
+    } else if (isExpiringSoon) {
+      label = diffDays == 0
+          ? 'Expires today'
+          : 'Expiring in $diffDays day${diffDays == 1 ? '' : 's'}';
+    } else {
+      label = 'Expires in $diffDays days';
+    }
+
     Widget content = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // 极简图标 (时钟)
         Icon(icon, size: 16, color: iconColor),
-        const SizedBox(width: 4),
-        // 日期文字
-        Text(
-          "${expiryDate.day}/${expiryDate.month}",
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: iconColor,
-            // fontFamily: 'Patrick Hand', // 强烈建议手写体
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 14,
+              color: iconColor,
+              fontWeight: isExpired || isExpiringSoon ? FontWeight.w600 : FontWeight.normal,
+            ),
+            overflow: TextOverflow.ellipsis,
           ),
         ),
-        // 如果是 Review 模式 (onTap 不为空)，加个小提示
         if (onTap != null) ...[
           const SizedBox(width: 4),
           Icon(Icons.edit, size: 10, color: iconColor.withOpacity(0.6)),
@@ -67,11 +75,9 @@ class ExpiryTag extends StatelessWidget {
       ],
     );
 
-    // 如果传入了点击事件，包裹 GestureDetector
     if (onTap != null) {
       return GestureDetector(onTap: onTap, child: content);
     }
-
     return content;
   }
 }

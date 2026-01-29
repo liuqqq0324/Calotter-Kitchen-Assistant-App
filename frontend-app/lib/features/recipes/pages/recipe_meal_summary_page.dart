@@ -30,8 +30,6 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
   late final Map<String, double> _percentEaten; // recipeId -> percent
   late final Map<String, Map<String, TextEditingController>>
   _ingredientControllers; // recipeId -> ingredient name -> controller
-  late final Map<String, TextEditingController>
-      _totalWeightControllers; // recipeId -> total weight controller
 
   List<RecipeModel> get _completedRecipes {
     final recipes = widget.menu.recipes;
@@ -48,12 +46,10 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
     super.initState();
     _percentEaten = {};
     _ingredientControllers = {};
-    _totalWeightControllers = {};
 
     // 只为已完成的菜品初始化
     for (int i = 0; i < widget.menu.recipes.length; i++) {
       final recipe = widget.menu.recipes[i];
-      // 如果提供了 completedDishIndexes，只初始化已完成的；否则初始化所有
       if (widget.completedDishIndexes == null ||
           widget.completedDishIndexes!.contains(i)) {
         _percentEaten[recipe.id] = 100;
@@ -65,12 +61,6 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
           );
         }
         _ingredientControllers[recipe.id] = controllers;
-
-        // 初始化总质量控制器，默认值为所有以g为单位的ingredients相加
-        final defaultTotalWeight = _calculateDefaultTotalWeight(recipe);
-        _totalWeightControllers[recipe.id] = TextEditingController(
-          text: defaultTotalWeight.toStringAsFixed(0),
-        );
       }
     }
   }
@@ -82,21 +72,7 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
         controller.dispose();
       }
     }
-    for (final controller in _totalWeightControllers.values) {
-      controller.dispose();
-    }
     super.dispose();
-  }
-
-  /// 计算默认总质量：将所有以g为单位的ingredients相加
-  double _calculateDefaultTotalWeight(RecipeModel recipe) {
-    double total = 0.0;
-    for (final ing in recipe.ingredients) {
-      if (ing.amountUnit.toLowerCase() == 'g' && ing.amountValue != null) {
-        total += ing.amountValue;
-      }
-    }
-    return total > 0 ? total : 1000.0; // 如果没有g单位的食材，默认1000g
   }
 
   double? get _targetCaloriesPerPerson {
@@ -242,24 +218,7 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
           return;
         }
 
-        // 收集每个dish的总质量
-        final dishTotalWeights = <Map<String, dynamic>>[];
-        for (final recipe in completedRecipes) {
-          final weightController = _totalWeightControllers[recipe.id];
-          if (weightController != null) {
-            final totalWeight = double.tryParse(weightController.text.trim());
-            if (totalWeight != null && totalWeight > 0) {
-              // 使用recipe.title作为recipeId，后端会通过dish的name匹配
-              dishTotalWeights.add({
-                'recipeId': recipe.title, // 使用title，后端通过dish的name匹配
-                'totalWeightGram': totalWeight.toInt(),
-              });
-            }
-          }
-        }
-
-        // 调用finish cooking API
-        // 注意：后端会自动完成 session 中的所有 dish，不再需要传递 completedDishIds
+        // 后端固定使用 1000g 作为 dish 总质量和 leftover 初始质量，不再传 dishTotalWeights
         await CookingApiService.finishCooking(
           sessionId: widget.sessionId!,
           finalIngredients: finalIngredients,
@@ -269,8 +228,7 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
             'fat': totalFat,
             'carbs': totalCarbs,
           },
-          dishTotalWeights: dishTotalWeights.isNotEmpty ? dishTotalWeights : null,
-          // diners: 可选，后续可以添加用餐者信息输入
+          dishTotalWeights: null,
         );
 
         if (!mounted) return;
@@ -678,57 +636,6 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
                                     );
                                   }).toList(),
                                 ),
-                              const SizedBox(height: 16),
-                              Text(
-                                'Total weight',
-                                style: GoogleFonts.kalam(
-                                  fontSize: 18, // 增大字体
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.grey[800],
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      'Total weight of this dish (default: sum of all ingredients in g)',
-                                      style: GoogleFonts.kalam(
-                                        fontSize: 14,
-                                        color: Colors.grey[600],
-                                      ),
-                                    ),
-                                  ),
-                                  SizedBox(
-                                    width: 120,
-                                    child: TextField(
-                                      controller: _totalWeightControllers[recipe.id],
-                                      keyboardType: const TextInputType.numberWithOptions(
-                                        decimal: true,
-                                      ),
-                                      style: GoogleFonts.kalam(
-                                        fontSize: 16, // 增大字体
-                                      ),
-                                      decoration: InputDecoration(
-                                        labelText: 'Weight',
-                                        labelStyle: GoogleFonts.kalam(
-                                          fontSize: 14, // 增大字体
-                                        ),
-                                        suffixText: 'g',
-                                        suffixStyle: GoogleFonts.kalam(
-                                          fontSize: 14, // 增大字体
-                                        ),
-                                        isDense: true,
-                                        border: const OutlineInputBorder(),
-                                        contentPadding: const EdgeInsets.symmetric(
-                                          horizontal: 12,
-                                          vertical: 8,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
                             ],
                           ),
                         ),

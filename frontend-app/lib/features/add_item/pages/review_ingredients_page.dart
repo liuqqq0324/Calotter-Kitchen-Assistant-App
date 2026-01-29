@@ -337,8 +337,10 @@ class _ReviewIngredientsPageState extends State<ReviewIngredientsPage> {
               'assets/wood_background.png',
               fit: BoxFit.cover,
               // 如果背景图路径不对/资源未打包，先用现有的 sketch_paper_transparent.png 兜底，避免崩溃
-                  errorBuilder: (context, error, stackTrace) =>
-                  Image.asset('assets/images/sketch_paper_transparent.png', fit: BoxFit.cover),
+              errorBuilder: (context, error, stackTrace) => Image.asset(
+                'assets/images/sketch_paper_transparent.png',
+                fit: BoxFit.cover,
+              ),
             ),
           ),
           // 可选：加一层轻薄的"纸张泛黄"蒙版，让内容更易读
@@ -435,7 +437,9 @@ class _ReviewIngredientsPageState extends State<ReviewIngredientsPage> {
         Container(
           padding: const EdgeInsets.all(16.0),
           decoration: ShapeDecoration(
-            color: const Color(0xFFFFFFF0).withOpacity(0.9), // Off-white/cream color
+            color: const Color(
+              0xFFFFFFF0,
+            ).withOpacity(0.9), // Off-white/cream color
             shape: const SketchyRectBorder(
               borderWidth: 1.5,
               wobbleAmount: 2.0,
