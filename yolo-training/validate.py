@@ -16,7 +16,7 @@ def main():
     parser.add_argument(
         '--weights',
         type=str,
-        default='runs/detect/cooking_gesture_model/weights/best.pt',
+        default='runs/detect/ingredient_detection_v1/weights/best.pt',
         help='模型权重文件路径'
     )
     parser.add_argument(
@@ -28,8 +28,8 @@ def main():
     parser.add_argument(
         '--imgsz',
         type=int,
-        default=640,
-        help='图片大小'
+        default=512,
+        help='图片大小（需与 Roboflow/训练时 imgsz 一致）'
     )
     parser.add_argument(
         '--device',

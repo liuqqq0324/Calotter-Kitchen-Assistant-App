@@ -3,7 +3,6 @@
 import 'package:flutter/material.dart';
 import 'package:personal_sous_chef/data/models/cookware.dart';
 import 'package:personal_sous_chef/shared/widgets/common/sketchy_card.dart';
-import 'package:personal_sous_chef/shared/widgets/painters/sketchy_box_painter.dart';
 
 /// 调料/厨具网格卡片：使用代码生成的手绘风格（SketchyCard）。
 /// 食材卡、剩菜卡则继续使用 assets/images/sketch_paper_transparent.png。
@@ -43,7 +42,7 @@ class ItemToggleGrid extends StatelessWidget {
       fontFamily: 'PatrickHand',
       fontWeight: isOn ? FontWeight.bold : FontWeight.normal,
       color: isOn ? Colors.black87 : Colors.grey.shade600,
-      height: 1.1,
+      height: 1.0,
     );
     final parts = name.trim().split(RegExp(r'\s+'));
     if (parts.length >= 2) {
@@ -53,8 +52,20 @@ class ItemToggleGrid extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(line1, textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis, style: style),
-          Text(line2, textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis, style: style),
+          Text(
+            line1,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: style,
+          ),
+          Text(
+            line2,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: style,
+          ),
         ],
       );
     }
@@ -71,18 +82,15 @@ class ItemToggleGrid extends StatelessWidget {
     final bool isOn = item.isAvailable;
 
     final Color iconColor = isOn ? Colors.black87 : Colors.grey.shade400;
-    final Color frameColor = isOn
-        ? const Color(0xFF5D4037)
-        : Colors.grey.shade400;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       decoration: const BoxDecoration(color: Colors.transparent),
       child: SketchyCard(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
         margin: EdgeInsets.zero,
         backgroundColor: isOn ? Colors.white : Colors.white.withOpacity(0.5),
-        borderColor: frameColor,
+        borderColor: isOn ? const Color(0xFF5D4037) : Colors.grey.shade400,
         borderWidth: isOn ? 2.0 : 1.5,
         onTap: () => onToggle(item),
         child: Column(
@@ -90,19 +98,12 @@ class ItemToggleGrid extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             SizedBox(
-              width: 46,
-              height: 46,
-              child: CustomPaint(
-                painter: SketchyBoxPainter(color: frameColor),
-                child: Center(
-                  child: Icon(item.icon, size: 24, color: iconColor),
-                ),
-              ),
+              width: 40,
+              height: 40,
+              child: Center(child: Icon(item.icon, size: 22, color: iconColor)),
             ),
-            const SizedBox(height: 8),
-            Flexible(
-              child: _buildNameText(context, item.name, isOn),
-            ),
+            const SizedBox(height: 0),
+            Flexible(child: _buildNameText(context, item.name, isOn)),
           ],
         ),
       ),

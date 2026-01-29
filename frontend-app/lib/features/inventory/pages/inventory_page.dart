@@ -13,6 +13,7 @@ import 'package:personal_sous_chef/services/business/household_service.dart';
 import 'package:personal_sous_chef/data/models/leftover.dart';
 import 'package:personal_sous_chef/shared/widgets/cards/leftover_card.dart';
 import 'package:personal_sous_chef/shared/widgets/cards/stop_motion_dismissible.dart'; // 引入定格动画滑动删除组件
+import 'package:personal_sous_chef/shared/widgets/common/sketchy_button.dart';
 import 'package:personal_sous_chef/shared/widgets/common/sketchy_confirm_dialog.dart';
 
 class InventoryPage extends StatefulWidget {
@@ -164,13 +165,40 @@ class _InventoryPageState extends State<InventoryPage>
     });
   }
 
-  // --- 逻辑：跳转编辑/添加 ---
+  // --- 逻辑：从底部弹出编辑/添加弹窗 ---
   void _navigateToEdit(Ingredient item, {bool isNew = false}) async {
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) =>
-            EditIngredientPage(ingredient: item, isNew: isNew),
+    final result = await showModalBottomSheet<Object?>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.9,
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/images/inventory_container.png'),
+            fit: BoxFit.fill,
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 顶部拖拽条
+            Padding(
+              padding: const EdgeInsets.only(top: 12, bottom: 4),
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            Expanded(
+              child: EditIngredientPage(ingredient: item, isNew: isNew),
+            ),
+          ],
+        ),
       ),
     );
 
@@ -867,9 +895,10 @@ class _InventoryPageState extends State<InventoryPage>
           children: [
             Text('Error: $_error'),
             const SizedBox(height: 16),
-            ElevatedButton(
+            SketchyButton(
+              text: 'Retry',
               onPressed: _loadInventory,
-              child: const Text('Retry'),
+              backgroundColor: Colors.orange,
             ),
           ],
         ),
@@ -989,9 +1018,10 @@ class _InventoryPageState extends State<InventoryPage>
           children: [
             Text('Error: $_error'),
             const SizedBox(height: 16),
-            ElevatedButton(
+            SketchyButton(
+              text: 'Retry',
               onPressed: _loadLeftovers,
-              child: const Text('Retry'),
+              backgroundColor: Colors.orange,
             ),
           ],
         ),

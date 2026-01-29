@@ -130,6 +130,8 @@ class SketchyIconButton extends StatefulWidget {
   final Color? iconColor;
   final Color borderColor;
   final double size;
+  final double borderWidth;
+  final double roughness;
 
   const SketchyIconButton({
     super.key,
@@ -139,6 +141,8 @@ class SketchyIconButton extends StatefulWidget {
     this.iconColor,
     this.borderColor = Colors.black87,
     this.size = 56.0,
+    this.borderWidth = 2.5,
+    this.roughness = 3.0,
   });
 
   @override
@@ -165,10 +169,10 @@ class _SketchyIconButtonState extends State<SketchyIconButton> {
       builder: (context, bg, _) {
         return SketchyBorder(
           borderColor: widget.borderColor,
-          borderWidth: 2.5,
+          borderWidth: widget.borderWidth,
           backgroundColor: bg ?? baseBg,
           borderRadius: widget.size / 2,
-          roughness: 3.0,
+          roughness: widget.roughness,
           child: Material(
             color: Colors.transparent,
             child: InkWell(

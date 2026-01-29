@@ -22,7 +22,7 @@ def main():
     parser.add_argument(
         '--weights',
         type=str,
-        default='runs/detect/cooking_gesture_model/weights/best.pt',
+        default='runs/detect/ingredient_detection_v1/weights/best.pt',
         help='模型权重文件路径'
     )
     parser.add_argument(
@@ -34,8 +34,8 @@ def main():
     parser.add_argument(
         '--imgsz',
         type=int,
-        default=640,
-        help='图片大小'
+        default=512,
+        help='图片大小（需与 Roboflow/训练时 imgsz 一致）'
     )
     parser.add_argument(
         '--device',
@@ -70,7 +70,7 @@ def main():
         print("\n请确保:")
         print("1. 已经完成模型训练")
         print("2. 权重文件路径正确")
-        print("3. 默认路径: runs/detect/cooking_gesture_model/weights/best.pt")
+        print("3. 默认路径: runs/detect/ingredient_detection_v1/weights/best.pt")
         return
 
     # 加载模型

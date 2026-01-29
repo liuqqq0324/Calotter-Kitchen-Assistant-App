@@ -1,63 +1,79 @@
 """
-YOLOv8 训练脚本
-用于训练自定义目标检测模型
+YOLOv8 食材检测训练脚本
+支持 Roboflow 自动下载数据集，或使用本地 dataset/data.yaml
 
 使用方法:
     python train.py
 
-配置说明:
-    - 修改 data.yaml 中的路径和类别信息
-    - 调整训练参数（epochs, batch, imgsz 等）
-    - 根据硬件配置调整 device 参数
+前置操作（若使用 Roboflow 自动下载）:
+    pip install roboflow ultralytics
+    在下方填入 Roboflow API Key 与项目信息
 """
 
 from ultralytics import YOLO
+import os
 
 
 def main():
-    """
-    主训练函数
-    """
     print("=" * 60)
-    print("YOLOv8 训练脚本")
+    print("YOLOv8 食材检测训练 (极速版)")
     print("=" * 60)
 
-    # 1. 加载模型
-    # yolov8n.pt 是预训练权重，会自动下载
-    # 可选模型: yolov8n.pt (nano), yolov8s.pt (small), yolov8m.pt (medium), 
-    #          yolov8l.pt (large), yolov8x.pt (xlarge)
-    print("\n[1/3] 加载预训练模型...")
-    model = YOLO('yolov8n.pt')  # 使用 nano 版本（最小最快）
-    print("✅ 模型加载成功")
+    # ---------------------------------------------------------
+    # 1. 数据配置：二选一
+    # ---------------------------------------------------------
+    # 方式 A：使用 Roboflow 自动下载（推荐，防路径错误）
+    # 去 Roboflow 点击 Export -> Format: YOLOv8 -> Show Download Code，填入下方
+    use_roboflow_download = True  # 改为 False 可改用本地 dataset/data.yaml
 
-    # 2. 开始训练
-    print("\n[2/3] 开始训练...")
-    print("训练参数:")
-    print("  - 数据文件: dataset/data.yaml")
-    print("  - 训练轮数: 100")
-    print("  - 图片大小: 640")
-    print("  - 批次大小: 16")
-    print("  - 设备: 自动检测 (优先使用 GPU)")
-    print("-" * 60)
+    if use_roboflow_download:
+        try:
+            from roboflow import Roboflow
+            rf = Roboflow(api_key="jVSjn3RcOuVF2VubxgBt")
+            project = rf.workspace("ingredientdetection-w9e8h").project("ingredients-detection-yhua")
+            version = project.version(2)
+            dataset = version.download("yolov8")
+            data_yaml_path = f"{dataset.location}/data.yaml"
+        except Exception as e:
+            print(f"❌ Roboflow 下载失败: {e}")
+            print("请检查 API Key 与项目名，或改为 use_roboflow_download=False 使用本地数据")
+            raise
+    else:
+        # 方式 B：使用本地 dataset/data.yaml
+        data_yaml_path = os.path.join(os.path.dirname(__file__), "dataset", "data.yaml")
+        if not os.path.isfile(data_yaml_path):
+            raise FileNotFoundError(f"未找到数据配置: {data_yaml_path}，请先准备 dataset 或启用 Roboflow 下载")
 
+    print(f"\n✅ 数据集配置: {data_yaml_path}")
+
+    # ---------------------------------------------------------
+    # 2. 加载模型
+    # ---------------------------------------------------------
+    # yolov8n.pt 是速度最快的，适合赶时间
+    model = YOLO('yolov8n.pt')
+
+    # ---------------------------------------------------------
+    # 3. 开始训练
+    # ---------------------------------------------------------
     results = model.train(
-        data='dataset/data.yaml',  # 指向 data.yaml 文件的路径
-        epochs=100,  # 训练轮数，通常 50-100 起步
-        imgsz=640,  # 图片大小，Roboflow下载时通常是 640，保持一致即可
-        batch=16,  # 批次大小，根据显存调整（GPU: 16-32, CPU: 4-8）
-        device=0,  # 0 表示使用第一块 GPU，'cpu' 表示使用 CPU，None 表示自动检测
-        name='cooking_gesture_model',  # 训练结果保存的文件夹名称
-        patience=50,  # 早停耐心值（如果50轮没有改善就停止）
-        save=True,  # 保存检查点
-        plots=True,  # 生成训练曲线图
-        val=True,  # 在训练过程中进行验证
+        data=data_yaml_path,
+        epochs=50,                      # 赶时间可用 50 轮，通常足够演示
+        imgsz=512,                      # 与 Roboflow 512x512 设置一致
+        batch=16,                       # 显存不足可改为 8 或 4
+        device=0,
+        name='ingredient_detection_v1', # 食材检测项目命名
+        patience=15,                    # 早停：15 轮无提升则停止，省时间
+        save=True,
+        plots=True,
+        val=True,
+        workers=4,                      # 加快数据读取
     )
 
-    print("\n[3/3] 训练完成！")
+    print("\n[训练完成]")
     print("=" * 60)
-    print("训练结果保存在: runs/detect/cooking_gesture_model/")
-    print("最佳权重: runs/detect/cooking_gesture_model/weights/best.pt")
-    print("最终权重: runs/detect/cooking_gesture_model/weights/last.pt")
+    print("训练结果保存在: runs/detect/ingredient_detection_v1/")
+    print("最佳权重: runs/detect/ingredient_detection_v1/weights/best.pt")
+    print("最终权重: runs/detect/ingredient_detection_v1/weights/last.pt")
     print("=" * 60)
 
 
@@ -69,8 +85,7 @@ if __name__ == '__main__':
     except Exception as e:
         print(f"\n\n❌ 训练出错: {e}")
         print("\n常见问题排查:")
-        print("1. 检查 dataset/data.yaml 中的路径是否正确")
-        print("2. 如果显存不足，请减小 batch 参数（例如改为 8 或 4）")
-        print("3. 如果没有 GPU，请将 device 参数改为 'cpu'")
+        print("1. 检查 dataset/data.yaml 中的路径是否正确（或启用 Roboflow 自动下载）")
+        print("2. 如果显存不足，请将 batch 改为 8 或 4")
+        print("3. 如果没有 GPU，请将 device 改为 'cpu'")
         raise
-

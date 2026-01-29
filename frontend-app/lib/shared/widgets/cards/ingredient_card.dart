@@ -169,7 +169,7 @@ class IngredientCard extends StatelessWidget {
                             unitOptions: unitOptions,
                             onUnitChanged: onUnitChanged,
                             onChanged: onQuantityChanged,
-                            totalWidth: unitOptions != null ? 75 : 60,
+                            totalWidth: unitOptions != null ? 90 : 75,
                           ),
                         ),
                       ),

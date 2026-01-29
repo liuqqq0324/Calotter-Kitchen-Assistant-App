@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:personal_sous_chef/core/config/ingredient_icon_config.dart';
 import 'package:personal_sous_chef/data/models/ingredient.dart';
 import 'package:personal_sous_chef/shared/widgets/forms/quantity_selector.dart';
+import 'package:personal_sous_chef/shared/widgets/common/sketchy_button.dart';
 import 'package:personal_sous_chef/services/api/inventory_api_service.dart';
 import 'package:personal_sous_chef/services/business/household_service.dart';
 import 'package:personal_sous_chef/services/business/standard_library_service.dart';
@@ -30,6 +32,7 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
   List<Map<String, dynamic>> _standardIngredients = [];
   bool _isLoadingIngredients = true;
   int? _selectedStandardIngredientId; // 用户选择的标准食材ID
+  String? _matchedStandardName; // 匹配到的标准食材名称（用于显示对应图标）
 
   // ✅ 允许的单位列表（根据选中的标准食材动态加载）
   List<String> _allowedUnits = ['g', 'pcs', 'ml']; // 默认单位列表
@@ -154,10 +157,11 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
   void _onNameChanged() {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
-      // 如果名称为空，恢复默认单位列表
+      // 如果名称为空，恢复默认单位列表和图标
       setState(() {
         _allowedUnits = ['g', 'pcs', 'ml'];
         _selectedStandardIngredientId = null;
+        _matchedStandardName = null;
       });
       return;
     }
@@ -176,6 +180,7 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
 
     if (matched.isNotEmpty && matched['id'] != null) {
       final standardIngredientId = matched['id'] as int;
+      final standardName = matched['name'] as String?;
       final primaryUnit = matched['primaryUnit'] as String?;
       final secondaryUnit = matched['secondaryUnit'] as String?;
 
@@ -197,6 +202,7 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
 
       setState(() {
         _selectedStandardIngredientId = standardIngredientId;
+        _matchedStandardName = standardName;
         _allowedUnits = allowedUnits;
 
         // 如果是新食材或当前单位不在允许列表中，自动切换为主单位
@@ -206,10 +212,11 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
         }
       });
     } else {
-      // 没有找到匹配的食材，恢复默认单位列表
+      // 没有找到匹配的食材，恢复默认单位列表和图标
       setState(() {
         _allowedUnits = ['g', 'pcs', 'ml'];
         _selectedStandardIngredientId = null;
+        _matchedStandardName = null;
       });
     }
   }
@@ -223,7 +230,32 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
     super.dispose();
   }
 
-  // 日期选择器逻辑
+  /// 根据匹配到的标准食材名称显示图标，无匹配时显示 emoji 占位
+  Widget _buildIngredientIcon() {
+    // 先按原名查，再按「空格→连字符」规范化查（兼容 API 返回 "Bok Choy" 而 config 为 "Bok-Choy"）
+    final path = getIngredientIconPath(_matchedStandardName) ??
+        getIngredientIconPath(_matchedStandardName?.replaceAll(' ', '-'));
+    if (path != null) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Image.asset(
+          path,
+          width: 120,
+          height: 120,
+          fit: BoxFit.contain,
+          errorBuilder: (_, __, ___) => Text(
+            widget.ingredient.imagePlaceholder,
+            style: const TextStyle(fontSize: 60),
+          ),
+        ),
+      );
+    }
+    return Text(
+      widget.ingredient.imagePlaceholder,
+      style: const TextStyle(fontSize: 60),
+    );
+  }
+
   // 日期选择器逻辑
   Future<void> _selectDate() async {
     final DateTime? picked = await showDatePicker(
@@ -259,10 +291,10 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.transparent,
       // 顶部导航栏
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.transparent,
         elevation: 0, // 去掉阴影
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
@@ -282,26 +314,22 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
         child: Column(
           children: [
-            // 1. 大图片容器
+            // 1. 大图片容器：使用手绘纸张背景（sketch_paper_transparent.png），匹配标准食材时显示对应图标，否则 emoji 占位
             Container(
-              width: 140,
-              height: 140,
+              width: 152,
+              height: 152,
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.2),
-                    blurRadius: 15,
-                    offset: const Offset(0, 5),
+                image: DecorationImage(
+                  image: const AssetImage(
+                    'assets/images/sketch_paper_transparent.png',
                   ),
-                ],
+                  fit: BoxFit.fill,
+                  centerSlice: const Rect.fromLTWH(25, 15, 360, 380),
+                ),
               ),
               child: Center(
-                child: Text(
-                  widget.ingredient.imagePlaceholder,
-                  style: const TextStyle(fontSize: 60),
-                ),
+                child: _buildIngredientIcon(),
               ),
             ),
 
@@ -479,11 +507,9 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
             const SizedBox(height: 50),
 
             // 5. Done 按钮
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                onPressed: () async {
+            SketchyButton(
+              text: "Done",
+              onPressed: () async {
                   if (_quantity <= 0) _quantity = 1.0; // 🔥 改为 <= 0，并设置为 1.0
 
                   widget.ingredient.quantity = _quantity;
@@ -581,22 +607,9 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
                     }
                   }
                 },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  elevation: 2,
-                ),
-                child: const Text(
-                  "Done",
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
+              backgroundColor: Colors.orange,
+              isFullWidth: true,
+              fontSize: 20,
             ),
           ],
         ),
