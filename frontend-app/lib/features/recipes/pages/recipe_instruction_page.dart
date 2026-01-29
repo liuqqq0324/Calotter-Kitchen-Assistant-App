@@ -58,8 +58,8 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
   bool _isGestureModeActive = false;
   bool _isGestureServiceInitialized = false; // 标记服务是否已经初始化
 
-  // Ingredients list expansion state
-  bool _isIngredientsExpanded = true; // 默认展开
+  // Ingredients list expansion state, per recipe index (default: expanded)
+  final Map<int, bool> _ingredientsExpandedByIndex = {};
 
   // Map 来存储每个步骤的 GlobalKey，用于自动滚动
   // 使用复合key (dishIndex:stepNumber) 确保每个recipe的步骤都有唯一的key
@@ -94,12 +94,12 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
           _currentIndex = _tabController.index;
           _currentFocusedStepNumber = 1; // Reset to first step
         });
-        // 触发自动滚动到第一个步骤
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) {
-            _scrollToStep(1);
-          }
-        });
+        // 烹饪模式：翻食谱后自动滚动到第一个步骤
+        if (!widget.isViewMode) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _scrollToStep(1);
+          });
+        }
         // 同步 PageController（确保已初始化）
         if (_pageController != null &&
             _pageController!.hasClients &&
@@ -1120,11 +1120,12 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 标题栏（可点击展开/收起）
+                    // 标题栏（可点击展开/收起）- 每个食谱独立状态
                     InkWell(
                       onTap: () {
                         setState(() {
-                          _isIngredientsExpanded = !_isIngredientsExpanded;
+                          final current = _ingredientsExpandedByIndex[index] ?? true;
+                          _ingredientsExpandedByIndex[index] = !current;
                         });
                       },
                       child: Row(
@@ -1145,7 +1146,7 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
                               ),
                             ),
                           ),
-                          if (!_isIngredientsExpanded)
+                          if (!(_ingredientsExpandedByIndex[index] ?? true))
                             Text(
                               '${recipe.ingredients.length} items',
                               style: GoogleFonts.kalam(
@@ -1155,7 +1156,7 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
                             ),
                           const SizedBox(width: 8),
                           Icon(
-                            _isIngredientsExpanded
+                            (_ingredientsExpandedByIndex[index] ?? true)
                                 ? Icons.expand_less
                                 : Icons.expand_more,
                             color: const Color(0xFF6B4F4F).withOpacity(0.6),
@@ -1164,7 +1165,7 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
                       ),
                     ),
                     // 展开的内容
-                    if (_isIngredientsExpanded) ...[
+                    if (_ingredientsExpandedByIndex[index] ?? true) ...[
                       const SizedBox(height: 12),
                       if (recipe.ingredients.isEmpty)
                         Padding(
@@ -1369,12 +1370,12 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
                         _currentIndex = index;
                         _currentFocusedStepNumber = 1; // Reset to first step
                       });
-                      // 触发自动滚动到第一个步骤
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        if (mounted) {
-                          _scrollToStep(1);
-                        }
-                      });
+                      // 烹饪模式：滑动食谱后自动滚动到第一个步骤
+                      if (!widget.isViewMode) {
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (mounted) _scrollToStep(1);
+                        });
+                      }
                       // 同步 TabController
                       if (_tabController.index != index) {
                         _tabController.animateTo(index);
@@ -1437,28 +1438,23 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
       }
     }
 
-    // [新增] 1. 判断是否是当前聚焦的步骤
-    final isFocused = _currentFocusedStepNumber == step.stepNumber;
+    // 烹饪模式才显示指针（当前步骤高亮）；View Steps 模式不显示
+    final showPointer = !widget.isViewMode;
+    final isFocused = showPointer && _currentFocusedStepNumber == step.stepNumber;
 
-    // [新增] 2. 为每个步骤分配或获取一个 GlobalKey (用于后续的自动滚动功能)
-    // 使用复合key确保每个recipe的步骤都有唯一的GlobalKey
+    // 为每个步骤分配或获取一个 GlobalKey (用于语音/跳转时的滚动)
     final stepKeyString = _stepKey(effectiveDishIndex, step.stepNumber);
     
-    // 如果key不存在，或者key存在但对应的widget已被销毁，创建新的key
     final existingKey = _stepKeys[stepKeyString];
     if (existingKey == null) {
       _stepKeys[stepKeyString] = GlobalKey();
     } else {
-      // 检查现有的key是否仍然有效
-      final context = existingKey.currentContext;
-      if (context == null || !context.mounted) {
-        // 旧的key已失效，创建新的
+      final ctx = existingKey.currentContext;
+      if (ctx == null || !ctx.mounted) {
         _stepKeys[stepKeyString] = GlobalKey();
       }
-      // 如果key仍然有效，继续使用它
     }
 
-    // Handler for toggling completion
     void toggleCompletion() {
       if (widget.isViewMode) return;
 
@@ -1471,31 +1467,27 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
       }
     }
 
-    // [新增] 点击任意位置将焦点移动到该步骤
     void setFocus() {
+      if (!showPointer) return;
       if (_currentFocusedStepNumber != step.stepNumber) {
         setState(() {
           _currentFocusedStepNumber = step.stepNumber;
         });
-        // 触发自动滚动
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) {
-            _scrollToStep(step.stepNumber);
-          }
+          if (mounted) _scrollToStep(step.stepNumber);
         });
       }
     }
 
     return GestureDetector(
-      onTap: setFocus, // 点击整行也能切换焦点
+      onTap: setFocus,
       child: AnimatedContainer(
-        key: _stepKeys[stepKeyString], // 绑定 Key
+        key: _stepKeys[stepKeyString],
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
         margin: const EdgeInsets.symmetric(vertical: 4),
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
         decoration: BoxDecoration(
-          // [新增] 3. 焦点样式：淡黄色荧光笔背景，圆角
           color: isFocused
               ? const Color(0xFFFFF9C4).withOpacity(0.6)
               : Colors.transparent,
@@ -1510,24 +1502,24 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // [新增] 4. 左侧指针区域 (仅在 Focus 时显示箭头，否则占位或留白)
-            SizedBox(
-              width: 24,
-              height: 32, // 与右侧 Circle 高度对齐
-              child: isFocused
-                  ? Center(
-                      child: SizedBox(
-                        width: 20,
-                        height: 12,
-                        child: CustomPaint(painter: _SketchyArrowPainter()),
-                      ),
-                    )
-                  : null, // 非焦点时不显示
-            ),
+            // 烹饪模式：当前步骤左侧显示箭头；View Steps 不显示
+            if (showPointer)
+              SizedBox(
+                width: 24,
+                height: 32,
+                child: isFocused
+                    ? Center(
+                        child: SizedBox(
+                          width: 20,
+                          height: 12,
+                          child: CustomPaint(painter: _SketchyArrowPainter()),
+                        ),
+                      )
+                    : null,
+              ),
+            if (showPointer) const SizedBox(width: 8),
 
-            const SizedBox(width: 8),
-
-            // 原有的圆形序号
+            // 圆形序号
             GestureDetector(
               onTap: toggleCompletion,
               child: SizedBox(
@@ -1535,7 +1527,6 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
                 height: 32,
                 child: CustomPaint(
                   painter: _SketchyCirclePainter(
-                    // 焦点状态下，圆圈颜色加深一点
                     borderColor: isFocused
                         ? const Color(0xFF6B4F4F)
                         : const Color(0xFF6B4F4F).withOpacity(0.7),
@@ -1577,10 +1568,7 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: isCompleted ? Colors.grey[400] : null,
                         fontSize: 16,
-                        // 焦点步骤字体稍微加粗
-                        fontWeight: isFocused
-                            ? FontWeight.w600
-                            : FontWeight.normal,
+                        fontWeight: isFocused ? FontWeight.w600 : FontWeight.normal,
                       ),
                     ),
                   ),
