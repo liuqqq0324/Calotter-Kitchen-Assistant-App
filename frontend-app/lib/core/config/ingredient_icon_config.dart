@@ -3,8 +3,7 @@
 // 标准食材名称 -> 图标资源路径。标准食材集合必须与后端 init-standard-libraries.sql 中
 // ref_standard_ingredients 的 name/category 一一对应（140 条）；YOLO 可识别名称与
 // frontend-app/assets/models/label.txt、yolo_labels_config.dart 一致（83 类）。
-// 资源文件位于 frontend-app/assets/icons/{CATEGORY}/{filename}.png
-// 资源文件名与标准名不一致时，在 [_assetFileNameOverrides] 中映射（如 Courgette -> Zucchini.png）。
+// 资源文件位于 frontend-app/assets/icons/{CATEGORY}/{标准名}.png
 
 const String _iconsBase = 'assets/icons';
 
@@ -161,13 +160,6 @@ const Map<String, String> _standardNameToCategory = {
   'Frozen Berries': 'OTHER',
 };
 
-/// 标准名称 -> 资源文件名（仅当与标准名不一致时填写，如拼写/资源命名差异）
-const Map<String, String> _assetFileNameOverrides = {
-  'Courgette': 'Zucchini.png',
-  'Egg': 'Eggs.png',
-  'White_Button_Mushroom': 'Mushroom.png',
-};
-
 /// 根据标准食材名称获取图标资源路径；无对应资源时返回 null。
 /// [standardIngredientName] 可与后端/模型一致（如 "Chicken-Whole" 或 "Chicken Whole"），内部会按连字符形式查找。
 String? getIngredientIconPath(String? standardIngredientName) {
@@ -177,7 +169,7 @@ String? getIngredientIconPath(String? standardIngredientName) {
   final key = standardIngredientName.replaceAll(' ', '-').trim();
   final category = _standardNameToCategory[key];
   if (category == null) return null;
-  final fileName = _assetFileNameOverrides[key] ?? '$key.png';
+  final fileName = '$key.png';
   return '$_iconsBase/$category/$fileName';
 }
 
