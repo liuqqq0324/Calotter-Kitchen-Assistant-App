@@ -42,7 +42,7 @@ class YoloService {
       imageHeight: decoded.height,
       imageWidth: decoded.width,
       iouThreshold: 0.45,
-      confThreshold: 0.4,
+      confThreshold: 0.65,
       classThreshold: 0.4,
     );
 

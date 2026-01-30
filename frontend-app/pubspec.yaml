@@ -46,10 +46,14 @@ dependencies:
   http: ^1.2.2
   shared_preferences: ^2.5.4
 
-  # TFLite + flutter_vision (YOLO 图像识别，避开 ONNX IR 版本问题)
-  flutter_vision: ^1.1.4
+  # TFLite + flutter_vision (YOLO 图像识别)；本地化以修复 Android namespace 构建错误
+  flutter_vision:
+    path: ./packages/flutter_vision
 
-  image_picker: ^1.0.4
+  # 云端识别兜底 (Gemini 视觉)
+  google_generative_ai: ^0.4.0
+
+  image_picker: ^1.0.7
   image: ^4.7.2 
 
   path_provider: ^2.1.1

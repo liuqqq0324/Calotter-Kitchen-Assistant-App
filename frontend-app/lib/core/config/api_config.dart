@@ -10,7 +10,7 @@ class ApiConfig {
   // 如果用模拟器，请填 "10.0.2.2"
   // 如果用真机，请填你电脑的局域网 IP (如 "192.168.1.100")
 
-  //static const String serverIp = "16.176.170.214"; // IP 换成AWS 公网 IP
+  //static const String serverIp = "3.107.97.174"; // IP 换成AWS 公网 IP
   // static const String serverIp = "10.0.2.2"; // Android 模拟器使用此 IP（默认）
   static const String serverIp = "172.24.31.235"; // 真机调试时使用此 IP
 
@@ -44,4 +44,11 @@ class ApiConfig {
   static String get homepageBaseUrl {
     return "http://$serverIp:$homepagePort";
   }
+
+  // =========================================================
+  // Gemini API Key（云端识别兜底 / Cloud Expert）
+  // 在 https://aistudio.google.com/apikey 申请，演示后可删除或重新生成
+  // =========================================================
+  static const String geminiApiKey =
+      'AIzaSyDvyD0SEbgYDh2eOxd183aNAh5VNBNLcZo'; // 粘贴你的 API Key，勿提交到公开仓库
 }

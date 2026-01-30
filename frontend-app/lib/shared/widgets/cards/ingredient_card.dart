@@ -17,6 +17,8 @@ class IngredientCard extends StatelessWidget {
 
   // --- 样式配置 ---
   final bool useStatusColors; // true: 开启红/橙/灰变色 (库存页); false: 纯白底 (Review页)
+  /// 未匹配标准库时显示红框 + "Unmatched" 提示，提示用户可点击修正
+  final bool showUnmatchedWarning;
 
   // --- 可选配置 ---
   final List<String>? unitOptions; // 如果传入，数量选择器会显示下拉框
@@ -29,6 +31,7 @@ class IngredientCard extends StatelessWidget {
     this.onUnitChanged,
     this.onExpiryTap,
     this.useStatusColors = true, // 默认开启变色
+    this.showUnmatchedWarning = false,
     this.unitOptions,
   });
 
@@ -96,13 +99,26 @@ class IngredientCard extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTap: () {
         if (onTap != null) {
-          FocusScope.of(context).unfocus(); // 统一处理键盘收起
+          FocusScope.of(context).unfocus();
           onTap!();
         }
       },
       child: Container(
-        // 外层 Margin：增大上下 margin 以减少误触
         margin: const EdgeInsets.fromLTRB(16, 2, 16, 2),
+        decoration: showUnmatchedWarning
+            ? BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.red.shade400, width: 2),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.red.withOpacity(0.15),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              )
+            : null,
+        child: Container(
         // --- 手工纸张主体（使用图片背景 + 九宫格拉伸）---
         // 使用 IntrinsicHeight 让容器根据内容自动调整高度
         child: IntrinsicHeight(
@@ -153,6 +169,28 @@ class IngredientCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      if (showUnmatchedWarning)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 6),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.warning_amber_rounded,
+                                color: Colors.red.shade700,
+                                size: 16,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                "Unmatched - tap to fix",
+                                style: TextStyle(
+                                  color: Colors.red.shade700,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       // 标题
                       Text(
                         item.name,
@@ -200,6 +238,7 @@ class IngredientCard extends StatelessWidget {
               ],
             ),
           ),
+        ),
         ),
       ),
     );
