@@ -3,7 +3,7 @@ name: Deploy Spring Boot to AWS
 on:
   push:
     branches:
-      - "**" # 允许所有分支触发
+      - "yhua" # 允许所有分支触发
 
 jobs:
   build-and-deploy:

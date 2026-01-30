@@ -9,7 +9,8 @@ class TodayRecipe {
   int? intakeId; // ✅ 改为可变，保存后更新
   final int? leftoverId; // ✅ 新增：用于标识 leftover dish
   final String name;
-  final String imageIcon;
+  final String? category; // ✅ 烹饪分类（如：STIR_FRY_PAN_FRY, STEAM_BOIL等）
+  final String emoji; // ✅ emoji 作为后备图标
 
   /// UI percentage relative to the ORIGINAL leftover (0.0 - 1.0).
   /// Example: if a leftover has only 36% remaining, slider max is 0.36.
@@ -29,12 +30,25 @@ class TodayRecipe {
     this.intakeId,
     this.leftoverId, // ✅ 新增
     required this.name,
-    required this.imageIcon,
+    this.category,
+    this.emoji = '🍽️', // ✅ 默认 emoji
     this.consumedPercentage = 0.0, // ✅ 改为0.0（最低值）
     this.maxConsumablePercentage = 1.0,
     this.initialGrams,
     this.currentGrams,
   });
+
+  /// ✅ 根据分类获取对应的配图路径（与 RecipeModel 逻辑一致）
+  String get categoryImagePath {
+    if (category == null || category!.isEmpty) {
+      print('[TodayRecipe.categoryImagePath] category 为空，使用默认图标: name=$name');
+      return 'assets/dish_category/STIR_FRY_PAN_FRY.png'; // 默认图标
+    }
+    // trim() 防止后端返回带空格的字符串
+    final path = 'assets/dish_category/${category!.trim()}.png';
+    print('[TodayRecipe.categoryImagePath] 使用分类图标: name=$name, category=$category, path=$path');
+    return path;
+  }
 }
 
 /// 今日已做菜谱记录弹窗
@@ -46,103 +60,36 @@ class TodaysRecipesDialog extends StatefulWidget {
 }
 
 class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
-  // ✅ 开发模式：设置为 true 可以强制使用假数据（跳过 API 调用）
-  static const bool _useMockDataOnly = false;
-  
   bool _isLoading = true;
   bool _isSaving = false;
-  bool _isAdding = false;
   List<TodayRecipe> _todaysRecipes = [];
-  List<Map<String, dynamic>>? _cachedDishOptions; // ✅ 新增：缓存菜品选项
 
   @override
   void initState() {
     super.initState();
-    if (_useMockDataOnly) {
-      // ✅ 直接使用假数据（用于快速测试）
-      setState(() {
-        _todaysRecipes = _generateMockData();
-        _isLoading = false;
-      });
-    } else {
-      _loadTodayRecipes();
-    }
-  }
-
-  // ✅ 生成假数据用于测试和演示
-  List<TodayRecipe> _generateMockData() {
-    double snapToStep(double val) {
-      return (val / 0.1).round() * 0.1;
-    }
-
-    return [
-      // 示例1：番茄炒蛋 - 初始1000g，当前600g，已消耗40%
-      TodayRecipe(
-        intakeId: 1001,
-        leftoverId: 2001,
-        name: "番茄炒蛋",
-        imageIcon: "🍳",
-        consumedPercentage: snapToStep(0.4), // 40%
-        maxConsumablePercentage: 1.0,
-        initialGrams: 1000.0,
-        currentGrams: 600.0,
-      ),
-      // 示例2：红烧肉 - 初始800g，当前400g，已消耗50%
-      TodayRecipe(
-        intakeId: 1002,
-        leftoverId: 2002,
-        name: "红烧肉",
-        imageIcon: "🥩",
-        consumedPercentage: snapToStep(0.5), // 50%
-        maxConsumablePercentage: 1.0,
-        initialGrams: 800.0,
-        currentGrams: 400.0,
-      ),
-      // 示例3：麻婆豆腐 - 初始1200g，当前900g，已消耗25%
-      TodayRecipe(
-        intakeId: 1003,
-        leftoverId: 2003,
-        name: "麻婆豆腐",
-        imageIcon: "🌶️",
-        consumedPercentage: snapToStep(0.25), // 25%
-        maxConsumablePercentage: 1.0,
-        initialGrams: 1200.0,
-        currentGrams: 900.0,
-      ),
-      // 示例4：糖醋排骨 - 初始600g，当前300g，已消耗50%
-      TodayRecipe(
-        intakeId: 1004,
-        leftoverId: 2004,
-        name: "糖醋排骨",
-        imageIcon: "🍖",
-        consumedPercentage: snapToStep(0.5), // 50%
-        maxConsumablePercentage: 1.0,
-        initialGrams: 600.0,
-        currentGrams: 300.0,
-      ),
-      // 示例5：清炒时蔬 - 初始500g，当前350g，已消耗30%
-      TodayRecipe(
-        intakeId: 1005,
-        leftoverId: 2005,
-        name: "清炒时蔬",
-        imageIcon: "🥬",
-        consumedPercentage: snapToStep(0.3), // 30%
-        maxConsumablePercentage: 1.0,
-        initialGrams: 500.0,
-        currentGrams: 350.0,
-      ),
-    ];
+    _loadTodayRecipes();
   }
 
   Future<void> _loadTodayRecipes() async {
     setState(() => _isLoading = true);
 
     try {
-      final result = await HomepageApiService.getTodayIntakes(source: 'recipe');
+      // ✅ 同时加载今日已记录的 intake 和所有可用的 leftover 选项
+      final intakeResult = await HomepageApiService.getTodayIntakes(source: 'recipe');
+      final optionsResult = await HomepageApiService.getDishOptions();
 
-      if (result['success'] == true && result['data'] != null) {
-        final data = result['data'] as Map<String, dynamic>;
-        final items = data['items'] as List<dynamic>? ?? [];
+      if (intakeResult['success'] == true && optionsResult['success'] == true) {
+        final intakeData = intakeResult['data'] as Map<String, dynamic>?;
+        final optionsData = optionsResult['data'] as Map<String, dynamic>?;
+        
+        final intakeItems = intakeData?['items'] as List<dynamic>? ?? [];
+        final rawOptions = optionsData?['options'] as List<dynamic>? ?? [];
+        
+        // ✅ 只保留 leftover 类型的选项
+        final leftoverOptions = rawOptions.where((o) {
+          final opt = o as Map<String, dynamic>;
+          return (opt['type'] as String?) == 'leftover';
+        }).toList();
 
         setState(() {
           // ✅ 将值对齐到最近的 10% 倍数（步长为 0.1）
@@ -150,82 +97,218 @@ class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
             return (val / 0.1).round() * 0.1;
           }
 
-          _todaysRecipes = items.map((item) {
-            // ✅ Backend: consumedPercentage 是 0-100，表示总消耗量（相对于初始质量）
+          // ✅ 创建已记录的 intake 映射（按 leftoverId）
+          final Map<int, TodayRecipe> intakeMap = {};
+          for (final item in intakeItems) {
+            final leftoverId = (item['leftoverId'] as num?)?.toInt();
+            if (leftoverId == null) continue;
+
             final backendConsumedPct =
                 (item['consumedPercentage'] as num?)?.toDouble() ?? 0.0;
-            // ✅ 转换为 0-1 范围（UI 值），然后对齐到 10% 倍数
             final uiFrac = (backendConsumedPct / 100.0).clamp(0.0, 1.0);
             final snappedFrac = snapToStep(uiFrac).clamp(0.0, 1.0);
 
-            return TodayRecipe(
+            final category = item['category'] as String?;
+            // ✅ 调试日志：检查 category 是否被正确获取
+            print('[TodaysRecipesDialog] 从 intake 加载: name=${item['leftoverTitle']}, leftoverId=$leftoverId, category=$category');
+
+            intakeMap[leftoverId] = TodayRecipe(
               intakeId: (item['intakeId'] as num?)?.toInt(),
-              leftoverId: (item['leftoverId'] as num?)?.toInt(),
+              leftoverId: leftoverId,
               name: item['leftoverTitle'] as String? ?? 'Unknown Leftover',
-              imageIcon: "🍽️", // 默认图标，可以根据recipe_id获取真实图标
-              consumedPercentage: snappedFrac, // ✅ 对齐到 10% 倍数
-              maxConsumablePercentage: 1.0, // ✅ 固定为1.0（100%）
-              // ✅ 解析初始质量和当前质量
+              category: category, // ✅ 从后端获取分类
+              emoji: "🍽️",
+              consumedPercentage: snappedFrac,
+              maxConsumablePercentage: 1.0,
               initialGrams: (item['initialGrams'] as num?)?.toDouble(),
               currentGrams: (item['currentGrams'] as num?)?.toDouble(),
             );
-          }).toList();
-          
-          // ✅ 如果没有数据，使用假数据（用于测试）
-          if (_todaysRecipes.isEmpty) {
-            _todaysRecipes = _generateMockData();
           }
+
+          // ✅ 合并所有 leftover 选项，已记录的保留 intakeId，未记录的创建新项
+          _todaysRecipes = leftoverOptions.map((opt) {
+            final optMap = opt as Map<String, dynamic>;
+            final leftoverId = (optMap['id'] as num?)?.toInt();
+            if (leftoverId == null) return null;
+
+            // ✅ 如果已存在 intake 记录，使用已有数据
+            if (intakeMap.containsKey(leftoverId)) {
+              return intakeMap[leftoverId];
+            }
+
+            // ✅ 否则创建新项（intakeId 为 null）
+            final title = optMap['title'] as String? ?? 'Unknown Leftover';
+            final category = optMap['category'] as String?; // ✅ 从选项获取分类
+            // ✅ 调试日志：检查 category 是否被正确获取
+            print('[TodaysRecipesDialog] 从选项创建: name=$title, leftoverId=$leftoverId, category=$category');
+            final initialGrams = (optMap['initialGrams'] as num?)?.toDouble();
+            final currentGrams = (optMap['currentGrams'] as num?)?.toDouble();
+
+            // ✅ 计算最低值（已消费的部分）
+            double minValue = 0.0;
+            if (initialGrams != null &&
+                currentGrams != null &&
+                initialGrams > 0) {
+              final minPercentage = (initialGrams - currentGrams) / initialGrams;
+              minValue = minPercentage.clamp(0.0, 1.0);
+            }
+
+            final initialConsumedPct = snapToStep(minValue).clamp(0.0, 1.0);
+
+            return TodayRecipe(
+              intakeId: null, // ✅ 未保存
+              leftoverId: leftoverId,
+              name: title,
+              category: category, // ✅ 从选项获取分类
+              emoji: "🥡",
+              consumedPercentage: initialConsumedPct,
+              maxConsumablePercentage: 1.0,
+              initialGrams: initialGrams,
+              currentGrams: currentGrams,
+            );
+          }).whereType<TodayRecipe>().toList();
           
           _isLoading = false;
         });
       } else {
-        // ✅ 加载失败时，使用假数据（用于测试）
-        setState(() {
-          _todaysRecipes = _generateMockData();
-          _isLoading = false;
-        });
-        setState(() => _isLoading = false);
-        if (mounted) {
-          final errorCode = result['code'] as int?;
-          final errorMsg = result['error'] as String? ?? 'Unknown error';
+        // ✅ 即使其中一个失败，也尝试显示另一个的结果
+        final intakeSuccess = intakeResult['success'] == true;
+        final optionsSuccess = optionsResult['success'] == true;
+        
+        if (intakeSuccess || optionsSuccess) {
+          // ✅ 至少有一个成功，尝试显示数据
+          final intakeData = intakeSuccess ? (intakeResult['data'] as Map<String, dynamic>?) : null;
+          final optionsData = optionsSuccess ? (optionsResult['data'] as Map<String, dynamic>?) : null;
+          
+          final intakeItems = intakeData?['items'] as List<dynamic>? ?? [];
+          final rawOptions = optionsData?['options'] as List<dynamic>? ?? [];
+          
+          final leftoverOptions = rawOptions.where((o) {
+            final opt = o as Map<String, dynamic>;
+            return (opt['type'] as String?) == 'leftover';
+          }).toList();
 
-          if (errorCode == 401 || errorCode == 403) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Please login again: $errorMsg'),
-                backgroundColor: Colors.orange,
-                duration: const Duration(seconds: 5),
-              ),
-            );
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Failed to load recipes: $errorMsg'),
-                backgroundColor: Colors.red,
-                duration: const Duration(seconds: 4),
-                action: SnackBarAction(
-                  label: 'Retry',
-                  textColor: Colors.white,
-                  onPressed: _loadTodayRecipes,
+          setState(() {
+            double snapToStep(double val) {
+              return (val / 0.1).round() * 0.1;
+            }
+
+            final Map<int, TodayRecipe> intakeMap = {};
+            for (final item in intakeItems) {
+              final leftoverId = (item['leftoverId'] as num?)?.toInt();
+              if (leftoverId == null) continue;
+
+              final backendConsumedPct =
+                  (item['consumedPercentage'] as num?)?.toDouble() ?? 0.0;
+              final uiFrac = (backendConsumedPct / 100.0).clamp(0.0, 1.0);
+              final snappedFrac = snapToStep(uiFrac).clamp(0.0, 1.0);
+
+              intakeMap[leftoverId] = TodayRecipe(
+                intakeId: (item['intakeId'] as num?)?.toInt(),
+                leftoverId: leftoverId,
+                name: item['leftoverTitle'] as String? ?? 'Unknown Leftover',
+                category: item['category'] as String?, // ✅ 从后端获取分类
+                emoji: "🍽️",
+                consumedPercentage: snappedFrac,
+                maxConsumablePercentage: 1.0,
+                initialGrams: (item['initialGrams'] as num?)?.toDouble(),
+                currentGrams: (item['currentGrams'] as num?)?.toDouble(),
+              );
+            }
+
+            _todaysRecipes = leftoverOptions.map((opt) {
+              final optMap = opt as Map<String, dynamic>;
+              final leftoverId = (optMap['id'] as num?)?.toInt();
+              if (leftoverId == null) return null;
+
+              if (intakeMap.containsKey(leftoverId)) {
+                return intakeMap[leftoverId];
+              }
+
+              final title = optMap['title'] as String? ?? 'Unknown Leftover';
+              final category = optMap['category'] as String?; // ✅ 从选项获取分类
+              final initialGrams = (optMap['initialGrams'] as num?)?.toDouble();
+              final currentGrams = (optMap['currentGrams'] as num?)?.toDouble();
+
+              double minValue = 0.0;
+              if (initialGrams != null &&
+                  currentGrams != null &&
+                  initialGrams > 0) {
+                final minPercentage = (initialGrams - currentGrams) / initialGrams;
+                minValue = minPercentage.clamp(0.0, 1.0);
+              }
+
+              final initialConsumedPct = snapToStep(minValue).clamp(0.0, 1.0);
+
+              return TodayRecipe(
+                intakeId: null,
+                leftoverId: leftoverId,
+                name: title,
+                category: category, // ✅ 从选项获取分类
+                emoji: "🥡",
+                consumedPercentage: initialConsumedPct,
+                maxConsumablePercentage: 1.0,
+                initialGrams: initialGrams,
+                currentGrams: currentGrams,
+              );
+            }).whereType<TodayRecipe>().toList();
+            
+            _isLoading = false;
+          });
+          
+          // ✅ 如果其中一个失败，显示警告但不阻止显示
+          if (!intakeSuccess || !optionsSuccess) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('部分数据加载失败，显示可用数据'),
+                  backgroundColor: Colors.orange,
+                  duration: const Duration(seconds: 3),
                 ),
-              ),
-            );
+              );
+            }
+          }
+        } else {
+          // ✅ 两个都失败
+          setState(() => _isLoading = false);
+          if (mounted) {
+            final errorCode = intakeResult['code'] as int? ?? optionsResult['code'] as int?;
+            final errorMsg = intakeResult['error'] as String? ?? 
+                            optionsResult['error'] as String? ?? 'Unknown error';
+
+            if (errorCode == 401 || errorCode == 403) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Please login again: $errorMsg'),
+                  backgroundColor: Colors.orange,
+                  duration: const Duration(seconds: 5),
+                ),
+              );
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Failed to load data: $errorMsg'),
+                  backgroundColor: Colors.red,
+                  duration: const Duration(seconds: 4),
+                  action: SnackBarAction(
+                    label: 'Retry',
+                    textColor: Colors.white,
+                    onPressed: _loadTodayRecipes,
+                  ),
+                ),
+              );
+            }
           }
         }
       }
     } catch (e) {
-      // ✅ 发生错误时，使用假数据（用于测试）
-      setState(() {
-        _todaysRecipes = _generateMockData();
-        _isLoading = false;
-      });
-      
+      setState(() => _isLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Using mock data for demo. Error: $e'),
-            backgroundColor: Colors.orange,
-            duration: const Duration(seconds: 3),
+            content: Text('Unexpected error: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
             action: SnackBarAction(
               label: 'Retry',
               textColor: Colors.white,
@@ -360,241 +443,6 @@ class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
     }
   }
 
-  Future<void> _showAddDishSheet() async {
-    if (_isAdding) return;
-    setState(() => _isAdding = true);
-
-    try {
-      final result = await HomepageApiService.getDishOptions();
-      setState(() => _isAdding = false);
-
-      if (!mounted) return;
-
-      if (result['success'] == true && result['data'] != null) {
-        final data = result['data'] as Map<String, dynamic>;
-        final rawOptions = data['options'] as List<dynamic>? ?? [];
-        // 只允许 leftover
-        final options = rawOptions.where((o) {
-          final opt = o as Map<String, dynamic>;
-          return (opt['type'] as String?) == 'leftover';
-        }).toList();
-
-        // ✅ 缓存 options 数据
-        _cachedDishOptions = options.cast<Map<String, dynamic>>();
-
-        await showModalBottomSheet<void>(
-          context: context,
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          builder: (context) {
-            final selectedIds = <int>{};
-            return StatefulBuilder(
-              builder: (context, setSheetState) {
-                return SafeArea(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Select dishes',
-                              style: GoogleFonts.kalam(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            IconButton(
-                              onPressed: () => Navigator.of(context).pop(),
-                              icon: Icon(Icons.close, color: Colors.grey[600]),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Flexible(
-                          child: ListView.separated(
-                            shrinkWrap: true,
-                            itemCount: options.length,
-                            separatorBuilder: (_, __) =>
-                                const Divider(height: 1),
-                            itemBuilder: (context, index) {
-                              final opt =
-                                  options[index] as Map<String, dynamic>;
-                              final id = (opt['id'] as num?)?.toInt();
-                              final title =
-                                  (opt['title'] as String?) ?? 'Unknown';
-                              final subtitle =
-                                  (opt['subtitle'] as String?) ?? '';
-
-                              final selected =
-                                  id != null && selectedIds.contains(id);
-                              return ListTile(
-                                leading: const Text(
-                                  '🥡',
-                                  style: TextStyle(fontSize: 22),
-                                ),
-                                title: Text(title, style: GoogleFonts.kalam()),
-                                subtitle: subtitle.isNotEmpty
-                                    ? Text(
-                                        subtitle,
-                                        style: GoogleFonts.kalam(fontSize: 12),
-                                      )
-                                    : null,
-                                trailing: Checkbox(
-                                  value: selected,
-                                  onChanged: id == null
-                                      ? null
-                                      : (checked) {
-                                          setSheetState(() {
-                                            if (checked == true) {
-                                              selectedIds.add(id);
-                                            } else {
-                                              selectedIds.remove(id);
-                                            }
-                                          });
-                                        },
-                                ),
-                                onTap: id == null
-                                    ? null
-                                    : () {
-                                        setSheetState(() {
-                                          if (selected) {
-                                            selectedIds.remove(id);
-                                          } else {
-                                            selectedIds.add(id);
-                                          }
-                                        });
-                                      },
-                              );
-                            },
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        SizedBox(
-                          width: double.infinity,
-                          child: _buildSketchyButton(
-                            onPressed: selectedIds.isEmpty
-                                ? null
-                                : () async {
-                                    Navigator.of(context).pop();
-                                    await _addDishes(ids: selectedIds.toList());
-                                  },
-                            child: Text(
-                              'Confirm (${selectedIds.length})',
-                              style: GoogleFonts.kalam(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: const Color(0xFF6B4F4F).withOpacity(0.7),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            );
-          },
-        );
-      } else {
-        final errorMsg = result['error'] as String? ?? 'Unknown error';
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to load dish options: $errorMsg'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } catch (e) {
-      setState(() => _isAdding = false);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Unexpected error: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
-  Future<void> _addDishes({required List<int> ids}) async {
-    // ✅ 不再调用后端API，只添加到本地列表
-    setState(() {
-      for (final id in ids) {
-        // 检查是否已经添加过（避免重复）
-        if (_todaysRecipes.any((r) => r.leftoverId == id)) {
-          continue;
-        }
-
-        // 从缓存的 options 中查找
-        Map<String, dynamic>? opt;
-        if (_cachedDishOptions != null) {
-          try {
-            opt =
-                _cachedDishOptions!.firstWhere(
-                      (o) => (o['id'] as num?)?.toInt() == id,
-                    )
-                    as Map<String, dynamic>?;
-          } catch (e) {
-            opt = null;
-          }
-        }
-
-        if (opt != null) {
-          final title = opt['title'] as String? ?? 'Unknown Leftover';
-          final initialGrams = (opt['initialGrams'] as num?)?.toDouble();
-          final currentGrams = (opt['currentGrams'] as num?)?.toDouble();
-
-          // ✅ 计算最低值（已消费的部分）
-          double minValue = 0.0;
-          if (initialGrams != null &&
-              currentGrams != null &&
-              initialGrams > 0) {
-            final minPercentage = (initialGrams - currentGrams) / initialGrams;
-            minValue = minPercentage.clamp(0.0, 1.0);
-          }
-
-          // ✅ 将初始值对齐到最近的 10% 倍数（步长为 0.1）
-          double snapToStep(double val) {
-            return (val / 0.1).round() * 0.1;
-          }
-
-          final initialConsumedPct = snapToStep(minValue).clamp(0.0, 1.0);
-
-          // ✅ 创建本地对象，intakeId 为 null（表示未保存）
-          _todaysRecipes.add(
-            TodayRecipe(
-              intakeId: null, // ✅ 新添加的，还未保存
-              leftoverId: id,
-              name: title,
-              imageIcon: "🥡",
-              consumedPercentage:
-                  initialConsumedPct, // ✅ 初始值设为最低值（已消费的部分），对齐到 10% 倍数
-              maxConsumablePercentage: 1.0, // ✅ 固定为1.0（100%）
-              initialGrams: initialGrams,
-              currentGrams: currentGrams,
-            ),
-          );
-        }
-      }
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Added to list (not saved yet)'),
-        backgroundColor: Colors.blue,
-        duration: Duration(seconds: 2),
-      ),
-    );
-  }
 
   // 构建手绘边框按钮
   Widget _buildSketchyButton({
@@ -695,40 +543,15 @@ class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
                         ],
                       ),
                     ),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          onPressed: _isLoading || _isSaving || _isAdding
-                              ? null
-                              : _showAddDishSheet,
-                          icon: _isAdding
-                              ? const SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : Icon(
-                                  Icons.add,
-                                  color: const Color(
-                                    0xFF6B4F4F,
-                                  ).withOpacity(0.7),
-                                ), // Lighter brown
-                          tooltip: 'Add leftover',
-                        ),
-                        IconButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          icon: Icon(Icons.close, color: Colors.grey[600]),
-                        ),
-                      ],
+                    IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: Icon(Icons.close, color: Colors.grey[600]),
                     ),
                   ],
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  "Add dishes and adjust how much you ate",
+                  "Adjust how much you ate for each leftover dish",
                   style: GoogleFonts.kalam(
                     fontSize: 14,
                     color: Colors.grey[600],
@@ -833,12 +656,12 @@ class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
           Icon(Icons.no_meals, size: 60, color: Colors.grey[400]),
           const SizedBox(height: 12),
           Text(
-            "No dish intake yet",
+            "No leftover dishes available",
             style: GoogleFonts.kalam(fontSize: 16, color: Colors.grey[500]),
           ),
           const SizedBox(height: 8),
           Text(
-            "Tap + to add a leftover dish",
+            "All leftover dishes will appear here automatically",
             style: GoogleFonts.kalam(fontSize: 12, color: Colors.grey[500]),
           ),
         ],
@@ -900,7 +723,33 @@ class _TodaysRecipesDialogState extends State<TodaysRecipesDialog> {
           // 菜名和图标
           Row(
             children: [
-              Text(recipe.imageIcon, style: const TextStyle(fontSize: 32)),
+              // ✅ 使用 recipes 中的分类图标
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.asset(
+                    recipe.categoryImagePath, // ✅ 使用分类图标路径
+                    width: 40,
+                    height: 40,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      // ✅ 如果图片加载失败，显示 emoji
+                      print('[TodaysRecipesDialog] 图片加载失败: name=${recipe.name}, path=${recipe.categoryImagePath}, error=$error');
+                      return Center(
+                        child: Text(
+                          recipe.emoji,
+                          style: const TextStyle(fontSize: 32),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(

@@ -140,8 +140,13 @@ public class IntakeServiceImpl implements IIntakeService {
             // ✅ 填充初始质量和当前质量
             opt.setInitialGrams(l.getInitialQuantityGram());
             opt.setCurrentGrams(l.getCurrentQuantityGram());
-            log.debug("[getDishOptions] 创建选项: id={}, title={}, subtitle={}, initialGrams={}, currentGrams={}", 
-                    opt.getId(), opt.getTitle(), opt.getSubtitle(), opt.getInitialGrams(), opt.getCurrentGrams());
+            // ✅ 设置分类（用于前端显示图标）
+            String category = l.getCategory();
+            opt.setCategory(category);
+            log.info("[getDishOptions] LeftoverDish category: leftoverId={}, dishName={}, category={}", 
+                    l.getId(), l.getDishName(), category);
+            log.debug("[getDishOptions] 创建选项: id={}, title={}, subtitle={}, initialGrams={}, currentGrams={}, category={}", 
+                    opt.getId(), opt.getTitle(), opt.getSubtitle(), opt.getInitialGrams(), opt.getCurrentGrams(), opt.getCategory());
             return opt;
         }).collect(Collectors.toList());
 
@@ -614,6 +619,13 @@ public class IntakeServiceImpl implements IIntakeService {
                 // ✅ 设置初始质量和当前质量
                 item.setInitialGrams(leftover.getInitialQuantityGram());
                 item.setCurrentGrams(leftover.getCurrentQuantityGram());
+                // ✅ 设置分类（用于前端显示图标）
+                String category = leftover.getCategory();
+                item.setCategory(category);
+                IntakeServiceImpl.log.info("[convertToIntakeItem] LeftoverDish category: leftoverId={}, dishName={}, category={}", 
+                        leftover.getId(), 
+                        leftover.getDishName() != null ? leftover.getDishName() : "null", 
+                        category != null ? category : "null");
             });
         }
 
