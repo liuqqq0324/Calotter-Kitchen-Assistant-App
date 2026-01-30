@@ -190,6 +190,7 @@ class MainScaffoldState extends State<MainScaffold> {
 
         // 🦦 海獭浮动导航 (保持不变)
         floatingActionButton: OtterFloatingNav(
+          key: otterFloatingNavKey,
           selectedIndex: _selectedIndex,
           onItemTapped: _onItemTapped,
         ),

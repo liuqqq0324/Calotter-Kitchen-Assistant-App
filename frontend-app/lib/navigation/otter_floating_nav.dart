@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:personal_sous_chef/navigation/bottom_nav_config.dart';
-import 'package:personal_sous_chef/core/theme/fallback_google_fonts.dart';
 import 'package:personal_sous_chef/navigation/otter_tooltip.dart';
-import 'package:personal_sous_chef/shared/widgets/common/programmatic_sketchy_card.dart';
 import 'dart:math' as math;
 
 /// 海獭浮动导航组件
@@ -11,18 +9,20 @@ import 'dart:math' as math;
 class OtterFloatingNav extends StatefulWidget {
   final int selectedIndex;
   final Function(int) onItemTapped;
+  final bool isListening; // 🔥 新增：监听状态
 
   const OtterFloatingNav({
     super.key,
     required this.selectedIndex,
     required this.onItemTapped,
+    this.isListening = false, // 默认不监听
   });
 
   @override
-  State<OtterFloatingNav> createState() => _OtterFloatingNavState();
+  State<OtterFloatingNav> createState() => OtterFloatingNavState();
 }
 
-class _OtterFloatingNavState extends State<OtterFloatingNav>
+class OtterFloatingNavState extends State<OtterFloatingNav>
     with SingleTickerProviderStateMixin {
   bool _isExpanded = false;
   late AnimationController _animationController;
@@ -53,6 +53,9 @@ class _OtterFloatingNavState extends State<OtterFloatingNav>
 
   /// 检查并显示提示
   Future<void> _checkAndShowTooltip() async {
+    // 🔥 如果正在监听，不显示默认页面提示，避免遮挡语音提示
+    if (widget.isListening) return;
+
     // 根据当前页面显示不同的提示
     final tooltipId = _getTooltipIdForPage(widget.selectedIndex);
     if (tooltipId != null && mounted) {
@@ -116,6 +119,15 @@ class _OtterFloatingNavState extends State<OtterFloatingNav>
   void _hideTooltip() {
     setState(() {
       _currentTooltipMessage = null;
+    });
+  }
+
+  /// ✅ 公开方法：从外部显示临时消息
+  void showMessage(String message, {OtterTooltipType type = OtterTooltipType.actionHint, Duration duration = const Duration(seconds: 3)}) {
+    if (!mounted) return;
+    setState(() {
+      _currentTooltipMessage = message;
+      _currentTooltipType = type;
     });
   }
 
@@ -233,7 +245,22 @@ class _OtterFloatingNavState extends State<OtterFloatingNav>
               child: SizedBox(
                 width: 120,
                 height: 120,
-                child: _buildOtterImage(),
+                child: widget.isListening
+                    ? TweenAnimationBuilder<double>(
+                        tween: Tween(begin: 1.0, end: 1.1),
+                        duration: const Duration(milliseconds: 800),
+                        builder: (context, scale, child) {
+                          return Transform.scale(
+                            scale: scale,
+                            child: _buildOtterImage(),
+                          );
+                        },
+                        onEnd: () {
+                          // 循环缩放动画
+                          setState(() {});
+                        },
+                      )
+                    : _buildOtterImage(),
               ),
             ),
           ),
