@@ -291,8 +291,6 @@ class CookingVoiceAssistant {
         listenFor: const Duration(seconds: 30),
         pauseFor: const Duration(seconds: 2), // 缩短停顿时间，更快返回结果
         localeId: "en_US",
-        onDevice: true, // 启用本地识别，提高稳定性
-        listenMode: stt.ListenMode.dictation, // 使用听写模式，适合长时间监听
         cancelOnError: true,
         partialResults: true,
       );
