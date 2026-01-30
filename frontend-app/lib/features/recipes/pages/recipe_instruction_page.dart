@@ -4,10 +4,13 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
+import 'package:personal_sous_chef/app/app_keys.dart';
 import 'package:personal_sous_chef/core/theme/fallback_google_fonts.dart';
 import 'package:personal_sous_chef/data/stores/collected_recipes_store.dart';
 import 'package:personal_sous_chef/data/models/recipe_models.dart';
 import 'package:personal_sous_chef/features/recipes/pages/recipe_meal_summary_page.dart';
+import 'package:personal_sous_chef/navigation/otter_floating_nav.dart';
+import 'package:personal_sous_chef/navigation/otter_tooltip.dart';
 import 'package:personal_sous_chef/services/cooking/cooking_api_service.dart';
 import 'package:personal_sous_chef/services/cooking/cooking_voice_assistant.dart';
 import 'package:personal_sous_chef/services/cooking/cooking_gesture_service.dart';
@@ -45,18 +48,30 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
   final Map<String, bool> _pausedSteps = {};
   final Set<String> _completedSteps = {};
   int? _sessionId;
-  bool _sessionCreated = false;
 
   int _currentFocusedStepNumber = 1; // Current focused step number
 
   // Voice assistant
   final CookingVoiceAssistant _voiceAssistant = CookingVoiceAssistant();
   bool _isVoiceModeActive = false;
+  final GlobalKey<OtterFloatingNavState> _localOtterKey = GlobalKey<OtterFloatingNavState>();
+  String _lastRecognizedWords = "";
+  double _currentSoundLevel = 0.0; // 实时音量分贝
+  IconData? _feedbackIcon;
+  Color? _feedbackColor;
+  Timer? _feedbackTimer;
+  Timer? _voiceReconnectTimer;
+  Timer? _voiceHeartbeatTimer; // 语音守护进程计时器
 
   // Gesture control (Update)
   final CookingGestureService _gestureService = CookingGestureService();
   bool _isGestureModeActive = false;
   bool _isGestureServiceInitialized = false; // 标记服务是否已经初始化
+
+  // Total cooking duration timer (Per-dish)
+  final Map<int, Duration> _dishTotalDurations = {};
+  final Map<int, Timer> _dishTotalTimers = {};
+  final Map<int, bool> _isDishTotalTimerRunning = {};
 
   // Ingredients list expansion state, per recipe index (default: expanded)
   final Map<int, bool> _ingredientsExpandedByIndex = {};
@@ -248,7 +263,6 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
       if (mounted) {
         setState(() {
           _sessionId = sessionId;
-          _sessionCreated = true;
         });
         print(
           '[RecipePage] Created cooking session: $sessionId for menu with ${widget.menu.recipes.length} dishes',
@@ -272,6 +286,12 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
     _gestureService.dispose(); // ✅ 释放手势服务资源
     _tabController.dispose(); // ✅ Dispose TabController
     _pageController?.dispose(); // ✅ Dispose PageController（可空类型，需要安全调用）
+    
+    // ✅ 取消所有菜品的总计时器
+    for (final timer in _dishTotalTimers.values) {
+      timer.cancel();
+    }
+    _dishTotalTimers.clear();
     
     // 清理所有 GlobalKeys
     _stepKeys.clear();
@@ -371,18 +391,6 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
         }
       }
     });
-  }
-
-  void _goToNextDish() {
-    if (_currentIndex < _totalDishes - 1) {
-      _tabController.animateTo(_currentIndex + 1);
-    }
-  }
-
-  void _goToPrevDish() {
-    if (_currentIndex > 0) {
-      _tabController.animateTo(_currentIndex - 1);
-    }
   }
 
   void _onMealDone() {
@@ -555,10 +563,54 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
     }
   }
 
+  Widget _buildVoiceControlButton() {
+    return StatefulBuilder(
+      builder: (context, setState) {
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            if (_isVoiceModeActive)
+              TweenAnimationBuilder<double>(
+                tween: Tween(begin: 1.0, end: 1.8),
+                duration: const Duration(milliseconds: 1500),
+                builder: (context, value, child) {
+                  return Container(
+                    width: 36 * value,
+                    height: 36 * value,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.red.withOpacity(2.0 - value),
+                    ),
+                  );
+                },
+                onEnd: () {
+                  if (mounted && _isVoiceModeActive) {
+                    setState(() {});
+                  }
+                },
+              ),
+            IconButton(
+              onPressed: _toggleVoiceMode,
+              icon: Icon(
+                _isVoiceModeActive ? Icons.mic : Icons.mic_none,
+                color: _isVoiceModeActive ? Colors.red : null,
+              ),
+              tooltip: _isVoiceModeActive ? 'Exit Voice Mode' : 'Enter Voice Mode',
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   /// 处理语音命令
   Future<void> _handleVoiceCommand(String commandText) async {
     final commandType = _voiceAssistant.recognizeCommand(commandText);
-    final recipe = widget.menu.recipes[_currentIndex];
+    
+    // 清除 HUD 文字，准备下一次识别
+    setState(() {
+      _lastRecognizedWords = "";
+    });
 
     switch (commandType) {
       case VoiceCommandType.nextStep:
@@ -567,15 +619,11 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
           setState(() {
             _currentFocusedStepNumber = nextStep.stepNumber;
           });
-          // 触发自动滚动
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) {
-              _scrollToStep(nextStep.stepNumber);
-            }
+            if (mounted) _scrollToStep(nextStep.stepNumber);
           });
-          await _voiceAssistant.speakStep(nextStep);
-        } else {
-          await _voiceAssistant.speak('This is already the last step');
+          _showActionFeedback(Icons.arrow_forward);
+          _showOtterMessage("Next step! ➔");
         }
         break;
 
@@ -585,22 +633,23 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
           setState(() {
             _currentFocusedStepNumber = prevStep.stepNumber;
           });
-          // 触发自动滚动
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) {
-              _scrollToStep(prevStep.stepNumber);
-            }
+            if (mounted) _scrollToStep(prevStep.stepNumber);
           });
-          await _voiceAssistant.speakStep(prevStep);
-        } else {
-          await _voiceAssistant.speak('This is already the first step');
+          _showActionFeedback(Icons.arrow_back);
+          _showOtterMessage("Going back! ⬅");
         }
         break;
 
       case VoiceCommandType.repeatStep:
         final currentStep = _getFocusedStep();
         if (currentStep != null) {
-          await _voiceAssistant.speakStep(currentStep);
+          _showActionFeedback(Icons.replay);
+          _showOtterMessage("Repeating step... 🔁");
+          // 如果需要，这里可以保留 speakStep，但根据需求这里也不播报，只高亮显示
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _scrollToStep(currentStep.stepNumber);
+          });
         }
         break;
 
@@ -609,19 +658,14 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
         if (stepNumber != null &&
             stepNumber >= 1 &&
             stepNumber <= _currentSteps.length) {
-          final targetStep = _currentSteps[stepNumber - 1];
           setState(() {
             _currentFocusedStepNumber = stepNumber;
           });
-          // 触发自动滚动
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) {
-              _scrollToStep(stepNumber);
-            }
+            if (mounted) _scrollToStep(stepNumber);
           });
-          await _voiceAssistant.speakStep(targetStep);
-        } else {
-          await _voiceAssistant.speak('Invalid step number');
+          _showActionFeedback(Icons.directions_run);
+          _showOtterMessage("Jumping to step $stepNumber! 🏃");
         }
         break;
 
@@ -633,11 +677,8 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
             currentStep.stepNumber,
             currentStep.stepTimeMin,
           );
-          await _voiceAssistant.speak(
-            'Timer started, ${currentStep.stepTimeMin} minutes',
-          );
-        } else {
-          await _voiceAssistant.speak('No time set for current step');
+          _showActionFeedback(Icons.play_arrow, color: Colors.green);
+          _showOtterMessage("Timer started! ⏳");
         }
         break;
 
@@ -645,7 +686,8 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
         final currentStep = _getFocusedStep();
         if (currentStep != null) {
           _pauseTimer(_currentIndex, currentStep.stepNumber);
-          await _voiceAssistant.speak('Timer paused');
+          _showActionFeedback(Icons.pause, color: Colors.amber);
+          _showOtterMessage("Timer paused! ⏸");
         }
         break;
 
@@ -659,9 +701,8 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
               currentStep.stepNumber,
               currentStep.stepTimeMin,
             );
-            await _voiceAssistant.speak('Timer resumed');
-          } else {
-            await _voiceAssistant.speak('Timer is not paused');
+            _showActionFeedback(Icons.play_arrow, color: Colors.green);
+            _showOtterMessage("Timer resumed! ▶");
           }
         }
         break;
@@ -670,7 +711,8 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
         final currentStep = _getFocusedStep();
         if (currentStep != null) {
           _stopTimerForStep(_currentIndex, currentStep.stepNumber);
-          await _voiceAssistant.speak('Timer stopped');
+          _showActionFeedback(Icons.stop, color: Colors.red);
+          _showOtterMessage("Timer stopped! ⏹");
         }
         break;
 
@@ -678,94 +720,106 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
         final currentStep = _getFocusedStep();
         if (currentStep != null) {
           _stopAndCompleteStep(_currentIndex, currentStep.stepNumber);
-          await _voiceAssistant.speak('Step completed');
+          _showActionFeedback(Icons.check_circle, color: Colors.green);
+          _showOtterMessage("Step done! ✅");
+        }
+        break;
+
+      case VoiceCommandType.startTotalTimer:
+        final isRunning = _isDishTotalTimerRunning[_currentIndex] ?? false;
+        if (!isRunning) {
+          _toggleTotalTimer(_currentIndex);
+          _showActionFeedback(Icons.timer, color: Colors.blue);
+          _showOtterMessage("Cooking started! 👨‍🍳");
+        }
+        break;
+
+      case VoiceCommandType.pauseTotalTimer:
+        final isRunning = _isDishTotalTimerRunning[_currentIndex] ?? false;
+        if (isRunning) {
+          _toggleTotalTimer(_currentIndex);
+          _showActionFeedback(Icons.pause, color: Colors.amber);
+          _showOtterMessage("Cooking paused! ⏸");
+        }
+        break;
+
+      case VoiceCommandType.resumeTotalTimer:
+        final isRunning = _isDishTotalTimerRunning[_currentIndex] ?? false;
+        if (!isRunning) {
+          _toggleTotalTimer(_currentIndex);
+          _showActionFeedback(Icons.play_arrow, color: Colors.green);
+          _showOtterMessage("Cooking resumed! ▶");
+        }
+        break;
+
+      case VoiceCommandType.stopTotalTimer:
+        final isRunning = _isDishTotalTimerRunning[_currentIndex] ?? false;
+        if (isRunning) {
+          _toggleTotalTimer(_currentIndex);
+          _showActionFeedback(Icons.stop, color: Colors.red);
+          _showOtterMessage("Cooking stopped! ⏹");
         }
         break;
 
       case VoiceCommandType.nextDish:
         if (_currentIndex < _totalDishes - 1) {
-          setState(() {
-            _currentIndex++;
-            _currentFocusedStepNumber = 1;
-          });
-          await _voiceAssistant.speak(
-            'Switched to next dish: ${widget.menu.recipes[_currentIndex].title}',
+          _pageController?.animateToPage(
+            _currentIndex + 1,
+            duration: const Duration(milliseconds: 400),
+            curve: Curves.easeInOut,
           );
-        } else {
-          await _voiceAssistant.speak('This is already the last dish');
+          _showActionFeedback(Icons.skip_next);
+          _showOtterMessage("Next recipe! 🍲");
         }
         break;
 
       case VoiceCommandType.previousDish:
         if (_currentIndex > 0) {
-          setState(() {
-            _currentIndex--;
-            _currentFocusedStepNumber = 1;
-          });
-          await _voiceAssistant.speak(
-            'Switched to previous dish: ${widget.menu.recipes[_currentIndex].title}',
+          _pageController?.animateToPage(
+            _currentIndex - 1,
+            duration: const Duration(milliseconds: 400),
+            curve: Curves.easeInOut,
           );
-        } else {
-          await _voiceAssistant.speak('This is already the first dish');
+          _showActionFeedback(Icons.skip_previous);
+          _showOtterMessage("Previous recipe! 🥗");
         }
         break;
 
       case VoiceCommandType.currentStepInfo:
         final currentStep = _getFocusedStep();
         if (currentStep != null) {
-          await _voiceAssistant.speakStep(currentStep);
+          _showActionFeedback(Icons.info_outline);
+          _showOtterMessage("Current step info! ℹ️");
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _scrollToStep(currentStep.stepNumber);
+          });
         }
         break;
 
       case VoiceCommandType.timerStatus:
-        final currentStep = _getFocusedStep();
-        if (currentStep != null) {
-          final key = _stepKey(_currentIndex, currentStep.stepNumber);
-          final remaining = _remainingSeconds[key];
-          if (remaining != null) {
-            final minutes = remaining ~/ 60;
-            final seconds = remaining % 60;
-            if (remaining >= 0) {
-              await _voiceAssistant.speak(
-                '$minutes minutes $seconds seconds remaining',
-              );
-            } else {
-              await _voiceAssistant.speak(
-                'Overdue by ${-minutes} minutes ${-seconds} seconds',
-              );
-            }
-          } else {
-            await _voiceAssistant.speak('No running timer for current step');
-          }
-        }
+        _showActionFeedback(Icons.timer);
+        _showOtterMessage("Checking timer... ⏱️");
         break;
 
       case VoiceCommandType.ingredientsList:
-        final ingredients = recipe.ingredients;
-        if (ingredients.isEmpty) {
-          await _voiceAssistant.speak('No ingredients list');
-        } else {
-          String text = 'You need the following ingredients: ';
-          for (var ing in ingredients) {
-            text += '${ing.name} ${ing.amountValue} ${ing.amountUnit}, ';
-          }
-          await _voiceAssistant.speak(text);
-        }
+        _showActionFeedback(Icons.shopping_basket);
+        _showOtterMessage("Here are ingredients! 🛒");
         break;
 
       case VoiceCommandType.exitVoiceMode:
         _toggleVoiceMode();
-        await _voiceAssistant.speak('Voice mode exited');
+        _showActionFeedback(Icons.exit_to_app);
         break;
 
       case VoiceCommandType.help:
-        await _voiceAssistant.speak(_voiceAssistant.getHelpText());
+        _showActionFeedback(Icons.help_outline);
+        _showOtterMessage("How can I help? 🦦");
         break;
 
       case VoiceCommandType.unknown:
-        await _voiceAssistant.speak(
-          'Sorry, I did not understand. Please say again',
-        );
+        // 未知指令，可以显示一个问号
+        _showActionFeedback(Icons.help_outline, color: Colors.grey);
+        _showOtterMessage("I didn't catch that... ❓");
         break;
     }
   }
@@ -818,8 +872,14 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
           _voiceAssistant.resetInitializationState();
         }
         _startVoiceListening();
+        _startVoiceHeartbeat(); // 启动守护进程
+        _showOtterMessage(
+          "I'm listening! 🦦\nTry saying 'Next' or 'Start'",
+          type: OtterTooltipType.welcome,
+        );
       } else {
         _stopVoiceListening();
+        _showOtterMessage("Voice mode off. Bye! 👋");
       }
     });
   }
@@ -963,32 +1023,175 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
 
   /// 开始语音监听
   void _startVoiceListening() {
+    if (!_isVoiceModeActive) return;
+
     _voiceAssistant.startListening(
       onResult: (text) {
-        debugPrint('[RecipePage] 识别到语音: $text');
+        debugPrint('[RecipePage] ✅ 监听到最终结果: $text');
+        setState(() {
+          _lastRecognizedWords = text;
+          _currentSoundLevel = 0.0; // 识别完成后归零
+        });
         _handleVoiceCommand(text);
+        
+        // 激进重连：识别成功后立即重启监听循环
+        _reconnectVoiceDelayed();
+      },
+      onPartialResult: (text) {
+        if (mounted) {
+          setState(() {
+            _lastRecognizedWords = text;
+          });
+        }
+      },
+      onSoundLevelUpdate: (level) {
+        // 关键：实时同步音量分贝，用于驱动声波
+        if (mounted && _isVoiceModeActive) {
+          setState(() {
+            _currentSoundLevel = level;
+          });
+        }
       },
       onError: (error) {
         debugPrint('[RecipePage] 语音识别错误: $error');
-        if (mounted) {
-          ScaffoldMessenger.of(context)
-            ..hideCurrentSnackBar()
-            ..showSnackBar(
-              SnackBar(
-                content: Text('Voice recognition error: $error'),
-                duration: const Duration(seconds: 2),
-                behavior: SnackBarBehavior.floating,
-                margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
-              ),
-            );
+        // 几乎所有非永久性错误都尝试自动重连，以保证持续监听
+        if (_isVoiceModeActive && !error.contains('error_permission')) {
+          _reconnectVoiceDelayed();
         }
       },
     );
   }
 
+  void _reconnectVoiceDelayed() {
+    _voiceReconnectTimer?.cancel();
+    if (!_isVoiceModeActive) return;
+    
+    _voiceReconnectTimer = Timer(const Duration(milliseconds: 300), () {
+      if (mounted && _isVoiceModeActive && !_voiceAssistant.isListening) {
+        debugPrint('[RecipeGuard] 正在重启监听循环...');
+        _startVoiceListening();
+      }
+    });
+  }
+
+  /// 语音守护进程：每 5 秒检查一次状态，防止插件进入假死状态
+  void _startVoiceHeartbeat() {
+    _voiceHeartbeatTimer?.cancel();
+    _voiceHeartbeatTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (!mounted || !_isVoiceModeActive) {
+        timer.cancel();
+        return;
+      }
+      
+      if (!_voiceAssistant.isListening) {
+        debugPrint('[VoiceHeartbeat] 💓 检测到麦克风静默，正在强制唤醒...');
+        _startVoiceListening();
+      }
+    });
+  }
+
   /// 停止语音监听
   void _stopVoiceListening() {
+    _voiceReconnectTimer?.cancel();
+    _voiceHeartbeatTimer?.cancel();
     _voiceAssistant.stopListening();
+    setState(() {
+      _currentSoundLevel = 0.0;
+    });
+  }
+
+  /// 切换指定菜品的总计时器状态
+  void _toggleTotalTimer(int index) {
+    setState(() {
+      final isRunning = _isDishTotalTimerRunning[index] ?? false;
+      _isDishTotalTimerRunning[index] = !isRunning;
+      
+      if (_isDishTotalTimerRunning[index] == true) {
+        _dishTotalTimers[index]?.cancel();
+        _dishTotalTimers[index] = Timer.periodic(const Duration(seconds: 1), (timer) {
+          if (mounted) {
+            setState(() {
+              final currentDuration = _dishTotalDurations[index] ?? Duration.zero;
+              _dishTotalDurations[index] = currentDuration + const Duration(seconds: 1);
+            });
+          } else {
+            timer.cancel();
+          }
+        });
+      } else {
+        _dishTotalTimers[index]?.cancel();
+        _dishTotalTimers.remove(index);
+      }
+    });
+  }
+
+  /// 格式化 Duration 为 HH:mm:ss
+  String _formatDuration(Duration d) {
+    String twoDigits(int n) => n.toString().padLeft(2, "0");
+    String twoDigitMinutes = twoDigits(d.inMinutes.remainder(60));
+    String twoDigitSeconds = twoDigits(d.inSeconds.remainder(60));
+    return "${twoDigits(d.inHours)}:$twoDigitMinutes:$twoDigitSeconds";
+  }
+
+  /// 显示动作反馈
+  void _showActionFeedback(IconData icon, {Color color = const Color(0xFF6B4F4F)}) {
+    _feedbackTimer?.cancel();
+    setState(() {
+      _feedbackIcon = icon;
+      _feedbackColor = color;
+    });
+    _feedbackTimer = Timer(const Duration(milliseconds: 800), () {
+      if (mounted) {
+        setState(() {
+          _feedbackIcon = null;
+        });
+      }
+    });
+  }
+
+  /// ✅ 让小 Otter 说话
+  void _showOtterMessage(String message, {OtterTooltipType type = OtterTooltipType.actionHint}) {
+    _localOtterKey.currentState?.showMessage(message, type: type);
+  }
+
+  /// 构建总计时器便签
+  Widget _buildTotalTimerNote(int index) {
+    final theme = Theme.of(context);
+    final duration = _dishTotalDurations[index] ?? Duration.zero;
+    final isRunning = _isDishTotalTimerRunning[index] ?? false;
+    final ink = const Color(0xFF6B4F4F);
+    
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Icon(
+            Icons.timer_outlined,
+            color: ink.withOpacity(0.8),
+            size: 24,
+          ),
+          const SizedBox(width: 12),
+          Text(
+            'Cooking Time: ${_formatDuration(duration)}',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              fontSize: 20,
+              color: ink,
+            ),
+          ),
+          const Spacer(),
+          // 开始/暂停按钮
+          GestureDetector(
+            onTap: () => _toggleTotalTimer(index),
+            child: Icon(
+              isRunning ? Icons.pause_circle_filled : Icons.play_circle_filled,
+              color: isRunning ? Colors.orange : ink.withOpacity(0.8),
+              size: 32,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   // 构建单个菜谱的内容页面
@@ -1263,6 +1466,12 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
 
           const SizedBox(height: 16),
 
+          // 总计时器便签 - 仅在烹饪模式显示
+          if (!widget.isViewMode) ...[
+            _buildTotalTimerNote(index),
+            const SizedBox(height: 16),
+          ],
+
           Text(
             'Steps',
             style: theme.textTheme.titleMedium?.copyWith(
@@ -1292,7 +1501,7 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
         backgroundColor: Colors.transparent,
         appBar: AppBar(
           title: Text(
-            widget.isViewMode ? 'View Steps' : 'Cooking',
+            widget.isViewMode ? 'View Mode' : 'Cook Mode',
             style: GoogleFonts.caveat(
               fontSize: 32,
               fontWeight: FontWeight.bold,
@@ -1318,14 +1527,7 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
                 tooltip: _isGestureModeActive ? '退出手势模式' : '开启手势模式',
               ),
               // Voice control button
-              IconButton(
-                onPressed: _toggleVoiceMode,
-                icon: Icon(
-                  _isVoiceModeActive ? Icons.mic : Icons.mic_none,
-                  color: _isVoiceModeActive ? Colors.red : null,
-                ),
-                tooltip: _isVoiceModeActive ? '退出语音模式' : '开启语音模式',
-              ),
+              _buildVoiceControlButton(),
             ],
             // 收藏按钮（两种模式都显示）
             ValueListenableBuilder<List<RecipeModel>>(
@@ -1353,40 +1555,107 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
             ),
           ],
         ),
-        body: _GridPaper(
-          child: SafeArea(
-            child: widget.menu.recipes.length > 1 && _pageController != null
-                ? PageView.builder(
-                    controller: _pageController!,
-                    itemCount: widget.menu.recipes.length,
-                    allowImplicitScrolling: false,
-                    // 不缓存页面，避免GlobalKey冲突
-                    physics: const PageScrollPhysics(),
-                    onPageChanged: (index) {
-                      // 清理旧recipe的keys，避免GlobalKey冲突
-                      _stepKeys.removeWhere((key, _) => key.startsWith('${_currentIndex}:'));
-                      
-                      setState(() {
-                        _currentIndex = index;
-                        _currentFocusedStepNumber = 1; // Reset to first step
-                      });
-                      // 烹饪模式：滑动食谱后自动滚动到第一个步骤
-                      if (!widget.isViewMode) {
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          if (mounted) _scrollToStep(1);
-                        });
-                      }
-                      // 同步 TabController
-                      if (_tabController.index != index) {
-                        _tabController.animateTo(index);
-                      }
-                    },
-                    itemBuilder: (context, index) {
-                      return _buildRecipePage(index);
-                    },
-                  )
-                : _buildRecipePage(0), // 如果只有一个菜谱或 PageController 未初始化，直接显示
-          ),
+        body: Stack(
+          children: [
+            _GridPaper(
+              child: SafeArea(
+                child: widget.menu.recipes.length > 1 && _pageController != null
+                    ? PageView.builder(
+                        controller: _pageController!,
+                        itemCount: widget.menu.recipes.length,
+                        allowImplicitScrolling: false,
+                        // 不缓存页面，避免GlobalKey冲突
+                        physics: const PageScrollPhysics(),
+                        onPageChanged: (index) {
+                          // 清理旧recipe的keys，避免GlobalKey冲突
+                          _stepKeys.removeWhere((key, _) => key.startsWith('${_currentIndex}:'));
+                          
+                          setState(() {
+                            _currentIndex = index;
+                            _currentFocusedStepNumber = 1; // Reset to first step
+                          });
+                          // 烹饪模式：滑动食谱后自动滚动到第一个步骤
+                          if (!widget.isViewMode) {
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              if (mounted) _scrollToStep(1);
+                            });
+                          }
+                          // 同步 TabController
+                          if (_tabController.index != index) {
+                            _tabController.animateTo(index);
+                          }
+                        },
+                        itemBuilder: (context, index) {
+                          return _buildRecipePage(index);
+                        },
+                      )
+                    : _buildRecipePage(0), // 如果只有一个菜谱或 PageController 未初始化，直接显示
+              ),
+            ),
+            // Action Flash Overlay
+            if (_feedbackIcon != null)
+              Positioned.fill(
+                child: Container(
+                  color: Colors.black12,
+                  child: Center(
+                    child: TweenAnimationBuilder<double>(
+                      tween: Tween(begin: 0.0, end: 1.0),
+                      duration: const Duration(milliseconds: 200),
+                      builder: (context, value, child) {
+                        return Transform.scale(
+                          scale: 0.5 + 1.5 * value,
+                          child: Opacity(
+                            opacity: (1.0 - value).clamp(0.0, 1.0),
+                            child: Icon(
+                              _feedbackIcon,
+                              size: 150,
+                              color: _feedbackColor ?? const Color(0xFF6B4F4F),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ),
+            
+            // Visual HUD (Listening words)
+            if (_isVoiceModeActive)
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 100, // 稍微上提一点，避开底部按钮
+                child: Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.black54,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.mic, color: Colors.redAccent, size: 16),
+                        const SizedBox(width: 8),
+                        _VoiceWaveform(
+                          isListening: _isVoiceModeActive,
+                          soundLevel: _currentSoundLevel,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          _lastRecognizedWords.isEmpty ? "Listening..." : _lastRecognizedWords,
+                          style: GoogleFonts.kalam(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+          ],
         ),
         // View Mode: 只显示分页指示器（如果有多个菜谱）
         // Cooking Mode: 显示完整的底部控制栏（包括分页指示器和按钮）
@@ -1403,6 +1672,17 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
                     )
                   : null)
             : _buildBottomControls(context),
+        floatingActionButton: !widget.isViewMode ? OtterFloatingNav(
+          key: _localOtterKey,
+          selectedIndex: 1, // Cooking is in Recipes tab
+          isListening: _isVoiceModeActive,
+          onItemTapped: (index) {
+            // 在烹饪模式点击导航，通常是想切换页面
+            Navigator.pop(context);
+            mainScaffoldKey.currentState?.switchTab(index);
+          },
+        ) : null,
+        floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       ),
     );
   }
@@ -1413,7 +1693,6 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
     final key = _stepKey(effectiveDishIndex, step.stepNumber);
     final remaining = _remainingSeconds[key];
     final isRunning = _runningTimers.containsKey(key);
-    final isOvertime = remaining != null && remaining <= 0;
     final isPaused =
         _pausedSteps[key] == true && remaining != null && remaining > 0;
     final isCompleted = _completedSteps.contains(key);
@@ -1438,7 +1717,7 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
       }
     }
 
-    // 烹饪模式才显示指针（当前步骤高亮）；View Steps 模式不显示
+    // 烹饪模式才显示指针（当前步骤高亮）；View Mode 模式不显示
     final showPointer = !widget.isViewMode;
     final isFocused = showPointer && _currentFocusedStepNumber == step.stepNumber;
 
@@ -1502,7 +1781,7 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 烹饪模式：当前步骤左侧显示箭头；View Steps 不显示
+            // 烹饪模式：当前步骤左侧显示箭头；View Mode 不显示
             if (showPointer)
               SizedBox(
                 width: 24,
@@ -2400,4 +2679,66 @@ class _SketchyArrowPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+/// 语音声波动画组件 - 真实分贝感应版
+class _VoiceWaveform extends StatelessWidget {
+  final bool isListening;
+  final double soundLevel; // 真实音量分贝
+  final Color color;
+
+  const _VoiceWaveform({
+    required this.isListening,
+    required this.soundLevel,
+    this.color = Colors.redAccent,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const int barCount = 7;
+    
+    // 将插件返回的 soundLevel (一般是 -2 到 10) 映射到 0.0 - 1.0 的比例
+    // 基础补偿，确保有微弱跳动
+    final double normalizedLevel = isListening 
+        ? ((soundLevel + 2) / 12).clamp(0.05, 1.0)
+        : 0.0;
+
+    return Container(
+      height: 28,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: List.generate(
+          barCount,
+          (index) {
+            // 为不同位置的条设置不同的灵敏度权重，形成中间高两边低的波浪感
+            final double weight = 1.0 - ((index - (barCount - 1) / 2).abs() / (barCount / 2));
+            final double heightScale = normalizedLevel * weight;
+            
+            // 基础高度 4，最大跳动高度 24
+            final double height = 4 + (24 * heightScale);
+            
+            return AnimatedContainer(
+              duration: const Duration(milliseconds: 80), // 极短的延迟实现灵敏响应
+              width: 3,
+              height: height,
+              margin: const EdgeInsets.symmetric(horizontal: 1.5),
+              decoration: BoxDecoration(
+                color: isListening 
+                    ? color.withOpacity(0.6 + 0.4 * heightScale) 
+                    : color.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(2),
+                boxShadow: isListening && heightScale > 0.3 ? [
+                  BoxShadow(
+                    color: color.withOpacity(0.3),
+                    blurRadius: 4,
+                  )
+                ] : null,
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
 }
