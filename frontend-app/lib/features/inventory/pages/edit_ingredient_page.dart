@@ -230,9 +230,8 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
     super.dispose();
   }
 
-  /// 根据匹配到的标准食材名称显示图标，无匹配时显示 emoji 占位
+  /// 根据匹配到的标准食材名称显示图标，无匹配时用 imagePlaceholder（资源路径或 emoji）
   Widget _buildIngredientIcon() {
-    // 先按原名查，再按「空格→连字符」规范化查（兼容 API 返回 "Bok Choy" 而 config 为 "Bok-Choy"）
     final path = getIngredientIconPath(_matchedStandardName) ??
         getIngredientIconPath(_matchedStandardName?.replaceAll(' ', '-'));
     if (path != null) {
@@ -243,17 +242,28 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
           width: 120,
           height: 120,
           fit: BoxFit.contain,
-          errorBuilder: (_, __, ___) => Text(
-            widget.ingredient.imagePlaceholder,
-            style: const TextStyle(fontSize: 60),
-          ),
+          errorBuilder: (_, __, ___) => _iconFallback(),
         ),
       );
     }
-    return Text(
-      widget.ingredient.imagePlaceholder,
-      style: const TextStyle(fontSize: 60),
-    );
+    return _iconFallback();
+  }
+
+  Widget _iconFallback() {
+    final ph = widget.ingredient.imagePlaceholder;
+    if (ph.startsWith('assets/')) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Image.asset(
+          ph,
+          width: 120,
+          height: 120,
+          fit: BoxFit.contain,
+          errorBuilder: (_, __, ___) => Text(ph, style: const TextStyle(fontSize: 24)),
+        ),
+      );
+    }
+    return Text(ph, style: const TextStyle(fontSize: 60));
   }
 
   // 日期选择器逻辑

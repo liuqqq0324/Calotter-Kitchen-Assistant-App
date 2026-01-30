@@ -1,9 +1,10 @@
 // lib/core/config/ingredient_icon_config.dart
 //
-// 标准食材名称 -> 图标资源路径
-// 与后端 init-standard-libraries.sql 中 ref_standard_ingredients 的 name/category 对应，
+// 标准食材名称 -> 图标资源路径。标准食材集合必须与后端 init-standard-libraries.sql 中
+// ref_standard_ingredients 的 name/category 一一对应（140 条）；YOLO 可识别名称与
+// frontend-app/assets/models/label.txt、yolo_labels_config.dart 一致（83 类）。
 // 资源文件位于 frontend-app/assets/icons/{CATEGORY}/{filename}.png
-// 当前端或资源文件名与标准名不一致时，在 [_assetFileNameOverrides] 中单独映射。
+// 资源文件名与标准名不一致时，在 [_assetFileNameOverrides] 中映射（如 Courgette -> Zucchini.png）。
 
 const String _iconsBase = 'assets/icons';
 
@@ -58,7 +59,7 @@ const Map<String, String> _standardNameToCategory = {
   'Cauliflower': 'VEG',
   'Celery': 'VEG',
   'Corn': 'VEG',
-  'Zucchini': 'VEG',
+  'Courgette': 'VEG',
   'Cucumber': 'VEG',
   'Eggplant': 'VEG',
   'Garlic': 'VEG',
@@ -67,7 +68,7 @@ const Map<String, String> _standardNameToCategory = {
   'Kale': 'VEG',
   'Leek': 'VEG',
   'Lettuce': 'VEG',
-  'Mushroom': 'VEG',
+  'White_Button_Mushroom': 'VEG',
   'Onion': 'VEG',
   'Parsnip': 'VEG',
   'Potato': 'VEG',
@@ -103,7 +104,7 @@ const Map<String, String> _standardNameToCategory = {
   'Chicken-Whole': 'MEAT',
   'Chicken-Wing': 'MEAT',
   'Crab': 'MEAT',
-  'Eggs': 'MEAT',
+  'Egg': 'MEAT',
   'Lamb': 'MEAT',
   'Minced-Meat': 'MEAT',
   'Mussels': 'MEAT',
@@ -161,22 +162,22 @@ const Map<String, String> _standardNameToCategory = {
 };
 
 /// 标准名称 -> 资源文件名（仅当与标准名不一致时填写，如拼写/资源命名差异）
-/// 注意：资源文件名已更正为标准名称，此映射暂时为空
 const Map<String, String> _assetFileNameOverrides = {
-  // 所有资源文件名已与标准名称一致，无需特殊映射
+  'Courgette': 'Zucchini.png',
+  'Egg': 'Eggs.png',
+  'White_Button_Mushroom': 'Mushroom.png',
 };
 
 /// 根据标准食材名称获取图标资源路径；无对应资源时返回 null。
-/// [standardIngredientName] 应与后端 ref_standard_ingredients.name 一致（如 "Chicken-Whole"）。
+/// [standardIngredientName] 可与后端/模型一致（如 "Chicken-Whole" 或 "Chicken Whole"），内部会按连字符形式查找。
 String? getIngredientIconPath(String? standardIngredientName) {
   if (standardIngredientName == null || standardIngredientName.isEmpty) {
     return null;
   }
-  final category = _standardNameToCategory[standardIngredientName];
+  final key = standardIngredientName.replaceAll(' ', '-').trim();
+  final category = _standardNameToCategory[key];
   if (category == null) return null;
-  final fileName =
-      _assetFileNameOverrides[standardIngredientName] ??
-      '$standardIngredientName.png';
+  final fileName = _assetFileNameOverrides[key] ?? '$key.png';
   return '$_iconsBase/$category/$fileName';
 }
 

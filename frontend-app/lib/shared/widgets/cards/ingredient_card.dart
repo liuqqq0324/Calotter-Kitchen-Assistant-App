@@ -58,6 +58,18 @@ class IngredientCard extends StatelessWidget {
   }
 
   Widget _emojiPlaceholder() {
+    if (item.imagePlaceholder.startsWith('assets/')) {
+      return Image.asset(
+        item.imagePlaceholder,
+        width: 56,
+        height: 56,
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) => Text(
+          '\u{1F9EA}',
+          style: const TextStyle(fontSize: 28),
+        ),
+      );
+    }
     return Text(
       item.imagePlaceholder,
       style: const TextStyle(fontSize: 28),

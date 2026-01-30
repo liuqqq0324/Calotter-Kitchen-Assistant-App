@@ -46,9 +46,8 @@ dependencies:
   http: ^1.2.2
   shared_preferences: ^2.5.4
 
-  # ONNX Runtime for Flutter (YOLO image recognition)
-  # 使用微软官方库，完全离线本地推理，无需联网
-  onnxruntime: ^1.4.1
+  # TFLite + flutter_vision (YOLO 图像识别，避开 ONNX IR 版本问题)
+  flutter_vision: ^1.1.4
 
   image_picker: ^1.0.4
   image: ^4.7.2 
@@ -128,8 +127,8 @@ flutter:
     - assets/fonts/
     - assets/fonts/caveat/
     - assets/models/
-    # ONNX 模型文件（YOLO 图像识别）- 77 个类别，输出 81 通道
-    - assets/models/best.onnx
+    - assets/models/yolo.tflite
+    - assets/models/label.txt
   fonts:
     - family: Caveat
       fonts:
