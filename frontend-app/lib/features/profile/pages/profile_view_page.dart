@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:personal_sous_chef/core/theme/fallback_google_fonts.dart';
 import 'settings_page.dart';
@@ -10,8 +11,16 @@ import '../../../shared/widgets/common/sketchy_button.dart';
 import '../../../shared/widgets/common/sketchy_border.dart';
 import '../../../shared/widgets/common/passport_page_view.dart';
 import '../../../shared/widgets/common/otter_approved_stamp.dart';
+import '../../../shared/widgets/common/programmatic_sketchy_card.dart';
 import '../../../services/business/user_service.dart';
 import '../../household/pages/household_manage_page.dart';
+
+/// 胶带样式枚举
+enum TapeStyle {
+  standard, // 标准样式（水平线条）
+  dots, // 波点样式
+  stripes, // 条纹样式
+}
 
 // Modified by Chase: Changed to StatefulWidget to support refresh after edit / 由 Chase 修改：改为 StatefulWidget 以支持编辑后刷新
 class ProfileViewPage extends StatefulWidget {
@@ -442,66 +451,98 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
   }
 
   Widget _buildGoalTypeSelector() {
+    // 三张不同长短、略微倾斜的小纸条 - 竖向排版
     return Column(
+      mainAxisAlignment: MainAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildGoalTypeOption('MAINTENANCE', 'Maintain Health', Colors.green),
-        const SizedBox(height: 10),
-        _buildGoalTypeOption('LOSE_FAT', 'Lose Weight', Colors.orange),
-        const SizedBox(height: 10),
-        _buildGoalTypeOption('MUSCLE_GAIN', 'Build Muscle', Colors.blue),
+        // Maintain - 中等长度
+        _buildGoalTypeNote(
+          'MAINTENANCE',
+          'Maintain Health',
+          rotation: 0.02, // 轻微向右倾斜
+          widthFactor: 1.0, // 基准宽度
+        ),
+        const SizedBox(height: 12),
+        // Lose - 最短
+        _buildGoalTypeNote(
+          'LOSE_FAT',
+          'Lose Weight',
+          rotation: -0.015, // 轻微向左倾斜
+          widthFactor: 0.7, // 更短
+        ),
+        const SizedBox(height: 12),
+        // Build - 最长
+        _buildGoalTypeNote(
+          'MUSCLE_GAIN',
+          'Build Muscle',
+          rotation: 0.01, // 轻微向右倾斜
+          widthFactor: 1.2, // 更长
+        ),
       ],
     );
   }
 
-  Widget _buildGoalTypeOption(String value, String label, Color color) {
+  Widget _buildGoalTypeNote(
+    String value,
+    String label, {
+    double rotation = 0.0,
+    double widthFactor = 1.0,
+  }) {
     final isSelected = _selectedGoalType == value;
-    return SketchyCard(
-      // ✅ 统一风格：与出生日期颜色一致的边框
-      backgroundColor: isSelected ? color.withOpacity(0.10) : Colors.white,
-      borderColor: const Color(0xFF6B4F4F), // River Deep Brown - 与出生日期一致
-      borderWidth: 2.0,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    return GestureDetector(
       onTap: () {
         setState(() {
           _selectedGoalType = value;
         });
       },
-      child: Row(
-        children: [
-          Container(
-            width: 24, // 增大单选框从 20 到 24
-            height: 24,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: isSelected ? color : Colors.transparent,
-              border: Border.all(
-                color: isSelected ? color : Colors.grey.shade500,
-                width: 2.5,
+      child: Transform.rotate(
+        angle: rotation, // 轻微旋转，更自然
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            // 竖向排版时，宽度基于父容器，高度根据 widthFactor 调整
+            final width = constraints.maxWidth;
+            final height = 50.0 + (widthFactor - 1.0) * 20.0; // 基础高度 50，根据 widthFactor 调整
+            
+            return Container(
+              width: width,
+              height: height,
+              child: Stack(
+                children: [
+                  // 背景：撕裂纸条效果
+                  CustomPaint(
+                    size: Size(width, height),
+                    painter: _TornPaperNotePainter(
+                      isSelected: isSelected,
+                      label: label,
+                      seed: value.hashCode, // 使用 value 作为种子，确保每个纸条的毛边不同
+                    ),
+                  ),
+                  // 文字内容
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Text(
+                        label,
+                        style: GoogleFonts.kalam(
+                          fontSize: 15,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                          color: isSelected
+                              ? const Color(0xFF6B4F4F) // 选中时：深棕色文字
+                              : const Color(0xFF6B4F4F).withOpacity(0.8), // 未选中时：稍浅
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ),
-            child: isSelected
-                ? const Icon(Icons.check, size: 16, color: Colors.white) // 增大 Check 图标从 14 到 16
-                : null,
-          ),
-          const SizedBox(width: 14), // 增大间距从 12 到 14
-          Expanded(
-            child: Text(
-              label,
-              style: GoogleFonts.kalam(
-                fontSize: 18, // 调大字体从 15 到 18
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected
-                    ? color
-                    : const Color(
-                        0xFF6B4F4F,
-                      ), // River Deep Brown - 与 Profile 页面一致
-              ),
-            ),
-          ),
-        ],
+            );
+          },
+        ),
       ),
     );
   }
+
 
   String _formatBmi(dynamic bmi) {
     if (bmi == null) {
@@ -537,65 +578,119 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
     }
   }
 
+  // 获取 BMI 状态文本和颜色
+  Map<String, dynamic> _getBmiStatus(dynamic bmi) {
+    if (bmi == null) {
+      return {'status': '--', 'color': Colors.grey};
+    }
+
+    double bmiValue;
+    try {
+      if (bmi is num) {
+        bmiValue = bmi.toDouble();
+      } else if (bmi is String) {
+        final cleaned = bmi.trim().replaceAll('"', '').replaceAll("'", '');
+        bmiValue = double.parse(cleaned);
+      } else {
+        bmiValue = double.parse(bmi.toString().trim());
+      }
+    } catch (e) {
+      return {'status': '--', 'color': Colors.grey};
+    }
+
+    if (bmiValue < 18.5) {
+      return {'status': 'Underweight', 'color': Colors.blue};
+    } else if (bmiValue < 25) {
+      return {'status': 'Normal', 'color': Colors.green};
+    } else if (bmiValue < 30) {
+      return {'status': 'Overweight', 'color': Colors.orange};
+    } else {
+      return {'status': 'Obese', 'color': Colors.red};
+    }
+  }
+
   Widget _buildNutritionTargets() {
     final dailyEnergy = _healthInfo?['dailyEnergy'] as num?;
     final dailyProtein = _healthInfo?['dailyProtein'] as num?;
     final dailyFat = _healthInfo?['dailyFat'] as num?;
     final dailyCarbohydrates = _healthInfo?['dailyCarbohydrates'] as num?;
-    final dailyFiber = _healthInfo?['dailyFiber'] as num?;
 
     // 如果没有任何营养数据，不显示
     if (dailyEnergy == null &&
         dailyProtein == null &&
         dailyFat == null &&
-        dailyCarbohydrates == null &&
-        dailyFiber == null) {
+        dailyCarbohydrates == null) {
       return const SizedBox.shrink();
     }
 
-    final items = <Widget>[
+    // 卡片配置：纵向堆叠，左右交替，产生重叠效果
+    // 层叠顺序：Energy (最下层) < Protein < Fat < Carbs (最上层)
+    final cardConfigs = <Map<String, dynamic>>[
       if (dailyEnergy != null)
-        _buildNutritionStatCard(
-          icon: Icons.local_fire_department,
-          label: 'Energy',
-          valueText: '${dailyEnergy.toInt()} kcal',
-          accent: const Color(0xFFF0B27A), // Appetite Orange - 与 homepage 一致
-          labelColor: const Color(
-            0xFF6B4F4F,
-          ), // River Deep Brown - 与 homepage 一致
-          valueColor: const Color(
-            0xFF6B4F4F,
-          ).withOpacity(0.8), // River Deep Brown - 与 homepage 一致
-        ),
+        {
+          'icon': Icons.local_fire_department,
+          'label': 'Energy',
+          'valueText': '${dailyEnergy.toInt()} kcal',
+          'accent': const Color(0xFFF0B27A),
+          'rotation': -5.0 * math.pi / 180, // -5度转弧度
+          'alignSelf': 'flex-start', // align-self: flex-start
+          'marginLeft': 0.05, // margin-left: 5% (相对于容器)
+          'marginTop': 0.0,
+          'marginRight': 0.0,
+          'tapeStyle': TapeStyle.standard,
+          'zIndex': 1, // 最下层
+        },
       if (dailyProtein != null)
-        _buildNutritionStatCard(
-          icon: Icons.fitness_center,
-          label: 'Protein',
-          valueText: '${dailyProtein.toInt()} g',
-          accent: Colors.blue,
-        ),
+        {
+          'icon': Icons.fitness_center,
+          'label': 'Protein',
+          'valueText': '${dailyProtein.toInt()} g',
+          'accent': Colors.blue,
+          'rotation': 4.0 * math.pi / 180, // 4度转弧度
+          'alignSelf': 'flex-end', // align-self: flex-end
+          'marginLeft': 0.0,
+          'marginTop': -60.0, // margin-top: -60px
+          'marginRight': 0.05, // margin-right: 5% (相对于容器)
+          'tapeStyle': TapeStyle.dots,
+          'zIndex': 2,
+        },
       if (dailyFat != null)
-        _buildNutritionStatCard(
-          icon: Icons.water_drop,
-          label: 'Fat',
-          valueText: '${dailyFat.toInt()} g',
-          accent: Colors.amber,
-        ),
+        {
+          'icon': Icons.water_drop,
+          'label': 'Fat',
+          'valueText': '${dailyFat.toInt()} g',
+          'accent': Colors.amber,
+          'rotation': -2.0 * math.pi / 180, // -2度转弧度
+          'alignSelf': 'flex-start', // align-self: flex-start
+          'marginLeft': 0.08, // margin-left: 8% (相对于容器)
+          'marginTop': -50.0, // margin-top: -50px
+          'marginRight': 0.0,
+          'tapeStyle': TapeStyle.stripes,
+          'zIndex': 3,
+        },
       if (dailyCarbohydrates != null)
-        _buildNutritionStatCard(
-          icon: Icons.eco,
-          label: 'Carbs',
-          valueText: '${dailyCarbohydrates.toInt()} g',
-          accent: Colors.green,
-        ),
-      if (dailyFiber != null)
-        _buildNutritionStatCard(
-          icon: Icons.agriculture,
-          label: 'Fiber',
-          valueText: '${dailyFiber.toInt()} g',
-          accent: Colors.brown,
-        ),
+        {
+          'icon': Icons.eco,
+          'label': 'Carbs',
+          'valueText': '${dailyCarbohydrates.toInt()} g',
+          'accent': Colors.green,
+          'rotation': 6.0 * math.pi / 180, // 6度转弧度
+          'alignSelf': 'flex-end', // align-self: flex-end
+          'marginLeft': 0.0,
+          'marginTop': -55.0, // margin-top: -55px
+          'marginRight': 0.08, // margin-right: 8% (相对于容器)
+          'tapeStyle': TapeStyle.standard,
+          'zIndex': 4, // 最上层
+        },
     ];
+
+    // 按 zIndex 排序，确保正确的层叠顺序（z-index 高的在后面，会覆盖前面的）
+    cardConfigs.sort((a, b) => (a['zIndex'] as int).compareTo(b['zIndex'] as int));
+
+    // 计算容器和卡片宽度
+    final screenWidth = MediaQuery.of(context).size.width;
+    final containerWidth = screenWidth; // 容器宽度为屏幕的85%
+    final cardWidth = containerWidth * 0.1; // 缩小卡片宽度为容器的55%（从67%减小）
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -605,20 +700,79 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
           style: GoogleFonts.kalam(
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: const Color(0xFF6B4F4F), // River Deep Brown - 与 Profile 页面一致
+            color: const Color(0xFF6B4F4F),
           ),
         ),
         const SizedBox(height: 12),
-        GridView.count(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: 2,
-          mainAxisSpacing: 12,
-          crossAxisSpacing: 12,
-          // ✅ 修复：减小 childAspectRatio 以增加每个 item 的高度，避免溢出
-          // childAspectRatio = width / height，值越小，高度越大
-          childAspectRatio: 1.5, // 从 1.8 改为 1.5，进一步增加高度以适应大字体
-          children: items,
+        // 容器：使用 flex column，align-items: center
+        Center(
+          child: SizedBox(
+            width: containerWidth,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center, // align-items: center
+              children: [
+                // 使用 Stack 实现 z-index 层叠，但用 Column 的布局逻辑
+                SizedBox(
+                  height: 250, // 设置固定高度，确保卡片可见
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: cardConfigs.asMap().entries.map((entry) {
+                      final index = entry.key;
+                      final config = entry.value;
+                      final zIndex = config['zIndex'] as int;
+                      final alignSelf = config['alignSelf'] as String;
+                      final marginLeft = config['marginLeft'] as double;
+                      final marginRight = config['marginRight'] as double;
+                      final marginTop = config['marginTop'] as double;
+                      
+                      // 计算累计的垂直位置
+                      double cumulativeTop = 0.0;
+                      for (var i = 0; i < index; i++) {
+                        final prevConfig = cardConfigs[i];
+                        final prevMarginTop = prevConfig['marginTop'] as double;
+                        cumulativeTop += 60.0; // 假设每张卡片高度约60px
+                        cumulativeTop += prevMarginTop; // 加上负的 marginTop
+                      }
+                      cumulativeTop += marginTop; // 加上当前卡片的 marginTop
+                      
+                      // 计算水平位置（基于 alignSelf 和 margin）
+                      double left = 0.0;
+                      if (alignSelf == 'flex-start') {
+                        left = containerWidth * marginLeft; // margin-left 相对于容器
+                      } else if (alignSelf == 'flex-end') {
+                        left = containerWidth - cardWidth - (containerWidth * marginRight); // margin-right 相对于容器
+                      } else {
+                        // center
+                        left = (containerWidth - cardWidth) / 2;
+                      }
+                      
+                      // 构建卡片，应用旋转和阴影
+                      Widget card = Transform.rotate(
+                        angle: config['rotation'] as double,
+                        child: _buildNutritionStatCard(
+                          icon: config['icon'] as IconData,
+                          label: config['label'] as String,
+                          valueText: config['valueText'] as String,
+                          accent: config['accent'] as Color,
+                          rotation: 0.0, // 旋转已在 Transform.rotate 中处理
+                          tapeStyle: config['tapeStyle'] as TapeStyle,
+                          width: cardWidth,
+                          zIndex: zIndex, // 传递 zIndex 用于阴影
+                        ),
+                      );
+                      
+                      // 使用 Positioned 实现绝对定位
+                      return Positioned(
+                        left: left,
+                        top: cumulativeTop,
+                        child: card,
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ],
     );
@@ -803,6 +957,111 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
     );
   }
 
+  /// 创建带胶带效果的手绘风格卡片
+  Widget _buildTapedCard({
+    required Widget child,
+    double? width,
+    double rotation = 0.0, // 卡片旋转角度（弧度）
+    TapeStyle tapeStyle = TapeStyle.standard, // 胶带样式
+  }) {
+    return Transform.rotate(
+      angle: rotation, // 微小随机旋转
+      child: Stack(
+        alignment: Alignment.topCenter,
+        clipBehavior: Clip.none, // 允许胶带超出卡片边界
+        children: [
+          // 1. 背景层：手绘纸张容器
+          Container(
+            width: width ?? double.infinity,
+            margin: const EdgeInsets.only(top: 14), // 为胶带留出空间
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: ShapeDecoration(
+              color: const Color(0xFFFFFFF0), // 米白色/奶油色
+              shape: const SketchyRectBorder(
+                borderWidth: 1.0,
+                wobbleAmount: 2.5,
+                seed: 42, // 固定种子确保一致性
+              ),
+              shadows: [
+                // 向右下偏移、带有模糊感的淡褐色阴影
+                BoxShadow(
+                  color: const Color(0xFF8B7355).withOpacity(0.25), // 淡褐色
+                  blurRadius: 8,
+                  offset: const Offset(3, 4), // 向右下偏移
+                  spreadRadius: 0.5,
+                ),
+              ],
+            ),
+            child: child,
+          ),
+
+          // 2. 胶带层：程序化胶带效果（多样化）
+          _buildTape(tapeStyle: tapeStyle),
+        ],
+      ),
+    );
+  }
+
+  /// 构建胶带（支持不同样式）
+  Widget _buildTape({required TapeStyle tapeStyle}) {
+    // 根据样式设置不同的参数
+    double tapeAngle;
+    double tapeWidth;
+    int seed;
+
+    switch (tapeStyle) {
+      case TapeStyle.standard:
+        tapeAngle = -0.05;
+        tapeWidth = 85;
+        seed = 42;
+        break;
+      case TapeStyle.dots:
+        tapeAngle = 0.03; // 稍微向右倾斜
+        tapeWidth = 75; // 稍短
+        seed = 123;
+        break;
+      case TapeStyle.stripes:
+        tapeAngle = -0.08; // 稍微向左倾斜
+        tapeWidth = 95; // 稍长
+        seed = 456;
+        break;
+    }
+
+    return Positioned(
+      top: 4, // 胶带位置稍微在卡片上方
+      child: Transform.rotate(
+        angle: tapeAngle,
+        child: Container(
+          width: tapeWidth,
+          height: 18,
+          decoration: BoxDecoration(
+            // 半透明黄白色胶带颜色
+            color: const Color(0xFFFFF8DC).withOpacity(0.4),
+            borderRadius: BorderRadius.circular(2),
+            // 添加细微边框使其更像胶带
+            border: Border.all(
+              color: const Color(0xFFD4AF37).withOpacity(0.3),
+              width: 0.5,
+            ),
+            // 添加细微阴影使胶带突出
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 2,
+                offset: const Offset(0, 1),
+              ),
+            ],
+          ),
+          // 根据样式添加不同的纹理
+          child: CustomPaint(
+            painter: _ProfileTapeTexturePainter(style: tapeStyle, seed: seed),
+          ),
+        ),
+      ),
+    );
+  }
+
+
   Widget _buildNutritionStatCard({
     required IconData icon,
     required String label,
@@ -810,15 +1069,16 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
     required Color accent,
     Color? labelColor,
     Color? valueColor,
+    double rotation = 0.0,
+    TapeStyle tapeStyle = TapeStyle.standard,
+    double? width, // 新增：指定卡片宽度
+    int zIndex = 1, // 新增：z-index，用于调整阴影深度
   }) {
-    return SketchyCard(
-      backgroundColor: Colors.white,
-      borderColor: const Color(0xFF6B4F4F), // River Deep Brown - 与出生日期一致
-      borderWidth: 2.0,
-      padding: const EdgeInsets.all(12), // 恢复并稍微增大 padding
+    final cardContent = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       child: Row(
         children: [
-          Icon(icon, size: 24, color: accent), // 增大图标
+          Icon(icon, size: 20, color: accent),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -829,20 +1089,20 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                 Text(
                   label,
                   style: GoogleFonts.kalam(
-                    fontSize: 14, // 增大字体从 11 到 14
-                    fontWeight: FontWeight.bold,
-                    color: labelColor ?? Colors.grey[800],
+                    fontSize: 16, // 增大字体（从12改为16）
+                    fontWeight: FontWeight.bold, // 加粗（从w500改为bold）
+                    color: labelColor ?? const Color(0xFF6B4F4F).withOpacity(0.8),
                   ),
                   overflow: TextOverflow.ellipsis,
                   maxLines: 1,
                 ),
-                const SizedBox(height: 4), // 增大间距从 1 到 4
+                const SizedBox(height: 4),
                 Text(
                   valueText,
-                  style: GoogleFonts.kalam(
-                    fontSize: 16, // 增大字体从 12 到 16
-                    fontWeight: FontWeight.bold,
-                    color: valueColor ?? accent,
+                  style: GoogleFonts.caveat(
+                    fontSize: 22, // 增大字体（从18改为22）
+                    fontWeight: FontWeight.bold, // 保持加粗
+                    color: valueColor ?? const Color(0xFF6B4F4F),
                   ),
                   overflow: TextOverflow.ellipsis,
                   maxLines: 1,
@@ -851,6 +1111,55 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
             ),
           ),
         ],
+      ),
+    );
+
+    // 使用 Sticky2.png 作为背景图片，替代原来的胶带卡片
+    // 根据 zIndex 调整阴影深度：下层浅，上层深
+    final shadowOpacity = 0.15 + (zIndex - 1) * 0.05; // zIndex 1: 0.15, 2: 0.20, 3: 0.25, 4: 0.30
+    final shadowBlur = 4.0 + (zIndex - 1) * 2.0; // zIndex 1: 4, 2: 6, 3: 8, 4: 10
+    final shadowOffset = Offset(2.0 + (zIndex - 1) * 1.0, 3.0 + (zIndex - 1) * 1.5); // 上层阴影更明显
+    
+    return Transform.rotate(
+      angle: rotation, // 应用旋转角度
+      child: Container(
+        width: width,
+        decoration: BoxDecoration(
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF6B4F4F).withOpacity(shadowOpacity),
+              blurRadius: shadowBlur,
+              offset: shadowOffset,
+              spreadRadius: 0.5,
+            ),
+          ],
+        ),
+        child: Stack(
+          children: [
+            // 背景图片：Sticky2.png
+            Image.asset(
+              'assets/profile_passport/Sticky2.png',
+              width: width,
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) {
+                // 如果图片加载失败，使用原来的卡片样式作为后备
+                return _buildTapedCard(
+                  child: cardContent,
+                  rotation: 0.0,
+                  tapeStyle: tapeStyle,
+                  width: width,
+                );
+              },
+            ),
+            // 内容层：显示图标和文字
+            Positioned.fill(
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: cardContent,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -901,11 +1210,12 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
 
     return RefreshIndicator(
       onRefresh: _loadUserData,
-      child: Stack(
-        children: [
-          // 内容区域
-          SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
+      child: SizedBox.expand(
+        child: Stack(
+          children: [
+            // 内容区域
+            SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.symmetric(
               horizontal: 16.0,
               vertical: 20.0,
@@ -1116,196 +1426,199 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                 const SizedBox(height: 80), // 增加间距，避免与印章重叠
               ],
             ),
-          ), // SingleChildScrollView 结束，需要逗号因为后面还有元素
-          // 参考图元素：精准裁剪的红色爪印 + 代码生成的艺术字印章（半透明，不挡信息）
-          Positioned(
-            top: 182,
-            right: -4,
-            child: IgnorePointer(
-              child: Opacity(
-                opacity: 0.38,
-                child: Image.asset(
-                  'assets/profile_passport/paw.png',
-                  width: 160,
-                  fit: BoxFit.contain,
+            ), // SingleChildScrollView 结束，需要逗号因为后面还有元素
+            // 参考图元素：精准裁剪的红色爪印 + 代码生成的艺术字印章（半透明，不挡信息）
+            Positioned(
+              top: 182,
+              right: -4,
+              child: IgnorePointer(
+                child: Opacity(
+                  opacity: 0.38,
+                  child: Image.asset(
+                    'assets/profile_passport/paw.png',
+                    width: 160,
+                    fit: BoxFit.contain,
+                  ),
                 ),
               ),
             ),
-          ),
-          Positioned(
-            top: 320,
-            right: -18,
-            child: IgnorePointer(
-              child: OtterApprovedStamp(
-                width: 240,
-                opacity: 0.52,
-                rotation: -0.20,
+            Positioned(
+              top: 320,
+              right: -18,
+              child: IgnorePointer(
+                child: OtterApprovedStamp(
+                  width: 240,
+                  opacity: 0.52,
+                  rotation: -0.20,
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  // Build Health Page (Page 1)
+  // Build Health Dashboard Page (Page 1) - 融合了 Health 和 Nutrition 页面
   Widget _buildHealthPage(BuildContext context) {
     final user = _getUserProfile();
 
     return RefreshIndicator(
       onRefresh: _loadUserData,
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      child: SizedBox.expand(
+        child: Stack(
           children: [
-            _sectionTitle('Health'),
-            // BMI显示
-            Builder(
-              builder: (context) {
-                dynamic bmiValue = _healthInfo?['bmi'];
-                if (bmiValue == null &&
-                    user.height.isNotEmpty &&
-                    user.weight.isNotEmpty) {
-                  try {
-                    final height = double.tryParse(
-                      user.height.replaceAll(' cm', '').trim(),
-                    );
-                    final weight = double.tryParse(
-                      user.weight.replaceAll(' kg', '').trim(),
-                    );
-                    if (height != null && weight != null && height > 0) {
-                      final heightM = height / 100.0;
-                      bmiValue = weight / (heightM * heightM);
-                    }
-                  } catch (e) {
-                    // Ignore
-                  }
-                }
-
-                return SketchyBorder(
-                  borderColor: const Color(
-                    0xFF6B4F4F,
-                  ), // River Deep Brown - 与出生日期一致
-                  borderWidth: 2.0,
-                  borderRadius: 12,
-                  roughness: 2.0,
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.shade50,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'BMI',
+            SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 核心区：Daily Nutrition Targets
+                  if (_healthInfo != null &&
+                      (_healthInfo!['dailyEnergy'] != null ||
+                          _healthInfo!['dailyProtein'] != null ||
+                          _healthInfo!['dailyFat'] != null ||
+                          _healthInfo!['dailyCarbohydrates'] != null))
+                    _buildNutritionTargets()
+                  else
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Text(
+                          'Set a health goal to see nutrition targets',
                           style: GoogleFonts.kalam(
-                            fontSize: 14, // 调大从 12 到 14，与营养卡片标签一致
-                            fontWeight: FontWeight.bold,
-                            color: const Color(
-                              0xFF6B4F4F,
-                            ), // River Deep Brown - 与 Profile 页面一致
+                            fontSize: 14,
+                            color: const Color(0xFF6B4F4F).withOpacity(0.8),
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          _formatBmi(bmiValue),
-                          style: GoogleFonts.caveat(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF6B4F4F).withOpacity(
-                              0.8,
-                            ), // River Deep Brown - 与 Profile 页面一致
+                      ),
+                    ),
+                  const SizedBox(height: 24),
+                  // Health Goal 部分 - 使用图片作为背景，上面显示内容
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: SizedBox(
+                      width: 220, // 与图片宽度一致
+                      child: Stack(
+                        children: [
+                          // 背景图片
+                          Image.asset(
+                            'assets/images/health goal.png',
+                            width: 220,
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) {
+                              print('Error loading health goal image: $error');
+                              return Container(
+                                width: 220,
+                                height: 300,
+                                color: Colors.red.withOpacity(0.3),
+                                child: Center(
+                                  child: Text(
+                                    'Image not found',
+                                    style: GoogleFonts.kalam(fontSize: 12),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              );
+                            },
                           ),
-                        ),
-                      ],
+                          // 内容层：Health Goal 标题、选择器和保存按钮
+                          Positioned.fill(
+                            child: Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  // Health Goal 标题
+                                  Center(
+                                    child: Text(
+                                      'Health Goal',
+                                      style: GoogleFonts.kalam(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: const Color(0xFF6B4F4F),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  // 目标选择器
+                                  _buildGoalTypeSelector(),
+                                  const SizedBox(height: 16),
+                                  // Save Goal 按钮
+                                  Center(
+                                    child: _isSavingGoal
+                                        ? const CircularProgressIndicator()
+                                        : SketchyButton(
+                                            text: 'Save Goal',
+                                            fontSize: 18,
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 50,
+                                              vertical: 16,
+                                            ),
+                                            backgroundImage: 'assets/icons/seasonings.png',
+                                            borderColor: const Color(0xFF4CAF50),
+                                            textColor: const Color(0xFF6B4F4F),
+                                            onPressed: () {
+                                              _saveHealthGoal();
+                                            },
+                                          ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                );
-              },
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'Health Goal',
-              style: GoogleFonts.kalam(
-                fontSize: 20, // 调大标题从 16 到 20，与 Nutrition Targets 保持一致
-                fontWeight: FontWeight.bold,
-                color: const Color(
-                  0xFF6B4F4F,
-                ), // River Deep Brown - 与 Profile 页面一致
+                ],
               ),
             ),
-            const SizedBox(height: 12),
-            _buildGoalTypeSelector(),
-            const SizedBox(height: 16),
-            Center(
-              child: _isSavingGoal
-                  ? const CircularProgressIndicator()
-                  : SketchyButton(
-                      text: 'Save Goal',
-                      fontSize: 23, // 统一字体大小
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 70,
-                        vertical: 24,
-                      ), // 统一按钮大小，与 Settings/Invite 一致
-                      backgroundImage:
-                          'assets/icons/seasonings.png', // 使用 Seasonings 的绿色纹理
-                      borderColor: Colors.green.shade700,
-                      textColor: const Color(0xFF6B4F4F),
-                      onPressed: () {
-                        _saveHealthGoal();
-                      },
-                    ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+          // BMI 圆形印章 - 放在右上角，可以覆盖在卡片上
+          Builder(
+            builder: (context) {
+              dynamic bmiValue = _healthInfo?['bmi'];
+              if (bmiValue == null &&
+                  user.height.isNotEmpty &&
+                  user.weight.isNotEmpty) {
+                try {
+                  final height = double.tryParse(
+                    user.height.replaceAll(' cm', '').trim(),
+                  );
+                  final weight = double.tryParse(
+                    user.weight.replaceAll(' kg', '').trim(),
+                  );
+                  if (height != null && weight != null && height > 0) {
+                    final heightM = height / 100.0;
+                    bmiValue = weight / (heightM * heightM);
+                  }
+                } catch (e) {
+                  // Ignore
+                }
+              }
 
-  // Build Nutrition Page (Page 2)
-  Widget _buildNutritionPage(BuildContext context) {
-    return RefreshIndicator(
-      onRefresh: _loadUserData,
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _sectionTitle('Nutrition'),
-            if (_healthInfo != null &&
-                (_healthInfo!['dailyEnergy'] != null ||
-                    _healthInfo!['dailyProtein'] != null ||
-                    _healthInfo!['dailyFat'] != null ||
-                    _healthInfo!['dailyCarbohydrates'] != null ||
-                    _healthInfo!['dailyFiber'] != null))
-              _buildNutritionTargets()
-            else
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Text(
-                    'Set a health goal to see nutrition targets',
-                    style: GoogleFonts.kalam(
-                      fontSize: 14,
-                      color: const Color(
-                        0xFF6B4F4F,
-                      ).withOpacity(0.8), // River Deep Brown - 与 Profile 页面一致
-                    ),
-                  ),
+              final bmiStatus = _getBmiStatus(bmiValue);
+              final statusColor = bmiStatus['color'] as Color;
+              return Positioned(
+                top: 10, // 右上角
+                right: 10,
+                child: _BmiStamp(
+                  bmiValue: _formatBmi(bmiValue),
+                  status: bmiStatus['status'] as String,
+                  statusColor: statusColor,
                 ),
-              ),
+              );
+            },
+          ),
           ],
         ),
       ),
     );
   }
 
-  // Build Preferences Page (Page 3)
+  // Build Preferences Page (Page 2)
   Widget _buildPreferencesPage(BuildContext context) {
     return RefreshIndicator(
       onRefresh: _loadUserData,
@@ -1596,10 +1909,9 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
           pages: [
             _buildProfilePage(context),
             _buildHealthPage(context),
-            _buildNutritionPage(context),
             _buildPreferencesPage(context),
           ],
-          pageLabels: const ['Profile', 'Health', 'Nutrition', 'Preferences'],
+          pageLabels: const ['Profile', 'Health', 'Preferences'],
           initialPage: 0,
           shouldAnimateCover: widget.shouldAnimateCover, // 启用封面动画
         ),
@@ -1607,3 +1919,251 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
     );
   }
 }
+
+/// 撕裂纸条绘制器（用于 Health Goal 选择器）
+class _TornPaperNotePainter extends CustomPainter {
+  final bool isSelected;
+  final String label;
+  final int seed;
+
+  _TornPaperNotePainter({
+    required this.isSelected,
+    required this.label,
+    required this.seed,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final random = math.Random(seed);
+    
+    // 创建撕裂边缘路径（毛边效果）
+    final path = _createTornEdgePath(size, random);
+    
+    // 1. 绘制阴影
+    final shadowPaint = Paint()
+      ..color = const Color(0xFF6B4F4F).withOpacity(0.15)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
+    final shadowPath = Path();
+    shadowPath.addPath(path, const Offset(2, 3));
+    canvas.drawPath(shadowPath, shadowPaint);
+    
+    // 2. 绘制背景颜色
+    final bgColor = isSelected
+        ? const Color(0xFFE8F5E9) // 选中时：淡绿色便签纸
+        : Colors.white.withOpacity(0.6); // 未选中时：半透明白纸
+    
+    final bgPaint = Paint()
+      ..color = bgColor
+      ..style = PaintingStyle.fill;
+    canvas.drawPath(path, bgPaint);
+    
+    // 3. 绘制毛边边缘线
+    final edgePaint = Paint()
+      ..color = const Color(0xFF6B4F4F).withOpacity(isSelected ? 0.4 : 0.25)
+      ..strokeWidth = 1.0
+      ..style = PaintingStyle.stroke
+      ..strokeJoin = StrokeJoin.round
+      ..strokeCap = StrokeCap.round;
+    canvas.drawPath(path, edgePaint);
+  }
+  
+  Path _createTornEdgePath(Size size, math.Random random) {
+    final path = Path();
+    const double tearSize = 2.5; // 毛边效果大小
+    const double step = 4.0; // 步长，越小越精细
+    
+    // 顶部边缘 - 毛边效果
+    path.moveTo(0, 0);
+    for (double x = step; x < size.width; x += step) {
+      final noise = (random.nextDouble() * 2 - 1) * tearSize;
+      path.lineTo(x, noise.clamp(-tearSize, tearSize));
+    }
+    path.lineTo(size.width, 0);
+    
+    // 右侧边缘 - 毛边效果
+    for (double y = step; y < size.height; y += step) {
+      final noise = (random.nextDouble() * 2 - 1) * tearSize;
+      path.lineTo(size.width + noise.clamp(-tearSize, tearSize), y);
+    }
+    path.lineTo(size.width, size.height);
+    
+    // 底部边缘 - 毛边效果（更明显，像从笔记本撕下来的）
+    for (double x = size.width - step; x > 0; x -= step) {
+      final noise = (random.nextDouble() * 2 - 1) * tearSize * 1.2; // 底部毛边更明显
+      path.lineTo(x, size.height + noise.clamp(-tearSize * 1.2, tearSize * 1.2));
+    }
+    path.lineTo(0, size.height);
+    
+    // 左侧边缘 - 毛边效果
+    for (double y = size.height - step; y > 0; y -= step) {
+      final noise = (random.nextDouble() * 2 - 1) * tearSize;
+      path.lineTo(noise.clamp(-tearSize, tearSize), y);
+    }
+    
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+/// 胶带纹理绘制器（用于 Profile Health Page）- 支持多种样式
+class _ProfileTapeTexturePainter extends CustomPainter {
+  final TapeStyle style;
+  final int seed;
+
+  _ProfileTapeTexturePainter({
+    this.style = TapeStyle.standard,
+    this.seed = 42,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final random = math.Random(seed);
+    final paint = Paint()
+      ..color = const Color(0xFFD4AF37).withOpacity(0.15)
+      ..strokeWidth = 0.5
+      ..style = PaintingStyle.stroke;
+
+    switch (style) {
+      case TapeStyle.standard:
+        // 标准样式：水平线条
+        for (double y = 2; y < size.height; y += 3) {
+          canvas.drawLine(
+            Offset(0, y),
+            Offset(size.width, y),
+            paint,
+          );
+        }
+        break;
+      case TapeStyle.dots:
+        // 波点样式：小圆点
+        paint.style = PaintingStyle.fill;
+        for (double y = 3; y < size.height - 3; y += 4) {
+          for (double x = 3; x < size.width - 3; x += 4) {
+            if (random.nextDouble() > 0.3) { // 70% 的概率绘制点
+              canvas.drawCircle(
+                Offset(x, y),
+                1.0,
+                paint,
+              );
+            }
+          }
+        }
+        break;
+      case TapeStyle.stripes:
+        // 条纹样式：斜向条纹
+        paint.strokeWidth = 0.8;
+        for (double offset = -size.height; offset < size.width + size.height; offset += 4) {
+          canvas.drawLine(
+            Offset(offset, 0),
+            Offset(offset + size.height, size.height),
+            paint,
+          );
+        }
+        break;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+/// BMI 圆形复古印章组件
+class _BmiStamp extends StatelessWidget {
+  final String bmiValue;
+  final String status;
+  final Color statusColor;
+
+  const _BmiStamp({
+    required this.bmiValue,
+    required this.status,
+    required this.statusColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // 使用棕色系
+    final stampColor = const Color(0xFF6B4F4F); // 深棕色
+    final lightBrown = const Color(0xFF8B6F47); // 浅棕色
+
+    return Opacity(
+      opacity: 0.75, // 半透明效果，像印在纸上
+      child: Transform.rotate(
+        angle: -0.08, // 轻微倾斜，更自然
+        child: Container(
+          width: 130,
+          height: 130,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            // 双线边框，模拟印章效果
+            border: Border.all(
+              color: stampColor,
+              width: 3.0,
+            ),
+          ),
+          child: Stack(
+            children: [
+              // 内部圆形边框线
+              Positioned.fill(
+                child: Container(
+                  margin: const EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: stampColor,
+                      width: 2.0,
+                    ),
+                  ),
+                ),
+              ),
+              // 内容
+              Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // BMI 标签 - 顶部
+                    Text(
+                      'BMI',
+                      style: GoogleFonts.kalam(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: stampColor,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    // BMI 数值 - 中间
+                    Text(
+                      bmiValue,
+                      style: GoogleFonts.caveat(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: stampColor,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    // 状态标签 - 底部（简化显示）
+                    Text(
+                      status.length > 8 ? status.substring(0, 8) : status,
+                      style: GoogleFonts.kalam(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: lightBrown,
+                        letterSpacing: 0.5,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
