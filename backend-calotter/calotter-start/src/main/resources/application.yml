@@ -7,9 +7,15 @@ spring:
     username: postgres
     password: 123
     driver-class-name: org.postgresql.Driver
-  
+
+  # 方案 B：持久化流 - 表结构只更新不删除，data.sql 用 ON CONFLICT 防冲突
+  sql:
+    init:
+      mode: always
+
   jpa:
     hibernate:
+      # update: 保留数据，只更新表结构
       ddl-auto: update
     show-sql: true
     properties:

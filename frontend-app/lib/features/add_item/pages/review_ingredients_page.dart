@@ -1,9 +1,10 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:personal_sous_chef/core/config/yolo_labels_config.dart';
 import 'package:personal_sous_chef/data/models/ingredient.dart';
 import 'package:personal_sous_chef/shared/widgets/cards/ingredient_card.dart';
-import 'package:personal_sous_chef/features/inventory/pages/edit_ingredient_page.dart'; // 🔥 引入编辑页
-import 'package:personal_sous_chef/services/api/inventory_api_service.dart'; // 🔥 引入 API 服务
+import 'package:personal_sous_chef/features/inventory/pages/edit_ingredient_page.dart';
+import 'package:personal_sous_chef/services/api/inventory_api_service.dart';
 import 'package:personal_sous_chef/shared/widgets/cards/stop_motion_dismissible.dart'; // 引入定格动画滑动删除组件
 import 'package:personal_sous_chef/shared/widgets/common/sketchy_confirm_dialog.dart';
 import 'package:personal_sous_chef/shared/widgets/common/programmatic_sketchy_card.dart'; // 引入 SketchyRectBorder
@@ -49,6 +50,52 @@ class _ReviewIngredientsPageState extends State<ReviewIngredientsPage> {
 
   // ✅ 为每个食材存储标准食材ID（key: 食材名称，value: 标准食材ID）
   Map<String, int?> _ingredientStandardIds = {};
+
+  /// 第二层防护：LLM 常错的别名 → 标准库名称（小写 key）
+  /// 不区分黄/紫/红/白洋葱 → Onion；bell pepper → Capsicum
+  static const Map<String, String> _manualAliases = {
+    'grapes': 'Grape',
+    'chili': 'Capsicum',
+    'chili-pepper': 'Capsicum',
+    'chilli': 'Capsicum',
+    'bell pepper': 'Capsicum',
+    'bell peppers': 'Capsicum',
+    'shrimps': 'Shrimp',
+    'potatoes': 'Potato',
+    'tomatoes': 'Tomato',
+    'eggs': 'Egg',
+    'onions': 'Onion',
+    'yellow onion': 'Onion',
+    'purple onion': 'Onion',
+    'red onion': 'Onion',
+    'white onion': 'Onion',
+    'peppers': 'Capsicum',
+    'carrots': 'Carrot',
+    'apples': 'Apple',
+    'bananas': 'Banana',
+  };
+
+  /// 归一化食材名用于 API 查询：别名表 + 简单单复数（仅当去 s 后在标准库中存在时替换）
+  String _normalizeIngredientNameForLookup(String ingredientName) {
+    final lowerName = ingredientName.toLowerCase().trim();
+    if (_manualAliases.containsKey(lowerName)) {
+      return _manualAliases[lowerName]!;
+    }
+    // 简单单复数：Grapes -> Grape，仅当 Grape 在标准库中存在时替换
+    if (lowerName.endsWith('es') && lowerName.length > 2) {
+      final singular = ingredientName.substring(0, ingredientName.length - 2);
+      for (final l in yoloLabels) {
+        if (l.toLowerCase() == singular.toLowerCase()) return l;
+      }
+    }
+    if (lowerName.endsWith('s') && lowerName.length > 1) {
+      final singular = ingredientName.substring(0, ingredientName.length - 1);
+      for (final l in yoloLabels) {
+        if (l.toLowerCase() == singular.toLowerCase()) return l;
+      }
+    }
+    return ingredientName;
+  }
 
   // 🔥 修改 2: 在 initState 中判断是用真实数据还是测试数据
   @override
@@ -99,12 +146,12 @@ class _ReviewIngredientsPageState extends State<ReviewIngredientsPage> {
   }
 
   /// ✅ 为单个食材加载允许的单位列表并规范化单位
+  /// 第二层防护：先用 _normalizeIngredientNameForLookup 做别名/单复数归一化再查 API
   Future<void> _loadAllowedUnitsForIngredient(String ingredientName) async {
     try {
-      // 1. 通过名称查找标准食材ID（支持精确匹配）
-      // ✅ 修复：将名称中的空格替换回连字符，以匹配数据库中的格式
-      // YOLO服务会将 "Bok-Choy" 转换为 "Bok Choy"，需要还原
-      final normalizedName = ingredientName.replaceAll(' ', '-');
+      // 1. 语义归一化：别名表 + 单复数，得到用于 API 查询的名称
+      final searchName = _normalizeIngredientNameForLookup(ingredientName);
+      final normalizedName = searchName.replaceAll(' ', '-');
       final standardIngredientId =
           await InventoryApiService.findStandardIngredientIdByName(
             normalizedName,
@@ -460,7 +507,6 @@ class _ReviewIngredientsPageState extends State<ReviewIngredientsPage> {
 
         // 2. 列表内容 (使用定格动画滑动删除功能)
         ..._detectedItems.map((item) {
-          // 🔥 使用定格动画滑动删除组件
           return StopMotionDismissible(
             dismissKey: ObjectKey(item).toString(),
             confirmDismiss: (direction) async {
@@ -482,13 +528,8 @@ class _ReviewIngredientsPageState extends State<ReviewIngredientsPage> {
                   action: SnackBarAction(
                     label: "UNDO",
                     onPressed: () {
-                      // 🔥 安全检查：如果页面已经关了，就别刷新了
                       if (!mounted) return;
-
                       setState(() {
-                        // 这里用 insert 插回原位是安全的，
-                        // 因为 Review 页面不像 Inventory 页面那样会实时排序，
-                        // 它是维持用户扫描顺序的，所以插回 index 没问题。
                         _detectedItems.insert(index, removedItem);
                       });
                     },
@@ -501,10 +542,27 @@ class _ReviewIngredientsPageState extends State<ReviewIngredientsPage> {
               child: IngredientCard(
                 item: item,
                 useStatusColors: false,
-                // ✅ 使用动态加载的允许单位列表
+                showUnmatchedWarning:
+                    _ingredientStandardIds[item.name] == null,
                 unitOptions:
                     _ingredientAllowedUnits[item.name] ??
-                    ['g', 'pcs', 'ml'], // 默认单位列表
+                    ['g', 'pcs', 'ml'],
+                onTap: () async {
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => EditIngredientPage(
+                        ingredient: item,
+                        isNew: false,
+                      ),
+                    ),
+                  );
+                  if (!mounted) return;
+                  if (result == true) {
+                    await _loadAllowedUnitsForIngredient(item.name);
+                    setState(() {});
+                  }
+                },
                 onUnitChanged: (val) => setState(() => item.unit = val),
                 onQuantityChanged: (val) => setState(() => item.quantity = val),
                 onExpiryTap: () => _selectDate(item),

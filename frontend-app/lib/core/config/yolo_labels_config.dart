@@ -1,12 +1,11 @@
 // lib/config/yolo_labels_config.dart
 //
-// YOLO model labels configuration
-// Labels must strictly match the model's data.yaml configuration (96 classes)
-// Order: 0='Apple', 1='Apricot', 2='Asparagus', ..., 95='White-Rice'
+// YOLO model labels configuration.
+// Labels must strictly match frontend-app/assets/models/label.txt and backend
+// ref_standard_ingredients (init-standard-libraries.sql) for the same 83 classes.
+// Order: 0='Apple', 1='Apricot', ..., 82='White_Button_Mushroom'
 //
-// Model configuration reference:
-// nc: 96
-// names: ['Apple', 'Apricot', 'Asparagus', ..., 'White-Rice']
+// Model: nc: 83, names from label.txt
 
 /// List of all recognizable ingredient labels from the YOLO model
 /// This list must match the model's data.yaml configuration exactly
@@ -15,7 +14,6 @@ const List<String> yoloLabels = [
   'Apricot',
   'Asparagus',
   'Avocado',
-  'Bagel',
   'Banana',
   'Beef',
   'Beetroot',
@@ -23,8 +21,6 @@ const List<String> yoloLabels = [
   'Blueberry',
   'Bok-Choy',
   'Broccoli',
-  'Brown-rice',
-  'Butter',
   'Cabbage',
   'Cantaloupe',
   'Capsicum',
@@ -38,15 +34,14 @@ const List<String> yoloLabels = [
   'Chicken-Thigh',
   'Chicken-Whole',
   'Chicken-Wing',
-  'Chickpea',
   'Coconut',
   'Corn',
-  'Zucchini',
+  'Courgette',
   'Crab',
   'Cucumber',
   'Dragon-Fruit',
+  'Egg',
   'Eggplant',
-  'Eggs',
   'Garlic',
   'Ginger',
   'Grape',
@@ -57,25 +52,18 @@ const List<String> yoloLabels = [
   'Lamb',
   'Leek',
   'Lemon',
-  'Lentil',
   'Lettuce',
   'Lime',
   'Longan',
   'Lychee',
   'Mandarin',
   'Mango',
-  'Milk',
-  'Millet',
-  'Minced-Meat',
-  'Mushroom',
   'Mussels',
   'Nectarine',
-  'Oats',
   'Onion',
   'Orange',
   'Papaya',
   'Parsnip',
-  'Pasta',
   'Peach',
   'Pear',
   'Persimmon',
@@ -92,7 +80,6 @@ const List<String> yoloLabels = [
   'Sausage',
   'Scallop',
   'Sea-Bass',
-  'Sesame-Seeds',
   'Shiitake',
   'Shrimp',
   'Snapper',
@@ -104,10 +91,9 @@ const List<String> yoloLabels = [
   'Sweet-Potato',
   'Tofu',
   'Tomato',
-  'Tuna',
   'Watermelon',
-  'White-Rice',
+  'White_Button_Mushroom',
 ];
 
 /// Total number of classes in the YOLO model
-const int yoloClassCount = 96;
+const int yoloClassCount = 83;

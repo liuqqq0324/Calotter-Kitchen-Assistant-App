@@ -56,6 +56,44 @@ class _RegistrationPageState extends State<RegistrationPage> {
       return;
     }
 
+    // 2. 邮箱格式校验
+    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    if (!emailRegex.hasMatch(email)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Invalid email format (e.g., name@example.com)',
+            style: GoogleFonts.kalam(),
+          ),
+          backgroundColor: Colors.red.shade300,
+        ),
+      );
+      return;
+    }
+
+    // 2.1 仅允许指定邮箱域名（学校 + 常见邮箱）
+    const allowedDomains = [
+      '@aucklanduni.ac.nz',
+      '@gmail.com',
+      '@yahoo.com',
+      '@outlook.com',
+      '@hotmail.com',
+      '@icloud.com',
+    ];
+    final emailLower = email.toLowerCase();
+    if (!allowedDomains.any((d) => emailLower.endsWith(d))) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Please use a valid university or common email address (e.g. @aucklanduni.ac.nz, @gmail.com)',
+            style: GoogleFonts.kalam(),
+          ),
+          backgroundColor: Colors.red.shade300,
+        ),
+      );
+      return;
+    }
+
     if (password != confirmPassword) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

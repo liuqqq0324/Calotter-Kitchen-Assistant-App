@@ -16,9 +16,9 @@
 -- 注意：
 --   1. 此脚本会初始化标准库数据（过敏原、食材、调料、厨具）
 --   2. 标准食材库包含：
---      - YOLO 模型可识别的 96 个标签（ID: 1001-1096，排除 '-' 占位符）
---      - 欧美家庭常见但模型无法识别的 44 个额外食材（ID: 1097-1140）
---      总计：140 个标准食材
+--      - YOLO 模型可识别的 83 个标签（与 frontend-app/assets/models/label.txt 一致，ID: 1001-1083 等）
+--      - 欧美家庭常见但模型无法识别的扩展食材（ID: 1097-1140）
+--      总计：140 个标准食材（含扩展）
 --   3. 所有食材的单位和单位转换已规范化（primary_unit, secondary_unit, unit_conversion_factor, standard_unit）
 --   4. 所有食材信息使用英文存储（name, category等）
 --   5. 使用 ON CONFLICT 确保幂等性，可重复执行
@@ -64,7 +64,7 @@ SELECT setval('ref_standard_allergens_id_seq', (SELECT MAX(id) FROM ref_standard
 -- ============================================
 -- 3. 插入标准食材库（StandardIngredient）
 -- Insert Standard Ingredients (140 items total)
--- - YOLO model labels: 96 items (ID: 1001-1096)
+-- - YOLO model labels (from frontend-app/assets/models/label.txt): 83 items
 -- - Additional Western common ingredients: 44 items (ID: 1097-1140)
 -- 
 -- 单位规范说明：
@@ -120,7 +120,7 @@ VALUES
   (1039, 'Cauliflower', 'VEG', 25, 2.1, 0.2, 4.6, 1.2, 300, 5, 7, 0, 'FRIDGE', 'pcs', 'g', 300.0, 'g'),
   (1040, 'Celery', 'VEG', 16, 0.7, 0.2, 3.0, 1.6, 100, 7, 14, 0, 'FRIDGE', 'pcs', 'g', 100.0, 'g'),
   (1041, 'Corn', 'VEG', 86, 3.4, 1.2, 19.9, 2.9, 200, 7, 7, 0, 'FRIDGE', 'pcs', 'g', 200.0, 'g'),
-  (1042, 'Zucchini', 'VEG', 17, 1.2, 0.3, 3.1, 1.0, 200, 7, 7, 0, 'FRIDGE', 'pcs', 'g', 200.0, 'g'),
+  (1042, 'Courgette', 'VEG', 17, 1.2, 0.3, 3.1, 1.0, 200, 7, 7, 0, 'FRIDGE', 'pcs', 'g', 200.0, 'g'),
   (1043, 'Cucumber', 'VEG', 16, 0.7, 0.1, 3.6, 0.5, 200, 7, 7, 0, 'FRIDGE', 'pcs', 'g', 200.0, 'g'),
   (1044, 'Eggplant', 'VEG', 25, 1.1, 0.2, 5.4, 1.3, 250, 5, 7, 0, 'FRIDGE', 'pcs', 'g', 250.0, 'g'),
   (1045, 'Garlic', 'VEG', 149, 6.4, 0.5, 33.1, 2.1, 10, 90, 120, 0, 'PANTRY', 'pcs', 'g', 10.0, 'g'),
@@ -129,7 +129,7 @@ VALUES
   (1048, 'Kale', 'VEG', 49, 4.3, 0.9, 8.8, 2.0, 100, 3, 5, 0, 'FRIDGE', 'pcs', 'g', 100.0, 'g'),
   (1049, 'Leek', 'VEG', 61, 1.5, 0.3, 14.2, 1.8, 100, 7, 14, 0, 'FRIDGE', 'pcs', 'g', 100.0, 'g'),
   (1050, 'Lettuce', 'VEG', 15, 1.4, 0.2, 2.9, 1.3, 200, 5, 7, 0, 'FRIDGE', 'pcs', 'g', 200.0, 'g'),
-  (1051, 'Mushroom', 'VEG', 22, 3.1, 0.3, 3.3, 1.0, 50, 3, 7, 0, 'FRIDGE', 'pcs', 'g', 50.0, 'g'),
+  (1051, 'White_Button_Mushroom', 'VEG', 22, 3.1, 0.3, 3.3, 1.0, 50, 3, 7, 0, 'FRIDGE', 'pcs', 'g', 50.0, 'g'),
   (1052, 'Onion', 'VEG', 40, 1.1, 0.1, 9.3, 1.7, 100, 30, 30, 0, 'PANTRY', 'pcs', 'g', 100.0, 'g'),
   (1053, 'Parsnip', 'VEG', 75, 1.2, 0.3, 18.0, 4.9, 200, 30, 30, 0, 'FRIDGE', 'pcs', 'g', 200.0, 'g'),
   (1054, 'Potato', 'VEG', 77, 2.0, 0.1, 17.0, 2.2, 200, 30, 30, 0, 'PANTRY', 'pcs', 'g', 200.0, 'g'),
@@ -155,7 +155,7 @@ VALUES
   (1069, 'Chicken-Whole', 'MEAT', 165, 31.0, 3.6, 0.0, 0.0, 1500, 1, 2, 180, 'FRIDGE', 'pcs', 'g', 1500.0, 'g'),
   (1070, 'Chicken-Wing', 'MEAT', 211, 19.0, 14.0, 0.0, 0.0, 80, 1, 2, 180, 'FRIDGE', 'pcs', 'g', 80.0, 'g'),
   (1071, 'Crab', 'MEAT', 97, 19.0, 1.5, 0.0, 0.0, 150, 1, 2, 90, 'FRIDGE', 'pcs', 'g', 150.0, 'g'),
-  (1072, 'Eggs', 'MEAT', 155, 13.0, 11.0, 1.1, 0.0, 50, 30, 30, 0, 'FRIDGE', 'pcs', 'g', 50.0, 'g'),
+  (1072, 'Egg', 'MEAT', 155, 13.0, 11.0, 1.1, 0.0, 50, 30, 30, 0, 'FRIDGE', 'pcs', 'g', 50.0, 'g'),
   (1073, 'Lamb', 'MEAT', 294, 25.0, 21.0, 0.0, 0.0, 100, 1, 3, 270, 'FRIDGE', 'g', 'kg', 0.001, 'g'),
   (1074, 'Minced-Meat', 'MEAT', 250, 26.0, 15.0, 0.0, 0.0, 100, 1, 2, 90, 'FRIDGE', 'g', 'kg', 0.001, 'g'),
   (1075, 'Mussels', 'MEAT', 86, 11.9, 2.2, 3.7, 0.0, 50, 1, 2, 90, 'FRIDGE', 'pcs', 'g', 50.0, 'g'),
@@ -502,7 +502,7 @@ BEGIN
   RAISE NOTICE '========================================';
   RAISE NOTICE 'Standard Libraries Initialization Complete!';
   RAISE NOTICE '========================================';
-  RAISE NOTICE 'Standard Ingredients: % (96 YOLO labels + 44 additional Western ingredients = 140 total)', (SELECT COUNT(*) FROM ref_standard_ingredients);
+  RAISE NOTICE 'Standard Ingredients: % (83 YOLO labels from label.txt + 44 additional Western ingredients = 140 total)', (SELECT COUNT(*) FROM ref_standard_ingredients);
   RAISE NOTICE 'Standard Spices: %', (SELECT COUNT(*) FROM ref_standard_spices);
   RAISE NOTICE 'Standard Utensils: %', (SELECT COUNT(*) FROM ref_standard_utensils);
   RAISE NOTICE 'Standard Allergens: %', (SELECT COUNT(*) FROM ref_standard_allergens);

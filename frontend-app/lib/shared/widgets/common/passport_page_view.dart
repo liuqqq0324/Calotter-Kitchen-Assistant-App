@@ -1,14 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:personal_sous_chef/core/theme/fallback_google_fonts.dart';
 
+/// 淡淡的网格覆盖层，叠在木纹背景之上
+class _GridOverlayPainter extends CustomPainter {
+  static const double _spacing = 24.0;
+  static const double _opacity = 0.06;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (size.width <= 0 || size.height <= 0) return;
+    final paint = Paint()
+      ..color = Colors.grey.withOpacity(_opacity)
+      ..strokeWidth = 1.0
+      ..style = PaintingStyle.stroke;
+    for (double x = 0; x <= size.width; x += _spacing) {
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
+    }
+    for (double y = 0; y <= size.height; y += _spacing) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
 /// 护照翻页效果的PageView组件
-/// 支持翻页动画和底部标签导航
 class PassportPageView extends StatefulWidget {
   final List<Widget> pages;
   final List<String> pageLabels;
   final int initialPage;
   final ValueChanged<int>? onPageChanged;
-  final bool shouldAnimateCover; // 新增：是否需要封面动画
+  final bool shouldAnimateCover;
 
   const PassportPageView({
     super.key,
@@ -16,7 +39,7 @@ class PassportPageView extends StatefulWidget {
     required this.pageLabels,
     this.initialPage = 0,
     this.onPageChanged,
-    this.shouldAnimateCover = false, // 默认不动画
+    this.shouldAnimateCover = false,
   }) : assert(
          pages.length == pageLabels.length,
          'Pages and labels must have the same length',
@@ -40,7 +63,6 @@ class _PassportPageViewState extends State<PassportPageView>
     _currentPage = widget.initialPage;
     _pageController = PageController(initialPage: widget.initialPage);
 
-    // 封面动画控制器
     _coverAnimationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1200),
@@ -51,7 +73,6 @@ class _PassportPageViewState extends State<PassportPageView>
       curve: Curves.easeInOutCubic,
     );
 
-    // 如果需要动画且还没动画过，启动动画
     if (widget.shouldAnimateCover && !_hasAnimated) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
@@ -60,7 +81,6 @@ class _PassportPageViewState extends State<PassportPageView>
         }
       });
     } else {
-      // 不需要动画时直接显示
       _coverAnimationController.value = 1.0;
     }
   }
@@ -94,101 +114,63 @@ class _PassportPageViewState extends State<PassportPageView>
       builder: (context, child) {
         return Stack(
           children: [
-            // 底层背景：木纹背景
+            // 1. 背景层 (木纹 + 沙色纹理 + 网格)
+            Positioned.fill(
+              child: Container(
+                decoration: const BoxDecoration(
+                  image: DecorationImage(
+                    image: AssetImage('assets/wood_background.png'),
+                    fit: BoxFit.fill,
+                  ),
+                ),
+              ),
+            ),
             Positioned.fill(
               child: Container(
                 decoration: BoxDecoration(
-                  image: DecorationImage(
-                    image: const AssetImage('assets/wood_background.png'),
-                    fit: BoxFit.fill,
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      const Color(0xFFE8DCC6).withOpacity(0.3),
+                      const Color(0xFFD4C4A8).withOpacity(0.3),
+                    ],
                   ),
                 ),
               ),
             ),
-            // 中间层背景：容器背景（缩短到标签之上2.5cm的位置）
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 100, // 2.5cm ≈ 100 像素，在底部导航栏上方
-              child: Container(
-                decoration: BoxDecoration(
-                  image: DecorationImage(
-                    image: const AssetImage('assets/images/inventory_container.png'),
-                    fit: BoxFit.fill,
-                    // 使用 centerSlice 保持边缘不变形
-                    centerSlice: const Rect.fromLTWH(25, 15, 360, 380),
-                  ),
-                ),
+            Positioned.fill(
+              child: IgnorePointer(
+                child: CustomPaint(painter: _GridOverlayPainter()),
               ),
             ),
-            // 背景：沙色纹理（作为半透明层，可选）
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    const Color(0xFFE8DCC6).withOpacity(0.3), // 沙色，降低透明度以显示木纹
-                    const Color(0xFFD4C4A8).withOpacity(0.3),
-                  ],
-                ),
-              ),
-            ),
-            // 封面（动画）
+
+            // 2. 封面动画层 (仅在动画未完成时显示)
             if (_coverAnimation.value < 1.0)
-              Positioned.fill(
-                child: Transform(
-                  alignment: Alignment.centerLeft,
-                  transform: Matrix4.identity()
-                    ..setEntry(3, 2, 0.001) // 透视
-                    ..rotateY((1 - _coverAnimation.value) * 3.14), // 从右向左翻
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.centerLeft,
-                        end: Alignment.centerRight,
-                        colors: [
-                          const Color(0xFF8B6F47), // 封面颜色
-                          const Color(0xFF6B4F2F),
-                        ],
-                      ),
-                    ),
-                    child: Center(
-                      child: Text(
-                        'Profile',
-                        style: GoogleFonts.caveat(
-                          fontSize: 48,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            // 页面内容区域（淡入）
+              _buildCoverAnimation(),
+
+            // 3. 内容层：使用 Stack 实现纸张撑大和标签置底
             Opacity(
               opacity: _coverAnimation.value,
-              child: Column(
+              child: Stack(
+                alignment: Alignment.topCenter,
                 children: [
-                  Expanded(
-                    child: Stack(
-                      children: [
-                        // PageView with page styling
-                        PageView.builder(
-                          controller: _pageController,
-                          onPageChanged: _onPageChanged,
-                          itemCount: widget.pages.length,
-                          itemBuilder: (context, index) {
-                            return _buildPageWithStyle(widget.pages[index]);
-                          },
-                        ),
-                      ],
-                    ),
+                  // 纸张主体：通过设置负的 left/right 让纸张显得更大
+                  Positioned(
+                    top: 20,
+                    left: -30, 
+                    right: -30,
+                    bottom: 100, // 给底部标签留出空间
+                    child: _buildPaperStack(),
                   ),
-                  // 底部标签导航（粘贴效果）
-                  _buildBottomNavigation(),
+                  
+                  // 底部标签：绝对定位在纸张底部边缘
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 40, 
+                    child: _buildBottomNavigation(),
+                  ),
                 ],
               ),
             ),
@@ -198,21 +180,82 @@ class _PassportPageViewState extends State<PassportPageView>
     );
   }
 
-  Widget _buildPageWithStyle(Widget page) {
-    return page;
+  Widget _buildCoverAnimation() {
+    return Positioned.fill(
+      child: Transform(
+        alignment: Alignment.centerLeft,
+        transform: Matrix4.identity()
+          ..setEntry(3, 2, 0.001)
+          ..rotateY((1 - _coverAnimation.value) * 3.14),
+        child: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+              colors: [Color(0xFF8B6F47), Color(0xFF6B4F2F)],
+            ),
+          ),
+          child: Center(
+            child: Text(
+              'Profile',
+              style: GoogleFonts.caveat(
+                fontSize: 48,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 修改后的纸张堆叠：移除手动 scale，改用 BoxFit.fill 撑满 Positioned 区域
+  Widget _buildPaperStack() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final w = constraints.maxWidth;
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Positioned.fill(
+              child: Image.asset(
+                'assets/profile_passport/WoodBoard.png',
+                fit: BoxFit.fill, // 确保纸张铺满分配给它的 Positioned 空间
+              ),
+            ),
+            Positioned.fill(
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(
+                  w * 0.16, // 根据纸张变大同步调大 Padding，确保内容居中
+                  80,       // 顶部 Padding，避开头像区域
+                  w * 0.16, 
+                  40,
+                ),
+                child: PageView.builder(
+                  controller: _pageController,
+                  onPageChanged: _onPageChanged,
+                  itemCount: widget.pages.length,
+                  itemBuilder: (context, index) {
+                    return widget.pages[index];
+                  },
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Widget _buildBottomNavigation() {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-      child: SafeArea(
-        top: false,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: List.generate(
-            widget.pageLabels.length,
-            (index) => _buildNavItem(index),
-          ),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: List.generate(
+          widget.pageLabels.length,
+          (index) => _buildNavItem(index),
         ),
       ),
     );
@@ -220,7 +263,6 @@ class _PassportPageViewState extends State<PassportPageView>
 
   Widget _buildNavItem(int index) {
     final isActive = _currentPage == index;
-    // 随机旋转角度，模拟粘贴效果
     final rotation = (index % 2 == 0) ? -0.05 : 0.05;
 
     return Expanded(
@@ -229,28 +271,20 @@ class _PassportPageViewState extends State<PassportPageView>
         child: Transform.rotate(
           angle: rotation,
           child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
-            margin: const EdgeInsets.symmetric(horizontal: 3),
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+            margin: const EdgeInsets.symmetric(horizontal: 4),
             decoration: BoxDecoration(
-              // 便签纸效果
               color: isActive ? Colors.yellow.shade100 : Colors.yellow.shade50,
               borderRadius: BorderRadius.circular(4),
               border: Border.all(
                 color: isActive ? Colors.brown.shade600 : Colors.brown.shade400,
                 width: 1.5,
               ),
-              // 粘贴效果的阴影
               boxShadow: [
                 BoxShadow(
                   color: Colors.brown.shade300.withOpacity(0.4),
                   blurRadius: 3,
                   offset: const Offset(2, 2),
-                ),
-                // 内部阴影，模拟粘贴的胶带效果
-                BoxShadow(
-                  color: Colors.white.withOpacity(0.5),
-                  blurRadius: 1,
-                  offset: const Offset(-1, -1),
                 ),
               ],
             ),
@@ -258,7 +292,7 @@ class _PassportPageViewState extends State<PassportPageView>
               widget.pageLabels[index],
               textAlign: TextAlign.center,
               style: GoogleFonts.kalam(
-                fontSize: isActive ? 16 : 14, // 调大导航标签字体，从 13/11 调大到 16/14
+                fontSize: isActive ? 16 : 14,
                 fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
                 color: isActive ? Colors.brown.shade900 : Colors.brown.shade700,
               ),

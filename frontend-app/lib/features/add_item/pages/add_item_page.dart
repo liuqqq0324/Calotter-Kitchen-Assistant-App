@@ -1,10 +1,12 @@
-import 'dart:math' as math;
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:personal_sous_chef/features/add_item/pages/review_ingredients_page.dart';
+import 'package:personal_sous_chef/services/ai/cloud_vision_service.dart';
 import 'package:personal_sous_chef/services/ai/yolo_service.dart';
 import 'package:personal_sous_chef/data/models/ingredient.dart';
 import 'package:personal_sous_chef/shared/widgets/common/programmatic_sketchy_card.dart';
+import 'package:personal_sous_chef/shared/widgets/common/sketchy_button.dart';
 import 'package:personal_sous_chef/navigation/main_scaffold.dart';
 
 class AddItemPage extends StatefulWidget {
@@ -14,24 +16,35 @@ class AddItemPage extends StatefulWidget {
   State<AddItemPage> createState() => _AddItemPageState();
 }
 
-class _AddItemPageState extends State<AddItemPage> {
+class _AddItemPageState extends State<AddItemPage>
+    with SingleTickerProviderStateMixin {
   // 字体配置
   static const String _fontFamily = 'PatrickHand';
   // 主题色：River Deep Brown
   static const Color _themeBrown = Color(0xFF6B4F4F);
 
   final YoloService _yoloService = YoloService();
+  final CloudVisionService _cloudService = CloudVisionService();
   final ImagePicker _picker = ImagePicker();
 
   // 状态变量
-  bool _isLoading = false; // 是否正在推理分析
+  bool _isLoading = false; // 是否正在推理分析（本地）
   bool _isModelReady = false; // 模型是否加载完毕
+  bool _isAnalyzingCloud = false; // 云端识别中
+
+  late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
-    // 页面进入时立即预加载模型
+    _tabController = TabController(length: 2, vsync: this);
     _initModel();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   Future<void> _initModel() async {
@@ -109,7 +122,7 @@ class _AddItemPageState extends State<AddItemPage> {
 
       // 7. 处理返回结果
       if (!mounted) return;
-      
+
       if (result == 'kitchen') {
         // 🔥 切换到厨房页面（索引3）
         // ReviewIngredientsPage 已经通过 Navigator.pop 关闭了
@@ -130,6 +143,52 @@ class _AddItemPageState extends State<AddItemPage> {
           context,
         ).showSnackBar(SnackBar(content: Text("Error: $e")));
       }
+    }
+  }
+
+  // 云端识别入口：选图 -> Gemini 多食材识别 -> 跳转 ReviewIngredientsPage
+  Future<void> _handleCloudRecognition() async {
+    setState(() => _isAnalyzingCloud = true);
+    try {
+      final XFile? photo = await _picker.pickImage(source: ImageSource.gallery);
+      if (photo == null) {
+        setState(() => _isAnalyzingCloud = false);
+        return;
+      }
+      final File imageFile = File(photo.path);
+      final List<Ingredient> ingredients = await _cloudService
+          .identifyIngredients(imageFile);
+      if (!mounted) return;
+      if (ingredients.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Cloud AI couldn't identify any ingredients."),
+          ),
+        );
+        return;
+      }
+      // 与 YOLO 流程一致：直接跳转审核页，由 ReviewIngredientsPage 做单位校验
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) =>
+              ReviewIngredientsPage(analyzedIngredients: ingredients),
+        ),
+      );
+      if (!mounted) return;
+      if (result == 'kitchen') {
+        context.findAncestorStateOfType<MainScaffoldState>()?.switchTab(3);
+      } else if (result == 'recipe') {
+        context.findAncestorStateOfType<MainScaffoldState>()?.switchTab(1);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Network Error. Please try again.")),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isAnalyzingCloud = false);
     }
   }
 
@@ -223,6 +282,224 @@ class _AddItemPageState extends State<AddItemPage> {
     );
   }
 
+  /// 本地扫描 Tab：YOLO 拍照/选图
+  Widget _buildLocalScanTab() {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.only(
+          left: 24.0,
+          right: 24.0,
+          top: 36.0, // 与 Tab 标签之间留出空隙
+          bottom: 4.0,
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Expanded(
+              child: Center(
+                child: GestureDetector(
+                  onTap: () => _showPickerOptions(context),
+                  child: AspectRatio(
+                    aspectRatio: 0.85,
+                    child: Container(
+                      decoration: ShapeDecoration(
+                        color: const Color(0xFFFFFFF0).withOpacity(0.9),
+                        shape: const SketchyRectBorder(
+                          borderWidth: 2.5,
+                          wobbleAmount: 3.0,
+                          seed: 88,
+                        ),
+                        shadows: [
+                          BoxShadow(
+                            color: _themeBrown.withOpacity(0.15),
+                            blurRadius: 15,
+                            offset: const Offset(4, 8),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(25),
+                            decoration: BoxDecoration(
+                              color: _themeBrown.withOpacity(0.08),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.center_focus_strong_outlined,
+                              size: 70,
+                              color: _themeBrown,
+                            ),
+                          ),
+                          const SizedBox(height: 30),
+                          Text(
+                            "Snap & Cook",
+                            style: _pangolin(
+                              fontSize: 26,
+                              fontWeight: FontWeight.bold,
+                              color: _themeBrown,
+                            ),
+                          ),
+                          const SizedBox(height: 15),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: Text(
+                              "Take a photo of your fridge or groceries.\nAI will detect the ingredients for you.",
+                              textAlign: TextAlign.center,
+                              style: _pangolin(
+                                fontSize: 17,
+                                color: _themeBrown.withOpacity(0.7),
+                                height: 1.4,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              child: SketchyButton(
+                text: _isModelReady ? "Start Scanning" : "Loading AI...",
+                onPressed: _isModelReady
+                    ? () => _showPickerOptions(context)
+                    : () {},
+                isFullWidth: true,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 56,
+                  vertical: 28,
+                ),
+                backgroundColor: _isModelReady
+                    ? _themeBrown
+                    : Colors.grey.shade400,
+                textColor: Colors.white,
+                borderColor: _isModelReady
+                    ? _themeBrown.withOpacity(0.8)
+                    : Colors.grey.shade400,
+              ),
+            ),
+            const SizedBox(height: 48),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 云端识别 Tab：选图 -> Gemini 多食材识别
+  Widget _buildCloudScanTab() {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.only(
+          left: 24.0,
+          right: 24.0,
+          top: 36.0, // 与 Tab 标签之间留出空隙
+          bottom: 4.0,
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Expanded(
+              child: Center(
+                child: GestureDetector(
+                  onTap: _isAnalyzingCloud
+                      ? null
+                      : () => _handleCloudRecognition(),
+                  child: AspectRatio(
+                    aspectRatio: 0.85,
+                    child: Container(
+                      decoration: ShapeDecoration(
+                        color: const Color(0xFFFFFFF0).withOpacity(0.9),
+                        shape: const SketchyRectBorder(
+                          borderWidth: 2.5,
+                          wobbleAmount: 3.0,
+                          seed: 99,
+                        ),
+                        shadows: [
+                          BoxShadow(
+                            color: Colors.deepOrange.withOpacity(0.15),
+                            blurRadius: 15,
+                            offset: const Offset(4, 8),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(25),
+                            decoration: BoxDecoration(
+                              color: Colors.deepOrange.withOpacity(0.12),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.cloud_upload,
+                              size: 70,
+                              color: Colors.deepOrange,
+                            ),
+                          ),
+                          const SizedBox(height: 30),
+                          Text(
+                            "Cloud Expert",
+                            style: _pangolin(
+                              fontSize: 26,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.deepOrange,
+                            ),
+                          ),
+                          const SizedBox(height: 15),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: Text(
+                              "Upload a photo. Gemini AI will identify all ingredients and estimate quantities & units.",
+                              textAlign: TextAlign.center,
+                              style: _pangolin(
+                                fontSize: 17,
+                                color: _themeBrown.withOpacity(0.7),
+                                height: 1.4,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              child: SketchyButton(
+                text: _isAnalyzingCloud ? "Analyzing..." : "Choose Image",
+                onPressed: _isAnalyzingCloud
+                    ? () {}
+                    : () => _handleCloudRecognition(),
+                isFullWidth: true,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 56,
+                  vertical: 28,
+                ),
+                backgroundColor: _isAnalyzingCloud
+                    ? Colors.grey.shade400
+                    : Colors.deepOrange,
+                textColor: Colors.white,
+                borderColor: _isAnalyzingCloud
+                    ? Colors.grey.shade400
+                    : Colors.deepOrange.withOpacity(0.8),
+              ),
+            ),
+            const SizedBox(height: 48),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return SizedBox.expand(
@@ -242,13 +519,13 @@ class _AddItemPageState extends State<AddItemPage> {
             child: Container(color: const Color(0xFFF3E5AB).withOpacity(0.35)),
           ),
 
-          // 3. 主内容层
+          // 3. 主内容层（双 Tab：本地扫描 / 云端识别）
           Scaffold(
             backgroundColor: Colors.transparent,
             appBar: AppBar(
               backgroundColor: Colors.transparent,
               elevation: 0,
-              automaticallyImplyLeading: false, // 如果是 Tab 首页通常不需要返回箭头
+              automaticallyImplyLeading: false,
               centerTitle: true,
               title: Text(
                 "Add Items",
@@ -259,134 +536,29 @@ class _AddItemPageState extends State<AddItemPage> {
                   letterSpacing: 1.2,
                 ),
               ),
-            ),
-
-            // 移除了 TabBarView，直接显示单一视图
-            body: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.only(
-                  left: 24.0,
-                  right: 24.0,
-                  bottom: 4.0,
+              bottom: TabBar(
+                controller: _tabController,
+                labelColor: _themeBrown,
+                unselectedLabelColor: _themeBrown.withOpacity(0.6),
+                indicatorColor: _themeBrown,
+                labelStyle: _pangolin(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
                 ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // --- 手绘风格卡片区域 ---
-                    Expanded(
-                      child: Center(
-                        child: GestureDetector(
-                          onTap: () => _showPickerOptions(context),
-                          child: AspectRatio(
-                            aspectRatio: 0.85, // 稍微高一点的长方形
-                            child: Container(
-                              decoration: ShapeDecoration(
-                                color: const Color(0xFFFFFFF0).withOpacity(0.9),
-                                shape: const SketchyRectBorder(
-                                  borderWidth: 2.5,
-                                  wobbleAmount: 3.0,
-                                  seed: 88,
-                                ),
-                                shadows: [
-                                  BoxShadow(
-                                    color: _themeBrown.withOpacity(0.15),
-                                    blurRadius: 15,
-                                    offset: const Offset(4, 8),
-                                  ),
-                                ],
-                              ),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(25),
-                                    decoration: BoxDecoration(
-                                      color: _themeBrown.withOpacity(0.08),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Icon(
-                                      Icons.center_focus_strong_outlined,
-                                      size: 70,
-                                      color: _themeBrown,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 30),
-                                  Text(
-                                    "Snap & Cook",
-                                    style: _pangolin(
-                                      fontSize: 26,
-                                      fontWeight: FontWeight.bold,
-                                      color: _themeBrown,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 15),
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 20,
-                                    ),
-                                    child: Text(
-                                      "Take a photo of your fridge or groceries.\nAI will detect the ingredients for you.",
-                                      textAlign: TextAlign.center,
-                                      style: _pangolin(
-                                        fontSize: 17,
-                                        color: _themeBrown.withOpacity(0.7),
-                                        height: 1.4,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 30),
-
-                    // --- 底部主按钮 ---
-                    _buildSketchyButton(
-                      onPressed: _isModelReady
-                          ? () => _showPickerOptions(context)
-                          : null,
-                      width: double.infinity,
-                      backgroundColor: _isModelReady
-                          ? _themeBrown
-                          : Colors.grey.shade400,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          if (!_isModelReady)
-                            const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            ),
-                          if (!_isModelReady) const SizedBox(width: 10),
-                          Text(
-                            _isModelReady ? "Start Scanning" : "Loading AI...",
-                            style: _pangolin(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              letterSpacing: 1.0,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 40), // 底部留白，避免被系统栏遮挡
-                  ],
-                ),
+                tabs: const [
+                  Tab(text: 'Local Scan'),
+                  Tab(text: 'Cloud AI'),
+                ],
               ),
+            ),
+            body: TabBarView(
+              controller: _tabController,
+              children: [_buildLocalScanTab(), _buildCloudScanTab()],
             ),
           ),
 
-          // 4. 全局 Loading 遮罩 (推理时显示)
-          if (_isLoading)
+          // 4. 全局 Loading 遮罩（本地 / 云端共用）
+          if (_isLoading || _isAnalyzingCloud)
             Container(
               color: Colors.black54,
               child: Center(
@@ -396,7 +568,9 @@ class _AddItemPageState extends State<AddItemPage> {
                     const CircularProgressIndicator(color: Colors.white),
                     const SizedBox(height: 25),
                     Text(
-                      "Analyzing Ingredients...",
+                      _isAnalyzingCloud
+                          ? "Cloud AI is analyzing..."
+                          : "Analyzing Ingredients...",
                       style: _pangolin(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
@@ -405,7 +579,9 @@ class _AddItemPageState extends State<AddItemPage> {
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      "Looking for veggies, meats & more",
+                      _isAnalyzingCloud
+                          ? "Identifying ingredients & quantities"
+                          : "Looking for veggies, meats & more",
                       style: _pangolin(fontSize: 16, color: Colors.white70),
                     ),
                   ],
@@ -416,106 +592,4 @@ class _AddItemPageState extends State<AddItemPage> {
       ),
     );
   }
-
-  // --- 手绘按钮组件 (保留) ---
-  Widget _buildSketchyButton({
-    required VoidCallback? onPressed,
-    required Widget child,
-    double? width,
-    Color? backgroundColor,
-  }) {
-    // 禁用状态下的透明度
-    final isEnabled = onPressed != null;
-    final effectiveBgColor = backgroundColor ?? Colors.transparent;
-    final borderColor = isEnabled
-        ? _themeBrown.withOpacity(0.8)
-        : Colors.grey.shade400;
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onPressed,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          width: width,
-          height: 60, // 稍微加大高度
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          decoration: BoxDecoration(
-            color: effectiveBgColor,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: CustomPaint(
-            painter: _SketchyButtonBorderPainter(
-              borderColor: borderColor,
-              borderWidth: 2.0,
-              wobbleAmount: 1.5,
-              seed: 123,
-            ),
-            child: Center(child: child),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// --- 手绘边框 Painter (保持不变) ---
-class _SketchyButtonBorderPainter extends CustomPainter {
-  final Color borderColor;
-  final double borderWidth;
-  final double wobbleAmount;
-  final int seed;
-  final math.Random _random;
-
-  _SketchyButtonBorderPainter({
-    required this.borderColor,
-    this.borderWidth = 1.5,
-    this.wobbleAmount = 1.5,
-    this.seed = 123,
-  }) : _random = math.Random(seed);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final path = _createSketchyPath(size);
-    final paint = Paint()
-      ..color = borderColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = borderWidth
-      ..strokeJoin = StrokeJoin.round
-      ..strokeCap = StrokeCap.round;
-
-    canvas.drawPath(path, paint);
-  }
-
-  Path _createSketchyPath(Size size) {
-    final path = Path();
-    const double step = 8.0;
-    final double wobble = wobbleAmount;
-
-    path.moveTo(0, 0);
-    // Top
-    for (double x = step; x < size.width; x += step) {
-      path.lineTo(x, (_random.nextDouble() * 2 - 1) * wobble);
-    }
-    path.lineTo(size.width, 0);
-    // Right
-    for (double y = step; y < size.height; y += step) {
-      path.lineTo(size.width + (_random.nextDouble() * 2 - 1) * wobble, y);
-    }
-    path.lineTo(size.width, size.height);
-    // Bottom
-    for (double x = size.width - step; x > 0; x -= step) {
-      path.lineTo(x, size.height + (_random.nextDouble() * 2 - 1) * wobble);
-    }
-    path.lineTo(0, size.height);
-    // Left
-    for (double y = size.height - step; y > 0; y -= step) {
-      path.lineTo((_random.nextDouble() * 2 - 1) * wobble, y);
-    }
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

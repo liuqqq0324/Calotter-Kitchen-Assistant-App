@@ -235,6 +235,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.8.5"
+  flutter_vision:
+    dependency: "direct main"
+    description:
+      path: "packages/flutter_vision"
+      relative: true
+    source: path
+    version: "1.1.4"
   flutter_web_plugins:
     dependency: transitive
     description: flutter
@@ -248,6 +255,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "6.3.3"
+  google_generative_ai:
+    dependency: "direct main"
+    description:
+      name: google_generative_ai
+      sha256: "71f613d0247968992ad87a0eb21650a566869757442ba55a31a81be6746e0d1f"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.4.7"
   google_mlkit_commons:
     dependency: transitive
     description:
@@ -440,14 +455,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "7.1.4"
-  onnxruntime:
-    dependency: "direct main"
-    description:
-      name: onnxruntime
-      sha256: e77ec05acafc135cc5fe7bcdf11b101b39f06513c9d5e9fa02cb1929f6bac72a
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.4.1"
   package_info_plus:
     dependency: transitive
     description:

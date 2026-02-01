@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:personal_sous_chef/core/config/ingredient_icon_config.dart';
 import 'package:personal_sous_chef/data/models/ingredient.dart';
 import 'package:personal_sous_chef/shared/widgets/forms/quantity_selector.dart';
+import 'package:personal_sous_chef/shared/widgets/common/sketchy_border.dart';
 import 'package:personal_sous_chef/shared/widgets/common/sketchy_button.dart';
 import 'package:personal_sous_chef/services/api/inventory_api_service.dart';
 import 'package:personal_sous_chef/services/business/household_service.dart';
@@ -230,9 +231,8 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
     super.dispose();
   }
 
-  /// 根据匹配到的标准食材名称显示图标，无匹配时显示 emoji 占位
+  /// 根据匹配到的标准食材名称显示图标，无匹配时用 imagePlaceholder（资源路径或 emoji）
   Widget _buildIngredientIcon() {
-    // 先按原名查，再按「空格→连字符」规范化查（兼容 API 返回 "Bok Choy" 而 config 为 "Bok-Choy"）
     final path = getIngredientIconPath(_matchedStandardName) ??
         getIngredientIconPath(_matchedStandardName?.replaceAll(' ', '-'));
     if (path != null) {
@@ -243,17 +243,28 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
           width: 120,
           height: 120,
           fit: BoxFit.contain,
-          errorBuilder: (_, __, ___) => Text(
-            widget.ingredient.imagePlaceholder,
-            style: const TextStyle(fontSize: 60),
-          ),
+          errorBuilder: (_, __, ___) => _iconFallback(),
         ),
       );
     }
-    return Text(
-      widget.ingredient.imagePlaceholder,
-      style: const TextStyle(fontSize: 60),
-    );
+    return _iconFallback();
+  }
+
+  Widget _iconFallback() {
+    final ph = widget.ingredient.imagePlaceholder;
+    if (ph.startsWith('assets/')) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Image.asset(
+          ph,
+          width: 120,
+          height: 120,
+          fit: BoxFit.contain,
+          errorBuilder: (_, __, ___) => Text(ph, style: const TextStyle(fontSize: 24)),
+        ),
+      );
+    }
+    return Text(ph, style: const TextStyle(fontSize: 60));
   }
 
   // 日期选择器逻辑
@@ -469,35 +480,39 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
                   ),
                 ),
 
-                // 日期显示框 (点击弹出日历)
+                // 日期显示框 (点击弹出日历) - 使用 SketchyBorder 手绘风格
                 GestureDetector(
                   onTap: _selectDate,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey.shade300),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      children: [
-                        Text(
-                          "${_expiryDate.day}/${_expiryDate.month}/${_expiryDate.year}",
-                          style: const TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey,
-                            fontStyle: FontStyle.italic,
+                  child: SketchyBorder(
+                    borderColor: Colors.black87,
+                    borderWidth: 2.0,
+                    backgroundColor: Colors.white,
+                    borderRadius: 12.0,
+                    roughness: 3.0,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            "${_expiryDate.day}/${_expiryDate.month}/${_expiryDate.year}",
+                            style: const TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey,
+                              fontStyle: FontStyle.italic,
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        const Icon(
-                          Icons.calendar_today,
-                          size: 18,
-                          color: Colors.black87,
-                        ),
-                      ],
+                          const SizedBox(width: 8),
+                          const Icon(
+                            Icons.calendar_today,
+                            size: 18,
+                            color: Colors.black87,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -506,9 +521,11 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
 
             const SizedBox(height: 50),
 
-            // 5. Done 按钮
+            // 5. Done 按钮（加大尺寸）
             SketchyButton(
               text: "Done",
+              fontSize: 26,
+              padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 22),
               onPressed: () async {
                   if (_quantity <= 0) _quantity = 1.0; // 🔥 改为 <= 0，并设置为 1.0
 
@@ -609,7 +626,6 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
                 },
               backgroundColor: Colors.orange,
               isFullWidth: true,
-              fontSize: 20,
             ),
           ],
         ),

@@ -295,7 +295,7 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
                           const SizedBox(width: 8),
                           Flexible(
                             child: Text(
-                              'Start cooking',
+                              'Cook mode',
                               style: GoogleFonts.kalam(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
