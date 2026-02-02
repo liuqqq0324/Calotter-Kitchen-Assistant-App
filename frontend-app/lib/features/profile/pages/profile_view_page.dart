@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:personal_sous_chef/core/theme/fallback_google_fonts.dart';
+import 'package:personal_sous_chef/core/config/avatar_config.dart';
+import 'package:personal_sous_chef/services/business/avatar_service.dart';
 import 'settings_page.dart';
 // Modified by Chase: Removed separate list pages after implementing accordion UI / 由 Chase 修改：实现折叠 UI 后移除单独的列表页面导入
 import '../../../services/business/standard_library_service.dart';
@@ -9,6 +11,7 @@ import '../../../shared/widgets/common/sketchy_card.dart';
 import '../../../shared/widgets/common/sketchy_button.dart';
 import '../../../shared/widgets/common/sketchy_border.dart';
 import '../../../shared/widgets/common/passport_page_view.dart';
+import '../../../shared/widgets/common/washed_brush_background.dart';
 import '../../../services/business/user_service.dart';
 import '../../household/pages/household_manage_page.dart';
 
@@ -34,6 +37,9 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
   List<Map<String, dynamic>> _standardAllergens = [];
   bool _isSavingPrefs = false;
 
+  // 头像：默认 otter，点击可更换
+  String _selectedAvatarId = AvatarConfig.defaultAvatar;
+
   // 兜底过敏原列表，防止 API 返回为空
   static const List<String> _fallbackAllergens = [
     'Peanut',
@@ -52,6 +58,51 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
   void initState() {
     super.initState();
     _loadUserData();
+    _loadAvatar();
+  }
+
+  Future<void> _loadAvatar() async {
+    final id = await AvatarService.getSelectedAvatar();
+    if (mounted) setState(() => _selectedAvatarId = id);
+  }
+
+  Future<void> _showAvatarPicker() async {
+    final selected = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Choose Avatar', style: GoogleFonts.caveat(fontSize: 24)),
+        content: SizedBox(
+          width: 280,
+          child: Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: AvatarConfig.options.map((opt) {
+              return GestureDetector(
+                onTap: () => Navigator.pop(context, opt.id),
+                child: SizedBox(
+                  width: 64,
+                  height: 64,
+                  child: Image.asset(
+                    opt.path,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+    if (selected != null) {
+      await AvatarService.setSelectedAvatar(selected);
+      if (mounted) setState(() => _selectedAvatarId = selected);
+    }
   }
 
   Future<void> _loadUserData() async {
@@ -455,8 +506,9 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
   Widget _buildGoalTypeOption(String value, String label, Color color) {
     final isSelected = _selectedGoalType == value;
     return SketchyCard(
-      // ✅ 统一风格：与出生日期颜色一致的边框
-      backgroundColor: isSelected ? color.withOpacity(0.10) : Colors.white,
+      // ✅ 统一风格：选中状态用温暖米棕色，整体保持棕色系
+      backgroundColor:
+          isSelected ? const Color(0xFFF5EDE0) : Colors.white, // 淡棕纸色
       borderColor: const Color(0xFF6B4F4F), // River Deep Brown - 与出生日期一致
       borderWidth: 2.0,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -472,9 +524,11 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
             height: 24,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: isSelected ? color : Colors.transparent,
+               color: isSelected
+                   ? const Color(0xFF6B4F4F)
+                   : Colors.transparent, // 选中时用深棕色填充
               border: Border.all(
-                color: isSelected ? color : Colors.grey.shade500,
+                 color: const Color(0xFF6B4F4F), // 边框统一深棕色
                 width: 2.5,
               ),
             ),
@@ -488,12 +542,11 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
               label,
               style: GoogleFonts.kalam(
                 fontSize: 18, // 调大字体从 15 到 18
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected
-                    ? color
-                    : const Color(
-                        0xFF6B4F4F,
-                      ), // River Deep Brown - 与 Profile 页面一致
+                 fontWeight:
+                     isSelected ? FontWeight.bold : FontWeight.normal, // 选中时加粗
+                 color: const Color(
+                   0xFF6B4F4F,
+                 ), // 文本始终保持棕色
               ),
             ),
           ),
@@ -552,49 +605,38 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
       return const SizedBox.shrink();
     }
 
-    final items = <Widget>[
-      if (dailyEnergy != null)
-        _buildNutritionStatCard(
-          icon: Icons.local_fire_department,
-          label: 'Energy',
-          valueText: '${dailyEnergy.toInt()} kcal',
-          accent: const Color(0xFFF0B27A), // Appetite Orange - 与 homepage 一致
-          labelColor: const Color(
-            0xFF6B4F4F,
-          ), // River Deep Brown - 与 homepage 一致
-          valueColor: const Color(
-            0xFF6B4F4F,
-          ).withOpacity(0.8), // River Deep Brown - 与 homepage 一致
-        ),
-      if (dailyProtein != null)
-        _buildNutritionStatCard(
-          icon: Icons.fitness_center,
-          label: 'Protein',
-          valueText: '${dailyProtein.toInt()} g',
-          accent: Colors.blue,
-        ),
-      if (dailyFat != null)
-        _buildNutritionStatCard(
-          icon: Icons.water_drop,
-          label: 'Fat',
-          valueText: '${dailyFat.toInt()} g',
-          accent: Colors.amber,
-        ),
-      if (dailyCarbohydrates != null)
-        _buildNutritionStatCard(
-          icon: Icons.eco,
-          label: 'Carbs',
-          valueText: '${dailyCarbohydrates.toInt()} g',
-          accent: Colors.green,
-        ),
-      if (dailyFiber != null)
-        _buildNutritionStatCard(
-          icon: Icons.agriculture,
-          label: 'Fiber',
-          valueText: '${dailyFiber.toInt()} g',
-          accent: Colors.brown,
-        ),
-    ];
+    // 将四/五个营养指标改为与 Profile 页面一致的贴纸便签风格
+    final metrics = <Map<String, String>>[];
+    if (dailyEnergy != null) {
+      metrics.add({
+        'label': 'Energy',
+        'value': '${dailyEnergy.toInt()} kcal',
+      });
+    }
+    if (dailyProtein != null) {
+      metrics.add({
+        'label': 'Protein',
+        'value': '${dailyProtein.toInt()} g',
+      });
+    }
+    if (dailyFat != null) {
+      metrics.add({
+        'label': 'Fat',
+        'value': '${dailyFat.toInt()} g',
+      });
+    }
+    if (dailyCarbohydrates != null) {
+      metrics.add({
+        'label': 'Carbs',
+        'value': '${dailyCarbohydrates.toInt()} g',
+      });
+    }
+    if (dailyFiber != null) {
+      metrics.add({
+        'label': 'Fiber',
+        'value': '${dailyFiber.toInt()} g',
+      });
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -608,16 +650,47 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
           ),
         ),
         const SizedBox(height: 12),
-        GridView.count(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: 2,
-          mainAxisSpacing: 12,
-          crossAxisSpacing: 12,
-          // ✅ 修复：减小 childAspectRatio 以增加每个 item 的高度，避免溢出
-          // childAspectRatio = width / height，值越小，高度越大
-          childAspectRatio: 1.5, // 从 1.8 改为 1.5，进一步增加高度以适应大字体
-          children: items,
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final maxWidth = constraints.maxWidth;
+            // 宽屏时一行放两个贴纸，窄屏时单列
+            final twoPerRow = maxWidth >= 360;
+            final noteWidth = twoPerRow
+                ? (maxWidth - 12) / 2 // 预留 12px 间距
+                : maxWidth;
+
+            return Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: metrics.asMap().entries.map((entry) {
+                final index = entry.key;
+                final metric = entry.value;
+
+                // 交替使用 Sticky1 / Sticky2，并给出轻微旋转，营造手账感
+                final useSticky1 = index.isEven;
+                final asset = useSticky1
+                    ? 'assets/profile_passport/Sticky1.png'
+                    : 'assets/profile_passport/Sticky2.png';
+                final rotation = useSticky1 ? _stickyLeftRot : _stickyRightRot;
+                final tapeTop = useSticky1 ? 5.0 : -5.0;
+                final tapeWidth = useSticky1 ? 42.0 : 40.0;
+
+                return SizedBox(
+                  width: noteWidth,
+                  child: _buildStickyNote(
+                    label: metric['label']!,
+                    value: metric['value']!,
+                    stickyAsset: asset,
+                    width: noteWidth,
+                    height: 140,
+                    rotation: rotation,
+                    tapeTop: tapeTop,
+                    tapeWidth: tapeWidth,
+                  ),
+                );
+              }).toList(),
+            );
+          },
         ),
       ],
     );
@@ -773,33 +846,163 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
     );
   }
 
-  Widget _buildMiniInfo(String label, String value) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          label,
-          style: GoogleFonts.kalam(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: const Color(0xFF6B4F4F), // River Deep Brown - 与 homepage 一致
+  /// 便签旋转角度（弧度）：左列逆时针 -5°，右列顺时针 +5°（参考图布局）
+  static const double _stickyLeftRot = -0.087;  // -5°
+  static const double _stickyRightRot = 0.087;  // +5°
+
+  /// 便签样式信息卡片，使用 Sticky1 或 Sticky2 作为背景，带透明胶带效果
+  /// Sticky1 和 Sticky2 尺寸不同，胶带位置/大小需分开配置
+  Widget _buildStickyNote({
+    required String label,
+    required String value,
+    required String stickyAsset,
+    double? width,
+    double height = 128,
+    double rotation = 0,
+    double tapeTop = 0,
+    double tapeWidth = 62,
+    double tapeHeight = 16,
+    double verticalOffset = 0,
+    double horizontalOffset = 0,
+    BoxFit imageFit = BoxFit.cover,
+  }) {
+    final displayValue = value.isNotEmpty ? value : 'Not set';
+    final stickyContent = Container(
+      width: width,
+      height: height,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          // 1. 便签主体（铺满整个容器）
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                image: DecorationImage(
+                  image: AssetImage(stickyAsset),
+                  fit: imageFit,
+                  alignment: imageFit == BoxFit.contain
+                      ? Alignment.topCenter
+                      : Alignment.center,
+                ),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    label,
+                    style: GoogleFonts.kalam(
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF6B4F4F),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    displayValue,
+                    style: GoogleFonts.kalam(
+                      fontSize: 22,
+                      color: const Color(0xFF6B4F4F).withOpacity(0.9),
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
           ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          value.isNotEmpty ? value : 'Not set',
-          style: GoogleFonts.kalam(
-            fontSize: 24,
-            color: const Color(
-              0xFF6B4F4F,
-            ).withOpacity(0.8), // River Deep Brown - 与 homepage 一致
+          // 2. 透明胶带：Sticky1/Sticky2 分别配置位置和尺寸
+          Positioned(
+            top: tapeTop,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Container(
+                  width: tapeWidth,
+                  height: tapeHeight,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF5EDE0).withOpacity(0.85), // 米白色
+                    borderRadius: BorderRadius.circular(2),
+                    border: Border.all(
+                      color: const Color(0xFFE5D9C8).withOpacity(0.6), // 米白偏深描边
+                      width: 0.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 2,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
+                  ),
+                  child: CustomPaint(painter: _StickyTapeTexturePainter()),
+                ),
+            ),
           ),
-          overflow: TextOverflow.ellipsis,
-          maxLines: 1,
-        ),
-      ],
+        ],
+      ),
     );
+    Widget result = stickyContent;
+    if (rotation != 0) {
+      result = Transform.rotate(angle: rotation, child: result);
+    }
+    if (verticalOffset != 0 || horizontalOffset != 0) {
+      result = Transform.translate(
+        offset: Offset(horizontalOffset, verticalOffset),
+        child: result,
+      );
+    }
+    return result;
+  }
+
+  static const double _edgeIconSize = 30.0;
+
+  List<Widget> _buildProfileEdgeIcons(double w, double h) {
+    const base = 'assets/profile_passport';
+    return [
+      // 左侧边缘 3 个
+      Positioned(
+        left: -4,
+        top: h * -0.02,
+        child: Image.asset('$base/profile_icon1.png', width: _edgeIconSize, height: _edgeIconSize, fit: BoxFit.contain),
+      ),
+      Positioned(
+        left: -4,
+        top: h * 0.22,
+        child: Image.asset('$base/profile_icon2.png', width: _edgeIconSize, height: _edgeIconSize, fit: BoxFit.contain),
+      ),
+      Positioned(
+        left: -4,
+        top: h * 0.44,
+        child: Image.asset('$base/profile_icon3.png', width: _edgeIconSize, height: _edgeIconSize, fit: BoxFit.contain),
+      ),
+      // 右侧边缘 2 个
+      Positioned(
+        right: -4,
+        top: h * 0.02,
+        child: Image.asset('$base/profile_icon4.png', width: _edgeIconSize, height: _edgeIconSize, fit: BoxFit.contain),
+      ),
+      Positioned(
+        right: -4,
+        top: h * 0.36,
+        child: Image.asset('$base/profile_icon5.png', width: _edgeIconSize, height: _edgeIconSize, fit: BoxFit.contain),
+      ),
+      // 上侧边缘 2 个
+      Positioned(
+        left: w * 0.18,
+        top: -8,
+        child: Image.asset('$base/profile_icon6.png', width: _edgeIconSize, height: _edgeIconSize, fit: BoxFit.contain),
+      ),
+      Positioned(
+        left: w * 0.62,
+        top: -8,
+        child: Image.asset('$base/profile_icon1.png', width: _edgeIconSize, height: _edgeIconSize, fit: BoxFit.contain),
+      ),
+    ];
   }
 
   Widget _buildNutritionStatCard({
@@ -868,35 +1071,21 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
         : kCurrentUser;
   }
 
-  // Helper method to calculate age and birthdate
-  Map<String, String> _calculateAgeAndBirthdate(String ageStr) {
-    String displayAge = '';
-    String displayBirthdate = '';
-    if (ageStr.isNotEmpty) {
-      try {
-        final birthdate = DateTime.parse(ageStr);
-        final now = DateTime.now();
-        final age = now.year - birthdate.year;
-        final monthDiff = now.month - birthdate.month;
-        final dayDiff = now.day - birthdate.day;
-        final actualAge = (monthDiff < 0 || (monthDiff == 0 && dayDiff < 0))
-            ? age - 1
-            : age;
-        displayAge = actualAge.toString();
-        displayBirthdate =
-            '${birthdate.year}-${birthdate.month.toString().padLeft(2, '0')}-${birthdate.day.toString().padLeft(2, '0')}';
-      } catch (e) {
-        displayAge = ageStr;
-        displayBirthdate = '';
-      }
+  // Helper method to format birthdate
+  String _formatBirthdate(String ageStr) {
+    if (ageStr.isEmpty) return '';
+    try {
+      final birthdate = DateTime.parse(ageStr);
+      return '${birthdate.year}-${birthdate.month.toString().padLeft(2, '0')}-${birthdate.day.toString().padLeft(2, '0')}';
+    } catch (e) {
+      return ageStr;
     }
-    return {'age': displayAge, 'birthdate': displayBirthdate};
   }
 
   // Build Profile Page (Page 0)
   Widget _buildProfilePage(BuildContext context) {
     final user = _getUserProfile();
-    final ageData = _calculateAgeAndBirthdate(user.age);
+    final birthdate = _formatBirthdate(user.age);
 
     return RefreshIndicator(
       onRefresh: _loadUserData,
@@ -905,214 +1094,215 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
           // 内容区域
           SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.symmetric(
-              horizontal: 12.0,
-              vertical: 16.0,
+            padding: const EdgeInsets.only(
+              left: 4.0,
+              right: 4.0,
+              top: 12.0,
+              bottom: 20.0,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header: 用户信息 + 简要资料
+                // Header: 头像（左） + 用户名与邮箱（右），头像可点击更换
                 Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  padding: const EdgeInsets.only(left: 4, right: 14, top: 6, bottom: 4),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Column(
-                            children: [
-                              SketchyBorder(
-                                borderColor: Colors.black87,
-                                borderWidth: 2.0,
-                                borderRadius: 40,
-                                roughness: 2.0,
-                                child: const CircleAvatar(
-                                  radius: 40,
-                                  backgroundColor: Colors.grey,
-                                  child: Icon(
-                                    Icons.person,
-                                    size: 42,
-                                    color: Colors.white,
-                                  ),
-                                ),
+                      GestureDetector(
+                        onTap: _showAvatarPicker,
+                        child: Transform.translate(
+                          offset: const Offset(-12, 0),
+                          child: Transform.rotate(
+                            angle: -0.25, // ✅ 增大倾斜角度从 -0.15 到 -0.25
+                            child: SizedBox(
+                              width: 150,
+                              height: 150,
+                              child: Image.asset(
+                                AvatarConfig.getPath(_selectedAvatarId),
+                                fit: BoxFit.contain,
                               ),
-                            ],
+                            ),
                           ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Row(
-                                  mainAxisSize: MainAxisSize.max,
-                                  children: [
-                                    Expanded(
-                                      flex: 1,
-                                      child: Text(
-                                        user.username,
-                                        style: GoogleFonts.caveat(
-                                          fontSize: 36,
-                                          fontWeight: FontWeight.bold,
-                                          color: const Color(0xFF6B4F4F)
-                                              .withOpacity(
-                                                0.8,
-                                              ), // River Deep Brown - 与出生日期一致
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ],
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: WashedBrushBackground(
+                          seed: 42,
+                          color: const Color(0xE8F5EDE0), // 米白色
+                          padding: const EdgeInsets.fromLTRB(20, 4, 12, 20), // 上少下多，文字上移，总高度不变笔刷不缩短
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                user.username,
+                                style: GoogleFonts.caveat(
+                                  fontSize: 36,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF6B4F4F)
+                                      .withOpacity(0.8),
                                 ),
-                                const SizedBox(height: 4),
-                                Text(
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 2),
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerLeft,
+                                child: Text(
                                   user.email,
                                   style: GoogleFonts.kalam(
-                                    fontSize: 18,
+                                    fontSize: 15,
                                     color: Colors.grey[600],
                                   ),
                                   maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
                                 ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                      Transform.translate(
-                        offset: const Offset(
-                          24,
-                          58,
-                        ), // 再次下移 32 像素 (26 + 32 = 58)
-                        child: Column(
-                          children: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: _buildMiniInfo(
-                                    'Birthdate',
-                                    ageData['birthdate']!,
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: _buildMiniInfo(
-                                    'Gender',
-                                    _getGenderDisplay(user.gender),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: _buildMiniInfo(
-                                    'Weight',
-                                    user.weight.isNotEmpty
-                                        ? (user.weight.endsWith(' kg')
-                                              ? user.weight
-                                              : '${user.weight} kg')
-                                        : '',
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: _buildMiniInfo(
-                                    'Height',
-                                    user.height.isNotEmpty
-                                        ? (user.height.endsWith(' cm')
-                                              ? user.height
-                                              : '${user.height} cm')
-                                        : '',
-                                  ),
-                                ),
-                              ],
-                            ),
-                            if (ageData['age']!.isNotEmpty) ...[
-                              const SizedBox(height: 12),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: _buildMiniInfo(
-                                      'Age',
-                                      '${ageData['age']} years',
-                                    ),
-                                  ),
-                                ],
                               ),
                             ],
-                          ],
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 100), // 再次下移 32 像素 (68 + 32 = 100)
-                      // 按钮组：Settings 在上，Invite 在下
-                      Center(
-                        child: Column(
-                          children: [
-                            SketchyButton(
-                              text: 'Settings',
-                              fontSize: 23, // 调整字体 (原为 26)
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 70,
-                                vertical: 24,
-                              ), // 再次调大按钮 (原为 54, 18)
-                              backgroundImage:
-                                  'assets/icons/Ingredients.png', // 使用 Ingredients 的纹理
-                              borderColor: Colors.orange.shade700,
-                              textColor: const Color(
-                                0xFF6B4F4F,
-                              ), // 使用页面统一的深棕色文字
-                              onPressed: () async {
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 0),
+                // 四个便签 + Settings/Invite：散乱但有秩序的贴纸布局
+                SizedBox(
+                  height: 440,
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final w = constraints.maxWidth;
+                      final h = 440.0;
+                      final stickyW = w * 0.46;
+                      final stickyH = 140.0;
+                      final settingsBtnW = (w * 0.76).clamp(0.0, 300.0);
+                      final inviteBtnW = (w * 0.55).clamp(0.0, 180.0);
+                      return Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          // 木板边缘装饰图标：左侧3个、右侧2个、上侧2个
+                          ..._buildProfileEdgeIcons(w, h),
+                          // Birthdate
+                          Positioned(
+                            left: w * 0.06,
+                            top: h * 0.01,
+                            child: _buildStickyNote(
+                              label: 'Birthdate',
+                              value: birthdate,
+                              stickyAsset: 'assets/profile_passport/Sticky1.png',
+                              width: stickyW,
+                              height: stickyH,
+                              rotation: 0.10,
+                              tapeTop: 5,
+                              tapeWidth: 42,
+                            ),
+                          ),
+                          // Gender
+                          Positioned(
+                            left: w * 0.46,
+                            top: h * -0.08,
+                            child: _buildStickyNote(
+                              label: 'Gender',
+                              value: _getGenderDisplay(user.gender),
+                              stickyAsset: 'assets/profile_passport/Sticky2.png',
+                              width: stickyW,
+                              height: stickyH,
+                              rotation: 0.35,
+                              tapeTop: -5,
+                              tapeWidth: 40,
+                              imageFit: BoxFit.contain,
+                            ),
+                          ),
+                          // Weight
+                          Positioned(
+                            left: w * 0.04,
+                            top: h * 0.38,
+                            child: _buildStickyNote(
+                              label: 'Weight',
+                              value: user.weight.isNotEmpty
+                                  ? (user.weight.endsWith(' kg')
+                                        ? user.weight
+                                        : '${user.weight} kg')
+                                  : '',
+                              stickyAsset: 'assets/profile_passport/Sticky2.png',
+                              width: stickyW,
+                              height: stickyH,
+                              rotation: -0.12,
+                              tapeTop: -5,
+                              tapeWidth: 40,
+                              imageFit: BoxFit.contain,
+                            ),
+                          ),
+                          // Height
+                          Positioned(
+                            left: w * 0.50,
+                            top: h * 0.29,
+                            child: _buildStickyNote(
+                              label: 'Height',
+                              value: user.height.isNotEmpty
+                                  ? (user.height.endsWith(' cm')
+                                        ? user.height
+                                        : '${user.height} cm')
+                                  : '',
+                              stickyAsset: 'assets/profile_passport/Sticky1.png',
+                              width: stickyW,
+                              height: stickyH,
+                              rotation: -0.32,
+                              tapeTop: 5,
+                              tapeWidth: 42,
+                            ),
+                          ),
+                          // Settings
+                          Positioned(
+                            left: w * -0.09,
+                            top: h * 0.62,
+                            child: GestureDetector(
+                              onTap: () async {
                                 final result = await Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) => const SettingsPage(),
                                   ),
                                 );
-                                // Modified by Chase: Refresh data if profile was updated / 由 Chase 修改：如果资料更新过，则刷新数据
                                 if (result == true && mounted) {
                                   _loadUserData();
                                 }
                               },
+                              child: Image.asset(
+                                'assets/profile_passport/Settings.png',
+                                width: settingsBtnW,
+                                fit: BoxFit.contain,
+                              ),
                             ),
-                            const SizedBox(
-                              height: 8,
-                            ), // 减小间距，使 Invite 向上移动 (原为 20)
-                            SketchyButton(
-                              text: 'Invite',
-                              fontSize: 23, // 调整字体 (原为 26)
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 70,
-                                vertical: 24,
-                              ), // 再次调大按钮 (原为 54, 18)
-                              backgroundImage:
-                                  'assets/icons/Dishes.png', // 使用 Dishes 的纹理
-                              borderColor: Colors.yellow.shade700,
-                              textColor: const Color(
-                                0xFF6B4F4F,
-                              ), // 使用页面统一的深棕色文字
-                              onPressed: () {
+                          ),
+                          // Invite
+                          Positioned(
+                            left: w * 0.5,
+                            top: h * 0.58,
+                            child: GestureDetector(
+                              onTap: () {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) =>
-                                        const HouseholdManagePage(),
+                                    builder: (context) => const HouseholdManagePage(),
                                   ),
                                 );
                               },
+                              child: Image.asset(
+                                'assets/profile_passport/Invite.png',
+                                width: inviteBtnW,
+                                fit: BoxFit.contain,
+                              ),
                             ),
-                          ],
-                        ),
-                      ),
-                    ],
+                          ),
+                        ],
+                      );
+                    },
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
               ],
             ),
           ),
@@ -1133,8 +1323,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _sectionTitle('Health'),
-            // BMI显示
+            // BMI 显示（右上角贴纸）
             Builder(
               builder: (context) {
                 dynamic bmiValue = _healthInfo?['bmi'];
@@ -1157,81 +1346,74 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                   }
                 }
 
-                return SketchyBorder(
-                  borderColor: const Color(
-                    0xFF6B4F4F,
-                  ), // River Deep Brown - 与出生日期一致
-                  borderWidth: 2.0,
-                  borderRadius: 12,
-                  roughness: 2.0,
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.shade50,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'BMI',
-                          style: GoogleFonts.kalam(
-                            fontSize: 14, // 调大从 12 到 14，与营养卡片标签一致
-                            fontWeight: FontWeight.bold,
-                            color: const Color(
-                              0xFF6B4F4F,
-                            ), // River Deep Brown - 与 Profile 页面一致
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          _formatBmi(bmiValue),
-                          style: GoogleFonts.caveat(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF6B4F4F).withOpacity(
-                              0.8,
-                            ), // River Deep Brown - 与 Profile 页面一致
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                // 使用与 Profile 页相同的便签样式展示 BMI，统一手账感
+                return LayoutBuilder(
+                  builder: (context, constraints) {
+                    final maxWidth = constraints.maxWidth;
+                    // 缩小 BMI 贴纸尺寸：宽度占 55%，高度略减
+                    final noteWidth =
+                        (maxWidth * 0.55).clamp(0.0, 320.0); // 贴纸宽度占 55%
+                    return Align(
+                      alignment: Alignment.topRight,
+                      child: _buildStickyNote(
+                        label: 'BMI',
+                        value: _formatBmi(bmiValue),
+                        stickyAsset: 'assets/profile_passport/Sticky1.png',
+                        width: noteWidth,
+                        height: 120,
+                        rotation: 0.10,
+                        tapeTop: 5,
+                        tapeWidth: 42,
+                      ),
+                    );
+                  },
                 );
               },
             ),
             const SizedBox(height: 20),
-            Text(
-              'Health Goal',
-              style: GoogleFonts.kalam(
-                fontSize: 20, // 调大标题从 16 到 20，与 Nutrition Targets 保持一致
-                fontWeight: FontWeight.bold,
-                color: const Color(
-                  0xFF6B4F4F,
-                ), // River Deep Brown - 与 Profile 页面一致
-              ),
-            ),
-            const SizedBox(height: 12),
-            _buildGoalTypeSelector(),
-            const SizedBox(height: 16),
-            Center(
-              child: _isSavingGoal
-                  ? const CircularProgressIndicator()
-                  : SketchyButton(
-                      text: 'Save Goal',
-                      fontSize: 23, // 统一字体大小
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 70,
-                        vertical: 24,
-                      ), // 统一按钮大小，与 Settings/Invite 一致
-                      backgroundImage:
-                          'assets/icons/seasonings.png', // 使用 Seasonings 的绿色纹理
-                      borderColor: Colors.green.shade700,
-                      textColor: const Color(0xFF6B4F4F),
-                      onPressed: () {
-                        _saveHealthGoal();
-                      },
+            // 使用毛笔笔刷背景包裹 Health Goal 区域，使其与 Profile 页用户名区域风格统一
+            WashedBrushBackground(
+              color: const Color(0xE8F5EDE0), // 米白色水洗笔触
+              seed: 18,
+              padding: const EdgeInsets.fromLTRB(18, 10, 18, 18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Health Goal',
+                    style: GoogleFonts.kalam(
+                      fontSize: 20, // 与 Nutrition Targets 保持一致
+                      fontWeight: FontWeight.bold,
+                      color: const Color(
+                        0xFF6B4F4F,
+                      ), // River Deep Brown - 与 Profile 页面一致
                     ),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildGoalTypeSelector(),
+                  const SizedBox(height: 16),
+                  Center(
+                    child: _isSavingGoal
+                        ? const CircularProgressIndicator()
+                        : SketchyButton(
+                            text: 'Save Goal',
+                            fontSize: 23, // 统一字体大小
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 70,
+                              vertical: 24,
+                            ), // 统一按钮大小，与 Settings/Invite 一致
+                            backgroundImage:
+                                'assets/icons/seasonings.png', // 使用 Seasonings 的绿色纹理
+                            borderColor: Colors.green.shade700,
+                            textColor: const Color(0xFF6B4F4F),
+                            onPressed: () {
+                              _saveHealthGoal();
+                            },
+                          ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -1579,4 +1761,21 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
       ),
     );
   }
+}
+
+/// 胶带纹理绘制器（与 home 页 Daily Intake / Add Food 便签一致）
+class _StickyTapeTexturePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFFE5D9C8).withOpacity(0.35) // 米白系纹理
+      ..strokeWidth = 0.5
+      ..style = PaintingStyle.stroke;
+    for (double y = 2; y < size.height; y += 3) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

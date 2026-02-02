@@ -1,5 +1,70 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:personal_sous_chef/core/theme/fallback_google_fonts.dart';
+
+/// 木板区域暗角（vignette）：四周暗、中间亮
+class _VignettePainter extends CustomPainter {
+  static const double _opacity = 0.12; // 8–15%
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (size.width <= 0 || size.height <= 0) return;
+    final rect = Offset.zero & size;
+    final gradient = RadialGradient(
+      center: Alignment.center,
+      radius: 0.85,
+      colors: [
+        Colors.transparent,
+        Colors.black.withOpacity(_opacity),
+      ],
+      stops: const [0.3, 1.0],
+    );
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..shader = gradient.createShader(rect)
+        ..blendMode = BlendMode.multiply,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+/// 纸张颗粒/噪点（4–8% 透明度，Overlay 感）
+class _GrainPainter extends CustomPainter {
+  static const int _seed = 42;
+  static const double _maxOpacity = 0.06; // 4–8%
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (size.width <= 0 || size.height <= 0) return;
+    final rnd = math.Random(_seed);
+    const step = 2.5;
+    for (double y = 0; y < size.height; y += step) {
+      for (double x = 0; x < size.width; x += step) {
+        final v = rnd.nextDouble();
+        final a = v * _maxOpacity;
+        if (a < 0.015) continue;
+        final grey = (128 + (rnd.nextDouble() - 0.5) * 80).round().clamp(80, 180);
+        canvas.drawRect(
+          Rect.fromLTWH(
+            x + (rnd.nextDouble() - 0.5) * 1.5,
+            y + (rnd.nextDouble() - 0.5) * 1.5,
+            1.2,
+            1.2,
+          ),
+          Paint()
+            ..color = Color.fromRGBO(grey, grey, grey, a)
+            ..style = PaintingStyle.fill,
+        );
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
 
 /// 淡淡的网格覆盖层，叠在木纹背景之上
 class _GridOverlayPainter extends CustomPainter {
@@ -157,10 +222,10 @@ class _PassportPageViewState extends State<PassportPageView>
                 children: [
                   // 纸张主体：通过设置负的 left/right 让纸张显得更大
                   Positioned(
-                    top: 20,
-                    left: -30, 
-                    right: -30,
-                    bottom: 100, // 给底部标签留出空间
+                    top: 14,
+                    left: -35,
+                    right: -35,
+                    bottom: 95,
                     child: _buildPaperStack(),
                   ),
                   
@@ -219,18 +284,25 @@ class _PassportPageViewState extends State<PassportPageView>
           clipBehavior: Clip.none,
           children: [
             Positioned.fill(
-              child: Image.asset(
-                'assets/profile_passport/WoodBoard.png',
-                fit: BoxFit.fill, // 确保纸张铺满分配给它的 Positioned 空间
+              child: Transform.translate(
+                offset: const Offset(0, -20),
+                child: Transform(
+                  alignment: Alignment.center,
+                  transform: Matrix4.identity()..scale(0.92, 1.05, 1.0),
+                  child: Image.asset(
+                    'assets/profile_passport/WoodBoard.png',
+                    fit: BoxFit.fill,
+                  ),
+                ),
               ),
             ),
             Positioned.fill(
               child: Padding(
                 padding: EdgeInsets.fromLTRB(
-                  w * 0.16, // 根据纸张变大同步调大 Padding，确保内容居中
-                  80,       // 顶部 Padding，避开头像区域
-                  w * 0.16, 
-                  40,
+                  w * 0.12, // 适度缩小边距
+                  52,      // 顶部 Padding
+                  w * 0.12,
+                  66,      // 底部 Padding
                 ),
                 child: PageView.builder(
                   controller: _pageController,
@@ -240,6 +312,17 @@ class _PassportPageViewState extends State<PassportPageView>
                     return widget.pages[index];
                   },
                 ),
+              ),
+            ),
+            // 轻微氛围叠加：暗角 + 纸张颗粒
+            Positioned.fill(
+              child: IgnorePointer(
+                child: CustomPaint(painter: _VignettePainter()),
+              ),
+            ),
+            Positioned.fill(
+              child: IgnorePointer(
+                child: CustomPaint(painter: _GrainPainter()),
               ),
             ),
           ],

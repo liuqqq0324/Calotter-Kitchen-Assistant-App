@@ -123,6 +123,7 @@ flutter:
     - assets/images/generate_recipes_button.png
     - assets/images/filter_button.png
     - assets/wood_background.png
+    - assets/avatar/
     - assets/profile_passport/
     - assets/images/dish_intake_icon.png
     - assets/images/add_food_icon.png

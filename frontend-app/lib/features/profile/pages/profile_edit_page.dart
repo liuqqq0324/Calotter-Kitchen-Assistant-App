@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
-// Modified by Chase: Import user static data / 由 Chase 修改：导入用户静态数据
-import '../../../data/models/user_profile.dart';
-
-import '../../../services/business/user_service.dart';
 import 'package:personal_sous_chef/core/theme/fallback_google_fonts.dart';
+import 'package:personal_sous_chef/shared/widgets/common/section_title.dart';
+import 'package:personal_sous_chef/shared/widgets/common/sketchy_card.dart';
+import 'package:personal_sous_chef/shared/widgets/common/wood_background_scaffold.dart';
+import '../../../data/models/user_profile.dart';
+import '../../../services/business/user_service.dart';
+
+/// Profile 风格主色（与 profile_view_page 一致）
+const Color _kPassportBrown = Color(0xFF6B4F4F);
 
 class ProfileEditPage extends StatefulWidget {
   const ProfileEditPage({super.key});
@@ -310,12 +314,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 8),
-        // 列表项
+        SectionTitle(title),
         ...items.asMap().entries.map((entry) {
           final index = entry.key;
           final item = entry.value;
@@ -325,19 +324,42 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
             background: Container(
               alignment: Alignment.centerRight,
               padding: const EdgeInsets.only(right: 20),
-              color: Colors.red,
+              color: Colors.red.shade400,
               child: const Icon(Icons.delete, color: Colors.white),
             ),
             onDismissed: (direction) {
               onRemove(index);
             },
-            child: Card(
+            child: Container(
               margin: const EdgeInsets.only(bottom: 8),
-              child: ListTile(title: Text(item)),
+              child: SketchyCard(
+                backgroundColor: Colors.white,
+                borderColor: _kPassportBrown,
+                borderWidth: 2.0,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        item,
+                        style: GoogleFonts.kalam(
+                          fontSize: 16,
+                          color: _kPassportBrown,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => onRemove(index),
+                      icon: Icon(Icons.close, size: 20, color: _kPassportBrown),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
+                ),
+              ),
             ),
           );
         }),
-        // 底部输入框
         Row(
           children: [
             Expanded(
@@ -345,21 +367,25 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                 controller: inputController,
                 decoration: InputDecoration(
                   hintText: 'Add $title',
-                  border: const OutlineInputBorder(),
+                  hintStyle: GoogleFonts.kalam(color: _kPassportBrown.withOpacity(0.6)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: _kPassportBrown),
+                  ),
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 12,
                   ),
                 ),
+                style: GoogleFonts.kalam(color: _kPassportBrown),
                 onSubmitted: (_) => onAdd(),
               ),
             ),
             const SizedBox(width: 8),
             IconButton(
               onPressed: onAdd,
-              icon: const Icon(Icons.add_circle),
+              icon: Icon(Icons.add_circle, color: _kPassportBrown),
               iconSize: 40,
-              color: Theme.of(context).colorScheme.primary,
             ),
           ],
         ),
@@ -368,227 +394,234 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
     );
   }
 
+  PreferredSizeWidget _buildAppBar(VoidCallback? onSave) {
+    return AppBar(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      iconTheme: const IconThemeData(color: _kPassportBrown),
+      title: Text(
+        'Edit Profile',
+        style: GoogleFonts.kalam(
+          fontSize: 22,
+          fontWeight: FontWeight.bold,
+          color: _kPassportBrown,
+        ),
+      ),
+      actions: [
+        if (onSave != null)
+          TextButton(
+            onPressed: onSave,
+            child: Text(
+              'Save',
+              style: GoogleFonts.kalam(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: _kPassportBrown,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  InputDecoration _inputDecoration({
+    String? hintText,
+    String? suffixText,
+  }) {
+    return InputDecoration(
+      hintText: hintText,
+      suffixText: suffixText,
+      hintStyle: GoogleFonts.kalam(color: _kPassportBrown.withOpacity(0.6)),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide(color: _kPassportBrown),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide(color: _kPassportBrown.withOpacity(0.7)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: _kPassportBrown, width: 2),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+    );
+  }
+
+  Future<void> _saveProfile() async {
+    final birthdate = _selectedBirthdate != null
+        ? _selectedBirthdate!.toIso8601String().split('T')[0]
+        : null;
+    final gender = _selectedGender;
+    final height = double.tryParse(
+      heightController.text.replaceAll(' cm', '').trim(),
+    )?.toInt();
+    final weight = double.tryParse(
+      weightController.text.replaceAll(' kg', '').trim(),
+    )?.toInt();
+
+    final result = await UserService.updateUserInfo(
+      birthdate: birthdate,
+      gender: gender,
+      height: height,
+      weight: weight,
+    );
+
+    if (result['success'] == true) {
+      kCurrentUser.age = birthdate ?? '';
+      kCurrentUser.gender = _selectedGender ?? '';
+      kCurrentUser.height = heightController.text;
+      kCurrentUser.weight = weightController.text;
+
+      final prefsResult = await UserService.updateUserPreferences(
+        cuisineTypes: kCurrentUser.preferences,
+      );
+      final dietHabitsResult = await UserService.updateUserDietHabits(
+        dietHabits: kCurrentUser.dietHabits,
+      );
+      final allergiesResult = await UserService.updateUserAllergies(
+        allergies: kCurrentUser.allergies,
+      );
+
+      bool allSuccess =
+          prefsResult['success'] == true &&
+          dietHabitsResult['success'] == true &&
+          allergiesResult['success'] == true;
+
+      if (!mounted) return;
+      if (allSuccess) {
+        Navigator.pop(context, true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Profile saved', style: GoogleFonts.kalam()),
+            backgroundColor: Colors.green.shade300,
+            duration: const Duration(milliseconds: 800),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Profile saved, but some lists failed to save',
+              style: GoogleFonts.kalam(),
+            ),
+            backgroundColor: Colors.orange.shade300,
+            duration: const Duration(milliseconds: 800),
+          ),
+        );
+      }
+    } else {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            result['error'] ?? 'Failed to save profile',
+            style: GoogleFonts.kalam(),
+          ),
+          backgroundColor: Colors.red.shade300,
+          duration: const Duration(milliseconds: 800),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Edit Profile')),
+      return WoodBackgroundScaffold(
+        appBar: _buildAppBar(null),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Edit Profile'),
-        actions: [
-          TextButton(
-            onPressed: () async {
-              // Save to backend API
-              final birthdate = _selectedBirthdate != null
-                  ? _selectedBirthdate!.toIso8601String().split(
-                      'T',
-                    )[0] // YYYY-MM-DD format
-                  : null;
-              final gender = _selectedGender;
-              final height = double.tryParse(
-                heightController.text.replaceAll(' cm', '').trim(),
-              )?.toInt();
-              final weight = double.tryParse(
-                weightController.text.replaceAll(' kg', '').trim(),
-              )?.toInt();
-
-              // Save user basic info
-              final result = await UserService.updateUserInfo(
-                birthdate: birthdate,
-                gender: gender,
-                height: height,
-                weight: weight,
-              );
-
-              if (result['success'] == true) {
-                // Also update local static data for compatibility
-                // Store birthdate as ISO string in age field (for backward compatibility)
-                kCurrentUser.age = birthdate ?? '';
-                kCurrentUser.gender = _selectedGender ?? '';
-                kCurrentUser.height = heightController.text;
-                kCurrentUser.weight = weightController.text;
-
-                // Save preferences (cuisineTypes only, other fields are managed separately)
-                final prefsResult = await UserService.updateUserPreferences(
-                  cuisineTypes: kCurrentUser.preferences,
-                );
-
-                // Save diet habits
-                final dietHabitsResult = await UserService.updateUserDietHabits(
-                  dietHabits: kCurrentUser.dietHabits,
-                );
-
-                // Save allergies
-                final allergiesResult = await UserService.updateUserAllergies(
-                  allergies: kCurrentUser.allergies,
-                );
-
-                // Check if all saves were successful
-                bool allSuccess =
-                    prefsResult['success'] == true &&
-                    dietHabitsResult['success'] == true &&
-                    allergiesResult['success'] == true;
-
-                if (allSuccess) {
-                  // Modified by Chase: Return true to notify parent page to refresh / 由 Chase 修改：返回 true 通知父页面刷新
-                  Navigator.pop(context, true);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'Profile saved',
-                        style: GoogleFonts.kalam(),
-                      ),
-                      backgroundColor: Colors.green.shade300,
-                      duration: const Duration(milliseconds: 800),
-                    ),
-                  );
-                } else {
-                  // Some saves failed, but user info was saved
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'Profile saved, but some lists failed to save',
-                        style: GoogleFonts.kalam(),
-                      ),
-                      backgroundColor: Colors.orange.shade300,
-                      duration: const Duration(milliseconds: 800),
-                    ),
-                  );
-                }
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      result['error'] ?? 'Failed to save profile',
-                      style: GoogleFonts.kalam(),
-                    ),
-                    backgroundColor: Colors.red.shade300,
-                    duration: const Duration(milliseconds: 800),
-                  ),
-                );
-              }
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
+    return WoodBackgroundScaffold(
+      appBar: _buildAppBar(_saveProfile),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const SizedBox(height: 20),
-            // 头像修改区域
-            const Center(
-              child: CircleAvatar(
-                radius: 60,
-                backgroundColor: Colors.grey,
-                child: Icon(Icons.person, size: 60, color: Colors.white),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextButton(
-              onPressed: () {
-                // TODO: 实现头像上传
-              },
-              child: const Text('Modify Picture'),
-            ),
-            const SizedBox(height: 40),
-            // 输入框
-            Row(
-              children: [
-                const SizedBox(width: 100, child: Text('User name')),
-                Expanded(
-                  child: TextField(
+            SketchyCard(
+              backgroundColor: Colors.blue.shade50,
+              borderColor: _kPassportBrown,
+              borderWidth: 2.0,
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SectionTitle('Basic Info'),
+                  const SizedBox(height: 8),
+                  _buildLabel('User name'),
+                  TextField(
                     controller: usernameController,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                    ),
+                    decoration: _inputDecoration(),
+                    style: GoogleFonts.kalam(color: _kPassportBrown),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                const SizedBox(width: 100, child: Text('Email')),
-                Expanded(
-                  child: TextField(
+                  const SizedBox(height: 14),
+                  _buildLabel('Email'),
+                  TextField(
                     controller: emailController,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                    ),
+                    decoration: _inputDecoration(),
+                    style: GoogleFonts.kalam(color: _kPassportBrown),
                     keyboardType: TextInputType.emailAddress,
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                const SizedBox(width: 100, child: Text('Gender')),
-                Expanded(
-                  child: DropdownButtonFormField<String>(
+                  const SizedBox(height: 14),
+                  _buildLabel('Gender'),
+                  DropdownButtonFormField<String>(
                     value: (_selectedGender == '1' || _selectedGender == '2')
                         ? _selectedGender
                         : null,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
+                    decoration: _inputDecoration().copyWith(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
                       ),
                     ),
-                    items: const [
-                      DropdownMenuItem(value: '1', child: Text('Male')),
-                      DropdownMenuItem(value: '2', child: Text('Female')),
+                    dropdownColor: Colors.blue.shade50,
+                    items: [
+                      DropdownMenuItem(
+                        value: '1',
+                        child: Text('Male', style: GoogleFonts.kalam(color: _kPassportBrown)),
+                      ),
+                      DropdownMenuItem(
+                        value: '2',
+                        child: Text('Female', style: GoogleFonts.kalam(color: _kPassportBrown)),
+                      ),
                     ],
                     onChanged: (value) {
                       setState(() {
                         _selectedGender = value;
                       });
                     },
-                    hint: const Text('Select Gender'),
+                    hint: Text(
+                      'Select Gender',
+                      style: GoogleFonts.kalam(color: _kPassportBrown.withOpacity(0.7)),
+                    ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                const SizedBox(width: 100, child: Text('Birthdate')),
-                Expanded(
-                  child: InkWell(
+                  const SizedBox(height: 14),
+                  _buildLabel('Birthdate'),
+                  InkWell(
                     onTap: () async {
                       final DateTime? picked = await showDatePicker(
                         context: context,
-                        initialDate:
-                            _selectedBirthdate ??
-                            DateTime.now().subtract(
-                              const Duration(days: 365 * 25),
-                            ), // Default to 25 years ago
+                        initialDate: _selectedBirthdate ??
+                            DateTime.now().subtract(const Duration(days: 365 * 25)),
                         firstDate: DateTime(1900),
                         lastDate: DateTime.now(),
                         helpText: 'Select birthdate',
                       );
-                      if (picked != null && picked != _selectedBirthdate) {
+                      if (picked != null && picked != _selectedBirthdate && mounted) {
                         setState(() {
                           _selectedBirthdate = picked;
                         });
                       }
                     },
                     child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 16,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                       decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey),
-                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: _kPassportBrown.withOpacity(0.7)),
+                        borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -597,91 +630,94 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                             _selectedBirthdate != null
                                 ? '${_selectedBirthdate!.year}-${_selectedBirthdate!.month.toString().padLeft(2, '0')}-${_selectedBirthdate!.day.toString().padLeft(2, '0')}'
                                 : 'Select birthdate',
-                            style: TextStyle(
+                            style: GoogleFonts.kalam(
                               color: _selectedBirthdate != null
-                                  ? Colors.black
-                                  : Colors.grey,
+                                  ? _kPassportBrown
+                                  : _kPassportBrown.withOpacity(0.5),
                             ),
                           ),
-                          const Icon(Icons.calendar_today, size: 20),
+                          Icon(Icons.calendar_today, size: 20, color: _kPassportBrown),
                         ],
                       ),
                     ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                const SizedBox(width: 100, child: Text('Height')),
-                Expanded(
-                  child: TextField(
+                  const SizedBox(height: 14),
+                  _buildLabel('Height'),
+                  TextField(
                     controller: heightController,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      suffixText: 'cm',
-                    ),
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
+                    decoration: _inputDecoration(suffixText: 'cm'),
+                    style: GoogleFonts.kalam(color: _kPassportBrown),
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                const SizedBox(width: 100, child: Text('Weight')),
-                Expanded(
-                  child: TextField(
+                  const SizedBox(height: 14),
+                  _buildLabel('Weight'),
+                  TextField(
                     controller: weightController,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      suffixText: 'kg',
-                    ),
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
+                    decoration: _inputDecoration(suffixText: 'kg'),
+                    style: GoogleFonts.kalam(color: _kPassportBrown),
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 32),
-            // Modified by Chase: Use global lists from kCurrentUser / 由 Chase 修改：使用 kCurrentUser 的全局列表
-            // 列表编辑区域
-            _buildListSection(
-              'Preferences',
-              kCurrentUser.preferences,
-              preferenceInputController,
-              _addPreference,
-              _removePreference,
-            ),
-            _buildListSection(
-              'Diet Habits',
-              kCurrentUser.dietHabits,
-              dietHabitsInputController,
-              _addDietHabit,
-              _removeDietHabit,
-            ),
-            _buildListSection(
-              'Allergies',
-              kCurrentUser.allergies,
-              allergiesInputController,
-              _addAllergy,
-              _removeAllergy,
-            ),
-            const SizedBox(height: 20),
-            // Settings 按钮
-            Center(
-              child: TextButton(
-                onPressed: () {
-                  // TODO: 导航到设置页
-                },
-                child: const Text('settings'),
+                ],
               ),
             ),
+            const SizedBox(height: 20),
+            SketchyCard(
+              backgroundColor: Colors.blue.shade50,
+              borderColor: _kPassportBrown,
+              borderWidth: 2.0,
+              padding: const EdgeInsets.all(16),
+              child: _buildListSection(
+                'Preferences',
+                kCurrentUser.preferences,
+                preferenceInputController,
+                _addPreference,
+                _removePreference,
+              ),
+            ),
+            const SizedBox(height: 20),
+            SketchyCard(
+              backgroundColor: Colors.blue.shade50,
+              borderColor: _kPassportBrown,
+              borderWidth: 2.0,
+              padding: const EdgeInsets.all(16),
+              child: _buildListSection(
+                'Diet Habits',
+                kCurrentUser.dietHabits,
+                dietHabitsInputController,
+                _addDietHabit,
+                _removeDietHabit,
+              ),
+            ),
+            const SizedBox(height: 20),
+            SketchyCard(
+              backgroundColor: Colors.blue.shade50,
+              borderColor: _kPassportBrown,
+              borderWidth: 2.0,
+              padding: const EdgeInsets.all(16),
+              child: _buildListSection(
+                'Allergies',
+                kCurrentUser.allergies,
+                allergiesInputController,
+                _addAllergy,
+                _removeAllergy,
+              ),
+            ),
+            const SizedBox(height: 24),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLabel(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Text(
+        text,
+        style: GoogleFonts.kalam(
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+          color: _kPassportBrown,
         ),
       ),
     );
