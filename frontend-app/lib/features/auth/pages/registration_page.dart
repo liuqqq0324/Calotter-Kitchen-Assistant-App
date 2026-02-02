@@ -5,7 +5,6 @@ import 'package:personal_sous_chef/core/theme/fallback_google_fonts.dart';
 // ⚠️ 已更新：registration_page.dart 不再需要导入 main.dart（如果不需要 MainScaffold）
 import '../../../shared/widgets/common/sketchy_button.dart';
 import '../../../shared/widgets/common/sketchy_card.dart';
-import '../../../shared/widgets/common/sketchy_border.dart';
 import '../../../services/business/auth_service.dart';
 
 class RegistrationPage extends StatefulWidget {
@@ -125,39 +124,6 @@ class _RegistrationPageState extends State<RegistrationPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 20),
-            // 头像上传区域 - 手绘风格
-            SketchyCard(
-              backgroundColor: Colors.grey.shade100,
-              borderColor: Colors.black87,
-              borderWidth: 2.0,
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  SketchyBorder(
-                    borderColor: Colors.black87,
-                    borderWidth: 2.0,
-                    borderRadius: 40,
-                    roughness: 2.0,
-                    child: const CircleAvatar(
-                      radius: 38,
-                      backgroundColor: Colors.grey,
-                      child: Icon(Icons.person, size: 40, color: Colors.white),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Text(
-                      'Upload your picture',
-                      style: GoogleFonts.kalam(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 40),
             // 输入框 - 手绘风格
             SketchyCard(
               backgroundColor: Colors.white,

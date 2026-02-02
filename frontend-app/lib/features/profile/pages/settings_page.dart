@@ -22,10 +22,9 @@ class _SettingsPageState extends State<SettingsPage> {
         children: [
           // 用户信息区域（可点击进入编辑页）
           ListTile(
-            leading: const CircleAvatar(
-              radius: 20,
-              backgroundColor: Colors.grey,
-              child: Icon(Icons.person, size: 20, color: Colors.white),
+            leading: Icon(
+              Icons.person_outline,
+              color: Theme.of(context).colorScheme.primary,
             ),
             title: const Text('Edit Profile'),
             trailing: const Icon(Icons.arrow_forward_ios, size: 16),

@@ -482,22 +482,6 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
         child: Column(
           children: [
             const SizedBox(height: 20),
-            // 头像修改区域
-            const Center(
-              child: CircleAvatar(
-                radius: 60,
-                backgroundColor: Colors.grey,
-                child: Icon(Icons.person, size: 60, color: Colors.white),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextButton(
-              onPressed: () {
-                // TODO: 实现头像上传
-              },
-              child: const Text('Modify Picture'),
-            ),
-            const SizedBox(height: 40),
             // 输入框
             Row(
               children: [

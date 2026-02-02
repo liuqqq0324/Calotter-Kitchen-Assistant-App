@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:personal_sous_chef/core/theme/fallback_google_fonts.dart';
+import 'package:personal_sous_chef/core/config/avatar_config.dart';
+import 'package:personal_sous_chef/services/business/avatar_service.dart';
 import 'settings_page.dart';
 // Modified by Chase: Removed separate list pages after implementing accordion UI / 由 Chase 修改：实现折叠 UI 后移除单独的列表页面导入
 import '../../../services/business/standard_library_service.dart';
@@ -34,6 +36,9 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
   List<Map<String, dynamic>> _standardAllergens = [];
   bool _isSavingPrefs = false;
 
+  // 头像：默认 otter，点击可更换
+  String _selectedAvatarId = AvatarConfig.defaultAvatar;
+
   // 兜底过敏原列表，防止 API 返回为空
   static const List<String> _fallbackAllergens = [
     'Peanut',
@@ -52,6 +57,51 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
   void initState() {
     super.initState();
     _loadUserData();
+    _loadAvatar();
+  }
+
+  Future<void> _loadAvatar() async {
+    final id = await AvatarService.getSelectedAvatar();
+    if (mounted) setState(() => _selectedAvatarId = id);
+  }
+
+  Future<void> _showAvatarPicker() async {
+    final selected = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Choose Avatar', style: GoogleFonts.caveat(fontSize: 24)),
+        content: SizedBox(
+          width: 280,
+          child: Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: AvatarConfig.options.map((opt) {
+              return GestureDetector(
+                onTap: () => Navigator.pop(context, opt.id),
+                child: SizedBox(
+                  width: 64,
+                  height: 64,
+                  child: Image.asset(
+                    opt.path,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+    if (selected != null) {
+      await AvatarService.setSelectedAvatar(selected);
+      if (mounted) setState(() => _selectedAvatarId = selected);
+    }
   }
 
   Future<void> _loadUserData() async {
@@ -893,68 +943,6 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
     return {'age': displayAge, 'birthdate': displayBirthdate};
   }
 
-  /// 可复用的嵌入式 Polaroid 头像组件
-  /// 头像在下、相框在上，用比例定位精准嵌入相框镂空处
-  Widget _buildPolaroidAvatar({
-    ImageProvider? avatarImage,
-    double width = 190,
-    double rotation = -0.18,
-  }) {
-    const photoLeftRatio = 0.23;
-    const photoTopRatio = 0.19;
-    const photoWidthRatio = 0.50;
-    const photoHeightRatio = 0.46;
-    const photoRadius = 8.0;
-
-    return Transform.rotate(
-      angle: rotation,
-      child: SizedBox(
-        width: width,
-        height: width * 1.10,
-        child: LayoutBuilder(
-          builder: (context, c) {
-            final w = c.maxWidth;
-            final h = c.maxHeight;
-
-            return Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Positioned(
-                  left: w * photoLeftRatio,
-                  top: h * photoTopRatio,
-                  width: w * photoWidthRatio,
-                  height: h * photoHeightRatio,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(photoRadius),
-                    child: avatarImage != null
-                        ? Image(
-                            image: avatarImage,
-                            fit: BoxFit.cover,
-                          )
-                        : Container(
-                            color: Colors.grey[300],
-                            child: const Icon(
-                              Icons.person,
-                              size: 48,
-                              color: Colors.white,
-                            ),
-                          ),
-                  ),
-                ),
-                Positioned.fill(
-                  child: Image.asset(
-                    'assets/profile_passport/Polaroid.png',
-                    fit: BoxFit.contain,
-                  ),
-                ),
-              ],
-            );
-          },
-        ),
-      ),
-    );
-  }
-
   // Build Profile Page (Page 0)
   Widget _buildProfilePage(BuildContext context) {
     final user = _getUserProfile();
@@ -974,29 +962,31 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header: 相框 4 成 + 文字 6 成，靠左布局
+                // Header: 头像（左） + 用户名与邮箱（右），头像可点击更换
                 Padding(
                   padding: const EdgeInsets.only(left: 6, right: 16, top: 12, bottom: 12),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Expanded(
-                        flex: 4,
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: Transform.translate(
-                            offset: const Offset(-6, 0),
-                            child: _buildPolaroidAvatar(
-                              avatarImage: null, // 无真实头像时用占位；有 URL 时用 NetworkImage(user.avatarUrl)
-                              width: 200,
-                              rotation: -0.18,
+                      GestureDetector(
+                        onTap: _showAvatarPicker,
+                        child: Transform.translate(
+                          offset: const Offset(-12, 0),
+                          child: Transform.rotate(
+                            angle: -0.15,
+                            child: SizedBox(
+                              width: 120,
+                              height: 120,
+                              child: Image.asset(
+                                AvatarConfig.getPath(_selectedAvatarId),
+                                fit: BoxFit.contain,
+                              ),
                             ),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 16),
                       Expanded(
-                        flex: 6,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
