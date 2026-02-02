@@ -1471,45 +1471,79 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                         ),
                         const SizedBox(width: 16),
                         Expanded(
-                          child: WashedBrushBackground(
-                            seed: 42,
-                            color: const Color(0xE8F5EDE0), // 米白色
-                            padding: const EdgeInsets.fromLTRB(
-                              20,
-                              4,
-                              12,
-                              20,
-                            ), // 上少下多，文字上移，总高度不变笔刷不缩短
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  user.username,
-                                  style: GoogleFonts.caveat(
-                                    fontSize: 36,
-                                    fontWeight: FontWeight.bold,
-                                    color: const Color(
-                                      0xFF6B4F4F,
-                                    ).withOpacity(0.8),
+                          child: Transform.translate(
+                            offset: const Offset(0, -8),
+                            child: Stack(
+                              clipBehavior: Clip.none,
+                            children: [
+                              // 两层笔刷：PaintBrush1 底层，PaintBrush2 上层，负边距扩大面积
+                              Positioned(
+                                left: -28,
+                                top: -22,
+                                right: -28,
+                                bottom: -22,
+                                child: Opacity(
+                                  opacity: 0.30,
+                                  child: Image.asset(
+                                    'assets/profile_passport/PaintBrush1.png',
+                                    fit: BoxFit.fill,
                                   ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
                                 ),
-                                const SizedBox(height: 2),
-                                FittedBox(
-                                  fit: BoxFit.scaleDown,
-                                  alignment: Alignment.centerLeft,
-                                  child: Text(
-                                    user.email,
-                                    style: GoogleFonts.kalam(
-                                      fontSize: 15,
-                                      color: Colors.grey[600],
+                              ),
+                              Positioned(
+                                left: -12,
+                                top: -8,
+                                right: -12,
+                                bottom: -8,
+                                child: Opacity(
+                                  opacity: 0.50,
+                                  child: Image.asset(
+                                    'assets/profile_passport/PaintBrush2.png',
+                                    fit: BoxFit.fill,
+                                  ),
+                                ),
+                              ),
+                              // 用户名与邮箱叠在笔刷之上，笔刷容器包裹
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  28,
+                                  4,
+                                  12,
+                                  20,
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      user.username,
+                                      style: GoogleFonts.caveat(
+                                        fontSize: 36,
+                                        fontWeight: FontWeight.bold,
+                                        color: const Color(
+                                          0xFF6B4F4F,
+                                        ).withOpacity(0.8),
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
-                                    maxLines: 1,
-                                  ),
+                                    const SizedBox(height: 2),
+                                    FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      alignment: Alignment.centerLeft,
+                                      child: Text(
+                                        user.email,
+                                        style: GoogleFonts.kalam(
+                                          fontSize: 15,
+                                          color: Colors.grey[600],
+                                        ),
+                                        maxLines: 1,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ],
+                              ),
+                            ],
                             ),
                           ),
                         ),

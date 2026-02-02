@@ -7,6 +7,8 @@ PODS:
   - Flutter (1.0.0)
   - flutter_tts (0.0.1):
     - Flutter
+  - flutter_vision (0.0.1):
+    - Flutter
   - google_mlkit_commons (0.11.0):
     - Flutter
     - MLKitVision
@@ -79,14 +81,6 @@ PODS:
     - nanopb/encode (= 3.30910.0)
   - nanopb/decode (3.30910.0)
   - nanopb/encode (3.30910.0)
-  - onnxruntime (0.0.1):
-    - Flutter
-    - onnxruntime-objc (= 1.15.1)
-  - onnxruntime-c (1.15.1)
-  - onnxruntime-objc (1.15.1):
-    - onnxruntime-objc/Core (= 1.15.1)
-  - onnxruntime-objc/Core (1.15.1):
-    - onnxruntime-c (= 1.15.1)
   - package_info_plus (0.4.5):
     - Flutter
   - path_provider_foundation (0.0.1):
@@ -112,11 +106,11 @@ DEPENDENCIES:
   - camera_avfoundation (from `.symlinks/plugins/camera_avfoundation/ios`)
   - Flutter (from `Flutter`)
   - flutter_tts (from `.symlinks/plugins/flutter_tts/ios`)
+  - flutter_vision (from `.symlinks/plugins/flutter_vision/ios`)
   - google_mlkit_commons (from `.symlinks/plugins/google_mlkit_commons/ios`)
   - google_mlkit_pose_detection (from `.symlinks/plugins/google_mlkit_pose_detection/ios`)
   - image_picker_ios (from `.symlinks/plugins/image_picker_ios/ios`)
   - mobile_scanner (from `.symlinks/plugins/mobile_scanner/darwin`)
-  - onnxruntime (from `.symlinks/plugins/onnxruntime/ios`)
   - package_info_plus (from `.symlinks/plugins/package_info_plus/ios`)
   - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
   - permission_handler_apple (from `.symlinks/plugins/permission_handler_apple/ios`)
@@ -142,8 +136,6 @@ SPEC REPOS:
     - MLKitVision
     - MLKitXenoCommon
     - nanopb
-    - onnxruntime-c
-    - onnxruntime-objc
     - PromisesObjC
 
 EXTERNAL SOURCES:
@@ -153,6 +145,8 @@ EXTERNAL SOURCES:
     :path: Flutter
   flutter_tts:
     :path: ".symlinks/plugins/flutter_tts/ios"
+  flutter_vision:
+    :path: ".symlinks/plugins/flutter_vision/ios"
   google_mlkit_commons:
     :path: ".symlinks/plugins/google_mlkit_commons/ios"
   google_mlkit_pose_detection:
@@ -161,8 +155,6 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/image_picker_ios/ios"
   mobile_scanner:
     :path: ".symlinks/plugins/mobile_scanner/darwin"
-  onnxruntime:
-    :path: ".symlinks/plugins/onnxruntime/ios"
   package_info_plus:
     :path: ".symlinks/plugins/package_info_plus/ios"
   path_provider_foundation:
@@ -184,6 +176,7 @@ SPEC CHECKSUMS:
   CwlCatchExceptionSupport: 54ccab8d8c78907b57f99717fb19d4cc3bce02dc
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
   flutter_tts: b88dbc8655d3dc961bc4a796e4e16a4cc1795833
+  flutter_vision: a3ec7f2c56ea8c35ff9a6025d43c61db16096460
   google_mlkit_commons: 2abe6a70e1824e431d16a51085cb475b672c8aab
   google_mlkit_pose_detection: 64eea6255886f73e8d80265f0c87ac5fb61fa7f5
   GoogleDataTransport: aae35b7ea0c09004c3797d53c8c41f66f219d6a7
@@ -201,9 +194,6 @@ SPEC CHECKSUMS:
   MLKitXenoCommon: ce5047943af6b4be7ae035dd81b3a56fdb29aab3
   mobile_scanner: 9157936403f5a0644ca3779a38ff8404c5434a93
   nanopb: fad817b59e0457d11a5dfbde799381cd727c1275
-  onnxruntime: 2ab1957eb029c71d47f7bb35cc4efc9f0d297828
-  onnxruntime-c: ebdcfd8650bcbd10121c125262f99dea681b92a3
-  onnxruntime-objc: ae7acec7a3d03eaf072d340afed7a35635c1c2a6
   package_info_plus: af8e2ca6888548050f16fa2f1938db7b5a5df499
   path_provider_foundation: bb55f6dbba17d0dccd6737fe6f7f34fbd0376880
   permission_handler_apple: 4ed2196e43d0651e8ff7ca3483a069d469701f2d
