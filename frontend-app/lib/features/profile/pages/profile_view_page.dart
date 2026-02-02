@@ -594,52 +594,29 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
     final dailyProtein = _healthInfo?['dailyProtein'] as num?;
     final dailyFat = _healthInfo?['dailyFat'] as num?;
     final dailyCarbohydrates = _healthInfo?['dailyCarbohydrates'] as num?;
-    final dailyFiber = _healthInfo?['dailyFiber'] as num?;
 
-    // 如果没有任何营养数据，不显示
+    // 如果没有任何营养数据，不显示（仅显示 Energy / Protein / Fat / Carbs 四个）
     if (dailyEnergy == null &&
         dailyProtein == null &&
         dailyFat == null &&
-        dailyCarbohydrates == null &&
-        dailyFiber == null) {
+        dailyCarbohydrates == null) {
       return const SizedBox.shrink();
     }
 
-    // 将四/五个营养指标改为与 Profile 页面一致的贴纸便签风格
-    final metrics = <Map<String, String>>[];
-    if (dailyEnergy != null) {
-      metrics.add({
-        'label': 'Energy',
-        'value': '${dailyEnergy.toInt()} kcal',
-      });
-    }
-    if (dailyProtein != null) {
-      metrics.add({
-        'label': 'Protein',
-        'value': '${dailyProtein.toInt()} g',
-      });
-    }
-    if (dailyFat != null) {
-      metrics.add({
-        'label': 'Fat',
-        'value': '${dailyFat.toInt()} g',
-      });
-    }
-    if (dailyCarbohydrates != null) {
-      metrics.add({
-        'label': 'Carbs',
-        'value': '${dailyCarbohydrates.toInt()} g',
-      });
-    }
-    if (dailyFiber != null) {
-      metrics.add({
-        'label': 'Fiber',
-        'value': '${dailyFiber.toInt()} g',
-      });
-    }
+    // 四行：Energy 靠左、Protein 靠右、Fat 靠左、Carbs 靠右；便签稍大，可部分重叠但不挡信息，一屏内可见
+    final Map<String, String>? energy =
+        dailyEnergy != null ? {'label': 'Energy', 'value': '${dailyEnergy.toInt()} kcal'} : null;
+    final Map<String, String>? protein =
+        dailyProtein != null ? {'label': 'Protein', 'value': '${dailyProtein.toInt()} g'} : null;
+    final Map<String, String>? fat =
+        dailyFat != null ? {'label': 'Fat', 'value': '${dailyFat.toInt()} g'} : null;
+    final Map<String, String>? carbs = dailyCarbohydrates != null
+        ? {'label': 'Carbs', 'value': '${dailyCarbohydrates.toInt()} g'}
+        : null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           'Daily Nutrition Targets',
@@ -649,46 +626,71 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
             color: const Color(0xFF6B4F4F), // River Deep Brown - 与 Profile 页面一致
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         LayoutBuilder(
           builder: (context, constraints) {
             final maxWidth = constraints.maxWidth;
-            // 宽屏时一行放两个贴纸，窄屏时单列
-            final twoPerRow = maxWidth >= 360;
-            final noteWidth = twoPerRow
-                ? (maxWidth - 12) / 2 // 预留 12px 间距
-                : maxWidth;
+            // 左右间距拉大，便签宽度限制在各自半区，不重叠、不挡信息
+            const double horizontalPadding = 28.0;
+            final contentWidth = maxWidth - horizontalPadding * 2;
+            final noteWidth = (contentWidth * 0.48).clamp(140.0, 220.0); // 左/右各占半区约一半，中间留空
+            const double noteHeight = 168.0;
+            const double rowOverlap = 92.0; // 每行下移量，稍松散
 
-            return Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: metrics.asMap().entries.map((entry) {
-                final index = entry.key;
-                final metric = entry.value;
+            Widget sticky(Map<String, String>? metric, int index) {
+              if (metric == null) return const SizedBox.shrink();
+              final useSticky1 = index.isEven;
+              final asset = useSticky1
+                  ? 'assets/profile_passport/Sticky1.png'
+                  : 'assets/profile_passport/Sticky2.png';
+              final rotation = useSticky1 ? _stickyLeftRot : _stickyRightRot;
+              final tapeTop = useSticky1 ? 5.0 : -5.0;
+              final tapeWidth = useSticky1 ? 42.0 : 40.0;
+              return _buildStickyNote(
+                label: metric['label']!,
+                value: metric['value']!,
+                stickyAsset: asset,
+                width: noteWidth,
+                height: noteHeight,
+                rotation: rotation,
+                tapeTop: tapeTop,
+                tapeWidth: tapeWidth,
+              );
+            }
 
-                // 交替使用 Sticky1 / Sticky2，并给出轻微旋转，营造手账感
-                final useSticky1 = index.isEven;
-                final asset = useSticky1
-                    ? 'assets/profile_passport/Sticky1.png'
-                    : 'assets/profile_passport/Sticky2.png';
-                final rotation = useSticky1 ? _stickyLeftRot : _stickyRightRot;
-                final tapeTop = useSticky1 ? 5.0 : -5.0;
-                final tapeWidth = useSticky1 ? 42.0 : 40.0;
+            final stackHeight = 3 * rowOverlap + noteHeight; // 松散布局，总高约 444
 
-                return SizedBox(
-                  width: noteWidth,
-                  child: _buildStickyNote(
-                    label: metric['label']!,
-                    value: metric['value']!,
-                    stickyAsset: asset,
-                    width: noteWidth,
-                    height: 140,
-                    rotation: rotation,
-                    tapeTop: tapeTop,
-                    tapeWidth: tapeWidth,
+            return SizedBox(
+              height: stackHeight,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  // 第一行：Energy 靠左，留出左边距
+                  Positioned(
+                    left: horizontalPadding,
+                    top: 0,
+                    child: sticky(energy, 0),
                   ),
-                );
-              }).toList(),
+                  // 第二行：Protein 靠右，留出右边距
+                  Positioned(
+                    right: horizontalPadding,
+                    top: rowOverlap,
+                    child: sticky(protein, 1),
+                  ),
+                  // 第三行：Fat 靠左
+                  Positioned(
+                    left: horizontalPadding,
+                    top: rowOverlap * 2,
+                    child: sticky(fat, 2),
+                  ),
+                  // 第四行：Carbs 靠右
+                  Positioned(
+                    right: horizontalPadding,
+                    top: rowOverlap * 3,
+                    child: sticky(carbs, 3),
+                  ),
+                ],
+              ),
             );
           },
         ),
@@ -1436,8 +1438,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                 (_healthInfo!['dailyEnergy'] != null ||
                     _healthInfo!['dailyProtein'] != null ||
                     _healthInfo!['dailyFat'] != null ||
-                    _healthInfo!['dailyCarbohydrates'] != null ||
-                    _healthInfo!['dailyFiber'] != null))
+                    _healthInfo!['dailyCarbohydrates'] != null))
               _buildNutritionTargets()
             else
               Center(
