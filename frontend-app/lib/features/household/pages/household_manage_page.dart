@@ -1,12 +1,17 @@
 // lib/pages/household/household_manage_page.dart
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter/services.dart';
+import 'package:personal_sous_chef/core/theme/fallback_google_fonts.dart';
 import 'package:personal_sous_chef/services/business/household_service.dart';
 import 'package:personal_sous_chef/shared/widgets/buttons/invite_qr_code_widget.dart';
+import 'package:personal_sous_chef/shared/widgets/common/section_title.dart';
 import 'package:personal_sous_chef/shared/widgets/common/sketchy_button.dart';
 import 'package:personal_sous_chef/shared/widgets/common/sketchy_card.dart';
+import 'package:personal_sous_chef/shared/widgets/common/wood_background_scaffold.dart';
 import 'package:personal_sous_chef/features/household/pages/scan_join_household_page.dart';
-import 'package:flutter/services.dart';
+
+/// Profile 风格主色（与 profile_view_page 一致）
+const Color _kPassportBrown = Color(0xFF6B4F4F);
 
 /// 厨房管理页面
 /// 包含邀请码、二维码、加入、退出、切换等功能
@@ -143,16 +148,29 @@ class _HouseholdManagePageState extends State<HouseholdManagePage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Confirm Leave'),
-        content: const Text('Are you sure you want to leave this household?'),
+        title: Text(
+          'Confirm Leave',
+          style: GoogleFonts.kalam(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: _kPassportBrown,
+          ),
+        ),
+        content: Text(
+          'Are you sure you want to leave this household?',
+          style: GoogleFonts.kalam(fontSize: 16, color: _kPassportBrown),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.kalam(color: _kPassportBrown),
+            ),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Confirm'),
+            child: Text('Confirm', style: GoogleFonts.kalam(color: _kPassportBrown)),
           ),
         ],
       ),
@@ -213,9 +231,25 @@ class _HouseholdManagePageState extends State<HouseholdManagePage> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
-        backgroundColor: isError ? Colors.red : Colors.green,
+        content: Text(message, style: GoogleFonts.kalam()),
+        backgroundColor: isError ? Colors.red.shade300 : Colors.green.shade300,
         duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar() {
+    return AppBar(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      iconTheme: const IconThemeData(color: _kPassportBrown),
+      title: Text(
+        'Kitchen Management',
+        style: GoogleFonts.kalam(
+          fontSize: 22,
+          fontWeight: FontWeight.bold,
+          color: _kPassportBrown,
+        ),
       ),
     );
   }
@@ -223,27 +257,14 @@ class _HouseholdManagePageState extends State<HouseholdManagePage> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return Scaffold(
-        appBar: AppBar(
-          title: Text(
-            'Kitchen Management',
-            style: GoogleFonts.caveat(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
+      return WoodBackgroundScaffold(
+        appBar: _buildAppBar(),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Kitchen Management',
-          style: GoogleFonts.caveat(fontSize: 24, fontWeight: FontWeight.bold),
-        ),
-      ),
+    return WoodBackgroundScaffold(
+      appBar: _buildAppBar(),
       body: RefreshIndicator(
         onRefresh: _loadHouseholdData,
         child: SingleChildScrollView(
@@ -252,17 +273,12 @@ class _HouseholdManagePageState extends State<HouseholdManagePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 当前厨房信息
               if (_currentHousehold != null) ...[
                 _buildCurrentHouseholdCard(),
                 const SizedBox(height: 24),
               ],
-
-              // 加入厨房
               _buildJoinSection(),
               const SizedBox(height: 24),
-
-              // 已加入的厨房列表
               _buildJoinedHouseholdsList(),
             ],
           ),
@@ -277,31 +293,23 @@ class _HouseholdManagePageState extends State<HouseholdManagePage> {
     final ownerId = _currentHousehold!['ownerId'] as int? ?? 0;
 
     return SketchyCard(
-      backgroundColor: Colors.orange.shade50,
-      borderColor: Colors.orange.shade700,
+      backgroundColor: Colors.blue.shade50,
+      borderColor: _kPassportBrown,
       borderWidth: 2.0,
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Current Kitchen',
-            style: GoogleFonts.kalam(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.orange.shade900,
-            ),
-          ),
-          const SizedBox(height: 12),
+          SectionTitle('Current Kitchen'),
           Text(
             householdName,
             style: GoogleFonts.caveat(
               fontSize: 24,
               fontWeight: FontWeight.bold,
+              color: _kPassportBrown,
             ),
           ),
           const SizedBox(height: 16),
-          // 邀请码
           Row(
             children: [
               Expanded(
@@ -310,13 +318,16 @@ class _HouseholdManagePageState extends State<HouseholdManagePage> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey.shade300),
+                    border: Border.all(color: _kPassportBrown.withOpacity(0.5)),
                   ),
                   child: Row(
                     children: [
                       Text(
                         'Invite Code: ',
-                        style: GoogleFonts.kalam(fontSize: 14),
+                        style: GoogleFonts.kalam(
+                          fontSize: 14,
+                          color: _kPassportBrown,
+                        ),
                       ),
                       Text(
                         inviteCode,
@@ -324,6 +335,7 @@ class _HouseholdManagePageState extends State<HouseholdManagePage> {
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
                           letterSpacing: 2,
+                          color: _kPassportBrown,
                         ),
                       ),
                     ],
@@ -333,13 +345,13 @@ class _HouseholdManagePageState extends State<HouseholdManagePage> {
               const SizedBox(width: 8),
               IconButton(
                 icon: const Icon(Icons.copy),
+                color: _kPassportBrown,
                 onPressed: () => _copyInviteCode(inviteCode),
                 tooltip: 'Copy invite code',
               ),
             ],
           ),
           const SizedBox(height: 16),
-          // 二维码
           Center(
             child: InviteQrCodeWidget(
               inviteCode: inviteCode,
@@ -348,7 +360,6 @@ class _HouseholdManagePageState extends State<HouseholdManagePage> {
             ),
           ),
           const SizedBox(height: 16),
-          // 重新生成邀请码按钮（仅 owner）
           FutureBuilder<int?>(
             future: HouseholdService.getUserId(),
             builder: (context, snapshot) {
@@ -356,8 +367,9 @@ class _HouseholdManagePageState extends State<HouseholdManagePage> {
               if (userId == ownerId && inviteCode.isNotEmpty) {
                 return SketchyButton(
                   text: 'Regenerate Invite Code',
-                  backgroundColor: Colors.orange.shade100,
-                  borderColor: Colors.orange.shade700,
+                  backgroundColor: Colors.green.shade100,
+                  borderColor: Colors.green.shade700,
+                  textColor: _kPassportBrown,
                   onPressed: _regenerateInviteCode,
                 );
               }
@@ -371,23 +383,20 @@ class _HouseholdManagePageState extends State<HouseholdManagePage> {
 
   Widget _buildJoinSection() {
     return SketchyCard(
-      backgroundColor: Colors.white,
-      borderColor: Colors.black87,
+      backgroundColor: Colors.blue.shade50,
+      borderColor: _kPassportBrown,
       borderWidth: 2.0,
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Join Kitchen',
-            style: GoogleFonts.kalam(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 16),
-          // 扫描二维码按钮
+          SectionTitle('Join Kitchen'),
+          const SizedBox(height: 4),
           SketchyButton(
             text: 'Scan QR Code',
             backgroundColor: Colors.blue.shade100,
-            borderColor: Colors.blue.shade700,
+            borderColor: Colors.green.shade700,
+            textColor: _kPassportBrown,
             onPressed: () async {
               final result = await Navigator.push(
                 context,
@@ -401,7 +410,6 @@ class _HouseholdManagePageState extends State<HouseholdManagePage> {
             },
           ),
           const SizedBox(height: 16),
-          // 输入邀请码
           Row(
             children: [
               Expanded(
@@ -409,11 +417,13 @@ class _HouseholdManagePageState extends State<HouseholdManagePage> {
                   controller: _inviteCodeController,
                   decoration: InputDecoration(
                     labelText: 'Enter Invite Code',
+                    labelStyle: GoogleFonts.kalam(color: _kPassportBrown),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: _kPassportBrown),
                     ),
                   ),
-                  style: GoogleFonts.kalam(),
+                  style: GoogleFonts.kalam(color: _kPassportBrown),
                 ),
               ),
               const SizedBox(width: 8),
@@ -421,6 +431,7 @@ class _HouseholdManagePageState extends State<HouseholdManagePage> {
                 text: 'Join',
                 backgroundColor: Colors.green.shade100,
                 borderColor: Colors.green.shade700,
+                textColor: _kPassportBrown,
                 onPressed: _joinByInviteCode,
               ),
             ],
@@ -433,14 +444,17 @@ class _HouseholdManagePageState extends State<HouseholdManagePage> {
   Widget _buildJoinedHouseholdsList() {
     if (_joinedHouseholds.isEmpty) {
       return SketchyCard(
-        backgroundColor: Colors.grey.shade100,
-        borderColor: Colors.grey.shade400,
+        backgroundColor: Colors.blue.shade50,
+        borderColor: _kPassportBrown,
         borderWidth: 2.0,
         padding: const EdgeInsets.all(16),
         child: Center(
           child: Text(
             'No kitchens joined yet',
-            style: GoogleFonts.kalam(fontSize: 16, color: Colors.grey[600]),
+            style: GoogleFonts.kalam(
+              fontSize: 16,
+              color: _kPassportBrown.withOpacity(0.8),
+            ),
           ),
         ),
       );
@@ -449,11 +463,7 @@ class _HouseholdManagePageState extends State<HouseholdManagePage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Joined Kitchens',
-          style: GoogleFonts.kalam(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 12),
+        const SectionTitle('Joined Kitchens'),
         ..._joinedHouseholds.map((household) => _buildHouseholdCard(household)),
       ],
     );
@@ -469,8 +479,8 @@ class _HouseholdManagePageState extends State<HouseholdManagePage> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       child: SketchyCard(
-        backgroundColor: isCurrent ? Colors.orange.shade50 : Colors.white,
-        borderColor: isCurrent ? Colors.orange.shade700 : Colors.black87,
+        backgroundColor: isCurrent ? Colors.blue.shade50 : Colors.white,
+        borderColor: _kPassportBrown,
         borderWidth: 2.0,
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -489,6 +499,7 @@ class _HouseholdManagePageState extends State<HouseholdManagePage> {
                             style: GoogleFonts.caveat(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
+                              color: _kPassportBrown,
                             ),
                           ),
                           if (isCurrent) ...[
@@ -499,7 +510,7 @@ class _HouseholdManagePageState extends State<HouseholdManagePage> {
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.orange.shade200,
+                                color: Colors.green.shade200,
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
@@ -507,6 +518,7 @@ class _HouseholdManagePageState extends State<HouseholdManagePage> {
                                 style: GoogleFonts.kalam(
                                   fontSize: 12,
                                   fontWeight: FontWeight.bold,
+                                  color: _kPassportBrown,
                                 ),
                               ),
                             ),
@@ -518,7 +530,7 @@ class _HouseholdManagePageState extends State<HouseholdManagePage> {
                         'Code: $inviteCode',
                         style: GoogleFonts.kalam(
                           fontSize: 14,
-                          color: Colors.grey[600],
+                          color: _kPassportBrown.withOpacity(0.8),
                         ),
                       ),
                     ],
@@ -534,7 +546,8 @@ class _HouseholdManagePageState extends State<HouseholdManagePage> {
                     child: SketchyButton(
                       text: 'Switch',
                       backgroundColor: Colors.blue.shade100,
-                      borderColor: Colors.blue.shade700,
+                      borderColor: Colors.green.shade700,
+                      textColor: _kPassportBrown,
                       onPressed: () => _switchHousehold(householdId),
                     ),
                   ),
@@ -544,7 +557,6 @@ class _HouseholdManagePageState extends State<HouseholdManagePage> {
                     future: HouseholdService.getUserId(),
                     builder: (context, snapshot) {
                       final userId = snapshot.data;
-                      // Owner 不能退出自己的厨房
                       if (userId == ownerId) {
                         return const SizedBox.shrink();
                       }
@@ -552,6 +564,7 @@ class _HouseholdManagePageState extends State<HouseholdManagePage> {
                         text: 'Leave',
                         backgroundColor: Colors.red.shade100,
                         borderColor: Colors.red.shade700,
+                        textColor: _kPassportBrown,
                         onPressed: () => _leaveHousehold(householdId),
                       );
                     },
@@ -559,7 +572,6 @@ class _HouseholdManagePageState extends State<HouseholdManagePage> {
                 ),
               ],
             ),
-            // 邀请用户（仅 owner）
             FutureBuilder<int?>(
               future: HouseholdService.getUserId(),
               builder: (context, snapshot) {
@@ -575,12 +587,14 @@ class _HouseholdManagePageState extends State<HouseholdManagePage> {
                               controller: _inviteUserController,
                               decoration: InputDecoration(
                                 labelText: 'Username or Email',
+                                labelStyle: GoogleFonts.kalam(color: _kPassportBrown),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(8),
+                                  borderSide: BorderSide(color: _kPassportBrown),
                                 ),
                                 isDense: true,
                               ),
-                              style: GoogleFonts.kalam(),
+                              style: GoogleFonts.kalam(color: _kPassportBrown),
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -588,6 +602,7 @@ class _HouseholdManagePageState extends State<HouseholdManagePage> {
                             text: 'Invite',
                             backgroundColor: Colors.green.shade100,
                             borderColor: Colors.green.shade700,
+                            textColor: _kPassportBrown,
                             onPressed: _inviteUser,
                           ),
                         ],
