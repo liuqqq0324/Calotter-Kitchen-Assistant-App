@@ -852,6 +852,58 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
     );
   }
 
+  /// 便签样式信息卡片，使用 Sticky1 或 Sticky2 作为背景
+  Widget _buildStickyNote({
+    required String label,
+    required String value,
+    required String stickyAsset,
+    double rotation = 0,
+  }) {
+    final displayValue = value.isNotEmpty ? value : 'Not set';
+    final content = Container(
+      width: 145,
+      height: 98,
+      decoration: BoxDecoration(
+        image: DecorationImage(
+          image: AssetImage(stickyAsset),
+          fit: BoxFit.contain,
+        ),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: GoogleFonts.kalam(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: const Color(0xFF6B4F4F),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 2),
+          Text(
+            displayValue,
+            style: GoogleFonts.kalam(
+              fontSize: 18,
+              color: const Color(0xFF6B4F4F).withOpacity(0.9),
+            ),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+    if (rotation != 0) {
+      return Transform.rotate(angle: rotation, child: content);
+    }
+    return content;
+  }
+
   Widget _buildNutritionStatCard({
     required IconData icon,
     required String label,
@@ -1020,49 +1072,51 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                 ),
                 const SizedBox(height: 24),
                 Padding(
-                  padding: const EdgeInsets.only(left: 24, top: 24),
+                  padding: const EdgeInsets.only(left: 12, right: 12, top: 24),
                   child: Column(
                     children: [
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: _buildMiniInfo(
-                              'Birthdate',
-                              ageData['birthdate']!,
-                            ),
+                          _buildStickyNote(
+                            label: 'Birthdate',
+                            value: ageData['birthdate']!,
+                            stickyAsset: 'assets/profile_passport/Sticky1.png',
+                            rotation: -0.08,
                           ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: _buildMiniInfo(
-                              'Gender',
-                              _getGenderDisplay(user.gender),
-                            ),
+                          _buildStickyNote(
+                            label: 'Gender',
+                            value: _getGenderDisplay(user.gender),
+                            stickyAsset: 'assets/profile_passport/Sticky2.png',
+                            rotation: 0.06,
                           ),
                         ],
                       ),
                       const SizedBox(height: 12),
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: _buildMiniInfo(
-                              'Weight',
-                              user.weight.isNotEmpty
-                                  ? (user.weight.endsWith(' kg')
-                                        ? user.weight
-                                        : '${user.weight} kg')
-                                  : '',
-                            ),
+                          _buildStickyNote(
+                            label: 'Weight',
+                            value: user.weight.isNotEmpty
+                                ? (user.weight.endsWith(' kg')
+                                      ? user.weight
+                                      : '${user.weight} kg')
+                                : '',
+                            stickyAsset: 'assets/profile_passport/Sticky2.png',
+                            rotation: 0.05,
                           ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: _buildMiniInfo(
-                              'Height',
-                              user.height.isNotEmpty
-                                  ? (user.height.endsWith(' cm')
-                                        ? user.height
-                                        : '${user.height} cm')
-                                  : '',
-                            ),
+                          _buildStickyNote(
+                            label: 'Height',
+                            value: user.height.isNotEmpty
+                                ? (user.height.endsWith(' cm')
+                                      ? user.height
+                                      : '${user.height} cm')
+                                : '',
+                            stickyAsset: 'assets/profile_passport/Sticky1.png',
+                            rotation: -0.06,
                           ),
                         ],
                       ),
