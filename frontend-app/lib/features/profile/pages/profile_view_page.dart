@@ -506,8 +506,9 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
   Widget _buildGoalTypeOption(String value, String label, Color color) {
     final isSelected = _selectedGoalType == value;
     return SketchyCard(
-      // ✅ 统一风格：与出生日期颜色一致的边框
-      backgroundColor: isSelected ? color.withOpacity(0.10) : Colors.white,
+      // ✅ 统一风格：选中状态用温暖米棕色，整体保持棕色系
+      backgroundColor:
+          isSelected ? const Color(0xFFF5EDE0) : Colors.white, // 淡棕纸色
       borderColor: const Color(0xFF6B4F4F), // River Deep Brown - 与出生日期一致
       borderWidth: 2.0,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -523,9 +524,11 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
             height: 24,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: isSelected ? color : Colors.transparent,
+               color: isSelected
+                   ? const Color(0xFF6B4F4F)
+                   : Colors.transparent, // 选中时用深棕色填充
               border: Border.all(
-                color: isSelected ? color : Colors.grey.shade500,
+                 color: const Color(0xFF6B4F4F), // 边框统一深棕色
                 width: 2.5,
               ),
             ),
@@ -539,12 +542,11 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
               label,
               style: GoogleFonts.kalam(
                 fontSize: 18, // 调大字体从 15 到 18
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected
-                    ? color
-                    : const Color(
-                        0xFF6B4F4F,
-                      ), // River Deep Brown - 与 Profile 页面一致
+                 fontWeight:
+                     isSelected ? FontWeight.bold : FontWeight.normal, // 选中时加粗
+                 color: const Color(
+                   0xFF6B4F4F,
+                 ), // 文本始终保持棕色
               ),
             ),
           ),
@@ -603,49 +605,38 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
       return const SizedBox.shrink();
     }
 
-    final items = <Widget>[
-      if (dailyEnergy != null)
-        _buildNutritionStatCard(
-          icon: Icons.local_fire_department,
-          label: 'Energy',
-          valueText: '${dailyEnergy.toInt()} kcal',
-          accent: const Color(0xFFF0B27A), // Appetite Orange - 与 homepage 一致
-          labelColor: const Color(
-            0xFF6B4F4F,
-          ), // River Deep Brown - 与 homepage 一致
-          valueColor: const Color(
-            0xFF6B4F4F,
-          ).withOpacity(0.8), // River Deep Brown - 与 homepage 一致
-        ),
-      if (dailyProtein != null)
-        _buildNutritionStatCard(
-          icon: Icons.fitness_center,
-          label: 'Protein',
-          valueText: '${dailyProtein.toInt()} g',
-          accent: Colors.blue,
-        ),
-      if (dailyFat != null)
-        _buildNutritionStatCard(
-          icon: Icons.water_drop,
-          label: 'Fat',
-          valueText: '${dailyFat.toInt()} g',
-          accent: Colors.amber,
-        ),
-      if (dailyCarbohydrates != null)
-        _buildNutritionStatCard(
-          icon: Icons.eco,
-          label: 'Carbs',
-          valueText: '${dailyCarbohydrates.toInt()} g',
-          accent: Colors.green,
-        ),
-      if (dailyFiber != null)
-        _buildNutritionStatCard(
-          icon: Icons.agriculture,
-          label: 'Fiber',
-          valueText: '${dailyFiber.toInt()} g',
-          accent: Colors.brown,
-        ),
-    ];
+    // 将四/五个营养指标改为与 Profile 页面一致的贴纸便签风格
+    final metrics = <Map<String, String>>[];
+    if (dailyEnergy != null) {
+      metrics.add({
+        'label': 'Energy',
+        'value': '${dailyEnergy.toInt()} kcal',
+      });
+    }
+    if (dailyProtein != null) {
+      metrics.add({
+        'label': 'Protein',
+        'value': '${dailyProtein.toInt()} g',
+      });
+    }
+    if (dailyFat != null) {
+      metrics.add({
+        'label': 'Fat',
+        'value': '${dailyFat.toInt()} g',
+      });
+    }
+    if (dailyCarbohydrates != null) {
+      metrics.add({
+        'label': 'Carbs',
+        'value': '${dailyCarbohydrates.toInt()} g',
+      });
+    }
+    if (dailyFiber != null) {
+      metrics.add({
+        'label': 'Fiber',
+        'value': '${dailyFiber.toInt()} g',
+      });
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -659,16 +650,47 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
           ),
         ),
         const SizedBox(height: 12),
-        GridView.count(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: 2,
-          mainAxisSpacing: 12,
-          crossAxisSpacing: 12,
-          // ✅ 修复：减小 childAspectRatio 以增加每个 item 的高度，避免溢出
-          // childAspectRatio = width / height，值越小，高度越大
-          childAspectRatio: 1.5, // 从 1.8 改为 1.5，进一步增加高度以适应大字体
-          children: items,
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final maxWidth = constraints.maxWidth;
+            // 宽屏时一行放两个贴纸，窄屏时单列
+            final twoPerRow = maxWidth >= 360;
+            final noteWidth = twoPerRow
+                ? (maxWidth - 12) / 2 // 预留 12px 间距
+                : maxWidth;
+
+            return Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: metrics.asMap().entries.map((entry) {
+                final index = entry.key;
+                final metric = entry.value;
+
+                // 交替使用 Sticky1 / Sticky2，并给出轻微旋转，营造手账感
+                final useSticky1 = index.isEven;
+                final asset = useSticky1
+                    ? 'assets/profile_passport/Sticky1.png'
+                    : 'assets/profile_passport/Sticky2.png';
+                final rotation = useSticky1 ? _stickyLeftRot : _stickyRightRot;
+                final tapeTop = useSticky1 ? 5.0 : -5.0;
+                final tapeWidth = useSticky1 ? 42.0 : 40.0;
+
+                return SizedBox(
+                  width: noteWidth,
+                  child: _buildStickyNote(
+                    label: metric['label']!,
+                    value: metric['value']!,
+                    stickyAsset: asset,
+                    width: noteWidth,
+                    height: 140,
+                    rotation: rotation,
+                    tapeTop: tapeTop,
+                    tapeWidth: tapeWidth,
+                  ),
+                );
+              }).toList(),
+            );
+          },
         ),
       ],
     );
@@ -1301,8 +1323,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _sectionTitle('Health'),
-            // BMI显示
+            // BMI 显示（右上角贴纸）
             Builder(
               builder: (context) {
                 dynamic bmiValue = _healthInfo?['bmi'];
@@ -1325,81 +1346,74 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                   }
                 }
 
-                return SketchyBorder(
-                  borderColor: const Color(
-                    0xFF6B4F4F,
-                  ), // River Deep Brown - 与出生日期一致
-                  borderWidth: 2.0,
-                  borderRadius: 12,
-                  roughness: 2.0,
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.shade50,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'BMI',
-                          style: GoogleFonts.kalam(
-                            fontSize: 14, // 调大从 12 到 14，与营养卡片标签一致
-                            fontWeight: FontWeight.bold,
-                            color: const Color(
-                              0xFF6B4F4F,
-                            ), // River Deep Brown - 与 Profile 页面一致
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          _formatBmi(bmiValue),
-                          style: GoogleFonts.caveat(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF6B4F4F).withOpacity(
-                              0.8,
-                            ), // River Deep Brown - 与 Profile 页面一致
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                // 使用与 Profile 页相同的便签样式展示 BMI，统一手账感
+                return LayoutBuilder(
+                  builder: (context, constraints) {
+                    final maxWidth = constraints.maxWidth;
+                    // 缩小 BMI 贴纸尺寸：宽度占 55%，高度略减
+                    final noteWidth =
+                        (maxWidth * 0.55).clamp(0.0, 320.0); // 贴纸宽度占 55%
+                    return Align(
+                      alignment: Alignment.topRight,
+                      child: _buildStickyNote(
+                        label: 'BMI',
+                        value: _formatBmi(bmiValue),
+                        stickyAsset: 'assets/profile_passport/Sticky1.png',
+                        width: noteWidth,
+                        height: 120,
+                        rotation: 0.10,
+                        tapeTop: 5,
+                        tapeWidth: 42,
+                      ),
+                    );
+                  },
                 );
               },
             ),
             const SizedBox(height: 20),
-            Text(
-              'Health Goal',
-              style: GoogleFonts.kalam(
-                fontSize: 20, // 调大标题从 16 到 20，与 Nutrition Targets 保持一致
-                fontWeight: FontWeight.bold,
-                color: const Color(
-                  0xFF6B4F4F,
-                ), // River Deep Brown - 与 Profile 页面一致
-              ),
-            ),
-            const SizedBox(height: 12),
-            _buildGoalTypeSelector(),
-            const SizedBox(height: 16),
-            Center(
-              child: _isSavingGoal
-                  ? const CircularProgressIndicator()
-                  : SketchyButton(
-                      text: 'Save Goal',
-                      fontSize: 23, // 统一字体大小
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 70,
-                        vertical: 24,
-                      ), // 统一按钮大小，与 Settings/Invite 一致
-                      backgroundImage:
-                          'assets/icons/seasonings.png', // 使用 Seasonings 的绿色纹理
-                      borderColor: Colors.green.shade700,
-                      textColor: const Color(0xFF6B4F4F),
-                      onPressed: () {
-                        _saveHealthGoal();
-                      },
+            // 使用毛笔笔刷背景包裹 Health Goal 区域，使其与 Profile 页用户名区域风格统一
+            WashedBrushBackground(
+              color: const Color(0xE8F5EDE0), // 米白色水洗笔触
+              seed: 18,
+              padding: const EdgeInsets.fromLTRB(18, 10, 18, 18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Health Goal',
+                    style: GoogleFonts.kalam(
+                      fontSize: 20, // 与 Nutrition Targets 保持一致
+                      fontWeight: FontWeight.bold,
+                      color: const Color(
+                        0xFF6B4F4F,
+                      ), // River Deep Brown - 与 Profile 页面一致
                     ),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildGoalTypeSelector(),
+                  const SizedBox(height: 16),
+                  Center(
+                    child: _isSavingGoal
+                        ? const CircularProgressIndicator()
+                        : SketchyButton(
+                            text: 'Save Goal',
+                            fontSize: 23, // 统一字体大小
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 70,
+                              vertical: 24,
+                            ), // 统一按钮大小，与 Settings/Invite 一致
+                            backgroundImage:
+                                'assets/icons/seasonings.png', // 使用 Seasonings 的绿色纹理
+                            borderColor: Colors.green.shade700,
+                            textColor: const Color(0xFF6B4F4F),
+                            onPressed: () {
+                              _saveHealthGoal();
+                            },
+                          ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
