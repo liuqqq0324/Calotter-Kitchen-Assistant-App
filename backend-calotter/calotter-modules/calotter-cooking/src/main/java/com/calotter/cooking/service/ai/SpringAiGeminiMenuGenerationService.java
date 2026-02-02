@@ -24,13 +24,15 @@ public class SpringAiGeminiMenuGenerationService implements AiMenuGenerationServ
     private final ObjectMapper objectMapper;
 
     // 极简 System Prompt (优化 token 消耗)
+    // 注意：饮食限制（DietHabits/Allergies/Avoid）优先级必须高于库存消耗
     private static final String MINIMAL_SYSTEM_PROMPT = """
         Role: Diet Chef. Task: Generate EXACTLY 3 MENUS.
         Input: Urgent items first.
         Rules:
         1. JSON output only.
-        2. Use 'Urgent' inventory to prevent waste.
-        3. Ensure variety between menus.
+        2. STRICTLY follow 'DietHabits', 'Allergies' and 'Avoid' lists. NEVER use conflicting ingredients, even if they are in 'Urgent' inventory.
+        3. Prioritize using COMPLIANT 'Urgent' inventory to prevent waste.
+        4. Ensure variety between menus.
         """;
     
     @Override

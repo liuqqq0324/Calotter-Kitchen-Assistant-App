@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
 标准库数据初始化脚本
-执行标准库数据初始化（包含 YOLO 对齐）
+执行标准库数据初始化（与 Spring Boot data.sql 一致）
 
-此脚本会执行 init-standard-libraries.sql，该文件已包含：
-1. 基础标准库数据初始化（过敏原、食材、调料、厨具）
-2. YOLO 模型对齐（修复名称不一致，添加缺失食材）
-3. 数据验证
+此脚本会执行 calotter-start/src/main/resources/data.sql，该文件包含：
+1. 过敏原、食材（155）、调料（40）、厨具（34）
+2. 食材与过敏原、调料与过敏原关联
+3. ON CONFLICT 幂等，可重复执行
 """
 
 import sys
@@ -95,7 +95,7 @@ def verify_data():
         cursor.execute("SELECT COUNT(*) FROM ref_standard_allergens")
         allergen_count = cursor.fetchone()[0]
         
-        print(f"   ✅ 标准食材: {ingredient_count} 条（应包含 140 条：96 个 YOLO 模型标签 + 44 个额外欧美常见食材）")
+        print(f"   ✅ 标准食材: {ingredient_count} 条（预期 155：YOLO 83 + 欧美扩展 + 烘焙/植物奶等）")
         print(f"   ✅ 标准调料: {spice_count} 条")
         print(f"   ✅ 标准厨具: {utensil_count} 条")
         print(f"   ✅ 标准过敏原: {allergen_count} 条")
@@ -121,9 +121,9 @@ def verify_data():
         return False
 
 def main():
-    # 获取脚本所在目录
+    # 获取脚本所在目录，data.sql 位于 calotter-start/src/main/resources/
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    sql_file = os.path.join(script_dir, 'init-standard-libraries.sql')
+    sql_file = os.path.join(script_dir, 'calotter-start', 'src', 'main', 'resources', 'data.sql')
     
     # 检查文件是否存在
     if not os.path.exists(sql_file):
@@ -131,12 +131,12 @@ def main():
         sys.exit(1)
     
     print("=" * 70)
-    print("标准库数据初始化脚本（完整版，包含 YOLO 对齐）")
+    print("标准库数据初始化（与 Spring Boot data.sql 一致）")
     print("=" * 70)
     print()
     print("此脚本将执行以下操作：")
-    print("  1. 初始化基础标准库数据（过敏原、食材、调料、厨具）")
-    print("  2. 标准食材库包含 140 个食材：96 个 YOLO 模型标签 + 44 个额外欧美常见食材")
+    print("  1. 初始化过敏原、食材（155）、调料（40）、厨具（34）")
+    print("  2. 标准食材：YOLO 83 + 欧美扩展 + 烘焙/植物奶/豆类/奶酪等")
     print("  3. 所有食材的单位和单位转换已规范化")
     print("  4. 验证数据完整性")
     print()

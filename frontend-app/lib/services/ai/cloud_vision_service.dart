@@ -5,7 +5,6 @@ import 'package:flutter/foundation.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:personal_sous_chef/core/config/api_config.dart';
 import 'package:personal_sous_chef/core/config/ingredient_icon_config.dart';
-import 'package:personal_sous_chef/core/config/yolo_labels_config.dart';
 import 'package:personal_sous_chef/data/models/ingredient.dart';
 
 /// 云端视觉识别服务（Gemini）
@@ -33,8 +32,8 @@ class CloudVisionService {
 
       final Uint8List imageBytes = await imageFile.readAsBytes();
 
-      // 第一层防护：把标准食材表注入 Prompt，强制 LLM 做选择题
-      final String validIngredientsString = yoloLabels.join(", ");
+      // 第一层防护：把后端标准食材表（140 条）注入 Prompt，与 ref_standard_ingredients 一致
+      final String validIngredientsString = standardIngredientNames.join(", ");
 
       final content = [
         Content.multi([
@@ -70,9 +69,15 @@ class CloudVisionService {
       // --- JSON 解析与容错处理 ---
       String jsonString = text;
       if (jsonString.startsWith('```json')) {
-        jsonString = jsonString.replaceFirst('```json', '').replaceAll('```', '').trim();
+        jsonString = jsonString
+            .replaceFirst('```json', '')
+            .replaceAll('```', '')
+            .trim();
       } else if (jsonString.startsWith('```')) {
-        jsonString = jsonString.replaceFirst('```', '').replaceAll('```', '').trim();
+        jsonString = jsonString
+            .replaceFirst('```', '')
+            .replaceAll('```', '')
+            .trim();
       }
 
       final List<dynamic> jsonList = jsonDecode(jsonString);
@@ -81,7 +86,8 @@ class CloudVisionService {
       for (var item in jsonList) {
         if (item is Map<String, dynamic>) {
           final name = item['name']?.toString() ?? 'Unknown';
-          final iconPath = getIngredientIconPath(name) ?? defaultIngredientIconPath;
+          final iconPath =
+              getIngredientIconPath(name) ?? defaultIngredientIconPath;
           ingredients.add(
             Ingredient(
               name: name.replaceAll('-', ' '),

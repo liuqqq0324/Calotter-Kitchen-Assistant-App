@@ -15,6 +15,8 @@ class SketchyButton extends StatefulWidget {
   final bool isFullWidth;
   final double fontSize;
   final String? backgroundImage; // 新增：背景图片支持
+  /// 布局高度压缩系数：1.0=正常；<1.0=少占空间（相邻组件可贴近/重叠）。默认 0.85。
+  final double layoutHeightFactor;
 
   const SketchyButton({
     super.key,
@@ -29,6 +31,7 @@ class SketchyButton extends StatefulWidget {
     this.isFullWidth = false,
     this.fontSize = 20,
     this.backgroundImage,
+    this.layoutHeightFactor = 0.65,
   });
 
   @override
@@ -44,80 +47,93 @@ class _SketchyButtonState extends State<SketchyButton> {
 
   @override
   Widget build(BuildContext context) {
-    final baseBg = widget.backgroundColor ?? Theme.of(context).colorScheme.primary;
+    final baseBg =
+        widget.backgroundColor ?? Theme.of(context).colorScheme.primary;
     final pressedBg = _darken(baseBg);
     final txtColor = widget.textColor ?? Colors.white;
 
-    return TweenAnimationBuilder<Color?>(
-      duration: const Duration(milliseconds: 110),
-      curve: Curves.easeOut,
-      tween: ColorTween(end: _pressed ? pressedBg : baseBg),
-      builder: (context, bg, _) {
-        return SketchyBorder(
-          borderColor: widget.borderColor,
-          borderWidth: widget.borderWidth,
-          backgroundColor:
-              widget.backgroundImage != null ? null : (bg ?? baseBg),
-          borderRadius: 30.0,
-          roughness: 3.0,
-          child: Stack(
-            children: [
-              // 如果有背景图，使用裁切器裁切出不规则形状
-              if (widget.backgroundImage != null)
-                Positioned.fill(
-                  child: ClipPath(
-                    clipper: SketchyClipper(borderRadius: 30.0, roughness: 3.0),
-                    child: Opacity(
-                      opacity: _pressed ? 0.8 : 1.0,
-                      child: Image.asset(
-                        widget.backgroundImage!,
-                        fit: BoxFit.cover,
+    return Align(
+      heightFactor: widget.layoutHeightFactor,
+      alignment: Alignment.center,
+      child: TweenAnimationBuilder<Color?>(
+        duration: const Duration(milliseconds: 110),
+        curve: Curves.easeOut,
+        tween: ColorTween(end: _pressed ? pressedBg : baseBg),
+        builder: (context, bg, _) {
+          return SketchyBorder(
+            borderColor: widget.borderColor,
+            borderWidth: widget.borderWidth,
+            backgroundColor: widget.backgroundImage != null
+                ? null
+                : (bg ?? baseBg),
+            borderRadius: 30.0,
+            roughness: 3.0,
+            child: Stack(
+              children: [
+                // 如果有背景图，使用裁切器裁切出不规则形状
+                if (widget.backgroundImage != null)
+                  Positioned.fill(
+                    child: ClipPath(
+                      clipper: SketchyClipper(
+                        borderRadius: 30.0,
+                        roughness: 3.0,
+                      ),
+                      child: Opacity(
+                        opacity: _pressed ? 0.8 : 1.0,
+                        child: Image.asset(
+                          widget.backgroundImage!,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                  ),
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: widget.onPressed,
+                    onHighlightChanged: (v) => setState(() => _pressed = v),
+                    borderRadius: BorderRadius.circular(30),
+                    child: Container(
+                      padding:
+                          widget.padding ??
+                          const EdgeInsets.symmetric(
+                            horizontal: 32,
+                            vertical: 16,
+                          ),
+                      width: widget.isFullWidth ? double.infinity : null,
+                      child: Row(
+                        mainAxisSize: widget.isFullWidth
+                            ? MainAxisSize.max
+                            : MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              widget.text,
+                              style: GoogleFonts.caveat(
+                                fontSize: widget.fontSize,
+                                fontWeight: FontWeight.bold,
+                                color: txtColor,
+                                letterSpacing: 1.5,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
+                          ),
+                          if (widget.icon != null) ...[
+                            const SizedBox(width: 12),
+                            Icon(widget.icon, color: txtColor, size: 24),
+                          ],
+                        ],
                       ),
                     ),
                   ),
                 ),
-              Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: widget.onPressed,
-                  onHighlightChanged: (v) => setState(() => _pressed = v),
-                  borderRadius: BorderRadius.circular(30),
-                  child: Container(
-                    padding: widget.padding ??
-                        const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                    width: widget.isFullWidth ? double.infinity : null,
-                    child: Row(
-                      mainAxisSize: widget.isFullWidth
-                          ? MainAxisSize.max
-                          : MainAxisSize.min,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Flexible(
-                          child: Text(
-                            widget.text,
-                            style: GoogleFonts.caveat(
-                              fontSize: widget.fontSize,
-                              fontWeight: FontWeight.bold,
-                              color: txtColor,
-                              letterSpacing: 1.5,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 1,
-                          ),
-                        ),
-                        if (widget.icon != null) ...[
-                          const SizedBox(width: 12),
-                          Icon(widget.icon, color: txtColor, size: 24),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 }
@@ -133,6 +149,9 @@ class SketchyIconButton extends StatefulWidget {
   final double borderWidth;
   final double roughness;
 
+  /// 布局高度压缩系数，默认 0.85，使相邻组件更紧凑
+  final double layoutHeightFactor;
+
   const SketchyIconButton({
     super.key,
     required this.icon,
@@ -143,6 +162,7 @@ class SketchyIconButton extends StatefulWidget {
     this.size = 56.0,
     this.borderWidth = 2.5,
     this.roughness = 3.0,
+    this.layoutHeightFactor = 0.85,
   });
 
   @override
@@ -158,37 +178,46 @@ class _SketchyIconButtonState extends State<SketchyIconButton> {
 
   @override
   Widget build(BuildContext context) {
-    final baseBg = widget.backgroundColor ?? Theme.of(context).colorScheme.primary;
+    final baseBg =
+        widget.backgroundColor ?? Theme.of(context).colorScheme.primary;
     final pressedBg = _darken(baseBg);
     final icnColor = widget.iconColor ?? Colors.white;
 
-    return TweenAnimationBuilder<Color?>(
-      duration: const Duration(milliseconds: 110),
-      curve: Curves.easeOut,
-      tween: ColorTween(end: _pressed ? pressedBg : baseBg),
-      builder: (context, bg, _) {
-        return SketchyBorder(
-          borderColor: widget.borderColor,
-          borderWidth: widget.borderWidth,
-          backgroundColor: bg ?? baseBg,
-          borderRadius: widget.size / 2,
-          roughness: widget.roughness,
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: widget.onPressed,
-              onHighlightChanged: (v) => setState(() => _pressed = v),
-              borderRadius: BorderRadius.circular(widget.size / 2),
-              child: Container(
-                width: widget.size,
-                height: widget.size,
-                alignment: Alignment.center,
-                child: Icon(widget.icon, color: icnColor, size: widget.size * 0.5),
+    return Align(
+      heightFactor: widget.layoutHeightFactor,
+      alignment: Alignment.center,
+      child: TweenAnimationBuilder<Color?>(
+        duration: const Duration(milliseconds: 110),
+        curve: Curves.easeOut,
+        tween: ColorTween(end: _pressed ? pressedBg : baseBg),
+        builder: (context, bg, _) {
+          return SketchyBorder(
+            borderColor: widget.borderColor,
+            borderWidth: widget.borderWidth,
+            backgroundColor: bg ?? baseBg,
+            borderRadius: widget.size / 2,
+            roughness: widget.roughness,
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: widget.onPressed,
+                onHighlightChanged: (v) => setState(() => _pressed = v),
+                borderRadius: BorderRadius.circular(widget.size / 2),
+                child: Container(
+                  width: widget.size,
+                  height: widget.size,
+                  alignment: Alignment.center,
+                  child: Icon(
+                    widget.icon,
+                    color: icnColor,
+                    size: widget.size * 0.5,
+                  ),
+                ),
               ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }

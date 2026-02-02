@@ -2,8 +2,8 @@
 //
 // YOLO model labels configuration.
 // Labels must strictly match frontend-app/assets/models/label.txt and backend
-// ref_standard_ingredients (init-standard-libraries.sql) for the same 83 classes.
-// Order: 0='Apple', 1='Apricot', ..., 82='White_Button_Mushroom'
+// ref_standard_ingredients (backend data.sql) for the same 83 classes.
+// Order: 0='Apple', 1='Apricot', ..., 82='Mushroom'
 //
 // Model: nc: 83, names from label.txt
 
@@ -92,7 +92,7 @@ const List<String> yoloLabels = [
   'Tofu',
   'Tomato',
   'Watermelon',
-  'White_Button_Mushroom',
+  'Mushroom',
 ];
 
 /// Total number of classes in the YOLO model

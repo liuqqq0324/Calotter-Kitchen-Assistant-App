@@ -1101,6 +1101,7 @@ class _InventoryPageState extends State<InventoryPage>
     return IngredientCard(
       item: item,
       useStatusColors: true,
+      useSketchySquareButtons: true,
       onTap: () => _navigateToEdit(item),
       onQuantityChanged: (val) async {
         // 更新本地数量

@@ -14,6 +14,9 @@ class QuantitySelector extends StatefulWidget {
   // 🔥 新增参数：宽度控制 (默认 70，编辑页可以传大一点)
   final double totalWidth;
 
+  /// 为 true 时，+/- 按钮使用方形 + sketchy_button 手绘风格
+  final bool useSketchySquareButtons;
+
   const QuantitySelector({
     super.key,
     required this.initialValue,
@@ -22,6 +25,7 @@ class QuantitySelector extends StatefulWidget {
     this.unitOptions,
     this.onUnitChanged,
     this.totalWidth = 70.0, // 默认紧凑宽度
+    this.useSketchySquareButtons = false,
   });
 
   @override
@@ -123,16 +127,26 @@ class _QuantitySelectorState extends State<QuantitySelector> {
       crossAxisAlignment: CrossAxisAlignment.center, // 垂直居中
       mainAxisAlignment: MainAxisAlignment.start,
       children: [
-        // 1. 减号 (实心圆)
-        _buildCircleBtn(
-          icon: Icons.remove,
-          color: isMin ? Colors.grey.shade300 : AppStyle.accentColor,
-          onTap: isMin
-              ? () {}
-              : () => _updateValue(
-                  (_currentValue - 1).clamp(0.0, double.infinity),
-                ), // 🔥 支持小数
-        ),
+        // 1. 减号
+        widget.useSketchySquareButtons
+            ? _buildSketchySquareBtn(
+                icon: Icons.remove,
+                color: isMin ? Colors.grey.shade300 : AppStyle.accentColor,
+                onTap: isMin
+                    ? () {}
+                    : () => _updateValue(
+                        (_currentValue - 1).clamp(0.0, double.infinity),
+                      ),
+              )
+            : _buildCircleBtn(
+                icon: Icons.remove,
+                color: isMin ? Colors.grey.shade300 : AppStyle.accentColor,
+                onTap: isMin
+                    ? () {}
+                    : () => _updateValue(
+                        (_currentValue - 1).clamp(0.0, double.infinity),
+                      ),
+              ),
 
         const SizedBox(width: 6),
 
@@ -235,13 +249,33 @@ class _QuantitySelectorState extends State<QuantitySelector> {
 
         const SizedBox(width: 6),
 
-        // 3. 加号 (实心圆)
-        _buildCircleBtn(
-          icon: Icons.add,
-          color: AppStyle.accentColor,
-          onTap: () => _updateValue(_currentValue + 1),
-        ),
+        // 3. 加号
+        widget.useSketchySquareButtons
+            ? _buildSketchySquareBtn(
+                icon: Icons.add,
+                color: AppStyle.accentColor,
+                onTap: () => _updateValue(_currentValue + 1),
+              )
+            : _buildCircleBtn(
+                icon: Icons.add,
+                color: AppStyle.accentColor,
+                onTap: () => _updateValue(_currentValue + 1),
+              ),
       ],
+    );
+  }
+
+  /// 方形 + sketchy_button 手绘风格的 +/- 按钮
+  Widget _buildSketchySquareBtn({
+    required IconData icon,
+    required VoidCallback onTap,
+    required Color color,
+  }) {
+    return _SketchySquareIconButton(
+      icon: icon,
+      onPressed: onTap,
+      backgroundColor: color,
+      size: 28.0,
     );
   }
 
@@ -301,7 +335,7 @@ class _QuantitySelectorState extends State<QuantitySelector> {
     );
   }
 
-  // 构建圆形按钮（原视觉风格）
+  /// 构建圆形按钮（原视觉风格）
   Widget _buildCircleBtn({
     required IconData icon,
     required VoidCallback onTap,
@@ -323,12 +357,84 @@ class _QuantitySelectorState extends State<QuantitySelector> {
                 color: color.withOpacity(0.4),
                 offset: const Offset(1, 2),
                 blurRadius: 3,
-              )
+              ),
             ],
           ),
           child: Icon(icon, size: 18, color: Colors.white),
         ),
       ),
+    );
+  }
+}
+
+/// 方形手绘风格图标按钮（与 sketchy_button 外观一致，borderRadius 小则为方形）
+class _SketchySquareIconButton extends StatefulWidget {
+  static const double _borderWidth = 2.5;
+  static const double _borderRadius = 8.0;
+
+  final IconData icon;
+  final VoidCallback onPressed;
+  final Color backgroundColor;
+  final double size;
+
+  const _SketchySquareIconButton({
+    required this.icon,
+    required this.onPressed,
+    required this.backgroundColor,
+    this.size = 28.0,
+  });
+
+  @override
+  State<_SketchySquareIconButton> createState() =>
+      _SketchySquareIconButtonState();
+}
+
+class _SketchySquareIconButtonState extends State<_SketchySquareIconButton> {
+  bool _pressed = false;
+
+  Color _darken(Color c, [double amount = 0.12]) {
+    return Color.lerp(c, Colors.black, amount) ?? c;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final baseBg = widget.backgroundColor;
+    final pressedBg = _darken(baseBg);
+    const iconColor = Colors.white;
+
+    return TweenAnimationBuilder<Color?>(
+      duration: const Duration(milliseconds: 110),
+      curve: Curves.easeOut,
+      tween: ColorTween(end: _pressed ? pressedBg : baseBg),
+      builder: (context, bg, _) {
+        return SketchyBorder(
+          borderColor: Colors.black87,
+          borderWidth: _SketchySquareIconButton._borderWidth,
+          backgroundColor: bg ?? baseBg,
+          borderRadius: _SketchySquareIconButton._borderRadius,
+          roughness: 3.0,
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: widget.onPressed,
+              onHighlightChanged: (v) => setState(() => _pressed = v),
+              borderRadius: BorderRadius.circular(
+                _SketchySquareIconButton._borderRadius,
+              ),
+              child: Container(
+                width: widget.size,
+                height: widget.size,
+                alignment: Alignment.center,
+                child: Icon(
+                  widget.icon,
+                  color: iconColor,
+                  size: widget.size * 0.55,
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

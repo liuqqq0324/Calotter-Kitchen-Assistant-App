@@ -665,7 +665,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
     final dailyFat = _healthInfo?['dailyFat'] as num?;
     final dailyCarbohydrates = _healthInfo?['dailyCarbohydrates'] as num?;
 
-    // 如果没有任何营养数据，不显示
+    // 如果没有任何营养数据，不显示（仅显示 Energy / Protein / Fat / Carbs 四个）
     if (dailyEnergy == null &&
         dailyProtein == null &&
         dailyFat == null &&
@@ -673,79 +673,23 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
       return const SizedBox.shrink();
     }
 
-    // 卡片配置：纵向堆叠，左右交替，产生重叠效果
-    // 层叠顺序：Energy (最下层) < Protein < Fat < Carbs (最上层)
-    final cardConfigs = <Map<String, dynamic>>[
-      if (dailyEnergy != null)
-        {
-          'icon': Icons.local_fire_department,
-          'label': 'Energy',
-          'valueText': '${dailyEnergy.toInt()} kcal',
-          'accent': const Color(0xFFF0B27A),
-          'rotation': -5.0 * math.pi / 180, // -5度转弧度
-          'alignSelf': 'flex-start', // align-self: flex-start
-          'marginLeft': 0.05, // margin-left: 5% (相对于容器)
-          'marginTop': 0.0,
-          'marginRight': 0.0,
-          'tapeStyle': TapeStyle.standard,
-          'zIndex': 1, // 最下层
-        },
-      if (dailyProtein != null)
-        {
-          'icon': Icons.fitness_center,
-          'label': 'Protein',
-          'valueText': '${dailyProtein.toInt()} g',
-          'accent': Colors.blue,
-          'rotation': 4.0 * math.pi / 180, // 4度转弧度
-          'alignSelf': 'flex-end', // align-self: flex-end
-          'marginLeft': 0.0,
-          'marginTop': -60.0, // margin-top: -60px
-          'marginRight': 0.05, // margin-right: 5% (相对于容器)
-          'tapeStyle': TapeStyle.dots,
-          'zIndex': 2,
-        },
-      if (dailyFat != null)
-        {
-          'icon': Icons.water_drop,
-          'label': 'Fat',
-          'valueText': '${dailyFat.toInt()} g',
-          'accent': Colors.amber,
-          'rotation': -2.0 * math.pi / 180, // -2度转弧度
-          'alignSelf': 'flex-start', // align-self: flex-start
-          'marginLeft': 0.08, // margin-left: 8% (相对于容器)
-          'marginTop': -50.0, // margin-top: -50px
-          'marginRight': 0.0,
-          'tapeStyle': TapeStyle.stripes,
-          'zIndex': 3,
-        },
-      if (dailyCarbohydrates != null)
-        {
-          'icon': Icons.eco,
-          'label': 'Carbs',
-          'valueText': '${dailyCarbohydrates.toInt()} g',
-          'accent': Colors.green,
-          'rotation': 6.0 * math.pi / 180, // 6度转弧度
-          'alignSelf': 'flex-end', // align-self: flex-end
-          'marginLeft': 0.0,
-          'marginTop': -55.0, // margin-top: -55px
-          'marginRight': 0.08, // margin-right: 8% (相对于容器)
-          'tapeStyle': TapeStyle.standard,
-          'zIndex': 4, // 最上层
-        },
-    ];
-
-    // 按 zIndex 排序，确保正确的层叠顺序（z-index 高的在后面，会覆盖前面的）
-    cardConfigs.sort(
-      (a, b) => (a['zIndex'] as int).compareTo(b['zIndex'] as int),
-    );
-
-    // 计算容器和卡片宽度
-    final screenWidth = MediaQuery.of(context).size.width;
-    final containerWidth = screenWidth; // 容器宽度为屏幕的85%
-    final cardWidth = containerWidth * 0.1; // 缩小卡片宽度为容器的55%（从67%减小）
+    // 四行：Energy 靠左、Protein 靠右、Fat 靠左、Carbs 靠右；便签稍大，可部分重叠但不挡信息，一屏内可见
+    final Map<String, String>? energy = dailyEnergy != null
+        ? {'label': 'Energy', 'value': '${dailyEnergy.toInt()} kcal'}
+        : null;
+    final Map<String, String>? protein = dailyProtein != null
+        ? {'label': 'Protein', 'value': '${dailyProtein.toInt()} g'}
+        : null;
+    final Map<String, String>? fat = dailyFat != null
+        ? {'label': 'Fat', 'value': '${dailyFat.toInt()} g'}
+        : null;
+    final Map<String, String>? carbs = dailyCarbohydrates != null
+        ? {'label': 'Carbs', 'value': '${dailyCarbohydrates.toInt()} g'}
+        : null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           'Daily Nutrition Targets',
@@ -755,81 +699,76 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
             color: const Color(0xFF6B4F4F),
           ),
         ),
-        const SizedBox(height: 12),
-        // 容器：使用 flex column，align-items: center
-        Center(
-          child: SizedBox(
-            width: containerWidth,
-            child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.center, // align-items: center
-              children: [
-                // 使用 Stack 实现 z-index 层叠，但用 Column 的布局逻辑
-                SizedBox(
-                  height: 250, // 设置固定高度，确保卡片可见
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: cardConfigs.asMap().entries.map((entry) {
-                      final index = entry.key;
-                      final config = entry.value;
-                      final zIndex = config['zIndex'] as int;
-                      final alignSelf = config['alignSelf'] as String;
-                      final marginLeft = config['marginLeft'] as double;
-                      final marginRight = config['marginRight'] as double;
-                      final marginTop = config['marginTop'] as double;
+        const SizedBox(height: 8),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final maxWidth = constraints.maxWidth;
+            // 左右间距拉大，便签宽度限制在各自半区，不重叠、不挡信息
+            const double horizontalPadding = 28.0;
+            final contentWidth = maxWidth - horizontalPadding * 2;
+            final noteWidth = (contentWidth * 0.48).clamp(
+              140.0,
+              220.0,
+            ); // 左/右各占半区约一半，中间留空
+            const double noteHeight = 168.0;
+            const double rowOverlap = 92.0; // 每行下移量，稍松散
 
-                      // 计算累计的垂直位置
-                      double cumulativeTop = 0.0;
-                      for (var i = 0; i < index; i++) {
-                        final prevConfig = cardConfigs[i];
-                        final prevMarginTop = prevConfig['marginTop'] as double;
-                        cumulativeTop += 60.0; // 假设每张卡片高度约60px
-                        cumulativeTop += prevMarginTop; // 加上负的 marginTop
-                      }
-                      cumulativeTop += marginTop; // 加上当前卡片的 marginTop
+            Widget sticky(Map<String, String>? metric, int index) {
+              if (metric == null) return const SizedBox.shrink();
+              final useSticky1 = index.isEven;
+              final asset = useSticky1
+                  ? 'assets/profile_passport/Sticky1.png'
+                  : 'assets/profile_passport/Sticky2.png';
+              final rotation = useSticky1 ? _stickyLeftRot : _stickyRightRot;
+              final tapeTop = useSticky1 ? 5.0 : -5.0;
+              final tapeWidth = useSticky1 ? 42.0 : 40.0;
+              return _buildStickyNote(
+                label: metric['label']!,
+                value: metric['value']!,
+                stickyAsset: asset,
+                width: noteWidth,
+                height: noteHeight,
+                rotation: rotation,
+                tapeTop: tapeTop,
+                tapeWidth: tapeWidth,
+              );
+            }
 
-                      // 计算水平位置（基于 alignSelf 和 margin）
-                      double left = 0.0;
-                      if (alignSelf == 'flex-start') {
-                        left = containerWidth * marginLeft; // margin-left 相对于容器
-                      } else if (alignSelf == 'flex-end') {
-                        left =
-                            containerWidth -
-                            cardWidth -
-                            (containerWidth *
-                                marginRight); // margin-right 相对于容器
-                      } else {
-                        // center
-                        left = (containerWidth - cardWidth) / 2;
-                      }
+            final stackHeight = 3 * rowOverlap + noteHeight; // 松散布局，总高约 444
 
-                      // 构建卡片，应用旋转和阴影
-                      Widget card = Transform.rotate(
-                        angle: config['rotation'] as double,
-                        child: _buildNutritionStatCard(
-                          icon: config['icon'] as IconData,
-                          label: config['label'] as String,
-                          valueText: config['valueText'] as String,
-                          accent: config['accent'] as Color,
-                          rotation: 0.0, // 旋转已在 Transform.rotate 中处理
-                          tapeStyle: config['tapeStyle'] as TapeStyle,
-                          width: cardWidth,
-                          zIndex: zIndex, // 传递 zIndex 用于阴影
-                        ),
-                      );
-
-                      // 使用 Positioned 实现绝对定位
-                      return Positioned(
-                        left: left,
-                        top: cumulativeTop,
-                        child: card,
-                      );
-                    }).toList(),
+            return SizedBox(
+              height: stackHeight,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  // 第一行：Energy 靠左，留出左边距
+                  Positioned(
+                    left: horizontalPadding,
+                    top: 0,
+                    child: sticky(energy, 0),
                   ),
-                ),
-              ],
-            ),
-          ),
+                  // 第二行：Protein 靠右，留出右边距
+                  Positioned(
+                    right: horizontalPadding,
+                    top: rowOverlap,
+                    child: sticky(protein, 1),
+                  ),
+                  // 第三行：Fat 靠左
+                  Positioned(
+                    left: horizontalPadding,
+                    top: rowOverlap * 2,
+                    child: sticky(fat, 2),
+                  ),
+                  // 第四行：Carbs 靠右
+                  Positioned(
+                    right: horizontalPadding,
+                    top: rowOverlap * 3,
+                    child: sticky(carbs, 3),
+                  ),
+                ],
+              ),
+            );
+          },
         ),
       ],
     );
@@ -1754,20 +1693,13 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                   Center(
                     child: _isSavingGoal
                         ? const CircularProgressIndicator()
-                        : SketchyButton(
-                            text: 'Save Goal',
-                            fontSize: 23, // 统一字体大小
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 70,
-                              vertical: 24,
-                            ), // 统一按钮大小，与 Settings/Invite 一致
-                            backgroundImage:
-                                'assets/icons/seasonings.png', // 使用 Seasonings 的绿色纹理
-                            borderColor: Colors.green.shade700,
-                            textColor: const Color(0xFF6B4F4F),
-                            onPressed: () {
-                              _saveHealthGoal();
-                            },
+                        : GestureDetector(
+                            onTap: _saveHealthGoal,
+                            child: Image.asset(
+                              'assets/profile_passport/Save Goal Button.png',
+                              width: 110, // 缩小到原来的 1/2
+                              fit: BoxFit.contain,
+                            ),
                           ),
                   ),
                 ],
@@ -1794,8 +1726,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                 (_healthInfo!['dailyEnergy'] != null ||
                     _healthInfo!['dailyProtein'] != null ||
                     _healthInfo!['dailyFat'] != null ||
-                    _healthInfo!['dailyCarbohydrates'] != null ||
-                    _healthInfo!['dailyFiber'] != null))
+                    _healthInfo!['dailyCarbohydrates'] != null))
               _buildNutritionTargets()
             else
               Center(

@@ -8,12 +8,17 @@ spring:
     password: 123
     driver-class-name: org.postgresql.Driver
 
-  # 方案 B：持久化流 - 表结构只更新不删除，data.sql 用 ON CONFLICT 防冲突
+  # SQL 初始化配置 (data.sql)
   sql:
     init:
       mode: always
-
+      
+  # JPA 配置
   jpa:
+    # ✅ 修正点：这行必须放在 jpa 下面，缩进两个空格
+    # 作用：让 data.sql 在 Hibernate 建表之后再执行
+    defer-datasource-initialization: true
+    
     hibernate:
       # update: 保留数据，只更新表结构
       ddl-auto: update
@@ -26,29 +31,27 @@ spring:
   
   # Spring AI Google GenAI 配置
   ai:
-    # 🔥 禁用自动重试，防止 429 错误时重复请求导致配额耗尽
+    # 🔥 禁用自动重试
     retry:
-      max-attempts: 1  # 禁止自动重试，由我们自己的代码控制
-      enabled: false    # 或者直接禁用
+      max-attempts: 1
+      enabled: false
     google:
       genai:
         api-key: ${GEMINI_API_KEY:}
         chat:
           options:
-            model: gemini-2.5-flash-lite
-            temperature: 0.9  # ✅ 方案一：调高温度增加随机性和多样性，减少同质化
-            top-p: 0.95  # ✅ 方案一：设置 Top-P 防止在高温度下胡言乱语
-            # 注意：Spring AI Google GenAI 通过结构化输出功能支持 Function Calling
-            # response-format 可能不需要单独配置，Spring AI 会自动处理
-  # 营养估算器配置
+            model: gemini-2.5-flash
+            temperature: 0.8
+            top-p: 0.95
+
+  # 营养估算器配置 (属于 spring 配置的一部分吗？看缩进似乎是自定义的，建议检查这里)
+  # 如果 com.calotter.config.NutritionConfig 读取的是 spring.nutrition，那保持这样
   nutrition:
-    provider: groq  # groq（Groq 是唯一可用的实现）
-    # Gemini 配置
+    provider: groq
     gemini:
       base-url: https://generativelanguage.googleapis.com
-      api-key: ${GEMINI_API_KEY:}  # 复用同一个 API Key
-      model: gemini-2.5-flash-lite
-    # Groq 配置（保留）
+      api-key: ${GEMINI_API_KEY:}
+      model: gemini-2.5-flash
     groq:
       base-url: https://api.groq.com
       api-key: ${GROQ_API_KEY:}
@@ -56,13 +59,12 @@ spring:
 
 server:
   port: 8080
-  address: 0.0.0.0  # 🔥 监听所有网络接口，允许外部连接（AWS 公网 IP 访问必需）
+  address: 0.0.0.0  # 🔥 监听所有网络接口
 
 logging:
   level:
     root: INFO
     com.calotter: DEBUG
-    # 🔍 DEBUG: 临时关闭 Hibernate SQL 日志以便查看 category 相关日志
     org.hibernate.SQL: WARN
     org.hibernate.type.descriptor.sql.BasicBinder: WARN
 
@@ -70,11 +72,10 @@ jwt:
   key: YourSuperSecretKeyForJWTTokenGenerationThatShouldBeAtLeast32CharactersLong!
   issuer: CalotterBackend
   audience: CalotterFrontend
-  expiration: 3000 # seconds (50 minutes)
+  expiration: 3000
 
-# AI API 配置
-# 模式选择：spring-ai-gemini（Spring AI Gemini，使用 Function Calling，默认）
-# 已废除：mock、groq 和 bedrock 模式
+# 自定义 AI API 配置 (通常读取 ai.api.mode)
+# 注意：这里不能放在 spring 下面，它是根节点
 ai:
   api:
-    mode: spring-ai-gemini  # spring-ai-gemini（默认，唯一可用）
+    mode: spring-ai-gemini

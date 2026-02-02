@@ -151,59 +151,29 @@ GROQ_API_KEY=your_groq_api_key_here
 
 > **注意**：Spring Boot 会自动加载 `.env` 文件，无需手动设置环境变量。
 
-#### 步骤 3: 创建数据库表结构（首次启动 Spring Boot）
+#### 步骤 3: 建表并填充标准库（首次启动 Spring Boot）
 
-**重要**：JPA 会在 Spring Boot 首次启动时自动创建所有表结构。我们需要先启动一次应用来创建表。
+**重要**：删库后只需启动一次 Spring Boot 即可自动完成建表和标准库填充，无需单独运行初始化脚本。
+
+- **JPA**（`ddl-auto: update`）：启动时自动创建/更新所有表结构。
+- **DataSqlRunner**：在 Hibernate 建表完成后自动执行 `calotter-start/src/main/resources/data.sql`，插入标准库数据（过敏原、食材、调料、厨具）。
 
 ```bash
 # 进入启动模块
 cd calotter-start
 
-# 启动 Spring Boot 应用（仅用于创建表结构）
+# 启动 Spring Boot 应用（自动建表 + 自动执行 data.sql 填充标准库）
 mvn spring-boot:run
 
-# 等待看到 "Started CalotterApplication" 后，按 Ctrl+C 停止应用
+# 等待看到 "Started CalotterApplication" 后，可按 Ctrl+C 停止，或保持运行
 ```
 
-> **注意**：首次启动时，JPA 会自动创建所有表结构。看到启动成功后即可停止应用。
+**标准库内容**（由 data.sql 填充）：
+- 标准过敏原库（10 条）、标准食材库（154 条，YOLO 83 + 欧美扩展；别名如 Zucchini 已删，仅保留 Courgette）、标准调料库（40 条）、标准厨具库（34 条）
 
-#### 步骤 4: 初始化标准库数据
+**若需在不启动应用时单独执行 data.sql**：`python run_init_sql.py` 或 `psql -h localhost -U postgres -d calotter -f calotter-start/src/main/resources/data.sql`（需先由 JPA 建表，否则会报错）。
 
-```bash
-# 返回项目根目录
-cd ..
-
-# 使用 Python 脚本（推荐，会自动执行完整流程）
-python run_init_sql.py
-```
-
-**初始化流程**：
-脚本会执行 `init-standard-libraries.sql`，该文件已包含：
-1. 基础标准库数据初始化（过敏原、食材、调料、厨具）
-2. YOLO 模型对齐（修复名称不一致，添加缺失食材）
-3. 数据验证
-
-**初始化内容**：
-- ✅ 标准过敏原库（10 条）
-- ✅ 标准食材库（96 条，仅包含 YOLO 模型可识别的标签，排除 '-' 占位符）
-- ✅ 标准调料库（30 条）
-- ✅ 标准厨具库（25 条）
-
-**单位规范**：
-- 水果/蔬菜（按个计）：`primary_unit='pcs'`, `secondary_unit='g'`, `unit_conversion_factor=average_gram_per_unit`, `standard_unit='g'`
-- 肉类/谷物（按重量计）：`primary_unit='g'`, `secondary_unit='kg'`, `unit_conversion_factor=0.001` (1 g = 0.001 kg), `standard_unit='g'`
-- 液体（按体积计）：`primary_unit='ml'`, `secondary_unit='L'`, `unit_conversion_factor=0.001` (1 ml = 0.001 L), `standard_unit='ml'`
-
-**手动执行方式**（如果 Python 脚本不可用）：
-```bash
-# 方法 1: 使用 Docker 执行
-docker exec -i calotter_postgres psql -U postgres -d calotter < init-standard-libraries.sql
-
-# 方法 2: 使用 psql 客户端
-psql -h localhost -U postgres -d calotter -f init-standard-libraries.sql
-```
-
-#### 步骤 5: 编译项目
+#### 步骤 4: 编译项目
 
 ```bash
 # 在项目根目录执行
@@ -213,7 +183,7 @@ mvn clean install
 mvn clean install -DskipTests
 ```
 
-#### 步骤 6: 启动后端应用
+#### 步骤 5: 启动后端应用（若步骤 3 未停止可跳过）
 
 ```bash
 # 进入启动模块
@@ -232,7 +202,7 @@ Started CalotterApplication in X.XXX seconds
 
 应用默认运行在：**http://localhost:8080**
 
-#### 步骤 7: 验证启动成功
+#### 步骤 6: 验证启动成功
 
 ```bash
 # 测试健康检查端点（如果存在）
@@ -268,19 +238,14 @@ docker-compose up -d            # 重新创建容器
 # Windows PowerShell: Start-Sleep -Seconds 5
 # Linux/Mac: sleep 5
 
-# 4. 创建数据库表结构（启动一次 Spring Boot 应用）
+# 4. 建表并填充标准库（启动一次 Spring Boot 即可，DataSqlRunner 会自动执行 data.sql）
 cd calotter-start
 mvn spring-boot:run
-# 等待看到 "Started CalotterApplication" 后，按 Ctrl+C 停止
+# 等待看到 "Started CalotterApplication" 后，按 Ctrl+C 停止（或保持运行）
 
-# 5. 返回根目录并初始化标准库数据（自动执行完整流程：基础初始化 + YOLO 对齐）
+# 5. 重新编译并启动（若步骤 4 已停止）
 cd ..
-python run_init_sql.py
-
-# 6. 重新编译项目
 mvn clean install
-
-# 7. 启动应用
 cd calotter-start
 mvn spring-boot:run
 ```
@@ -304,11 +269,12 @@ TRUNCATE TABLE health_goals CASCADE;
 TRUNCATE TABLE households CASCADE;
 TRUNCATE TABLE users CASCADE;
 
--- 重新初始化标准库
-\i /path/to/init-standard-libraries.sql
+-- 退出 psql 后，在项目根目录重新初始化标准库（二选一）：
+-- python run_init_sql.py
+-- 或: psql -h localhost -U postgres -d calotter -f calotter-start/src/main/resources/data.sql
 ```
 
-或者使用 Python 脚本：
+或使用 Python 脚本（在项目根目录）：
 
 ```python
 # 创建临时脚本 clear_data.py
@@ -574,22 +540,22 @@ curl -X POST http://localhost:8080/api/cooking/generate-menu \
 
 ## 🗄️ 数据库说明
 
-### 数据库初始化
+### 数据库初始化（删库后可自动建表 + 自动填充）
 
-项目使用 **JPA 的 `ddl-auto: update`** 自动创建和更新表结构。
+- **JPA**（`ddl-auto: update`）：启动时自动创建/更新所有表结构  
+- **DataSqlRunner**：在 Hibernate 建表完成后自动执行 `data.sql`，插入标准库数据  
 
-**首次启动流程**：
-1. Spring Boot 启动时，JPA 会自动创建所有表
-2. 运行 `init-standard-libraries.sql` 初始化标准库数据
-3. 业务数据由应用运行时创建
+因此**删库后只需启动一次 Spring Boot**，即可自动完成建表和标准库填充，无需单独运行初始化脚本。
+
+**若需仅手动执行 data.sql**（不启动应用）：`python run_init_sql.py` 或 `psql -f calotter-start/src/main/resources/data.sql`。
 
 ### 主要表结构
 
-#### 标准库表（只读，由 SQL 脚本初始化）
-- `ref_standard_allergens`：标准过敏原库
-- `ref_standard_ingredients`：标准食材库（96 条，对齐 YOLO 模型）
-- `ref_standard_spices`：标准调料库
-- `ref_standard_utensils`：标准厨具库
+#### 标准库表（只读，由 data.sql 初始化）
+- `ref_standard_allergens`：标准过敏原库（10 条）
+- `ref_standard_ingredients`：标准食材库（154 条，YOLO 83 + 欧美扩展；别名已删，仅保留一种称呼如 Courgette）
+- `ref_standard_spices`：标准调料库（40 条）
+- `ref_standard_utensils`：标准厨具库（34 条）
 
 #### 业务表（由 JPA 自动创建）
 - `users`：用户表
@@ -668,8 +634,8 @@ curl -X POST http://localhost:8080/api/cooking/generate-menu \
 
 ### 3. 标准库更新
 
-- **添加新食材**：编辑 `init-standard-libraries.sql` 或 `update-standard-ingredients-for-yolo.sql`
-- **对齐 YOLO 模型**：确保标准食材库与 `frontend-app/lib/config/yolo_labels_config.dart` 中的标签一致
+- **添加新食材**：编辑 `calotter-start/src/main/resources/data.sql`
+- **对齐 YOLO 模型**：确保标准食材库与 `frontend-app/lib/core/config/yolo_labels_config.dart`、`ingredient_icon_config.dart` 中的标签/图标一致
 
 ### 4. 测试
 

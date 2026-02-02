@@ -23,7 +23,9 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -217,78 +219,152 @@ public class AiMenuService {
 
     /**
      * 从household自动填充filter的inventory、cookers、seasonings
+     * 物理熔断：过敏原(DB)、Vegan/Vegetarian(Category)、标签(dietary_tags)
      */
     private void enrichFilterFromHousehold(RecipeGenerationFilter filter, Long householdId) {
-        // 填充 urgentInventory 和 regularInventory（如果为空）
+        List<String> habits = (filter.getDietPreferences() != null && filter.getDietPreferences().getDietHabits() != null)
+                ? filter.getDietPreferences().getDietHabits()
+                : new ArrayList<>();
+
+        boolean isVegan = hasHabit(habits, "vegan");
+        boolean isVegetarian = hasHabit(habits, "vegetarian");
+
+        // 用户偏好 -> 需过滤的数据库标签
+        Set<String> forbiddenTags = buildForbiddenTagsFromHabits(habits);
+
+        List<String> userAllergenNames = (filter.getDietPreferences() != null && filter.getDietPreferences().getAllergies() != null)
+                ? filter.getDietPreferences().getAllergies().stream()
+                        .filter(a -> a != null && !"none".equalsIgnoreCase(a))
+                        .map(String::toLowerCase)
+                        .collect(Collectors.toList())
+                : new ArrayList<>();
+
+        // ==========================================
+        // 2. 库存食材 - 物理过滤
+        // ==========================================
         if ((filter.getUrgentInventory() == null || filter.getUrgentInventory().isEmpty()) &&
-            (filter.getRegularInventory() == null || filter.getRegularInventory().isEmpty())) {
-            
+                (filter.getRegularInventory() == null || filter.getRegularInventory().isEmpty())) {
+
             List<Ingredient> ingredients = ingredientRepository.findByHouseholdIdAndQuantityGreaterThan(householdId, 0.0);
-            
-            // 获取当前日期，用于过滤和分类食材
             LocalDate today = LocalDate.now();
             LocalDate threeDaysLater = today.plusDays(3);
-            
-            // 分类：即将过期（3天内）和普通库存
             List<RecipeGenerationFilter.InventoryItem> urgentItems = new ArrayList<>();
             List<RecipeGenerationFilter.InventoryItem> regularItems = new ArrayList<>();
-            
+
             for (Ingredient ing : ingredients) {
-                // 过滤掉已过期的食材
-                if (ing.getExpirationDate() != null && ing.getExpirationDate().isBefore(today)) {
-                    continue; // 跳过已过期的食材
+                if (ing.getExpirationDate() != null && ing.getExpirationDate().isBefore(today)) continue;
+
+                var std = ing.getMetadata();
+                if (std == null) continue;
+
+                String category = std.getCategory() != null ? std.getCategory().toUpperCase() : "";
+                String name = (std.getName() != null ? std.getName() : "").toLowerCase();
+
+                // A. 过敏原
+                var allergens = std.getContainedAllergens();
+                if (allergens != null && !userAllergenNames.isEmpty()) {
+                    if (allergens.stream().anyMatch(a -> a != null && a.getName() != null && userAllergenNames.contains(a.getName().toLowerCase()))) {
+                        log.debug("🚫 [过敏] 剔除: {}", std.getName());
+                        continue;
+                    }
                 }
-                
+
+                // B. Vegan/Vegetarian (Category)
+                if (isVegan && ("MEAT".equals(category) || "DAIRY".equals(category) || std.hasDietaryTag("ANIMAL_PRODUCT"))) continue;
+                if (isVegetarian && "MEAT".equals(category)) continue;
+
+                // C. Lactose Free (Category + 植物奶例外)
+                if (hasHabit(habits, "lactose_free") && isDairyWithLactose(category, name)) {
+                    log.debug("🚫 [无乳糖] 剔除: {}", std.getName());
+                    continue;
+                }
+
+                // D. 标签过滤
+                if (hasForbiddenTag(std.getDietaryTags(), forbiddenTags)) {
+                    log.debug("🚫 [标签] 剔除: {} (Tags: {})", std.getName(), std.getDietaryTags());
+                    continue;
+                }
+
                 RecipeGenerationFilter.InventoryItem item = new RecipeGenerationFilter.InventoryItem();
-                item.setName(ing.getMetadata().getName());
+                item.setName(std.getName());
                 item.setAmountValue(ing.getQuantity());
                 item.setAmountUnit(ing.getUnit());
-                
-                // 判断是否即将过期（3天内）
-                if (ing.getExpirationDate() != null && 
-                    !ing.getExpirationDate().isBefore(today) && 
-                    !ing.getExpirationDate().isAfter(threeDaysLater)) {
-                    // 即将过期（今天到3天后之间）
+
+                if (ing.getExpirationDate() != null && !ing.getExpirationDate().isAfter(threeDaysLater)) {
                     urgentItems.add(item);
                 } else {
-                    // 普通库存（没有过期日期，或过期日期在3天之后）
                     regularItems.add(item);
                 }
             }
-            
+
             filter.setUrgentInventory(urgentItems);
             filter.setRegularInventory(regularItems);
-            log.info("自动填充库存: {} 项即将过期（3天内），{} 项普通库存（已过滤过期食材）", 
-                    urgentItems.size(), regularItems.size());
+            log.info("自动填充库存: {} 项即将过期, {} 项普通库存", urgentItems.size(), regularItems.size());
         }
-        
-        // 向后兼容：如果使用了旧的 inventory 字段，也填充它（合并 urgent + regular）
+
         if (filter.getInventory() == null || filter.getInventory().isEmpty()) {
             List<RecipeGenerationFilter.InventoryItem> allItems = new ArrayList<>();
-            if (filter.getUrgentInventory() != null) {
-                allItems.addAll(filter.getUrgentInventory());
-            }
-            if (filter.getRegularInventory() != null) {
-                allItems.addAll(filter.getRegularInventory());
-            }
+            if (filter.getUrgentInventory() != null) allItems.addAll(filter.getUrgentInventory());
+            if (filter.getRegularInventory() != null) allItems.addAll(filter.getRegularInventory());
             filter.setInventory(allItems);
         }
 
-        // 强制从数据库获取cookers（忽略前端传入的值，与inventory保持一致）
-        List<HouseholdUtensil> utensils = utensilRepository.findByHouseholdIdAndIsAvailableTrue(householdId);
-        List<String> cookerNames = utensils.stream()
-                .map(u -> u.getMetadata().getName())
-                .collect(Collectors.toList());
-        filter.setCookers(cookerNames);
-        log.info("自动填充cookers: {} 项", cookerNames.size());
-
-        // 强制从数据库获取seasonings（忽略前端传入的值，与inventory保持一致）
+        // ==========================================
+        // 3. 调料 - 标签过滤
+        // ==========================================
         List<HouseholdSpice> spices = spiceRepository.findByHouseholdIdAndIsAvailableTrue(householdId);
-        List<String> spiceNames = spices.stream()
-                .map(s -> s.getMetadata().getName())
-                .collect(Collectors.toList());
-        filter.setSeasonings(spiceNames);
-        log.info("自动填充seasonings: {} 项", spiceNames.size());
+        List<String> safeSpices = new ArrayList<>();
+
+        for (HouseholdSpice spice : spices) {
+            var metadata = spice.getMetadata();
+            if (metadata == null) continue;
+
+            var spiceAllergens = metadata.getContainedAllergens();
+            if (spiceAllergens != null && !userAllergenNames.isEmpty()) {
+                if (spiceAllergens.stream().anyMatch(a -> a != null && a.getName() != null && userAllergenNames.contains(a.getName().toLowerCase()))) continue;
+            }
+
+            if (hasForbiddenTag(metadata.getDietaryTags(), forbiddenTags)) continue;
+            if (hasHabit(habits, "halal") && metadata.hasDietaryTag("ALCOHOL")) continue;
+
+            safeSpices.add(metadata.getName());
+        }
+        filter.setSeasonings(safeSpices);
+        log.info("自动填充seasonings: {} 项", safeSpices.size());
+
+        List<HouseholdUtensil> utensils = utensilRepository.findByHouseholdIdAndIsAvailableTrue(householdId);
+        filter.setCookers(utensils.stream().map(u -> u.getMetadata().getName()).collect(Collectors.toList()));
+        log.info("自动填充cookers: {} 项", filter.getCookers() != null ? filter.getCookers().size() : 0);
+    }
+
+    private boolean hasHabit(List<String> habits, String key) {
+        if (habits == null) return false;
+        String norm = key.toLowerCase().replace(" ", "_").replace("-", "_");
+        return habits.stream().anyMatch(h -> h != null && norm.equals(h.toLowerCase().replace(" ", "_").replace("-", "_")));
+    }
+
+    private Set<String> buildForbiddenTagsFromHabits(List<String> habits) {
+        Set<String> tags = new HashSet<>();
+        if (hasHabit(habits, "halal")) { tags.add("PORK"); tags.add("ALCOHOL"); }
+        if (hasHabit(habits, "low_sodium")) tags.add("HIGH_SODIUM");
+        if (hasHabit(habits, "low_sugar") || hasHabit(habits, "low_calorie")) tags.add("HIGH_SUGAR");
+        if (hasHabit(habits, "low_fat") || hasHabit(habits, "low_calorie")) tags.add("HIGH_FAT");
+        if (hasHabit(habits, "gluten_free")) tags.add("GLUTEN");
+        if (hasHabit(habits, "soy_free")) tags.add("SOY");
+        if (hasHabit(habits, "nut_free")) tags.add("NUT");
+        return tags;
+    }
+
+    private boolean hasForbiddenTag(List<String> itemTags, Set<String> forbiddenTags) {
+        if (forbiddenTags == null || forbiddenTags.isEmpty()) return false;
+        if (itemTags == null || itemTags.isEmpty()) return false;
+        return itemTags.stream().anyMatch(forbiddenTags::contains);
+    }
+
+    private boolean isDairyWithLactose(String category, String name) {
+        if (!"DAIRY".equals(category)) return false;
+        if (name != null && (name.contains("lactose free") || name.contains("oat milk") || name.contains("almond milk") || name.contains("soy milk") || name.contains("coconut milk"))) return false;
+        return true;
     }
 
 }

@@ -176,7 +176,8 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
       if (ingName == null) return false;
       // 同时支持空格和连字符的匹配
       final normalizedIngName = ingName.replaceAll(' ', '-');
-      return normalizedIngName.toLowerCase().trim() == normalizedName.toLowerCase().trim();
+      return normalizedIngName.toLowerCase().trim() ==
+          normalizedName.toLowerCase().trim();
     }, orElse: () => {});
 
     if (matched.isNotEmpty && matched['id'] != null) {
@@ -231,40 +232,31 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
     super.dispose();
   }
 
-  /// 根据匹配到的标准食材名称显示图标，无匹配时用 imagePlaceholder（资源路径或 emoji）
+  /// 根据匹配到的标准食材名称显示图标；失配或加载失败时统一用 defaultIngredientIconPath（DefaultIngredient.png）
   Widget _buildIngredientIcon() {
-    final path = getIngredientIconPath(_matchedStandardName) ??
-        getIngredientIconPath(_matchedStandardName?.replaceAll(' ', '-'));
-    if (path != null) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Image.asset(
-          path,
-          width: 120,
-          height: 120,
-          fit: BoxFit.contain,
-          errorBuilder: (_, __, ___) => _iconFallback(),
-        ),
-      );
-    }
-    return _iconFallback();
+    final path =
+        getIngredientIconPath(_matchedStandardName) ??
+        getIngredientIconPath(_matchedStandardName?.replaceAll(' ', '-')) ??
+        defaultIngredientIconPath;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: Image.asset(
+        path,
+        width: 120,
+        height: 120,
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) => _defaultIconWidget(),
+      ),
+    );
   }
 
-  Widget _iconFallback() {
-    final ph = widget.ingredient.imagePlaceholder;
-    if (ph.startsWith('assets/')) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Image.asset(
-          ph,
-          width: 120,
-          height: 120,
-          fit: BoxFit.contain,
-          errorBuilder: (_, __, ___) => Text(ph, style: const TextStyle(fontSize: 24)),
-        ),
-      );
-    }
-    return Text(ph, style: const TextStyle(fontSize: 60));
+  Widget _defaultIconWidget() {
+    return Image.asset(
+      defaultIngredientIconPath,
+      width: 120,
+      height: 120,
+      fit: BoxFit.contain,
+    );
   }
 
   // 日期选择器逻辑
@@ -325,7 +317,7 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
         child: Column(
           children: [
-            // 1. 大图片容器：使用手绘纸张背景（sketch_paper_transparent.png），匹配标准食材时显示对应图标，否则 emoji 占位
+            // 1. 大图片容器：使用手绘纸张背景（sketch_paper_transparent.png），匹配标准食材时显示对应图标，失配时用 DefaultIngredient.png
             Container(
               width: 152,
               height: 152,
@@ -339,9 +331,7 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
                   centerSlice: const Rect.fromLTWH(25, 15, 360, 380),
                 ),
               ),
-              child: Center(
-                child: _buildIngredientIcon(),
-              ),
+              child: Center(child: _buildIngredientIcon()),
             ),
 
             const SizedBox(height: 20),
@@ -459,6 +449,8 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
                       _quantity = val;
                     });
                   },
+
+                  useSketchySquareButtons: true,
                 ),
               ),
             ),
@@ -527,103 +519,101 @@ class _EditIngredientPageState extends State<EditIngredientPage> {
               fontSize: 26,
               padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 22),
               onPressed: () async {
-                  if (_quantity <= 0) _quantity = 1.0; // 🔥 改为 <= 0，并设置为 1.0
+                if (_quantity <= 0) _quantity = 1.0; // 🔥 改为 <= 0，并设置为 1.0
 
-                  widget.ingredient.quantity = _quantity;
-                  widget.ingredient.unit = _unit;
-                  widget.ingredient.expiryDate = _expiryDate;
-                  // 🔥 确保这里保存的是 _nameController.text
-                  // 因为我们在 Autocomplete 里做了偷梁换柱 (_nameController = controller)
-                  // 所以这里直接读 _nameController.text 就是用户最终输入的内容
-                  widget.ingredient.name = _nameController.text;
+                widget.ingredient.quantity = _quantity;
+                widget.ingredient.unit = _unit;
+                widget.ingredient.expiryDate = _expiryDate;
+                // 🔥 确保这里保存的是 _nameController.text
+                // 因为我们在 Autocomplete 里做了偷梁换柱 (_nameController = controller)
+                // 所以这里直接读 _nameController.text 就是用户最终输入的内容
+                widget.ingredient.name = _nameController.text;
 
-                  // Save to API
-                  try {
-                    if (widget.isNew) {
-                      // ✅ 添加新食材：使用已选择的标准食材ID
-                      if (_selectedStandardIngredientId == null) {
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Please select a standard ingredient from the list.',
-                              ),
-                              duration: Duration(seconds: 3),
+                // Save to API
+                try {
+                  if (widget.isNew) {
+                    // ✅ 添加新食材：使用已选择的标准食材ID
+                    if (_selectedStandardIngredientId == null) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Please select a standard ingredient from the list.',
                             ),
-                          );
-                        }
-                        return;
+                            duration: Duration(seconds: 3),
+                          ),
+                        );
                       }
+                      return;
+                    }
 
-                      // ✅ 获取 householdId
-                      final householdId =
-                          await HouseholdService.getHouseholdId();
-                      if (householdId == null) {
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Household not found. Please register or login first.',
-                              ),
-                              duration: Duration(seconds: 3),
+                    // ✅ 获取 householdId
+                    final householdId = await HouseholdService.getHouseholdId();
+                    if (householdId == null) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Household not found. Please register or login first.',
                             ),
-                          );
-                        }
-                        return;
+                            duration: Duration(seconds: 3),
+                          ),
+                        );
                       }
+                      return;
+                    }
 
-                      // ✅ 添加库存（使用标准食材ID和householdId）
-                      final result = await InventoryApiService.addInventory(
-                        name: widget.ingredient.name,
-                        quantity: widget.ingredient.quantity.toDouble(),
-                        unit: widget.ingredient.unit,
-                        expiryDate: widget.ingredient.expiryDate
-                            .toIso8601String()
-                            .split('T')[0],
-                        standardIngredientId: _selectedStandardIngredientId,
-                        householdId: householdId.toString(),
-                      );
-                      widget.ingredient.inventoryId = result['id']?.toString();
-                    } else if (widget.ingredient.inventoryId != null) {
-                      // ✅ 更新现有食材（不需要 standardIngredientId，因为已经存在）
-                      final householdId =
-                          await HouseholdService.getHouseholdId();
-                      if (householdId == null) {
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Household not found. Please register or login first.',
-                              ),
-                              duration: Duration(seconds: 3),
+                    // ✅ 添加库存（使用标准食材ID和householdId）
+                    final result = await InventoryApiService.addInventory(
+                      name: widget.ingredient.name,
+                      quantity: widget.ingredient.quantity.toDouble(),
+                      unit: widget.ingredient.unit,
+                      expiryDate: widget.ingredient.expiryDate
+                          .toIso8601String()
+                          .split('T')[0],
+                      standardIngredientId: _selectedStandardIngredientId,
+                      householdId: householdId.toString(),
+                    );
+                    widget.ingredient.inventoryId = result['id']?.toString();
+                  } else if (widget.ingredient.inventoryId != null) {
+                    // ✅ 更新现有食材（不需要 standardIngredientId，因为已经存在）
+                    final householdId = await HouseholdService.getHouseholdId();
+                    if (householdId == null) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Household not found. Please register or login first.',
                             ),
-                          );
-                        }
-                        return;
+                            duration: Duration(seconds: 3),
+                          ),
+                        );
                       }
-                      await InventoryApiService.updateInventory(
-                        inventoryId: widget.ingredient.inventoryId!,
-                        quantity: widget.ingredient.quantity.toDouble(),
-                        unit: widget.ingredient.unit,
-                        expiryDate: widget.ingredient.expiryDate
-                            .toIso8601String()
-                            .split('T')[0],
-                        householdId: householdId.toString(),
-                        standardIngredientId:
-                            widget.ingredient.standardIngredientId,
-                      );
+                      return;
                     }
-                    if (mounted) {
-                      Navigator.pop(context, true);
-                    }
-                  } catch (e) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Failed to save: $e')),
-                      );
-                    }
+                    await InventoryApiService.updateInventory(
+                      inventoryId: widget.ingredient.inventoryId!,
+                      quantity: widget.ingredient.quantity.toDouble(),
+                      unit: widget.ingredient.unit,
+                      expiryDate: widget.ingredient.expiryDate
+                          .toIso8601String()
+                          .split('T')[0],
+                      householdId: householdId.toString(),
+                      standardIngredientId:
+                          widget.ingredient.standardIngredientId,
+                    );
                   }
-                },
+                  if (mounted) {
+                    Navigator.pop(context, true);
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Failed to save: $e')),
+                    );
+                  }
+                }
+              },
               backgroundColor: Colors.orange,
               isFullWidth: true,
             ),

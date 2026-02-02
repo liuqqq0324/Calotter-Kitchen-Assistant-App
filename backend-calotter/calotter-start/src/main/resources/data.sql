@@ -1,16 +1,15 @@
 -- ============================================
--- 标准库数据初始化（Spring Boot 自动执行）
--- Standard Libraries Data - auto-run by Spring Boot on startup (data.sql in src/main/resources)
+-- 标准库数据初始化（唯一脚本，Spring Boot 自动执行）
+-- Standard Libraries Data - single source of truth, auto-run by Spring Boot on startup
 -- ============================================
--- 来源: backend-calotter/init-standard-libraries.sql
 -- 表结构由 JPA ddl-auto: update 建好后，Spring Boot 会执行本文件（需 spring.sql.init.mode=always）
+-- 食材 154 条 / 调料 40 条 / 厨具 34 条；面向欧美家庭厨房（别名如 Zucchini 已删，仅保留 Courgette）。
 --
--- 使用方法（若需手动执行）:
---   docker exec -i calotter_postgres psql -U postgres -d calotter < init-standard-libraries.sql
---   or: psql -h localhost -U postgres -d calotter -f init-standard-libraries.sql
+-- 若需手动执行（如本地 PostgreSQL）:
+--   psql -h localhost -U postgres -d calotter -f calotter-start/src/main/resources/data.sql
+--   or: python run_init_sql.py
 --
--- 防冲突：所有 INSERT 均使用 ON CONFLICT（DO UPDATE 或 DO NOTHING / WHERE NOT EXISTS），
--- 重复执行不会报错，不影响现有用户数据。
+-- 防冲突：所有 INSERT 均使用 ON CONFLICT（DO UPDATE 或 WHERE NOT EXISTS），可重复执行。
 -- ============================================
 
 -- ============================================
@@ -69,7 +68,7 @@ VALUES
   (1028, 'Pomegranate', 'FRUIT', 83, 1.7, 1.2, 18.7, 4.0, 200, 30, 30, 0, 'FRIDGE', 'pcs', 'g', 200.0, 'g'),
   (1029, 'Raspberry', 'FRUIT', 52, 1.2, 0.7, 11.9, 6.5, 5, 3, 5, 0, 'FRIDGE', 'pcs', 'g', 5.0, 'g'),
   (1030, 'Strawberry', 'FRUIT', 32, 0.7, 0.3, 7.7, 2.0, 20, 3, 5, 0, 'FRIDGE', 'pcs', 'g', 20.0, 'g'),
-  (1031, 'Watermelon', 'FRUIT', 30, 0.6, 0.1, 7.6, 0.3, 2000, 7, 7, 0, 'FRIDGE', 'pcs', 'g', 2000.0, 'g'),
+  (1031, 'Watermelon', 'FRUIT', 30, 0.6, 0.1, 7.6, 0.3, 5000, 7, 7, 0, 'FRIDGE', 'pcs', 'g', 5000.0, 'g'),
   (1032, 'Asparagus', 'VEG', 20, 2.2, 0.1, 3.9, 2.1, 100, 3, 5, 0, 'FRIDGE', 'pcs', 'g', 100.0, 'g'),
   (1033, 'Beetroot', 'VEG', 43, 1.6, 0.2, 9.6, 2.8, 200, 14, 30, 0, 'FRIDGE', 'pcs', 'g', 200.0, 'g'),
   (1034, 'Bok-Choy', 'VEG', 15, 1.5, 0.2, 2.7, 1.1, 200, 5, 7, 0, 'FRIDGE', 'pcs', 'g', 200.0, 'g'),
@@ -89,7 +88,7 @@ VALUES
   (1048, 'Kale', 'VEG', 49, 4.3, 0.9, 8.8, 2.0, 100, 3, 5, 0, 'FRIDGE', 'pcs', 'g', 100.0, 'g'),
   (1049, 'Leek', 'VEG', 61, 1.5, 0.3, 14.2, 1.8, 100, 7, 14, 0, 'FRIDGE', 'pcs', 'g', 100.0, 'g'),
   (1050, 'Lettuce', 'VEG', 15, 1.4, 0.2, 2.9, 1.3, 200, 5, 7, 0, 'FRIDGE', 'pcs', 'g', 200.0, 'g'),
-  (1051, 'White_Button_Mushroom', 'VEG', 22, 3.1, 0.3, 3.3, 1.0, 50, 3, 7, 0, 'FRIDGE', 'pcs', 'g', 50.0, 'g'),
+  (1051, 'Mushroom', 'VEG', 22, 3.1, 0.3, 3.3, 1.0, 50, 3, 7, 0, 'FRIDGE', 'pcs', 'g', 50.0, 'g'),
   (1052, 'Onion', 'VEG', 40, 1.1, 0.1, 9.3, 1.7, 100, 30, 30, 0, 'PANTRY', 'pcs', 'g', 100.0, 'g'),
   (1053, 'Parsnip', 'VEG', 75, 1.2, 0.3, 18.0, 4.9, 200, 30, 30, 0, 'FRIDGE', 'pcs', 'g', 200.0, 'g'),
   (1054, 'Potato', 'VEG', 77, 2.0, 0.1, 17.0, 2.2, 200, 30, 30, 0, 'PANTRY', 'pcs', 'g', 200.0, 'g'),
@@ -178,7 +177,21 @@ VALUES
   (1137, 'Frozen Vegetables', 'OTHER', 65, 3.0, 0.4, 13.0, 4.0, 100, 0, 0, 270, 'FREEZER', 'g', 'kg', 0.001, 'g'),
   (1138, 'Frozen Fruits', 'OTHER', 57, 0.7, 0.3, 14.5, 2.4, 100, 0, 0, 270, 'FREEZER', 'g', 'kg', 0.001, 'g'),
   (1139, 'Frozen Berries', 'OTHER', 57, 0.7, 0.3, 14.5, 2.4, 100, 0, 0, 270, 'FREEZER', 'g', 'kg', 0.001, 'g'),
-  (1140, 'Ice Cream', 'DAIRY', 207, 3.5, 11.0, 23.6, 0.7, 100, 0, 0, 180, 'FREEZER', 'ml', 'L', 0.001, 'ml')
+  (1140, 'Ice Cream', 'DAIRY', 207, 3.5, 11.0, 23.6, 0.7, 100, 0, 0, 180, 'FREEZER', 'ml', 'L', 0.001, 'ml'),
+  (1141, 'All-purpose Flour', 'GRAIN', 364, 10.0, 1.0, 76.0, 2.7, 100, 365, 0, 0, 'PANTRY', 'g', 'kg', 0.001, 'g'),
+  (1142, 'Whole Wheat Flour', 'GRAIN', 340, 13.0, 2.0, 72.0, 11.0, 100, 365, 0, 0, 'PANTRY', 'g', 'kg', 0.001, 'g'),
+  (1143, 'Cornstarch', 'OTHER', 381, 0.3, 0.0, 91.3, 0.9, 100, 365, 0, 0, 'PANTRY', 'g', 'kg', 0.001, 'g'),
+  (1144, 'Yeast', 'OTHER', 105, 8.4, 1.2, 18.0, 7.0, 7, 90, 14, 0, 'PANTRY', 'pcs', 'g', 7.0, 'g'),
+  (1145, 'Oat Milk', 'DAIRY', 47, 1.0, 1.0, 9.0, 0.8, 250, 0, 7, 0, 'FRIDGE', 'ml', 'L', 0.001, 'ml'),
+  (1146, 'Almond Milk', 'DAIRY', 24, 1.0, 2.0, 1.0, 1.0, 250, 0, 7, 0, 'FRIDGE', 'ml', 'L', 0.001, 'ml'),
+  (1147, 'Soy Milk', 'DAIRY', 54, 4.0, 2.0, 6.0, 0.6, 250, 0, 7, 0, 'FRIDGE', 'ml', 'L', 0.001, 'ml'),
+  (1148, 'Kidney Beans', 'VEG', 127, 8.7, 0.5, 22.8, 6.4, 100, 365, 0, 0, 'PANTRY', 'g', 'kg', 0.001, 'g'),
+  (1149, 'Black Beans', 'VEG', 132, 8.9, 0.5, 23.7, 8.7, 100, 365, 0, 0, 'PANTRY', 'g', 'kg', 0.001, 'g'),
+  (1150, 'Baked Beans', 'OTHER', 155, 5.0, 1.0, 21.0, 5.0, 100, 365, 0, 0, 'PANTRY', 'g', 'kg', 0.001, 'g'),
+  (1151, 'Feta Cheese', 'DAIRY', 264, 14.2, 21.3, 4.1, 0.0, 100, 0, 60, 90, 'FRIDGE', 'g', 'kg', 0.001, 'g'),
+  (1152, 'Blue Cheese', 'DAIRY', 353, 21.4, 28.7, 2.3, 0.0, 100, 0, 60, 90, 'FRIDGE', 'g', 'kg', 0.001, 'g'),
+  (1153, 'Ricotta', 'DAIRY', 174, 11.3, 13.0, 3.0, 0.0, 100, 0, 7, 0, 'FRIDGE', 'g', 'kg', 0.001, 'g'),
+  (1155, 'Butternut Squash', 'VEG', 45, 1.0, 0.1, 11.7, 2.0, 500, 30, 30, 0, 'PANTRY', 'pcs', 'g', 500.0, 'g')
 ON CONFLICT (id) DO UPDATE SET
   name = EXCLUDED.name,
   category = EXCLUDED.category,
@@ -207,12 +220,9 @@ VALUES
   (3003, 'Soy Sauce'),
   (3004, 'Vinegar'),
   (3005, 'Cooking Wine'),
-  (3006, 'Light Soy Sauce'),
-  (3007, 'Dark Soy Sauce'),
   (3008, 'Oyster Sauce'),
   (3009, 'Bean Paste'),
   (3010, 'Chili Powder'),
-  (3011, 'Five Spice Powder'),
   (3012, 'Sichuan Pepper'),
   (3013, 'Star Anise'),
   (3014, 'Cinnamon'),
@@ -231,7 +241,20 @@ VALUES
   (3027, 'Sesame Oil'),
   (3028, 'Olive Oil'),
   (3029, 'Vegetable Oil'),
-  (3030, 'Sugar')
+  (3030, 'Sugar'),
+  (3031, 'Sage'),
+  (3032, 'Dill'),
+  (3033, 'Chives'),
+  (3034, 'Parsley'),
+  (3035, 'Mayonnaise'),
+  (3036, 'Ketchup'),
+  (3037, 'Mustard'),
+  (3038, 'BBQ Sauce'),
+  (3039, 'Hot Sauce'),
+  (3040, 'Honey'),
+  (3041, 'Maple Syrup'),
+  (3042, 'Coconut Oil'),
+  (3043, 'Canola Oil')
 ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name;
 
 -- ============================================
@@ -263,7 +286,16 @@ VALUES
   (2022, 'Grater', 'icon_grater.png'),
   (2023, 'Peeler', 'icon_peeler.png'),
   (2024, 'Measuring Cup', 'icon_measuring_cup.png'),
-  (2025, 'Measuring Spoon', 'icon_measuring_spoon.png')
+  (2025, 'Measuring Spoon', 'icon_measuring_spoon.png'),
+  (2026, 'Baking Sheet / Tray', 'icon_baking_tray.png'),
+  (2027, 'Muffin Tin', 'icon_muffin_tin.png'),
+  (2028, 'Loaf Pan', 'icon_loaf_pan.png'),
+  (2029, 'Toaster', 'icon_toaster.png'),
+  (2030, 'Coffee Maker', 'icon_coffee_maker.png'),
+  (2031, 'Slow Cooker', 'icon_slow_cooker.png'),
+  (2032, 'Pizza Cutter', 'icon_pizza_cutter.png'),
+  (2033, 'Corkscrew', 'icon_corkscrew.png'),
+  (2034, 'Kitchen Scales', 'icon_kitchen_scales.png')
 ON CONFLICT (id) DO UPDATE SET 
   name = EXCLUDED.name,
   icon_url = EXCLUDED.icon_url;
@@ -271,23 +303,62 @@ ON CONFLICT (id) DO UPDATE SET
 -- ============================================
 -- 6. 关联食材与过敏原
 -- ============================================
+-- Egg (3)
 INSERT INTO ingredient_allergens (ingredient_id, allergen_id)
 SELECT 1072, 3
 WHERE NOT EXISTS (SELECT 1 FROM ingredient_allergens WHERE ingredient_id = 1072 AND allergen_id = 3);
 
+-- Milk (2) - 乳制品
 INSERT INTO ingredient_allergens (ingredient_id, allergen_id)
-SELECT 1094, 2
-WHERE NOT EXISTS (SELECT 1 FROM ingredient_allergens WHERE ingredient_id = 1094 AND allergen_id = 2);
+SELECT id, 2 FROM ref_standard_ingredients
+WHERE name IN ('Milk', 'Butter', 'Yogurt', 'Greek Yogurt', 'Cheddar Cheese', 'Mozzarella Cheese', 'Parmesan Cheese', 'Cream Cheese', 'Sour Cream', 'Cottage Cheese', 'Ice Cream', 'Feta Cheese', 'Blue Cheese', 'Ricotta')
+AND NOT EXISTS (SELECT 1 FROM ingredient_allergens ia WHERE ia.ingredient_id = ref_standard_ingredients.id AND ia.allergen_id = 2);
 
+-- Wheat (5) - 麸质
 INSERT INTO ingredient_allergens (ingredient_id, allergen_id)
-SELECT id, 6
-FROM ref_standard_ingredients
+SELECT id, 5 FROM ref_standard_ingredients
+WHERE name IN ('All-purpose Flour', 'Whole Wheat Flour', 'Pasta', 'Bagel')
+AND NOT EXISTS (SELECT 1 FROM ingredient_allergens ia WHERE ia.ingredient_id = ref_standard_ingredients.id AND ia.allergen_id = 5);
+
+-- Seafood (6) - 甲壳类（保留原有，用于宽泛匹配）
+INSERT INTO ingredient_allergens (ingredient_id, allergen_id)
+SELECT id, 6 FROM ref_standard_ingredients
 WHERE name IN ('Salmon', 'Tuna', 'Sea-Bass', 'Crab', 'Mussels', 'Squid', 'Scallop', 'Shrimp', 'Snapper')
-AND NOT EXISTS (SELECT 1 FROM ingredient_allergens WHERE ingredient_id = ref_standard_ingredients.id AND allergen_id = 6);
+AND NOT EXISTS (SELECT 1 FROM ingredient_allergens ia WHERE ia.ingredient_id = ref_standard_ingredients.id AND ia.allergen_id = 6);
+
+-- Fish (8) - 鱼类
+INSERT INTO ingredient_allergens (ingredient_id, allergen_id)
+SELECT id, 8 FROM ref_standard_ingredients
+WHERE name IN ('Salmon', 'Tuna', 'Sea-Bass', 'Snapper')
+AND NOT EXISTS (SELECT 1 FROM ingredient_allergens ia WHERE ia.ingredient_id = ref_standard_ingredients.id AND ia.allergen_id = 8);
+
+-- Shellfish (10) - 贝类/软体动物
+INSERT INTO ingredient_allergens (ingredient_id, allergen_id)
+SELECT id, 10 FROM ref_standard_ingredients
+WHERE name IN ('Crab', 'Shrimp', 'Lobster', 'Mussels', 'Clams', 'Oysters', 'Scallop', 'Squid')
+AND NOT EXISTS (SELECT 1 FROM ingredient_allergens ia WHERE ia.ingredient_id = ref_standard_ingredients.id AND ia.allergen_id = 10);
+
+-- Soybean (4)
+INSERT INTO ingredient_allergens (ingredient_id, allergen_id)
+SELECT id, 4 FROM ref_standard_ingredients
+WHERE name IN ('Soy Milk', 'Tofu', 'Edamame', 'Bean Sprouts')
+AND NOT EXISTS (SELECT 1 FROM ingredient_allergens ia WHERE ia.ingredient_id = ref_standard_ingredients.id AND ia.allergen_id = 4);
+
+-- Tree Nut (7)
+INSERT INTO ingredient_allergens (ingredient_id, allergen_id)
+SELECT id, 7 FROM ref_standard_ingredients
+WHERE name IN ('Almond Milk', 'Coconut')
+AND NOT EXISTS (SELECT 1 FROM ingredient_allergens ia WHERE ia.ingredient_id = ref_standard_ingredients.id AND ia.allergen_id = 7);
+
+-- Sesame (9)
+INSERT INTO ingredient_allergens (ingredient_id, allergen_id)
+SELECT 1095, 9
+WHERE NOT EXISTS (SELECT 1 FROM ingredient_allergens WHERE ingredient_id = 1095 AND allergen_id = 9);
 
 -- ============================================
 -- 7. 关联调料与过敏原
 -- ============================================
+-- Soybean (4)
 INSERT INTO spice_allergens (spice_id, allergen_id)
 SELECT 3003, 4
 WHERE NOT EXISTS (SELECT 1 FROM spice_allergens WHERE spice_id = 3003 AND allergen_id = 4);
@@ -295,3 +366,40 @@ WHERE NOT EXISTS (SELECT 1 FROM spice_allergens WHERE spice_id = 3003 AND allerg
 INSERT INTO spice_allergens (spice_id, allergen_id)
 SELECT 3009, 4
 WHERE NOT EXISTS (SELECT 1 FROM spice_allergens WHERE spice_id = 3009 AND allergen_id = 4);
+
+-- Sesame (9)
+INSERT INTO spice_allergens (spice_id, allergen_id)
+SELECT 3027, 9
+WHERE NOT EXISTS (SELECT 1 FROM spice_allergens WHERE spice_id = 3027 AND allergen_id = 9);
+
+-- Egg (3)
+INSERT INTO spice_allergens (spice_id, allergen_id)
+SELECT 3035, 3
+WHERE NOT EXISTS (SELECT 1 FROM spice_allergens WHERE spice_id = 3035 AND allergen_id = 3);
+
+-- Shellfish (10)
+INSERT INTO spice_allergens (spice_id, allergen_id)
+SELECT 3008, 10
+WHERE NOT EXISTS (SELECT 1 FROM spice_allergens WHERE spice_id = 3008 AND allergen_id = 10);
+
+-- ============================================
+-- 8. 饮食属性标签 (dietary_tags) - 用于物理熔断过滤
+-- ============================================
+ALTER TABLE ref_standard_ingredients ADD COLUMN IF NOT EXISTS dietary_tags text[] DEFAULT '{}';
+ALTER TABLE ref_standard_spices ADD COLUMN IF NOT EXISTS dietary_tags text[] DEFAULT '{}';
+
+-- 食材标签：PORK(猪肉), HIGH_FAT(高脂), GLUTEN(麸质), HIGH_SUGAR(高糖), SOY(大豆), NUT(坚果)
+UPDATE ref_standard_ingredients SET dietary_tags = COALESCE(dietary_tags, '{}') || ARRAY['PORK'] WHERE name IN ('Pork', 'Bacon', 'Ham', 'Sausage', 'Ground Pork') AND (dietary_tags IS NULL OR NOT ('PORK' = ANY(dietary_tags)));
+UPDATE ref_standard_ingredients SET dietary_tags = COALESCE(dietary_tags, '{}') || ARRAY['HIGH_FAT'] WHERE name IN ('Butter', 'Bacon', 'Sausage', 'Cream Cheese', 'Cheddar Cheese', 'Parmesan Cheese', 'Feta Cheese', 'Blue Cheese') AND (dietary_tags IS NULL OR NOT ('HIGH_FAT' = ANY(dietary_tags)));
+UPDATE ref_standard_ingredients SET dietary_tags = COALESCE(dietary_tags, '{}') || ARRAY['GLUTEN'] WHERE name IN ('All-purpose Flour', 'Whole Wheat Flour', 'Pasta', 'Bagel') AND (dietary_tags IS NULL OR NOT ('GLUTEN' = ANY(dietary_tags)));
+UPDATE ref_standard_ingredients SET dietary_tags = COALESCE(dietary_tags, '{}') || ARRAY['HIGH_SUGAR'] WHERE name IN ('Ice Cream', 'Dates') AND (dietary_tags IS NULL OR NOT ('HIGH_SUGAR' = ANY(dietary_tags)));
+UPDATE ref_standard_ingredients SET dietary_tags = COALESCE(dietary_tags, '{}') || ARRAY['SOY'] WHERE name IN ('Tofu', 'Edamame', 'Bean Sprouts', 'Soy Milk') AND (dietary_tags IS NULL OR NOT ('SOY' = ANY(dietary_tags)));
+UPDATE ref_standard_ingredients SET dietary_tags = COALESCE(dietary_tags, '{}') || ARRAY['NUT'] WHERE name IN ('Almond Milk', 'Coconut') AND (dietary_tags IS NULL OR NOT ('NUT' = ANY(dietary_tags)));
+UPDATE ref_standard_ingredients SET dietary_tags = COALESCE(dietary_tags, '{}') || ARRAY['ANIMAL_PRODUCT'] WHERE name IN ('Honey') AND (dietary_tags IS NULL OR NOT ('ANIMAL_PRODUCT' = ANY(dietary_tags)));
+
+-- 调料标签：HIGH_SODIUM(高钠), HIGH_SUGAR(高糖), ALCOHOL(酒精), GLUTEN(麸质), SOY(大豆)
+UPDATE ref_standard_spices SET dietary_tags = COALESCE(dietary_tags, '{}') || ARRAY['HIGH_SODIUM'] WHERE name IN ('Salt', 'Soy Sauce', 'Oyster Sauce', 'Bean Paste') AND (dietary_tags IS NULL OR NOT ('HIGH_SODIUM' = ANY(dietary_tags)));
+UPDATE ref_standard_spices SET dietary_tags = COALESCE(dietary_tags, '{}') || ARRAY['HIGH_SUGAR'] WHERE name IN ('Sugar', 'Honey', 'Maple Syrup', 'Ketchup', 'BBQ Sauce') AND (dietary_tags IS NULL OR NOT ('HIGH_SUGAR' = ANY(dietary_tags)));
+UPDATE ref_standard_spices SET dietary_tags = COALESCE(dietary_tags, '{}') || ARRAY['ALCOHOL'] WHERE name IN ('Cooking Wine') AND (dietary_tags IS NULL OR NOT ('ALCOHOL' = ANY(dietary_tags)));
+UPDATE ref_standard_spices SET dietary_tags = COALESCE(dietary_tags, '{}') || ARRAY['GLUTEN'] WHERE name IN ('Soy Sauce', 'Oyster Sauce') AND (dietary_tags IS NULL OR NOT ('GLUTEN' = ANY(dietary_tags)));
+UPDATE ref_standard_spices SET dietary_tags = COALESCE(dietary_tags, '{}') || ARRAY['SOY'] WHERE name IN ('Soy Sauce', 'Bean Paste') AND (dietary_tags IS NULL OR NOT ('SOY' = ANY(dietary_tags)));

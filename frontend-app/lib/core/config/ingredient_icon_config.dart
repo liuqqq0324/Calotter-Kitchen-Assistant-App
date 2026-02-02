@@ -1,6 +1,6 @@
 // lib/core/config/ingredient_icon_config.dart
 //
-// 标准食材名称 -> 图标资源路径。标准食材集合必须与后端 init-standard-libraries.sql 中
+// 标准食材名称 -> 图标资源路径。标准食材集合与后端 data.sql（ref_standard_ingredients）一致，
 // ref_standard_ingredients 的 name/category 一一对应（140 条）；YOLO 可识别名称与
 // frontend-app/assets/models/label.txt、yolo_labels_config.dart 一致（83 类）。
 // 资源文件位于 frontend-app/assets/icons/{CATEGORY}/{标准名}.png
@@ -67,7 +67,7 @@ const Map<String, String> _standardNameToCategory = {
   'Kale': 'VEG',
   'Leek': 'VEG',
   'Lettuce': 'VEG',
-  'White_Button_Mushroom': 'VEG',
+  'Mushroom': 'VEG',
   'Onion': 'VEG',
   'Parsnip': 'VEG',
   'Potato': 'VEG',
@@ -158,20 +158,57 @@ const Map<String, String> _standardNameToCategory = {
   'Frozen Vegetables': 'OTHER',
   'Frozen Fruits': 'OTHER',
   'Frozen Berries': 'OTHER',
+  // Western household (1141-1155): baking, plant milk, beans, cheese, veg（key 用连字符便于 lookup）
+  // 以下在标准库中但暂无专用图标，由 getIngredientIconPath 统一返回 defaultIngredientIconPath
+  // 'All-purpose-Flour','Whole-Wheat-Flour','Cornstarch','Yeast','Oat-Milk','Almond-Milk',
+  // 'Soy-Milk','Kidney-Beans','Black-Beans','Baked-Beans','Feta-Cheese','Blue-Cheese',
+  // 'Ricotta','Butternut-Squash'（Zucchini 已删，与 Courgette 同物异名，仅保留 Courgette）-> 见 _standardNamesWithoutDedicatedIcon
 };
 
-/// 根据标准食材名称获取图标资源路径；无对应资源时返回 null。
+/// 标准库中有但未提供专用图标的食材（归一化名），使用 Default-Ingredient.png。
+const Set<String> _standardNamesWithoutDedicatedIcon = {
+  'All-purpose-Flour',
+  'Whole-Wheat-Flour',
+  'Cornstarch',
+  'Yeast',
+  'Oat-Milk',
+  'Almond-Milk',
+  'Soy-Milk',
+  'Kidney-Beans',
+  'Black-Beans',
+  'Baked-Beans',
+  'Feta-Cheese',
+  'Blue-Cheese',
+  'Ricotta',
+  'Butternut-Squash',
+};
+
+/// 标准食材名称列表（与后端 ref_standard_ingredients 一致，154 条；别名如 Zucchini 已删，仅保留 Courgette）
+/// 用于 CloudVision 等服务的 prompt 限制，与 SQL 标准库保持一致。
+List<String> get standardIngredientNames => [
+  ..._standardNameToCategory.keys,
+  ..._standardNamesWithoutDedicatedIcon,
+];
+
+/// 根据标准食材名称获取图标资源路径。
+/// 有专用图标则返回对应路径；标准库中但缺失专用图标的食材、以及非标准库（失配）食材均返回 DefaultIngredient.png。
 /// [standardIngredientName] 可与后端/模型一致（如 "Chicken-Whole" 或 "Chicken Whole"），内部会按连字符形式查找。
 String? getIngredientIconPath(String? standardIngredientName) {
   if (standardIngredientName == null || standardIngredientName.isEmpty) {
-    return null;
+    return defaultIngredientIconPath;
   }
   final key = standardIngredientName.replaceAll(' ', '-').trim();
   final category = _standardNameToCategory[key];
-  if (category == null) return null;
-  final fileName = '$key.png';
-  return '$_iconsBase/$category/$fileName';
+  if (category != null) {
+    final fileName = '$key.png';
+    return '$_iconsBase/$category/$fileName';
+  }
+  if (_standardNamesWithoutDedicatedIcon.contains(key)) {
+    return defaultIngredientIconPath;
+  }
+  // 失配食材：统一使用默认图标，不再返回 null
+  return defaultIngredientIconPath;
 }
 
-/// 默认占位图（无匹配标准食材时使用）
-const String defaultIngredientIconPath = '$_iconsBase/Default-Ingredient.png';
+/// 默认占位图（无匹配标准食材或失配时使用）
+const String defaultIngredientIconPath = '$_iconsBase/DefaultIngredient.png';

@@ -41,5 +41,12 @@
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
         </dependency>
+
+        <!-- Hypersistence Utils: PostgreSQL text[] array mapping (Hibernate 6.2) -->
+        <dependency>
+            <groupId>io.hypersistence</groupId>
+            <artifactId>hypersistence-utils-hibernate-62</artifactId>
+            <version>3.9.2</version>
+        </dependency>
     </dependencies>
 </project>

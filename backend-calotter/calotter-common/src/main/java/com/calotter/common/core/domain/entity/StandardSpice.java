@@ -1,7 +1,11 @@
 package com.calotter.common.core.domain.entity;
 
+import io.hypersistence.utils.hibernate.type.array.ListArrayType;
 import jakarta.persistence.*;
 import lombok.Data;
+import org.hibernate.annotations.Type;
+
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -17,6 +21,17 @@ public class StandardSpice {
 
     @Column(nullable = false)
     private String name;
+
+    /**
+     * 饮食属性标签，用于物理熔断过滤。如 HIGH_SODIUM, HIGH_SUGAR, ALCOHOL, GLUTEN, SOY
+     */
+    @Type(ListArrayType.class)
+    @Column(name = "dietary_tags", columnDefinition = "text[]")
+    private List<String> dietaryTags = new ArrayList<>();
+
+    public boolean hasDietaryTag(String tag) {
+        return dietaryTags != null && dietaryTags.contains(tag);
+    }
 
     /**
      * 该调料包含的过敏原

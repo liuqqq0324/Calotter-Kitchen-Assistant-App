@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:personal_sous_chef/core/config/yolo_labels_config.dart';
 import 'package:personal_sous_chef/data/models/ingredient.dart';
@@ -8,6 +7,7 @@ import 'package:personal_sous_chef/services/api/inventory_api_service.dart';
 import 'package:personal_sous_chef/shared/widgets/cards/stop_motion_dismissible.dart'; // 引入定格动画滑动删除组件
 import 'package:personal_sous_chef/shared/widgets/common/sketchy_confirm_dialog.dart';
 import 'package:personal_sous_chef/shared/widgets/common/programmatic_sketchy_card.dart'; // 引入 SketchyRectBorder
+import 'package:personal_sous_chef/shared/widgets/common/sketchy_button.dart';
 
 class ReviewIngredientsPage extends StatefulWidget {
   // 🔥 新增：定义一个变量来接收外部传入的数据
@@ -433,47 +433,6 @@ class _ReviewIngredientsPageState extends State<ReviewIngredientsPage> {
     );
   }
 
-  // 构建手绘边框按钮
-  Widget _buildSketchyButton({
-    required VoidCallback? onPressed,
-    required Widget child,
-    double? width,
-    Color? backgroundColor,
-    double? height,
-  }) {
-    final borderColor = const Color(0xFF6B4F4F).withOpacity(0.7);
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onPressed,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          width: width,
-          height: height ?? 55,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          decoration: backgroundColor != null
-              ? BoxDecoration(
-                  color: backgroundColor,
-                  borderRadius: BorderRadius.circular(12),
-                )
-              : null,
-          child: CustomPaint(
-            painter: _SketchyButtonBorderPainter(
-              borderColor: borderColor,
-              borderWidth: 1.5,
-              wobbleAmount: 1.5,
-              seed: 123,
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(1.5), // Account for border width
-              child: Center(child: child), // Center the content
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   // =======================================================
   // 状态 A: 审核列表视图 (Add 之前)
   // =======================================================
@@ -542,19 +501,15 @@ class _ReviewIngredientsPageState extends State<ReviewIngredientsPage> {
               child: IngredientCard(
                 item: item,
                 useStatusColors: false,
-                showUnmatchedWarning:
-                    _ingredientStandardIds[item.name] == null,
+                showUnmatchedWarning: _ingredientStandardIds[item.name] == null,
                 unitOptions:
-                    _ingredientAllowedUnits[item.name] ??
-                    ['g', 'pcs', 'ml'],
+                    _ingredientAllowedUnits[item.name] ?? ['g', 'pcs', 'ml'],
                 onTap: () async {
                   final result = await Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => EditIngredientPage(
-                        ingredient: item,
-                        isNew: false,
-                      ),
+                      builder: (context) =>
+                          EditIngredientPage(ingredient: item, isNew: false),
                     ),
                   );
                   if (!mounted) return;
@@ -629,50 +584,41 @@ class _ReviewIngredientsPageState extends State<ReviewIngredientsPage> {
           */
         }),
 
-        const SizedBox(height: 30),
+        const SizedBox(height: 0),
 
-        // 3. 底部操作按钮
+        // 3. 底部操作按钮（统一使用 SketchyButton 手绘风格）
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Column(
             children: [
               // Add Manually
-              _buildSketchyButton(
+              SketchyButton(
+                text: "Add ingredients manually",
+                icon: Icons.add_circle_outline,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 32,
+                ),
                 onPressed: () async {
-                  // 1. 创建一个临时的"空白"食材对象
                   final newIngredient = Ingredient(
-                    name: "", // 留空，让用户填
-                    expiryDate: DateTime.now().add(
-                      const Duration(days: 7),
-                    ), // 默认过期时间
+                    name: "",
+                    expiryDate: DateTime.now().add(const Duration(days: 7)),
                     quantity: 1,
                     unit: 'pcs',
-                    imagePlaceholder: '📝', // 给个默认图标
+                    imagePlaceholder: '📝',
                   );
-
-                  // 2. 跳转到编辑页 (复用 isNew 逻辑)
                   final result = await Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) => EditIngredientPage(
-                        ingredient: newIngredient, // 把空白对象传过去
-                        isNew: true, // 🔥 标记为新建模式
+                        ingredient: newIngredient,
+                        isNew: true,
                       ),
                     ),
                   );
-
-                  // 3. 安全检查
                   if (!mounted) return;
-
-                  // 4. 如果返回 true (代表用户点了 Done)，则加入列表
                   if (result == true) {
-                    setState(() {
-                      // EditIngredientPage 是直接修改传入的对象的，
-                      // 所以此时 newIngredient 已经被填入了名字和数量
-                      _detectedItems.add(newIngredient);
-                    });
-
-                    // 可选：给个小提示
+                    setState(() => _detectedItems.add(newIngredient));
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text("Added ${newIngredient.name} manually"),
@@ -680,72 +626,43 @@ class _ReviewIngredientsPageState extends State<ReviewIngredientsPage> {
                     );
                   }
                 },
-                width: double.infinity,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.add_circle_outline,
-                      color: const Color(0xFF6B4F4F), // River Deep Brown
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      "Add ingredients manually",
-                      style: _pangolin(
-                        fontSize: 16,
-                        color: const Color(0xFF6B4F4F), // River Deep Brown
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ],
-                ),
+                isFullWidth: true,
+                backgroundColor: const Color(0xFFFFFFF0),
+                textColor: const Color(0xFF6B4F4F),
+                borderColor: const Color(0xFF6B4F4F).withOpacity(0.7),
+                fontSize: 16,
               ),
-              const SizedBox(height: 20),
 
-              // 🔥 确认按钮
-              _buildSketchyButton(
-                onPressed: _isSaving ? null : _saveIngredientsToDatabase,
-                width: double.infinity,
+              // Add to inventory
+              SketchyButton(
+                text: _isSaving ? "Saving..." : "Add ingredients to inventory",
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 32,
+                ),
+                onPressed: _isSaving ? () {} : _saveIngredientsToDatabase,
+                isFullWidth: true,
                 backgroundColor: _isSaving
                     ? Colors.grey
-                    : const Color(0xFF6B4F4F), // River Deep Brown
-                child: _isSaving
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Colors.white,
-                          ),
-                        ),
-                      )
-                    : Text(
-                        "Add ingredients to inventory",
-                        style: _pangolin(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
+                    : const Color(0xFF6B4F4F),
+                textColor: Colors.white,
+                borderColor: const Color(0xFF6B4F4F).withOpacity(0.8),
+                fontSize: 18,
               ),
-              const SizedBox(height: 16),
 
-              // 重扫按钮
-              _buildSketchyButton(
-                onPressed: () => Navigator.pop(context),
-                width: double.infinity,
-                child: Text(
-                  "Scan again",
-                  style: _pangolin(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFF6B4F4F), // River Deep Brown
-                    letterSpacing: 0.5,
-                  ),
+              // Scan again
+              SketchyButton(
+                text: "Scan again",
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 32,
                 ),
+                onPressed: () => Navigator.pop(context),
+                isFullWidth: true,
+                backgroundColor: const Color(0xFFFFFFF0),
+                textColor: const Color(0xFF6B4F4F),
+                borderColor: const Color(0xFF6B4F4F).withOpacity(0.7),
+                fontSize: 18,
               ),
             ],
           ),
@@ -802,128 +719,35 @@ class _ReviewIngredientsPageState extends State<ReviewIngredientsPage> {
 
             const SizedBox(height: 60), // 留白
             // 选项 1: 查看库存 (次要按钮)
-            _buildSketchyButton(
-              // 🔥 返回 'kitchen' 指令
+            SketchyButton(
+              text: "View Kitchen Inventory",
+              icon: Icons.kitchen,
               onPressed: () => Navigator.pop(context, 'kitchen'),
-              width: double.infinity,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.kitchen,
-                    color: const Color(0xFF6B4F4F), // River Deep Brown
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    "View Kitchen Inventory",
-                    style: _pangolin(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF6B4F4F), // River Deep Brown
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ],
-              ),
+              isFullWidth: true,
+              backgroundColor: const Color(0xFFFFFFF0),
+              textColor: const Color(0xFF6B4F4F),
+              borderColor: const Color(0xFF6B4F4F).withOpacity(0.7),
+              fontSize: 16,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
             ),
 
             const SizedBox(height: 20),
 
             // 选项 2: 生成食谱 (主要按钮)
-            _buildSketchyButton(
-              // 🔥 返回 'recipe' 指令
+            SketchyButton(
+              text: "Generate Recipes",
+              icon: Icons.restaurant_menu,
               onPressed: () => Navigator.pop(context, 'recipe'),
-              width: double.infinity,
-              backgroundColor: const Color(0xFF6B4F4F), // River Deep Brown
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.restaurant_menu, color: Colors.white),
-                  const SizedBox(width: 8),
-                  Text(
-                    "Generate Recipes",
-                    style: _pangolin(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ],
-              ),
+              isFullWidth: true,
+              backgroundColor: const Color(0xFF6B4F4F),
+              textColor: Colors.white,
+              borderColor: const Color(0xFF6B4F4F).withOpacity(0.8),
+              fontSize: 18,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
             ),
           ],
         ),
       ),
     );
   }
-}
-
-/// Custom painter for sketchy button border
-class _SketchyButtonBorderPainter extends CustomPainter {
-  final Color borderColor;
-  final double borderWidth;
-  final double wobbleAmount;
-  final int seed;
-  final math.Random _random;
-
-  _SketchyButtonBorderPainter({
-    required this.borderColor,
-    this.borderWidth = 1.5,
-    this.wobbleAmount = 1.5,
-    this.seed = 123,
-  }) : _random = math.Random(seed);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final path = _createSketchyPath(size);
-    final paint = Paint()
-      ..color = borderColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = borderWidth
-      ..strokeJoin = StrokeJoin.round
-      ..strokeCap = StrokeCap.round;
-
-    canvas.drawPath(path, paint);
-  }
-
-  Path _createSketchyPath(Size size) {
-    final path = Path();
-    const double step = 8.0; // Distance between points on the path
-    final double wobble = wobbleAmount;
-
-    // Top edge: left to right
-    path.moveTo(0, 0);
-    for (double x = step; x < size.width; x += step) {
-      final noise = (_random.nextDouble() * 2 - 1) * wobble;
-      path.lineTo(x, noise);
-    }
-    path.lineTo(size.width, 0);
-
-    // Right edge: top to bottom
-    for (double y = step; y < size.height; y += step) {
-      final noise = (_random.nextDouble() * 2 - 1) * wobble;
-      path.lineTo(size.width + noise, y);
-    }
-    path.lineTo(size.width, size.height);
-
-    // Bottom edge: right to left
-    for (double x = size.width - step; x > 0; x -= step) {
-      final noise = (_random.nextDouble() * 2 - 1) * wobble;
-      path.lineTo(x, size.height + noise);
-    }
-    path.lineTo(0, size.height);
-
-    // Left edge: bottom to top
-    for (double y = size.height - step; y > 0; y -= step) {
-      final noise = (_random.nextDouble() * 2 - 1) * wobble;
-      path.lineTo(noise, y);
-    }
-
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

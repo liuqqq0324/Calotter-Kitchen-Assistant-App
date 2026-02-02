@@ -1,9 +1,13 @@
 package com.calotter.common.core.domain.entity;
 
+import io.hypersistence.utils.hibernate.type.array.ListArrayType;
 import jakarta.persistence.*;
 import lombok.Data;
-import java.util.List;
+import org.hibernate.annotations.Type;
+
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * 标准食材库
@@ -80,7 +84,19 @@ public class StandardIngredient {
         inverseJoinColumns = @JoinColumn(name = "allergen_id")
     )
     private List<RefAllergen> containedAllergens;
-    
+
+    /**
+     * 饮食属性标签，用于物理熔断过滤。
+     * 如 PORK(猪肉), ALCOHOL(酒精), HIGH_SODIUM, HIGH_SUGAR, HIGH_FAT, GLUTEN, DAIRY, ANIMAL_PRODUCT, SOY, NUT
+     */
+    @Type(ListArrayType.class)
+    @Column(name = "dietary_tags", columnDefinition = "text[]")
+    private List<String> dietaryTags = new ArrayList<>();
+
+    public boolean hasDietaryTag(String tag) {
+        return dietaryTags != null && dietaryTags.contains(tag);
+    }
+
     /**
      * ✅ 验证单位是否合法
      * @param unit 要验证的单位
