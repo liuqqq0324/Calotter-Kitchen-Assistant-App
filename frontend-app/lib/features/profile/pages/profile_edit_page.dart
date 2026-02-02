@@ -10,7 +10,10 @@ import '../../../services/business/user_service.dart';
 const Color _kPassportBrown = Color(0xFF6B4F4F);
 
 class ProfileEditPage extends StatefulWidget {
-  const ProfileEditPage({super.key});
+  /// When true, only show Basic Info section (used from Settings).
+  final bool showOnlyBasicInfo;
+
+  const ProfileEditPage({super.key, this.showOnlyBasicInfo = false});
 
   @override
   State<ProfileEditPage> createState() => _ProfileEditPageState();
@@ -400,7 +403,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
       elevation: 0,
       iconTheme: const IconThemeData(color: _kPassportBrown),
       title: Text(
-        'Edit Profile',
+        widget.showOnlyBasicInfo ? 'Basic Info' : 'Edit Profile',
         style: GoogleFonts.kalam(
           fontSize: 22,
           fontWeight: FontWeight.bold,
@@ -472,6 +475,19 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
       kCurrentUser.gender = _selectedGender ?? '';
       kCurrentUser.height = heightController.text;
       kCurrentUser.weight = weightController.text;
+
+      if (widget.showOnlyBasicInfo) {
+        if (!mounted) return;
+        Navigator.pop(context, true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Basic info saved', style: GoogleFonts.kalam()),
+            backgroundColor: Colors.green.shade300,
+            duration: const Duration(milliseconds: 800),
+          ),
+        );
+        return;
+      }
 
       final prefsResult = await UserService.updateUserPreferences(
         cuisineTypes: kCurrentUser.preferences,
@@ -550,7 +566,9 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SectionTitle('Basic Info'),
+                  if (!widget.showOnlyBasicInfo)
+                    const SectionTitle('Basic Info'),
+                  if (!widget.showOnlyBasicInfo) const SizedBox(height: 8),
                   const SizedBox(height: 8),
                   _buildLabel('User name'),
                   TextField(
@@ -660,6 +678,8 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                 ],
               ),
             ),
+            if (widget.showOnlyBasicInfo) const SizedBox(height: 24),
+            if (!widget.showOnlyBasicInfo) ...[
             const SizedBox(height: 20),
             SketchyCard(
               backgroundColor: Colors.blue.shade50,
@@ -703,6 +723,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
               ),
             ),
             const SizedBox(height: 24),
+            ],
           ],
         ),
       ),
