@@ -11,6 +11,7 @@ import '../../../shared/widgets/common/sketchy_card.dart';
 import '../../../shared/widgets/common/sketchy_button.dart';
 import '../../../shared/widgets/common/sketchy_border.dart';
 import '../../../shared/widgets/common/passport_page_view.dart';
+import '../../../shared/widgets/common/washed_brush_background.dart';
 import '../../../services/business/user_service.dart';
 import '../../household/pages/household_manage_page.dart';
 
@@ -823,85 +824,163 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
     );
   }
 
-  Widget _buildMiniInfo(String label, String value) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          label,
-          style: GoogleFonts.kalam(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: const Color(0xFF6B4F4F), // River Deep Brown - 与 homepage 一致
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          value.isNotEmpty ? value : 'Not set',
-          style: GoogleFonts.kalam(
-            fontSize: 24,
-            color: const Color(
-              0xFF6B4F4F,
-            ).withOpacity(0.8), // River Deep Brown - 与 homepage 一致
-          ),
-          overflow: TextOverflow.ellipsis,
-          maxLines: 1,
-        ),
-      ],
-    );
-  }
+  /// 便签旋转角度（弧度）：左列逆时针 -5°，右列顺时针 +5°（参考图布局）
+  static const double _stickyLeftRot = -0.087;  // -5°
+  static const double _stickyRightRot = 0.087;  // +5°
 
-  /// 便签样式信息卡片，使用 Sticky1 或 Sticky2 作为背景
+  /// 便签样式信息卡片，使用 Sticky1 或 Sticky2 作为背景，带透明胶带效果
+  /// Sticky1 和 Sticky2 尺寸不同，胶带位置/大小需分开配置
   Widget _buildStickyNote({
     required String label,
     required String value,
     required String stickyAsset,
+    double? width,
+    double height = 128,
     double rotation = 0,
+    double tapeTop = 0,
+    double tapeWidth = 62,
+    double tapeHeight = 16,
+    double verticalOffset = 0,
+    double horizontalOffset = 0,
+    BoxFit imageFit = BoxFit.cover,
   }) {
     final displayValue = value.isNotEmpty ? value : 'Not set';
-    final content = Container(
-      width: 145,
-      height: 98,
-      decoration: BoxDecoration(
-        image: DecorationImage(
-          image: AssetImage(stickyAsset),
-          fit: BoxFit.contain,
-        ),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        mainAxisAlignment: MainAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
+    final stickyContent = Container(
+      width: width,
+      height: height,
+      child: Stack(
+        clipBehavior: Clip.none,
         children: [
-          Text(
-            label,
-            style: GoogleFonts.kalam(
-              fontSize: 15,
-              fontWeight: FontWeight.bold,
-              color: const Color(0xFF6B4F4F),
+          // 1. 便签主体（铺满整个容器）
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                image: DecorationImage(
+                  image: AssetImage(stickyAsset),
+                  fit: imageFit,
+                  alignment: imageFit == BoxFit.contain
+                      ? Alignment.topCenter
+                      : Alignment.center,
+                ),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    label,
+                    style: GoogleFonts.kalam(
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF6B4F4F),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    displayValue,
+                    style: GoogleFonts.kalam(
+                      fontSize: 22,
+                      color: const Color(0xFF6B4F4F).withOpacity(0.9),
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
             ),
-            textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 2),
-          Text(
-            displayValue,
-            style: GoogleFonts.kalam(
-              fontSize: 18,
-              color: const Color(0xFF6B4F4F).withOpacity(0.9),
+          // 2. 透明胶带：Sticky1/Sticky2 分别配置位置和尺寸
+          Positioned(
+            top: tapeTop,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Container(
+                  width: tapeWidth,
+                  height: tapeHeight,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF5EDE0).withOpacity(0.85), // 米白色
+                    borderRadius: BorderRadius.circular(2),
+                    border: Border.all(
+                      color: const Color(0xFFE5D9C8).withOpacity(0.6), // 米白偏深描边
+                      width: 0.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 2,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
+                  ),
+                  child: CustomPaint(painter: _StickyTapeTexturePainter()),
+                ),
             ),
-            overflow: TextOverflow.ellipsis,
-            maxLines: 1,
-            textAlign: TextAlign.center,
           ),
         ],
       ),
     );
+    Widget result = stickyContent;
     if (rotation != 0) {
-      return Transform.rotate(angle: rotation, child: content);
+      result = Transform.rotate(angle: rotation, child: result);
     }
-    return content;
+    if (verticalOffset != 0 || horizontalOffset != 0) {
+      result = Transform.translate(
+        offset: Offset(horizontalOffset, verticalOffset),
+        child: result,
+      );
+    }
+    return result;
+  }
+
+  static const double _edgeIconSize = 30.0;
+
+  List<Widget> _buildProfileEdgeIcons(double w, double h) {
+    const base = 'assets/profile_passport';
+    return [
+      // 左侧边缘 3 个
+      Positioned(
+        left: -4,
+        top: h * -0.02,
+        child: Image.asset('$base/profile_icon1.png', width: _edgeIconSize, height: _edgeIconSize, fit: BoxFit.contain),
+      ),
+      Positioned(
+        left: -4,
+        top: h * 0.22,
+        child: Image.asset('$base/profile_icon2.png', width: _edgeIconSize, height: _edgeIconSize, fit: BoxFit.contain),
+      ),
+      Positioned(
+        left: -4,
+        top: h * 0.44,
+        child: Image.asset('$base/profile_icon3.png', width: _edgeIconSize, height: _edgeIconSize, fit: BoxFit.contain),
+      ),
+      // 右侧边缘 2 个
+      Positioned(
+        right: -4,
+        top: h * 0.02,
+        child: Image.asset('$base/profile_icon4.png', width: _edgeIconSize, height: _edgeIconSize, fit: BoxFit.contain),
+      ),
+      Positioned(
+        right: -4,
+        top: h * 0.36,
+        child: Image.asset('$base/profile_icon5.png', width: _edgeIconSize, height: _edgeIconSize, fit: BoxFit.contain),
+      ),
+      // 上侧边缘 2 个
+      Positioned(
+        left: w * 0.18,
+        top: -8,
+        child: Image.asset('$base/profile_icon6.png', width: _edgeIconSize, height: _edgeIconSize, fit: BoxFit.contain),
+      ),
+      Positioned(
+        left: w * 0.62,
+        top: -8,
+        child: Image.asset('$base/profile_icon1.png', width: _edgeIconSize, height: _edgeIconSize, fit: BoxFit.contain),
+      ),
+    ];
   }
 
   Widget _buildNutritionStatCard({
@@ -970,35 +1049,21 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
         : kCurrentUser;
   }
 
-  // Helper method to calculate age and birthdate
-  Map<String, String> _calculateAgeAndBirthdate(String ageStr) {
-    String displayAge = '';
-    String displayBirthdate = '';
-    if (ageStr.isNotEmpty) {
-      try {
-        final birthdate = DateTime.parse(ageStr);
-        final now = DateTime.now();
-        final age = now.year - birthdate.year;
-        final monthDiff = now.month - birthdate.month;
-        final dayDiff = now.day - birthdate.day;
-        final actualAge = (monthDiff < 0 || (monthDiff == 0 && dayDiff < 0))
-            ? age - 1
-            : age;
-        displayAge = actualAge.toString();
-        displayBirthdate =
-            '${birthdate.year}-${birthdate.month.toString().padLeft(2, '0')}-${birthdate.day.toString().padLeft(2, '0')}';
-      } catch (e) {
-        displayAge = ageStr;
-        displayBirthdate = '';
-      }
+  // Helper method to format birthdate
+  String _formatBirthdate(String ageStr) {
+    if (ageStr.isEmpty) return '';
+    try {
+      final birthdate = DateTime.parse(ageStr);
+      return '${birthdate.year}-${birthdate.month.toString().padLeft(2, '0')}-${birthdate.day.toString().padLeft(2, '0')}';
+    } catch (e) {
+      return ageStr;
     }
-    return {'age': displayAge, 'birthdate': displayBirthdate};
   }
 
   // Build Profile Page (Page 0)
   Widget _buildProfilePage(BuildContext context) {
     final user = _getUserProfile();
-    final ageData = _calculateAgeAndBirthdate(user.age);
+    final birthdate = _formatBirthdate(user.age);
 
     return RefreshIndicator(
       onRefresh: _loadUserData,
@@ -1007,16 +1072,18 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
           // 内容区域
           SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.symmetric(
-              horizontal: 12.0,
-              vertical: 16.0,
+            padding: const EdgeInsets.only(
+              left: 4.0,
+              right: 4.0,
+              top: 12.0,
+              bottom: 20.0,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Header: 头像（左） + 用户名与邮箱（右），头像可点击更换
                 Padding(
-                  padding: const EdgeInsets.only(left: 6, right: 16, top: 12, bottom: 12),
+                  padding: const EdgeInsets.only(left: 4, right: 14, top: 6, bottom: 4),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
@@ -1025,10 +1092,10 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                         child: Transform.translate(
                           offset: const Offset(-12, 0),
                           child: Transform.rotate(
-                            angle: -0.15,
+                            angle: -0.25, // ✅ 增大倾斜角度从 -0.15 到 -0.25
                             child: SizedBox(
-                              width: 120,
-                              height: 120,
+                              width: 150,
+                              height: 150,
                               child: Image.asset(
                                 AvatarConfig.getPath(_selectedAvatarId),
                                 fit: BoxFit.contain,
@@ -1039,116 +1106,138 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                       ),
                       const SizedBox(width: 16),
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              user.username,
-                              style: GoogleFonts.caveat(
-                                fontSize: 36,
-                                fontWeight: FontWeight.bold,
-                                color: const Color(0xFF6B4F4F)
-                                    .withOpacity(0.8),
+                        child: WashedBrushBackground(
+                          seed: 42,
+                          color: const Color(0xE8F5EDE0), // 米白色
+                          padding: const EdgeInsets.fromLTRB(20, 4, 12, 20), // 上少下多，文字上移，总高度不变笔刷不缩短
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                user.username,
+                                style: GoogleFonts.caveat(
+                                  fontSize: 36,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF6B4F4F)
+                                      .withOpacity(0.8),
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              user.email,
-                              style: GoogleFonts.kalam(
-                                fontSize: 15,
-                                color: Colors.grey[600],
+                              const SizedBox(height: 2),
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  user.email,
+                                  style: GoogleFonts.kalam(
+                                    fontSize: 15,
+                                    color: Colors.grey[600],
+                                  ),
+                                  maxLines: 1,
+                                ),
                               ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 24),
-                Padding(
-                  padding: const EdgeInsets.only(left: 12, right: 12, top: 24),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                const SizedBox(height: 0),
+                // 四个便签 + Settings/Invite：散乱但有秩序的贴纸布局
+                SizedBox(
+                  height: 440,
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final w = constraints.maxWidth;
+                      final h = 440.0;
+                      final stickyW = w * 0.46;
+                      final stickyH = 140.0;
+                      final settingsBtnW = (w * 0.76).clamp(0.0, 300.0);
+                      final inviteBtnW = (w * 0.55).clamp(0.0, 180.0);
+                      return Stack(
+                        clipBehavior: Clip.none,
                         children: [
-                          _buildStickyNote(
-                            label: 'Birthdate',
-                            value: ageData['birthdate']!,
-                            stickyAsset: 'assets/profile_passport/Sticky1.png',
-                            rotation: -0.08,
-                          ),
-                          _buildStickyNote(
-                            label: 'Gender',
-                            value: _getGenderDisplay(user.gender),
-                            stickyAsset: 'assets/profile_passport/Sticky2.png',
-                            rotation: 0.06,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildStickyNote(
-                            label: 'Weight',
-                            value: user.weight.isNotEmpty
-                                ? (user.weight.endsWith(' kg')
-                                      ? user.weight
-                                      : '${user.weight} kg')
-                                : '',
-                            stickyAsset: 'assets/profile_passport/Sticky2.png',
-                            rotation: 0.05,
-                          ),
-                          _buildStickyNote(
-                            label: 'Height',
-                            value: user.height.isNotEmpty
-                                ? (user.height.endsWith(' cm')
-                                      ? user.height
-                                      : '${user.height} cm')
-                                : '',
-                            stickyAsset: 'assets/profile_passport/Sticky1.png',
-                            rotation: -0.06,
-                          ),
-                        ],
-                      ),
-                      if (ageData['age']!.isNotEmpty) ...[
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildMiniInfo(
-                                'Age',
-                                '${ageData['age']} years',
-                              ),
+                          // 木板边缘装饰图标：左侧3个、右侧2个、上侧2个
+                          ..._buildProfileEdgeIcons(w, h),
+                          // Birthdate
+                          Positioned(
+                            left: w * 0.06,
+                            top: h * 0.01,
+                            child: _buildStickyNote(
+                              label: 'Birthdate',
+                              value: birthdate,
+                              stickyAsset: 'assets/profile_passport/Sticky1.png',
+                              width: stickyW,
+                              height: stickyH,
+                              rotation: 0.10,
+                              tapeTop: 5,
+                              tapeWidth: 42,
                             ),
-                          ],
-                        ),
-                      ],
-                      const SizedBox(height: 100),
-                      Center(
-                        child: Column(
-                          children: [
-                            SketchyButton(
-                              text: 'Settings',
-                              fontSize: 23,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 70,
-                                vertical: 24,
-                              ),
-                              backgroundImage:
-                                  'assets/icons/Ingredients.png',
-                              borderColor: Colors.orange.shade700,
-                              textColor: const Color(0xFF6B4F4F),
-                              onPressed: () async {
+                          ),
+                          // Gender
+                          Positioned(
+                            left: w * 0.46,
+                            top: h * -0.08,
+                            child: _buildStickyNote(
+                              label: 'Gender',
+                              value: _getGenderDisplay(user.gender),
+                              stickyAsset: 'assets/profile_passport/Sticky2.png',
+                              width: stickyW,
+                              height: stickyH,
+                              rotation: 0.35,
+                              tapeTop: -5,
+                              tapeWidth: 40,
+                              imageFit: BoxFit.contain,
+                            ),
+                          ),
+                          // Weight
+                          Positioned(
+                            left: w * 0.04,
+                            top: h * 0.38,
+                            child: _buildStickyNote(
+                              label: 'Weight',
+                              value: user.weight.isNotEmpty
+                                  ? (user.weight.endsWith(' kg')
+                                        ? user.weight
+                                        : '${user.weight} kg')
+                                  : '',
+                              stickyAsset: 'assets/profile_passport/Sticky2.png',
+                              width: stickyW,
+                              height: stickyH,
+                              rotation: -0.12,
+                              tapeTop: -5,
+                              tapeWidth: 40,
+                              imageFit: BoxFit.contain,
+                            ),
+                          ),
+                          // Height
+                          Positioned(
+                            left: w * 0.50,
+                            top: h * 0.29,
+                            child: _buildStickyNote(
+                              label: 'Height',
+                              value: user.height.isNotEmpty
+                                  ? (user.height.endsWith(' cm')
+                                        ? user.height
+                                        : '${user.height} cm')
+                                  : '',
+                              stickyAsset: 'assets/profile_passport/Sticky1.png',
+                              width: stickyW,
+                              height: stickyH,
+                              rotation: -0.32,
+                              tapeTop: 5,
+                              tapeWidth: 42,
+                            ),
+                          ),
+                          // Settings
+                          Positioned(
+                            left: w * -0.09,
+                            top: h * 0.62,
+                            child: GestureDetector(
+                              onTap: () async {
                                 final result = await Navigator.push(
                                   context,
                                   MaterialPageRoute(
@@ -1159,35 +1248,40 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                                   _loadUserData();
                                 }
                               },
+                              child: Image.asset(
+                                'assets/profile_passport/Settings.png',
+                                width: settingsBtnW,
+                                fit: BoxFit.contain,
+                              ),
                             ),
-                          ],
-                        ),
-                      ),
-                    ],
+                          ),
+                          // Invite
+                          Positioned(
+                            left: w * 0.5,
+                            top: h * 0.58,
+                            child: GestureDetector(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const HouseholdManagePage(),
+                                  ),
+                                );
+                              },
+                              child: Image.asset(
+                                'assets/profile_passport/Invite.png',
+                                width: inviteBtnW,
+                                fit: BoxFit.contain,
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
               ],
-            ),
-          ),
-          // Invite 按钮：右下角，使用 Invite.png 图标
-          Positioned(
-            bottom: 16,
-            right: 16,
-            child: GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const HouseholdManagePage(),
-                  ),
-                );
-              },
-              child: Image.asset(
-                'assets/profile_passport/Invite.png',
-                width: 120,
-                height: 120,
-              ),
             ),
           ),
         ],
@@ -1653,4 +1747,21 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
       ),
     );
   }
+}
+
+/// 胶带纹理绘制器（与 home 页 Daily Intake / Add Food 便签一致）
+class _StickyTapeTexturePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFFE5D9C8).withOpacity(0.35) // 米白系纹理
+      ..strokeWidth = 0.5
+      ..style = PaintingStyle.stroke;
+    for (double y = 2; y < size.height; y += 3) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
