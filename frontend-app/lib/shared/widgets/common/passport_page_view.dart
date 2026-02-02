@@ -219,9 +219,16 @@ class _PassportPageViewState extends State<PassportPageView>
           clipBehavior: Clip.none,
           children: [
             Positioned.fill(
-              child: Image.asset(
-                'assets/profile_passport/WoodBoard.png',
-                fit: BoxFit.fill, // 确保纸张铺满分配给它的 Positioned 空间
+              child: Transform.translate(
+                offset: const Offset(0, -20),
+                child: Transform(
+                  alignment: Alignment.center,
+                  transform: Matrix4.identity()..scale(0.92, 1.05, 1.0),
+                  child: Image.asset(
+                    'assets/profile_passport/WoodBoard.png',
+                    fit: BoxFit.fill,
+                  ),
+                ),
               ),
             ),
             Positioned.fill(

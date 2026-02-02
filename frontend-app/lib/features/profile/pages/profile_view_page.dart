@@ -893,6 +893,68 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
     return {'age': displayAge, 'birthdate': displayBirthdate};
   }
 
+  /// 可复用的嵌入式 Polaroid 头像组件
+  /// 头像在下、相框在上，用比例定位精准嵌入相框镂空处
+  Widget _buildPolaroidAvatar({
+    ImageProvider? avatarImage,
+    double width = 190,
+    double rotation = -0.18,
+  }) {
+    const photoLeftRatio = 0.23;
+    const photoTopRatio = 0.19;
+    const photoWidthRatio = 0.50;
+    const photoHeightRatio = 0.46;
+    const photoRadius = 8.0;
+
+    return Transform.rotate(
+      angle: rotation,
+      child: SizedBox(
+        width: width,
+        height: width * 1.10,
+        child: LayoutBuilder(
+          builder: (context, c) {
+            final w = c.maxWidth;
+            final h = c.maxHeight;
+
+            return Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Positioned(
+                  left: w * photoLeftRatio,
+                  top: h * photoTopRatio,
+                  width: w * photoWidthRatio,
+                  height: h * photoHeightRatio,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(photoRadius),
+                    child: avatarImage != null
+                        ? Image(
+                            image: avatarImage,
+                            fit: BoxFit.cover,
+                          )
+                        : Container(
+                            color: Colors.grey[300],
+                            child: const Icon(
+                              Icons.person,
+                              size: 48,
+                              color: Colors.white,
+                            ),
+                          ),
+                  ),
+                ),
+                Positioned.fill(
+                  child: Image.asset(
+                    'assets/profile_passport/Polaroid.png',
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
   // Build Profile Page (Page 0)
   Widget _buildProfilePage(BuildContext context) {
     final user = _getUserProfile();
@@ -912,161 +974,136 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header: 用户信息 + 简要资料
+                // Header: 相框 4 成 + 文字 6 成，靠左布局
                 Padding(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.only(left: 6, right: 16, top: 12, bottom: 12),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        flex: 4,
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Transform.translate(
+                            offset: const Offset(-6, 0),
+                            child: _buildPolaroidAvatar(
+                              avatarImage: null, // 无真实头像时用占位；有 URL 时用 NetworkImage(user.avatarUrl)
+                              width: 200,
+                              rotation: -0.18,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        flex: 6,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              user.username,
+                              style: GoogleFonts.caveat(
+                                fontSize: 36,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF6B4F4F)
+                                    .withOpacity(0.8),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              user.email,
+                              style: GoogleFonts.kalam(
+                                fontSize: 15,
+                                color: Colors.grey[600],
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Padding(
+                  padding: const EdgeInsets.only(left: 24, top: 24),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Column(
-                            children: [
-                              SketchyBorder(
-                                borderColor: Colors.black87,
-                                borderWidth: 2.0,
-                                borderRadius: 40,
-                                roughness: 2.0,
-                                child: const CircleAvatar(
-                                  radius: 40,
-                                  backgroundColor: Colors.grey,
-                                  child: Icon(
-                                    Icons.person,
-                                    size: 42,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                            ],
+                          Expanded(
+                            child: _buildMiniInfo(
+                              'Birthdate',
+                              ageData['birthdate']!,
+                            ),
                           ),
                           const SizedBox(width: 16),
                           Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Row(
-                                  mainAxisSize: MainAxisSize.max,
-                                  children: [
-                                    Expanded(
-                                      flex: 1,
-                                      child: Text(
-                                        user.username,
-                                        style: GoogleFonts.caveat(
-                                          fontSize: 36,
-                                          fontWeight: FontWeight.bold,
-                                          color: const Color(0xFF6B4F4F)
-                                              .withOpacity(
-                                                0.8,
-                                              ), // River Deep Brown - 与出生日期一致
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  user.email,
-                                  style: GoogleFonts.kalam(
-                                    fontSize: 18,
-                                    color: Colors.grey[600],
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ],
+                            child: _buildMiniInfo(
+                              'Gender',
+                              _getGenderDisplay(user.gender),
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 24),
-                      Transform.translate(
-                        offset: const Offset(
-                          24,
-                          58,
-                        ), // 再次下移 32 像素 (26 + 32 = 58)
-                        child: Column(
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildMiniInfo(
+                              'Weight',
+                              user.weight.isNotEmpty
+                                  ? (user.weight.endsWith(' kg')
+                                        ? user.weight
+                                        : '${user.weight} kg')
+                                  : '',
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: _buildMiniInfo(
+                              'Height',
+                              user.height.isNotEmpty
+                                  ? (user.height.endsWith(' cm')
+                                        ? user.height
+                                        : '${user.height} cm')
+                                  : '',
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (ageData['age']!.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        Row(
                           children: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: _buildMiniInfo(
-                                    'Birthdate',
-                                    ageData['birthdate']!,
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: _buildMiniInfo(
-                                    'Gender',
-                                    _getGenderDisplay(user.gender),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: _buildMiniInfo(
-                                    'Weight',
-                                    user.weight.isNotEmpty
-                                        ? (user.weight.endsWith(' kg')
-                                              ? user.weight
-                                              : '${user.weight} kg')
-                                        : '',
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: _buildMiniInfo(
-                                    'Height',
-                                    user.height.isNotEmpty
-                                        ? (user.height.endsWith(' cm')
-                                              ? user.height
-                                              : '${user.height} cm')
-                                        : '',
-                                  ),
-                                ),
-                              ],
-                            ),
-                            if (ageData['age']!.isNotEmpty) ...[
-                              const SizedBox(height: 12),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: _buildMiniInfo(
-                                      'Age',
-                                      '${ageData['age']} years',
-                                    ),
-                                  ),
-                                ],
+                            Expanded(
+                              child: _buildMiniInfo(
+                                'Age',
+                                '${ageData['age']} years',
                               ),
-                            ],
+                            ),
                           ],
                         ),
-                      ),
-                      const SizedBox(height: 100), // 再次下移 32 像素 (68 + 32 = 100)
-                      // 按钮组：Settings 在上，Invite 在下
+                      ],
+                      const SizedBox(height: 100),
                       Center(
                         child: Column(
                           children: [
                             SketchyButton(
                               text: 'Settings',
-                              fontSize: 23, // 调整字体 (原为 26)
+                              fontSize: 23,
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 70,
                                 vertical: 24,
-                              ), // 再次调大按钮 (原为 54, 18)
+                              ),
                               backgroundImage:
-                                  'assets/icons/Ingredients.png', // 使用 Ingredients 的纹理
+                                  'assets/icons/Ingredients.png',
                               borderColor: Colors.orange.shade700,
-                              textColor: const Color(
-                                0xFF6B4F4F,
-                              ), // 使用页面统一的深棕色文字
+                              textColor: const Color(0xFF6B4F4F),
                               onPressed: () async {
                                 final result = await Navigator.push(
                                   context,
@@ -1074,36 +1111,9 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                                     builder: (context) => const SettingsPage(),
                                   ),
                                 );
-                                // Modified by Chase: Refresh data if profile was updated / 由 Chase 修改：如果资料更新过，则刷新数据
                                 if (result == true && mounted) {
                                   _loadUserData();
                                 }
-                              },
-                            ),
-                            const SizedBox(
-                              height: 8,
-                            ), // 减小间距，使 Invite 向上移动 (原为 20)
-                            SketchyButton(
-                              text: 'Invite',
-                              fontSize: 23, // 调整字体 (原为 26)
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 70,
-                                vertical: 24,
-                              ), // 再次调大按钮 (原为 54, 18)
-                              backgroundImage:
-                                  'assets/icons/Dishes.png', // 使用 Dishes 的纹理
-                              borderColor: Colors.yellow.shade700,
-                              textColor: const Color(
-                                0xFF6B4F4F,
-                              ), // 使用页面统一的深棕色文字
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        const HouseholdManagePage(),
-                                  ),
-                                );
                               },
                             ),
                           ],
@@ -1114,6 +1124,26 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                 ),
                 const SizedBox(height: 24),
               ],
+            ),
+          ),
+          // Invite 按钮：右下角，使用 Invite.png 图标
+          Positioned(
+            bottom: 16,
+            right: 16,
+            child: GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const HouseholdManagePage(),
+                  ),
+                );
+              },
+              child: Image.asset(
+                'assets/profile_passport/Invite.png',
+                width: 120,
+                height: 120,
+              ),
             ),
           ),
         ],
