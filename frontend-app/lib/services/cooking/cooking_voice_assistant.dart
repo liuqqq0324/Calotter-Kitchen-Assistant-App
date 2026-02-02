@@ -16,6 +16,10 @@ enum VoiceCommandType {
   resumeTimer,     // Resume timer
   stopTimer,       // Stop timer
   completeStep,    // Complete step
+  startTotalTimer, // Start total cooking timer
+  pauseTotalTimer, // Pause total cooking timer
+  resumeTotalTimer, // Resume total cooking timer
+  stopTotalTimer,   // Stop total cooking timer
   nextDish,        // Next dish
   previousDish,    // Previous dish
   currentStepInfo, // Current step info
@@ -43,52 +47,64 @@ class CookingVoiceAssistant {
   Function(String)? _savedOnResult;
   Function(String)? _savedOnError;
   
-  // Command keywords mapping (English only)
+  // Command keywords mapping (Simplified single-word English)
   static const Map<VoiceCommandType, List<String>> _commandKeywords = {
     VoiceCommandType.nextStep: [
-      'next step', 'next', 'continue'
+      'next', 'continue', 'forward'
     ],
     VoiceCommandType.previousStep: [
-      'previous step', 'previous', 'back', 'last step'
+      'back', 'previous'
     ],
     VoiceCommandType.repeatStep: [
-      'repeat', 'say again', 'repeat step', 'once more'
+      'repeat', 'again'
+    ],
+    VoiceCommandType.startTotalTimer: [
+      'start', 'begin'
+    ],
+    VoiceCommandType.pauseTotalTimer: [
+      'pause', 'wait'
+    ],
+    VoiceCommandType.resumeTotalTimer: [
+      'resume', 'continue'
+    ],
+    VoiceCommandType.stopTotalTimer: [
+      'stop', 'reset'
     ],
     VoiceCommandType.startTimer: [
-      'start timer', 'start timing', 'begin timer'
+      'timer start', 'timer begin'
     ],
     VoiceCommandType.pauseTimer: [
-      'pause timer', 'pause', 'pause timing'
+      'timer pause', 'timer wait'
     ],
     VoiceCommandType.resumeTimer: [
-      'resume timer', 'resume', 'continue timer'
+      'timer resume'
     ],
     VoiceCommandType.stopTimer: [
-      'stop timer', 'stop', 'cancel timer'
+      'timer stop', 'timer reset'
     ],
     VoiceCommandType.completeStep: [
-      'done', 'complete', 'step done', 'mark done', 'finish'
+      'done', 'finish', 'complete'
     ],
     VoiceCommandType.nextDish: [
-      'next dish', 'next recipe'
+      'dish', 'recipe', 'switch'
     ],
     VoiceCommandType.previousDish: [
-      'previous dish', 'last dish', 'previous recipe'
+      'last', 'before'
     ],
     VoiceCommandType.currentStepInfo: [
-      'current step', 'this step', 'now'
+      'step', 'info'
     ],
     VoiceCommandType.timerStatus: [
-      'time left', 'remaining time', 'timer status'
+      'time', 'left'
     ],
     VoiceCommandType.ingredientsList: [
-      'ingredients', 'ingredient list', 'what do I need'
+      'ingredients', 'needs'
     ],
     VoiceCommandType.exitVoiceMode: [
-      'exit voice', 'exit', 'close voice mode', 'turn off'
+      'exit', 'quit', 'close', 'off'
     ],
     VoiceCommandType.help: [
-      'help', 'how to use', 'commands', 'what can I say'
+      'help', 'commands'
     ],
   };
   
@@ -159,11 +175,14 @@ class CookingVoiceAssistant {
       final speechAvailable = await _speech.initialize(
         onError: (error) {
           debugPrint('[VoiceAssistant] ⚠️ Speech recognition error: $error');
-          debugPrint('[VoiceAssistant] 错误类型: ${error.runtimeType}');
-          debugPrint('[VoiceAssistant] 错误详情: ${error.toString()}');
+          // 彻底清除状态，允许重连
+          _isListening = false;
         },
         onStatus: (status) {
           debugPrint('[VoiceAssistant] 📊 Speech recognition status: $status');
+          if (status == 'notListening' || status == 'done') {
+            _isListening = false;
+          }
         },
       );
       
@@ -221,73 +240,67 @@ class CookingVoiceAssistant {
   /// Start listening for voice commands
   Future<void> startListening({
     required Function(String recognizedText) onResult,
+    Function(String partialText)? onPartialResult,
+    Function(double level)? onSoundLevelUpdate, // 新增：音量更新
     Function(String error)? onError,
   }) async {
     debugPrint('[VoiceAssistant] ===== startListening() 开始 =====');
-    debugPrint('[VoiceAssistant] 当前状态: _isInitialized=$_isInitialized, _isListening=$_isListening');
     
     if (!_isInitialized) {
       debugPrint('[VoiceAssistant] 未初始化，尝试初始化...');
       final initialized = await initialize();
-      debugPrint('[VoiceAssistant] 初始化结果: $initialized');
-      
       if (!initialized) {
-        debugPrint('[VoiceAssistant] ❌ 初始化失败，调用 onError');
-        debugPrint('[VoiceAssistant] ===== startListening() 失败 =====');
         onError?.call('Voice assistant not initialized');
         return;
       }
-      debugPrint('[VoiceAssistant] ✅ 初始化成功');
     }
     
-    if (_isListening) {
-      debugPrint('[VoiceAssistant] ⚠️ 已经在监听中，直接返回');
-      debugPrint('[VoiceAssistant] ===== startListening() 跳过 =====');
-      return;
+    // 🔥 激进重置：如果已经在监听，先强行停止并等待资源释放
+    if (_speech.isListening || _isListening) {
+      debugPrint('[VoiceAssistant] ⚠️ 发现残留监听状态，强制停止中...');
+      await _speech.stop();
+      await Future.delayed(const Duration(milliseconds: 100)); // 呼吸时间
+      _isListening = false;
     }
     
-    debugPrint('[VoiceAssistant] 保存回调函数...');
-    // 保存回调函数，用于恢复监听
+    // 保存回调
     _savedOnResult = onResult;
     _savedOnError = onError;
     
     try {
-      debugPrint('[VoiceAssistant] 调用 _speech.listen()...');
-      debugPrint('[VoiceAssistant] 监听参数: listenFor=30s, pauseFor=3s, localeId=en_US');
-      
       await _speech.listen(
         onResult: (result) {
           debugPrint('[VoiceAssistant] 📝 收到识别结果: finalResult=${result.finalResult}, recognizedWords="${result.recognizedWords}"');
+          
+          if (onPartialResult != null && result.recognizedWords.isNotEmpty) {
+            onPartialResult(result.recognizedWords);
+          }
+
           if (result.finalResult) {
             _isListening = false;
-            debugPrint('[VoiceAssistant] 识别完成，_isListening 设为 false');
             final text = result.recognizedWords.trim();
             if (text.isNotEmpty) {
-              debugPrint('[VoiceAssistant] ✅ 识别到文本: "$text"');
               onResult(text);
-            } else {
-              debugPrint('[VoiceAssistant] ⚠️ 识别文本为空，忽略');
             }
-          } else {
-            debugPrint('[VoiceAssistant] ⏳ 中间结果，继续监听...');
           }
         },
+        onSoundLevelChange: (level) {
+          // 实时将底层音量分贝传递给前端
+          onSoundLevelUpdate?.call(level);
+        },
         listenFor: const Duration(seconds: 30),
-        pauseFor: const Duration(seconds: 3),
-        localeId: "en_US", // English recognition
+        pauseFor: const Duration(seconds: 2), // 缩短停顿时间，更快返回结果
+        localeId: "en_US",
+        cancelOnError: true,
+        partialResults: true,
       );
       
       _isListening = true;
-      debugPrint('[VoiceAssistant] ✅ 监听启动成功，_isListening = true');
-      debugPrint('[VoiceAssistant] ===== startListening() 成功 =====');
-    } catch (e, stackTrace) {
+      debugPrint('[VoiceAssistant] ✅ 监听已重新激活');
+    } catch (e) {
       _isListening = false;
-      debugPrint('[VoiceAssistant] ❌ 启动监听异常: $e');
-      debugPrint('[VoiceAssistant] 异常类型: ${e.runtimeType}');
-      debugPrint('[VoiceAssistant] 堆栈跟踪:');
-      debugPrint(stackTrace.toString());
-      debugPrint('[VoiceAssistant] ===== startListening() 异常 =====');
-      onError?.call('Failed to start listening: $e');
+      debugPrint('[VoiceAssistant] ❌ 启动监听失败: $e');
+      onError?.call(e.toString());
     }
   }
   
@@ -329,15 +342,49 @@ class CookingVoiceAssistant {
   VoiceCommandType recognizeCommand(String text) {
     final normalizedText = text.toLowerCase().trim();
     
-    // Check for jump to step command (e.g., "step 3", "go to step 3")
+    // 1. Check for jump to step command (e.g., "step 3", "go to step 3")
     final stepNumberMatch = RegExp(r'(?:step|go to step|jump to step)\s*(\d+)', caseSensitive: false)
         .firstMatch(normalizedText);
     if (stepNumberMatch != null) {
       return VoiceCommandType.jumpToStep;
     }
     
-    // Match other commands
+    // 2. Specific matching for Timer vs Total Timer
+    // Check for "timer" prefix first as it's more specific
+    if (normalizedText.contains('timer start') || normalizedText.contains('timer begin')) {
+      return VoiceCommandType.startTimer;
+    }
+    if (normalizedText.contains('timer stop') || normalizedText.contains('timer reset')) {
+      return VoiceCommandType.stopTimer;
+    }
+    if (normalizedText.contains('timer pause') || normalizedText.contains('timer wait')) {
+      return VoiceCommandType.pauseTimer;
+    }
+    if (normalizedText.contains('timer resume') || normalizedText.contains('timer continue')) {
+      return VoiceCommandType.resumeTimer;
+    }
+    
+    // 3. Match Dish navigation first (to avoid confusion with Step navigation)
     for (final entry in _commandKeywords.entries) {
+      if (entry.key == VoiceCommandType.nextDish || entry.key == VoiceCommandType.previousDish) {
+        for (final keyword in entry.value) {
+          if (normalizedText.contains(keyword.toLowerCase())) {
+            return entry.key;
+          }
+        }
+      }
+    }
+    
+    // 4. Match other commands
+    for (final entry in _commandKeywords.entries) {
+      // Skip already handled commands
+      if (entry.key == VoiceCommandType.startTimer || 
+          entry.key == VoiceCommandType.stopTimer ||
+          entry.key == VoiceCommandType.pauseTimer ||
+          entry.key == VoiceCommandType.resumeTimer ||
+          entry.key == VoiceCommandType.nextDish ||
+          entry.key == VoiceCommandType.previousDish) continue;
+      
       for (final keyword in entry.value) {
         if (normalizedText.contains(keyword.toLowerCase())) {
           return entry.key;
@@ -408,11 +455,11 @@ class CookingVoiceAssistant {
   
   /// Get help text
   String getHelpText() {
-    return 'Available voice commands: next step, previous step, repeat, start timer, pause timer, resume timer, stop timer, done, next dish, previous dish, current step, time left, ingredients, exit voice, help';
+    return 'Available voice commands: next step, previous step, repeat, start timer, pause timer, resume timer, stop timer, done, dish (next), last (previous), step info, time left, ingredients, exit voice, help';
   }
   
   /// Whether listening
-  bool get isListening => _isListening;
+  bool get isListening => _speech.isListening || _isListening;
   
   /// Whether speaking
   bool get isSpeaking => _isSpeaking;

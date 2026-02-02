@@ -634,7 +634,7 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                     const SizedBox(width: 8),
                     Flexible(
                       child: Text(
-                        'Start Cooking (${_selectedFavoriteIds.length})',
+                        'Cook Mode (${_selectedFavoriteIds.length})',
                         style: GoogleFonts.kalam(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -1049,7 +1049,7 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                 ),
                 icon: const Icon(Icons.play_arrow),
                 label: Text(
-                  'Start Cooking',
+                  'Cook Mode',
                   style: GoogleFonts.kalam(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -1058,7 +1058,7 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
               ),
             ),
             const SizedBox(height: 12),
-            // View Steps 按钮 - 只读模式
+            // View Mode 按钮 - 只读模式
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
@@ -1091,7 +1091,7 @@ class _RecipesHomePageState extends State<RecipesHomePage> {
                 ),
                 icon: const Icon(Icons.menu_book),
                 label: Text(
-                  'View Steps',
+                  'View Mode',
                   style: GoogleFonts.kalam(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
