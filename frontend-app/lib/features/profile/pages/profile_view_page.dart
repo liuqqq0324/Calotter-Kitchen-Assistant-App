@@ -1396,21 +1396,14 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                   Center(
                     child: _isSavingGoal
                         ? const CircularProgressIndicator()
-                        : SketchyButton(
-                            text: 'Save Goal',
-                            fontSize: 23, // 统一字体大小
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 70,
-                              vertical: 24,
-                            ), // 统一按钮大小，与 Settings/Invite 一致
-                            backgroundImage:
-                                'assets/icons/seasonings.png', // 使用 Seasonings 的绿色纹理
-                            borderColor: Colors.green.shade700,
-                            textColor: const Color(0xFF6B4F4F),
-                            onPressed: () {
-                              _saveHealthGoal();
-                            },
-                          ),
+                         : GestureDetector(
+                             onTap: _saveHealthGoal,
+                             child: Image.asset(
+                               'assets/profile_passport/Save Goal Button.png',
+                                width: 110, // 缩小到原来的 1/2
+                               fit: BoxFit.contain,
+                             ),
+                           ),
                   ),
                 ],
               ),
