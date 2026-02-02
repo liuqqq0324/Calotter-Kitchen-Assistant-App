@@ -75,33 +75,78 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
   }
 
   Future<void> _showAvatarPicker() async {
+    const lightBeige = Color(0xFFFFFFF0);
+    const deepBrown = Color(0xFF6B4F4F);
     final selected = await showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Choose Avatar', style: GoogleFonts.caveat(fontSize: 24)),
-        content: SizedBox(
-          width: 280,
-          child: Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: AvatarConfig.options.map((opt) {
-              return GestureDetector(
-                onTap: () => Navigator.pop(context, opt.id),
-                child: SizedBox(
-                  width: 64,
-                  height: 64,
-                  child: Image.asset(opt.path, fit: BoxFit.contain),
+      barrierColor: Colors.black.withOpacity(0.35),
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: SketchyCard(
+          backgroundColor: lightBeige,
+          borderColor: deepBrown,
+          borderWidth: 2.5,
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    'Choose Avatar',
+                    style: GoogleFonts.caveat(
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                      color: deepBrown,
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: Icon(Icons.close, color: deepBrown),
+                    tooltip: 'Close',
+                  ),
+                ],
+              ),
+              Divider(
+                height: 1,
+                color: deepBrown.withOpacity(0.2),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: AvatarConfig.options.map((opt) {
+                  return GestureDetector(
+                    onTap: () => Navigator.pop(context, opt.id),
+                    child: SizedBox(
+                      width: 64,
+                      height: 64,
+                      child: Image.asset(
+                        opt.path,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 8),
+              Center(
+                child: TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(
+                    'Cancel',
+                    style: GoogleFonts.kalam(
+                      fontSize: 16,
+                      color: deepBrown,
+                    ),
+                  ),
                 ),
-              );
-            }).toList(),
+              ),
+            ],
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-        ],
       ),
     );
     if (selected != null) {
@@ -1047,9 +1092,9 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
   List<Widget> _buildProfileEdgeIcons(double w, double h) {
     const base = 'assets/profile_passport';
     return [
-      // 左侧边缘 3 个
+      // 左侧边缘 3 个，左右错落
       Positioned(
-        left: -4,
+        left: -10,
         top: h * -0.02,
         child: Image.asset(
           '$base/profile_icon1.png',
@@ -1059,7 +1104,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
         ),
       ),
       Positioned(
-        left: -4,
+        left: 6,
         top: h * 0.22,
         child: Image.asset(
           '$base/profile_icon2.png',
@@ -1069,7 +1114,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
         ),
       ),
       Positioned(
-        left: -4,
+        left: -6,
         top: h * 0.44,
         child: Image.asset(
           '$base/profile_icon3.png',
@@ -1078,9 +1123,9 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
           fit: BoxFit.contain,
         ),
       ),
-      // 右侧边缘 2 个
+      // 右侧边缘 2 个，左右错落
       Positioned(
-        right: -4,
+        right: 4,
         top: h * 0.02,
         child: Image.asset(
           '$base/profile_icon4.png',
@@ -1090,31 +1135,10 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
         ),
       ),
       Positioned(
-        right: -4,
+        right: -12,
         top: h * 0.36,
         child: Image.asset(
           '$base/profile_icon5.png',
-          width: _edgeIconSize,
-          height: _edgeIconSize,
-          fit: BoxFit.contain,
-        ),
-      ),
-      // 上侧边缘 2 个
-      Positioned(
-        left: w * 0.18,
-        top: -8,
-        child: Image.asset(
-          '$base/profile_icon6.png',
-          width: _edgeIconSize,
-          height: _edgeIconSize,
-          fit: BoxFit.contain,
-        ),
-      ),
-      Positioned(
-        left: w * 0.62,
-        top: -8,
-        child: Image.asset(
-          '$base/profile_icon1.png',
           width: _edgeIconSize,
           height: _edgeIconSize,
           fit: BoxFit.contain,
@@ -1370,14 +1394,21 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
       child: SizedBox.expand(
         child: Stack(
           children: [
-            // 内容区域
-            SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.symmetric(
-                horizontal: 12.0,
-                vertical: 16.0,
+            // 主容器：用外层 Padding 控制上下边界，改这一个值上下会一起扩展/收缩
+            Padding(
+              padding: const EdgeInsets.only(
+                top: 6.0,
+                bottom: 0.0,
+                left: 0,
+                right: 0,
               ),
-              child: Column(
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12.0,
+                  vertical: 0,
+                ),
+                child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Header: 头像（左） + 用户名与邮箱（右），头像可点击更换
@@ -1410,45 +1441,79 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                         ),
                         const SizedBox(width: 16),
                         Expanded(
-                          child: WashedBrushBackground(
-                            seed: 42,
-                            color: const Color(0xE8F5EDE0), // 米白色
-                            padding: const EdgeInsets.fromLTRB(
-                              20,
-                              4,
-                              12,
-                              20,
-                            ), // 上少下多，文字上移，总高度不变笔刷不缩短
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  user.username,
-                                  style: GoogleFonts.caveat(
-                                    fontSize: 36,
-                                    fontWeight: FontWeight.bold,
-                                    color: const Color(
-                                      0xFF6B4F4F,
-                                    ).withOpacity(0.8),
+                          child: Transform.translate(
+                            offset: const Offset(0, -8),
+                            child: Stack(
+                              clipBehavior: Clip.none,
+                            children: [
+                              // 两层笔刷：PaintBrush1 底层，PaintBrush2 上层，负边距扩大面积
+                              Positioned(
+                                left: -28,
+                                top: -22,
+                                right: -28,
+                                bottom: -22,
+                                child: Opacity(
+                                  opacity: 0.30,
+                                  child: Image.asset(
+                                    'assets/profile_passport/PaintBrush1.png',
+                                    fit: BoxFit.fill,
                                   ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
                                 ),
-                                const SizedBox(height: 2),
-                                FittedBox(
-                                  fit: BoxFit.scaleDown,
-                                  alignment: Alignment.centerLeft,
-                                  child: Text(
-                                    user.email,
-                                    style: GoogleFonts.kalam(
-                                      fontSize: 15,
-                                      color: Colors.grey[600],
+                              ),
+                              Positioned(
+                                left: -12,
+                                top: -8,
+                                right: -12,
+                                bottom: -8,
+                                child: Opacity(
+                                  opacity: 0.50,
+                                  child: Image.asset(
+                                    'assets/profile_passport/PaintBrush2.png',
+                                    fit: BoxFit.fill,
+                                  ),
+                                ),
+                              ),
+                              // 用户名与邮箱叠在笔刷之上，笔刷容器包裹
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  28,
+                                  4,
+                                  12,
+                                  20,
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      user.username,
+                                      style: GoogleFonts.caveat(
+                                        fontSize: 36,
+                                        fontWeight: FontWeight.bold,
+                                        color: const Color(
+                                          0xFF6B4F4F,
+                                        ).withOpacity(0.8),
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
-                                    maxLines: 1,
-                                  ),
+                                    const SizedBox(height: 2),
+                                    FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      alignment: Alignment.centerLeft,
+                                      child: Text(
+                                        user.email,
+                                        style: GoogleFonts.kalam(
+                                          fontSize: 15,
+                                          color: Colors.grey[600],
+                                        ),
+                                        maxLines: 1,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ],
+                              ),
+                            ],
                             ),
                           ),
                         ),
@@ -1458,14 +1523,14 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                   const SizedBox(height: 0),
                   // 四个便签 + Settings/Invite：散乱但有秩序的贴纸布局
                   SizedBox(
-                    height: 440,
+                    height: 450,
                     child: LayoutBuilder(
                       builder: (context, constraints) {
                         final w = constraints.maxWidth;
-                        final h = 440.0;
+                        final h = 450.0;
                         final stickyW = w * 0.46;
                         final stickyH = 140.0;
-                        final settingsBtnW = (w * 0.76).clamp(0.0, 300.0);
+                        final settingsBtnW = (w * 0.84).clamp(0.0, 320.0);
                         final inviteBtnW = (w * 0.55).clamp(0.0, 180.0);
                         return Stack(
                           clipBehavior: Clip.none,
@@ -1548,9 +1613,9 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                             ),
                             // Settings
                             Positioned(
-                              left: w * -0.09,
-                              top: h * 0.62,
-                              child: GestureDetector(
+                              left: w * -0.14,
+                              top: h * 0.6,
+                              child: _TiltOnTapButton(
                                 onTap: () async {
                                   final result = await Navigator.push(
                                     context,
@@ -1574,7 +1639,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                             Positioned(
                               left: w * 0.5,
                               top: h * 0.58,
-                              child: GestureDetector(
+                              child: _TiltOnTapButton(
                                 onTap: () {
                                   Navigator.push(
                                     context,
@@ -1598,6 +1663,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                   ),
                   const SizedBox(height: 20),
                 ],
+                ),
               ),
             ),
           ],
@@ -2293,6 +2359,61 @@ class _BmiStamp extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// 点击时倾斜一点的按钮包装，用于 Settings / Invite
+class _TiltOnTapButton extends StatefulWidget {
+  final VoidCallback onTap;
+  final Widget child;
+
+  const _TiltOnTapButton({
+    required this.onTap,
+    required this.child,
+  });
+
+  @override
+  State<_TiltOnTapButton> createState() => _TiltOnTapButtonState();
+}
+
+class _TiltOnTapButtonState extends State<_TiltOnTapButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  static const double _tiltAngle = 0.08;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 80),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => _controller.forward(),
+      onTapUp: (_) => _controller.reverse(),
+      onTapCancel: () => _controller.reverse(),
+      onTap: widget.onTap,
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          return Transform.rotate(
+            angle: _controller.value * _tiltAngle,
+            child: child,
+          );
+        },
+        child: widget.child,
       ),
     );
   }
