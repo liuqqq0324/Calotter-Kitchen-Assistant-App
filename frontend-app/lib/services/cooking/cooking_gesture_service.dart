@@ -32,14 +32,15 @@ class CookingGestureService {
   // ✅ 修改1: 缓冲区记录 Point (同时记录 x 和 y)
   final List<MapEntry<int, Point<double>>> _movementBuffer = [];
 
-  final int _bufferSize = 3;
+  // 缓冲区更大以捕捉更完整的挥动轨迹
+  final int _bufferSize = 5;
   final int _cooldownMs = 1200; // 1.2秒冷却
-  final int _throttleMs = 150; // 150ms 采样
+  final int _throttleMs = 100; // 100ms 采样，更跟手
 
-  // 阈值：水平和垂直可能需要不同的敏感度
-  final double _minDistanceX = 35.0;
-  final double _minDistanceY = 35.0; // Y轴通常短一点，稍微敏感点
-  final double _minVelocity = 0.55; // 速度阈值 px/ms，平衡灵敏度和稳定性
+  // 降低触发门槛，更灵敏（配合 UI 层防抖防误触）
+  final double _minDistanceX = 20.0;
+  final double _minDistanceY = 20.0;
+  final double _minVelocity = 0.25; // 允许慵懒挥手
 
   Function(GestureType)? onGestureDetected;
 
@@ -142,9 +143,8 @@ class CookingGestureService {
         final pose = poses.first;
         final wrist = pose.landmarks[PoseLandmarkType.rightWrist];
 
-        // 降低置信度门槛，确保能拿到数据
-        if (wrist != null && wrist.likelihood > 0.3) {
-          // ✅ 传入 x 和 y
+        // 提高置信度阈值，防止背景噪点在低动作阈值下误触
+        if (wrist != null && wrist.likelihood > 0.5) {
           _analyzeTrend(wrist.x, wrist.y);
         }
       }
@@ -186,18 +186,18 @@ class CookingGestureService {
     bool yTriggered = diffY.abs() > _minDistanceY;
 
     if (xTriggered || yTriggered) {
-      // 2. 判断主导方向 (谁的变化大，就听谁的)
-      if (diffX.abs() > diffY.abs()) {
+      // 2. 方向主导性校验：主轴必须明显大于副轴，防止斜向挥手误判
+      bool isHorizontal = diffX.abs() > diffY.abs() * 1.2;
+      bool isVertical = diffY.abs() > diffX.abs() * 1.2;
+
+      if (isHorizontal) {
         // --- 水平移动 ---
-        // 计算X方向的速度
         final double velocityX = timeDiff > 0 ? diffX.abs() / timeDiff : 0.0;
 
-        // 调试打印
         debugPrint(
-          '[Gesture] NetDistX: ${diffX.abs().toStringAsFixed(1)}, VelX: ${velocityX.toStringAsFixed(3)}',
+          '[Gesture] X-Move: Dist=${diffX.abs().toStringAsFixed(1)}, Vel=${velocityX.toStringAsFixed(3)}',
         );
 
-        // ✅ 双重校验：必须同时满足 距离大 AND 速度快
         if (diffX.abs() > _minDistanceX && velocityX > _minVelocity) {
           if (diffX > 0) {
             debugPrint('[Gesture] 👉 RIGHT (Next)');
@@ -207,21 +207,16 @@ class CookingGestureService {
             _triggerCooldown(GestureType.previousStep);
           }
         }
-      } else {
+      } else if (isVertical) {
         // --- 垂直移动 ---
-        // 计算Y方向的速度
         final double velocityY = timeDiff > 0 ? diffY.abs() / timeDiff : 0.0;
 
-        // 调试打印
         debugPrint(
-          '[Gesture] NetDistY: ${diffY.abs().toStringAsFixed(1)}, VelY: ${velocityY.toStringAsFixed(3)}',
+          '[Gesture] Y-Move: Dist=${diffY.abs().toStringAsFixed(1)}, Vel=${velocityY.toStringAsFixed(3)}',
         );
 
-        // ✅ 双重校验：必须同时满足 距离大 AND 速度快
         if (diffY.abs() > _minDistanceY && velocityY > _minVelocity) {
-          // 注意：在图像坐标系中，Y轴向下是增加的。
-          // diffY > 0 意味着 Y 变大，即向下移动 (Down)
-          // diffY < 0 意味着 Y 变小，即向上移动 (Up)
+          // 图像坐标系 Y 向下增加：diffY < 0 向上，diffY > 0 向下
           if (diffY < 0) {
             debugPrint('[Gesture] 👆 UP (Start Timer)');
             _triggerCooldown(GestureType.startTimer);
@@ -231,6 +226,7 @@ class CookingGestureService {
           }
         }
       }
+      // 斜向移动（既非明显水平也非明显垂直）则忽略
     }
   }
 

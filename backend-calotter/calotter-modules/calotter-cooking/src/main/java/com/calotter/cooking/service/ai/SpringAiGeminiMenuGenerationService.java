@@ -167,19 +167,23 @@ public class SpringAiGeminiMenuGenerationService implements AiMenuGenerationServ
             sb.append(",Difficulty:").append(filter.getGenerationSettings().getDifficultyTarget());
         }
         
-        // 8. 厨具列表
+        // 8. 厨具列表（Prompt 层兜底：空列表显式转换为 NONE，防止 LLM 脑补「无特殊限制」）
+        sb.append(",Cookers:[");
         if (filter.getCookers() != null && !filter.getCookers().isEmpty()) {
-            sb.append(",Cookers:[");
             sb.append(String.join(",", filter.getCookers()));
-            sb.append("]");
+        } else {
+            sb.append("NONE (NO HEAT SOURCE AVAILABLE. ONLY RAW/COLD DISHES ALLOWED)");
         }
+        sb.append("]");
         
-        // 9. 调料列表
+        // 9. 调料列表（Prompt 层兜底：空列表显式转换为 NONE）
+        sb.append(",Seasonings:[");
         if (filter.getSeasonings() != null && !filter.getSeasonings().isEmpty()) {
-            sb.append(",Seasonings:[");
             sb.append(String.join(",", filter.getSeasonings()));
-            sb.append("]");
+        } else {
+            sb.append("NONE (NO SPICES AVAILABLE. Rely on ingredient natural flavors)");
         }
+        sb.append("]");
         
         // 10. 饮食限制和偏好
         if (filter.getDietPreferences() != null) {

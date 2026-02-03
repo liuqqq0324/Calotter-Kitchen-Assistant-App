@@ -31,7 +31,7 @@ class SketchyButton extends StatefulWidget {
     this.isFullWidth = false,
     this.fontSize = 20,
     this.backgroundImage,
-    this.layoutHeightFactor = 0.65,
+    this.layoutHeightFactor = 0.55,
   });
 
   @override

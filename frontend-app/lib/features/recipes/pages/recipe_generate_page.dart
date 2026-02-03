@@ -2,12 +2,15 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:personal_sous_chef/app/app_keys.dart';
 import 'package:personal_sous_chef/core/theme/fallback_google_fonts.dart';
 import 'package:personal_sous_chef/data/models/recipe_models.dart';
 import 'package:personal_sous_chef/features/recipes/pages/recipe_filter_page.dart';
 import 'package:personal_sous_chef/features/recipes/pages/recipe_instruction_page.dart';
+import 'package:personal_sous_chef/services/api/inventory_api_service.dart';
 import 'package:personal_sous_chef/services/api/recipe_api_service.dart';
 import 'package:personal_sous_chef/services/business/household_service.dart';
+import 'package:personal_sous_chef/shared/widgets/common/sketchy_button.dart';
 import 'package:personal_sous_chef/shared/widgets/common/sketchy_card.dart';
 import 'package:personal_sous_chef/shared/widgets/common/programmatic_sketchy_widgets.dart';
 
@@ -36,6 +39,132 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
     _fetchMenus(); // 改回普通的批量生成
   }
 
+  /// ✅ 前端拦截：校验当前厨房是否有可用的厨具和调料
+  /// 仅当厨具和调料都为空时拦截，返回 true 表示校验通过
+  Future<bool> _validateKitchenProfile() async {
+    try {
+      final utensils = await InventoryApiService.getUtensils();
+      final spices = await InventoryApiService.getSpices();
+      // 仅统计 isAvailable 为 true 的项（与后端 enrichFilterFromHousehold 逻辑一致）
+      final availableUtensils = utensils
+          .where((u) => u['isAvailable'] != false)
+          .toList();
+      final availableSpices = spices
+          .where((s) => s['isAvailable'] != false)
+          .toList();
+
+      // 仅当两者都为空时拦截
+      if (availableUtensils.isEmpty && availableSpices.isEmpty) {
+        if (mounted) _showMissingProfileDialog();
+        return false;
+      }
+      return true;
+    } catch (e) {
+      debugPrint('[RecipeGeneratePage] Kitchen profile validation error: $e');
+      return true; // 网络错误等不阻止生成，由后端处理
+    }
+  }
+
+  /// 手绘风格的“厨具和调料都为空”拦截弹窗
+  void _showMissingProfileDialog() {
+    const title = 'Kitchen Setup Needed!';
+    const content =
+        "Your kitchen has no cookware or seasonings yet.\n\nIt's hard to cook without pots, pans, salt, or oil!\n\nPlease add some utensils and spices in the Kitchen tab first.";
+
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(24),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+          decoration: ShapeDecoration(
+            color: const Color(0xFFFFFFF0),
+            shape: const SketchyRectBorder(borderWidth: 2.0, wobbleAmount: 2.0),
+            shadows: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 10,
+                offset: const Offset(4, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.warning_amber_rounded,
+                    color: Colors.orange.shade700,
+                    size: 32,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: GoogleFonts.kalam(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF6B4F4F),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                content,
+                style: GoogleFonts.kalam(
+                  fontSize: 16,
+                  color: const Color(0xFF6B4F4F),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 32,
+                      ),
+                    ),
+                    child: Text(
+                      'Later',
+                      style: GoogleFonts.kalam(
+                        fontSize: 18,
+                        color: const Color(0xFF6B4F4F).withOpacity(0.6),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  SketchyButton(
+                    text: 'Go to Kitchen',
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      mainScaffoldKey.currentState?.switchTab(3);
+                      Navigator.pop(context); // 关闭 RecipeGeneratePage
+                    },
+                    backgroundColor: const Color(0xFF6B4F4F),
+                    textColor: Colors.white,
+                    fontSize: 16,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 32,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   /// 批量生成菜单：一次性获取所有菜?
   Future<void> _fetchMenus() async {
     // 如果已经在请求中，直接返回，防止重复请求
@@ -43,6 +172,11 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
       debugPrint('[RecipeGeneratePage] 请求已在进行中，跳过重复请求');
       return;
     }
+
+    // ✅ 前端拦截：厨具或调料为空时弹窗并中断，避免无意义请求
+    final validated = await _validateKitchenProfile();
+    if (!validated) return;
+
     setState(() {
       _menus = [];
       _loading = true;
@@ -56,13 +190,13 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
       if (householdId == null) {
         throw Exception('householdId is required');
       }
-      
+
       // ?使用批量生成，一次性获取所有菜?
       final menus = await RecipeApiService.generateMenus(
         _currentFilter,
         householdId: householdId,
       );
-      
+
       if (mounted) {
         setState(() {
           _menus = menus;
@@ -204,40 +338,40 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
             children: [
               // 如果有筛选条件，就在最上面显示一条橘色小?
               if (summaryText != null) ...[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(8, 12, 8, 4),
-              child: SketchyCard(
-                backgroundColor: terracotta.withOpacity(0.12),
-                borderColor: terracottaDeep,
-                borderWidth: 2.0,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                child: Row(
-                  children: [
-                    Icon(Icons.tune, size: 22, color: terracottaDeep),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        summaryText,
-                        style: GoogleFonts.kalam(
-                          fontSize: 18,
-                          color: terracottaDeep,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 12, 8, 4),
+                  child: SketchyCard(
+                    backgroundColor: terracotta.withOpacity(0.12),
+                    borderColor: terracottaDeep,
+                    borderWidth: 2.0,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 14,
                     ),
-                  ],
+                    child: Row(
+                      children: [
+                        Icon(Icons.tune, size: 22, color: terracottaDeep),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            summaryText,
+                            style: GoogleFonts.kalam(
+                              fontSize: 18,
+                              color: terracottaDeep,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-            ),
-          ],
+              ],
 
               Expanded(
                 child: _menus.isEmpty && _loading
                     ? Center(
-                        child: _ThreeFrameAnimation(
-                          width: 280,
-                          height: 280,
-                        ),
+                        child: _ThreeFrameAnimation(width: 280, height: 280),
                       )
                     : _menus.isEmpty && !_loading && _error != null
                     ? _buildErrorState(theme)
@@ -264,7 +398,10 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
                       // 关键：保留这个背景色，让按钮是实心的，否则透出海浪会看不清
                       backgroundColor: const Color(0xFFFFFFF0),
                       withShadow: true, // 保留阴影，增加立体感
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                       onPressed: _selectedMenuId == null
                           ? null
                           : () {
@@ -313,7 +450,7 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
                   ),
                 ),
                 const SizedBox(width: 16),
-                
+
                 // 2. Generate Again 按钮
                 Expanded(
                   child: SizedBox(
@@ -322,7 +459,10 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
                       // 关键：保留背景色
                       backgroundColor: const Color(0xFFFFFFF0),
                       withShadow: true,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                       onPressed: _loading ? null : _fetchMenus,
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -391,10 +531,7 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
                 const SizedBox(width: 12),
                 Text(
                   'Generating more menus...',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey[600],
-                  ),
+                  style: TextStyle(fontSize: 13, color: Colors.grey[600]),
                 ),
               ],
             ),
@@ -406,10 +543,7 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
   }
 
   /// 单个菜单卡片 UI，使?Today's Intake 样式
-  Widget _buildMenuCard(
-    BuildContext context,
-    RecipeMenuModel menu,
-  ) {
+  Widget _buildMenuCard(BuildContext context, RecipeMenuModel menu) {
     final recipes = menu.recipes;
     if (recipes.isEmpty) return const SizedBox.shrink();
 
@@ -464,243 +598,253 @@ class _RecipeGeneratePageState extends State<RecipeGeneratePage> {
                 ),
                 shadows: [
                   BoxShadow(
-                    color: const Color(0xFF6B4F4F).withOpacity(isSelected ? 0.35 : 0.18),
+                    color: const Color(
+                      0xFF6B4F4F,
+                    ).withOpacity(isSelected ? 0.35 : 0.18),
                     blurRadius: isSelected ? 20 : 10,
-                    offset: isSelected ? const Offset(3, 8) : const Offset(2, 6),
+                    offset: isSelected
+                        ? const Offset(3, 8)
+                        : const Offset(2, 6),
                   ),
                 ],
               ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 内容行：左侧餐盘 + 右侧信息
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 左侧：分类图片或餐盘图标
-                    Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF6B4F4F).withOpacity(0.05),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: const Color(0xFF6B4F4F).withOpacity(0.2),
-                          width: 1.5,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 内容行：左侧餐盘 + 右侧信息
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 左侧：分类图片或餐盘图标
+                      Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF6B4F4F).withOpacity(0.05),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: const Color(0xFF6B4F4F).withOpacity(0.2),
+                            width: 1.5,
+                          ),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: primaryRecipe.category != null
+                              ? Image.asset(
+                                  primaryRecipe.categoryImagePath,
+                                  width: 80,
+                                  height: 80,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    // 如果图片加载失败，显?emoji
+                                    return Center(
+                                      child: Text(
+                                        primaryRecipe.emoji,
+                                        style: const TextStyle(fontSize: 48),
+                                      ),
+                                    );
+                                  },
+                                )
+                              : Center(
+                                  child: Text(
+                                    primaryRecipe.emoji,
+                                    style: const TextStyle(fontSize: 48),
+                                  ),
+                                ),
                         ),
                       ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(10),
-                        child: primaryRecipe.category != null
-                            ? Image.asset(
-                                primaryRecipe.categoryImagePath,
-                                width: 80,
-                                height: 80,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  // 如果图片加载失败，显?emoji
-                                  return Center(
-                                    child: Text(
-                                      primaryRecipe.emoji,
-                                      style: const TextStyle(fontSize: 48),
+                      const SizedBox(width: 16),
+                      // 右侧：三行信?
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // 第一行：Menu 1（显示菜单主题或编号?
+                            Text(
+                              'Menu ${menu.menuId}',
+                              style: GoogleFonts.kalam(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey[800],
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            // 第二行：菜品名（支持多道菜显示）
+                            Text(
+                              recipeTitles.length == 1
+                                  ? recipeTitles.first
+                                  : recipeTitles.join(' · '), // 使用 · 分隔多道?
+                              style: GoogleFonts.kalam(
+                                fontSize: 18,
+                                color: ink,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              maxLines: recipeTitles.length == 1
+                                  ? 2
+                                  : 3, // 多道菜时允许更多?
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 8),
+                            // 第三行：难度、时间和卡路?
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                _buildSketchyDifficultyBadge(
+                                  label: difficultyLabel.toUpperCase(),
+                                  color: difficultyColor,
+                                ),
+                                const SizedBox(width: 12),
+                                Icon(
+                                  Icons.access_time,
+                                  size: 16,
+                                  color: ink.withOpacity(0.65),
+                                ),
+                                const SizedBox(width: 4),
+                                Flexible(
+                                  child: Text(
+                                    '~ ${menu.totalCookingTimeMin} min',
+                                    style: GoogleFonts.kalam(
+                                      fontSize: 15,
+                                      color: ink.withOpacity(0.8),
                                     ),
-                                  );
-                                },
-                              )
-                            : Center(
-                                child: Text(
-                                  primaryRecipe.emoji,
-                                  style: const TextStyle(fontSize: 48),
-                                ),
-                              ),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    // 右侧：三行信?
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // 第一行：Menu 1（显示菜单主题或编号?
-                          Text(
-                            'Menu ${menu.menuId}',
-                            style: GoogleFonts.kalam(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.grey[800],
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          // 第二行：菜品名（支持多道菜显示）
-                          Text(
-                            recipeTitles.length == 1
-                                ? recipeTitles.first
-                                : recipeTitles.join(' · '), // 使用 · 分隔多道?
-                            style: GoogleFonts.kalam(
-                              fontSize: 18,
-                              color: ink,
-                              fontWeight: FontWeight.w600,
-                            ),
-                            maxLines: recipeTitles.length == 1 ? 2 : 3, // 多道菜时允许更多?
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 8),
-                          // 第三行：难度、时间和卡路?
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              _buildSketchyDifficultyBadge(
-                                label: difficultyLabel.toUpperCase(),
-                                color: difficultyColor,
-                              ),
-                              const SizedBox(width: 12),
-                              Icon(
-                                Icons.access_time,
-                                size: 16,
-                                color: ink.withOpacity(0.65),
-                              ),
-                              const SizedBox(width: 4),
-                              Flexible(
-                                child: Text(
-                                  '~ ${menu.totalCookingTimeMin} min',
-                                  style: GoogleFonts.kalam(
-                                    fontSize: 15,
-                                    color: ink.withOpacity(0.8),
+                                    overflow: TextOverflow.ellipsis,
                                   ),
-                                  overflow: TextOverflow.ellipsis,
                                 ),
-                              ),
-                              const SizedBox(width: 12),
-                              Icon(
-                                Icons.local_fire_department,
-                                size: 16,
-                                color: ink.withOpacity(0.65),
-                              ),
-                              const SizedBox(width: 4),
-                              Flexible(
-                                child: Text(
-                                  '${menu.totalCalories.toStringAsFixed(0)} kcal',
-                                  style: GoogleFonts.kalam(
-                                    fontSize: 15,
-                                    color: ink.withOpacity(0.8),
+                                const SizedBox(width: 12),
+                                Icon(
+                                  Icons.local_fire_department,
+                                  size: 16,
+                                  color: ink.withOpacity(0.65),
+                                ),
+                                const SizedBox(width: 4),
+                                Flexible(
+                                  child: Text(
+                                    '${menu.totalCalories.toStringAsFixed(0)} kcal',
+                                    style: GoogleFonts.kalam(
+                                      fontSize: 15,
+                                      color: ink.withOpacity(0.8),
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
                                   ),
-                                  overflow: TextOverflow.ellipsis,
                                 ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                // 按钮?
-                Row(
-                  children: [
-                    Expanded(
-                      child: SizedBox(
-                        height: 60,
-                        child: _buildSketchyButton(
-                          onPressed: () {
-                            setState(() {
-                              _selectedMenuId = _selectedMenuId == menu.menuId
-                                  ? null
-                                  : menu.menuId;
-                            });
-                          },
-                          isSelected: isSelected,
-                          child: Text(
-                            isSelected ? 'Selected' : 'Select',
-                            style: GoogleFonts.kalam(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: isSelected
-                                  ? const Color(0xFF6B4F4F)
-                                  : const Color(0xFF6B4F4F).withOpacity(0.7),
+                              ],
                             ),
-                            textAlign: TextAlign.center,
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 1,
-                          ),
+                          ],
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: SizedBox(
-                        height: 60,
-                        child: _buildSketchyButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => RecipeInstructionPage(
-                                  menu: menu,
-                                  initialRecipeIndex: 0,
-                                  filter: widget.filter,
-                                  isViewMode: true,
-                                ),
-                              ),
-                            );
-                          },
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.menu_book,
-                                size: 20,
-                                color: const Color(0xFF6B4F4F).withOpacity(0.7),
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                'View',
-                                style: GoogleFonts.kalam(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF6B4F4F).withOpacity(0.7),
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 1,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          // 2. 胶带效果
-          Positioned(
-            top: 4,
-            child: Transform.rotate(
-              angle: -0.05, // 轻微旋转，更自然
-              child: Container(
-                width: 85,
-                height: 18,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFF8DC).withOpacity(0.4),
-                  borderRadius: BorderRadius.circular(2),
-                  border: Border.all(
-                    color: const Color(0xFFD4AF37).withOpacity(0.3),
-                    width: 0.5,
+                    ],
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 2,
-                      offset: const Offset(0, 1),
-                    ),
-                  ],
-                ),
-                child: CustomPaint(painter: _TapeTexturePainter()),
+                  const SizedBox(height: 16),
+                  // 按钮?
+                  Row(
+                    children: [
+                      Expanded(
+                        child: SizedBox(
+                          height: 60,
+                          child: _buildSketchyButton(
+                            onPressed: () {
+                              setState(() {
+                                _selectedMenuId = _selectedMenuId == menu.menuId
+                                    ? null
+                                    : menu.menuId;
+                              });
+                            },
+                            isSelected: isSelected,
+                            child: Text(
+                              isSelected ? 'Selected' : 'Select',
+                              style: GoogleFonts.kalam(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: isSelected
+                                    ? const Color(0xFF6B4F4F)
+                                    : const Color(0xFF6B4F4F).withOpacity(0.7),
+                              ),
+                              textAlign: TextAlign.center,
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: SizedBox(
+                          height: 60,
+                          child: _buildSketchyButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => RecipeInstructionPage(
+                                    menu: menu,
+                                    initialRecipeIndex: 0,
+                                    filter: widget.filter,
+                                    isViewMode: true,
+                                  ),
+                                ),
+                              );
+                            },
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.menu_book,
+                                  size: 20,
+                                  color: const Color(
+                                    0xFF6B4F4F,
+                                  ).withOpacity(0.7),
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'View',
+                                  style: GoogleFonts.kalam(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: const Color(
+                                      0xFF6B4F4F,
+                                    ).withOpacity(0.7),
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-          ),
-        ],
+            // 2. 胶带效果
+            Positioned(
+              top: 4,
+              child: Transform.rotate(
+                angle: -0.05, // 轻微旋转，更自然
+                child: Container(
+                  width: 85,
+                  height: 18,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF8DC).withOpacity(0.4),
+                    borderRadius: BorderRadius.circular(2),
+                    border: Border.all(
+                      color: const Color(0xFFD4AF37).withOpacity(0.3),
+                      width: 0.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 2,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
+                  ),
+                  child: CustomPaint(painter: _TapeTexturePainter()),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -898,7 +1042,7 @@ class _SketchyButtonBorderPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final path = _createSketchyPath(size);
-    
+
     // 1. 先画背景（如果有?
     if (backgroundColor != null) {
       final fillPaint = Paint()
@@ -1071,15 +1215,16 @@ class _SketchyButtonWithAnimationState
 
   @override
   Widget build(BuildContext context) {
-    final borderColor = const Color(0xFF6B4F4F).withOpacity(
-      _isPressed ? 1.0 : 0.7,
-    );
-    
+    final borderColor = const Color(
+      0xFF6B4F4F,
+    ).withOpacity(_isPressed ? 1.0 : 0.7);
+
     // 计算 Padding：如果有传入则用传入的，否则用默认较小的?
     // 默认值：vertical 12, horizontal 20
-    final effectivePadding = widget.padding ?? 
+    final effectivePadding =
+        widget.padding ??
         const EdgeInsets.symmetric(horizontal: 20, vertical: 12);
-    
+
     return Material(
       color: Colors.transparent,
       child: GestureDetector(
@@ -1099,13 +1244,15 @@ class _SketchyButtonWithAnimationState
             // 移除这里?color，因为我们用 Painter 画背?
             borderRadius: BorderRadius.circular(4),
             // 只有当开启阴影且未按下时显示阴影（模拟按压感?
-            boxShadow: (widget.withShadow && !_isPressed) ? [
-              BoxShadow(
-                color: const Color(0xFF6B4F4F).withOpacity(0.15),
-                offset: const Offset(2, 3), // 阴影偏移
-                blurRadius: 4,
-              )
-            ] : null,
+            boxShadow: (widget.withShadow && !_isPressed)
+                ? [
+                    BoxShadow(
+                      color: const Color(0xFF6B4F4F).withOpacity(0.15),
+                      offset: const Offset(2, 3), // 阴影偏移
+                      blurRadius: 4,
+                    ),
+                  ]
+                : null,
           ),
           child: CustomPaint(
             painter: _SketchyButtonBorderPainter(
@@ -1272,14 +1419,16 @@ class _GridPaperPainter extends CustomPainter {
 
     // 2. 绘制背景
     final backgroundPaint = Paint()
-      ..color = const Color(0xFFF8F8F5) // 网格纸背景色
+      ..color =
+          const Color(0xFFF8F8F5) // 网格纸背景色
       ..style = PaintingStyle.fill;
 
     canvas.drawPath(path, backgroundPaint);
 
     // 3. 绘制网格?
     final gridPaint = Paint()
-      ..color = const Color(0xFFE3E6E8) // 网格线颜?
+      ..color =
+          const Color(0xFFE3E6E8) // 网格线颜?
       ..strokeWidth = 1.0
       ..style = PaintingStyle.stroke;
 
@@ -1331,7 +1480,8 @@ class _GridPaperPainter extends CustomPainter {
     // 右侧边缘
     for (double y = step; y < effectiveHeight; y += step) {
       final noise = random.nextDouble() * edgeNoise * 2 - edgeNoise;
-      final x = (effectiveWidth + noise.clamp(-edgeNoise, edgeNoise)).toDouble();
+      final x = (effectiveWidth + noise.clamp(-edgeNoise, edgeNoise))
+          .toDouble();
       path.lineTo(x, y);
     }
     path.lineTo(effectiveWidth, effectiveHeight);
@@ -1339,7 +1489,8 @@ class _GridPaperPainter extends CustomPainter {
     // 底部边缘
     for (double x = effectiveWidth - step; x > 0; x -= step) {
       final noise = random.nextDouble() * edgeNoise * 2 - edgeNoise;
-      final y = (effectiveHeight + noise.clamp(-edgeNoise, edgeNoise)).toDouble();
+      final y = (effectiveHeight + noise.clamp(-edgeNoise, edgeNoise))
+          .toDouble();
       path.lineTo(x, y);
     }
     path.lineTo(0, effectiveHeight);
@@ -1364,10 +1515,7 @@ class _ThreeFrameAnimation extends StatefulWidget {
   final double? width;
   final double? height;
 
-  const _ThreeFrameAnimation({
-    this.width,
-    this.height,
-  });
+  const _ThreeFrameAnimation({this.width, this.height});
 
   @override
   State<_ThreeFrameAnimation> createState() => _ThreeFrameAnimationState();
@@ -1402,7 +1550,7 @@ class _ThreeFrameAnimationState extends State<_ThreeFrameAnimation> {
   @override
   Widget build(BuildContext context) {
     final framePath = 'assets/dish_category/frame$_currentFrame.png';
-    
+
     return Image.asset(
       framePath,
       width: widget.width,

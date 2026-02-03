@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 // Modified by Chase: Fixed import paths after moving to ums/auth/ folder / 由 Chase 修改：移动到 ums/auth/ 文件夹后修复导入路径
 // Need to go up 3 levels to reach lib/main.dart and lib/widgets/ / 需要向上3级才能到达 lib/main.dart 和 lib/widgets/
+import '../../../app/app_keys.dart';
 import '../../../navigation/main_scaffold.dart'; // ⚠️ 已更新：MainScaffold 从 main.dart 移至 navigation/main_scaffold.dart
 import '../../../shared/widgets/common/video_background.dart';
 import '../../../shared/widgets/common/sketchy_button.dart';
@@ -65,7 +66,9 @@ class _LoginPageState extends State<LoginPage> {
         // 使用 pushAndRemoveUntil 完全移除 LandingPage，确保返回键不会回到 LandingPage
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (context) => const MainScaffold()),
+          MaterialPageRoute(
+            builder: (context) => MainScaffold(key: mainScaffoldKey),
+          ),
           (route) => false, // 移除所有之前的路由（包括 LandingPage）
         );
       } else {

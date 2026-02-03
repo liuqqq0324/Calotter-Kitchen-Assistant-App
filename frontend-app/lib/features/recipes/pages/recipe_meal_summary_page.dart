@@ -5,6 +5,7 @@ import 'package:personal_sous_chef/core/theme/fallback_google_fonts.dart';
 import 'package:personal_sous_chef/data/stores/consumption_history_store.dart';
 import 'package:personal_sous_chef/data/models/recipe_models.dart';
 import 'package:personal_sous_chef/services/cooking/cooking_api_service.dart';
+import 'package:personal_sous_chef/app/app_keys.dart';
 import 'package:personal_sous_chef/navigation/main_scaffold.dart'; // ⚠️ 已更新：MainScaffold 从 main.dart 移至 navigation/main_scaffold.dart
 import 'package:personal_sous_chef/shared/widgets/common/programmatic_sketchy_widgets.dart';
 
@@ -295,7 +296,9 @@ class _RecipeMealSummaryPageState extends State<RecipeMealSummaryPage> {
     // 保存记录后直接回到 My Recipes（Recipes tab），而不是弹回 LandingPage 或 InstructionPage。
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (_) => const MainScaffold(initialIndex: 1)),
+      MaterialPageRoute(
+        builder: (_) => MainScaffold(key: mainScaffoldKey, initialIndex: 1),
+      ),
       (route) => false,
     );
   }

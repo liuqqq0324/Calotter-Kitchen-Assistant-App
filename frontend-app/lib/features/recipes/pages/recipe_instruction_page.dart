@@ -54,7 +54,8 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
   // Voice assistant
   final CookingVoiceAssistant _voiceAssistant = CookingVoiceAssistant();
   bool _isVoiceModeActive = false;
-  final GlobalKey<OtterFloatingNavState> _localOtterKey = GlobalKey<OtterFloatingNavState>();
+  final GlobalKey<OtterFloatingNavState> _localOtterKey =
+      GlobalKey<OtterFloatingNavState>();
   String _lastRecognizedWords = "";
   double _currentSoundLevel = 0.0; // 实时音量分贝
   IconData? _feedbackIcon;
@@ -62,11 +63,15 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
   Timer? _feedbackTimer;
   Timer? _voiceReconnectTimer;
   Timer? _voiceHeartbeatTimer; // 语音守护进程计时器
+  DateTime? _lastSpeechTime; // 最后一次听到声音/结果的时间（用于守护进程静默超时）
 
   // Gesture control (Update)
   final CookingGestureService _gestureService = CookingGestureService();
   bool _isGestureModeActive = false;
   bool _isGestureServiceInitialized = false; // 标记服务是否已经初始化
+  // 手势防抖冷却：两次有效手势之间最小间隔（可改为 1000/2000 微调）
+  final Duration _gestureCooldown = const Duration(milliseconds: 1500);
+  DateTime? _lastGestureTime;
 
   // Total cooking duration timer (Per-dish)
   final Map<int, Duration> _dishTotalDurations = {};
@@ -148,7 +153,7 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
     try {
       await WakelockPlus.enable();
       debugPrint('[RecipePage] ✅ 屏幕常亮已启用');
-      
+
       // 延迟显示Toast，确保页面已经完全加载
       Future.delayed(const Duration(milliseconds: 500), () {
         if (mounted) {
@@ -286,21 +291,21 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
     _gestureService.dispose(); // ✅ 释放手势服务资源
     _tabController.dispose(); // ✅ Dispose TabController
     _pageController?.dispose(); // ✅ Dispose PageController（可空类型，需要安全调用）
-    
+
     // ✅ 取消所有菜品的总计时器
     for (final timer in _dishTotalTimers.values) {
       timer.cancel();
     }
     _dishTotalTimers.clear();
-    
+
     // 清理所有 GlobalKeys
     _stepKeys.clear();
-    
+
     // 只在烹饪模式下禁用屏幕常亮
     if (!widget.isViewMode) {
       _disableWakelock();
     }
-    
+
     debugPrint('[RecipePage] Recipe instruction page disposed');
     super.dispose();
   }
@@ -378,7 +383,7 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
       } else {
         // 标记为完成，停止该菜品所有步骤的计时器
         _completedDishes.add(_currentIndex);
-        
+
         // 停止当前菜品所有步骤的计时器
         final recipe = widget.menu.recipes[_currentIndex];
         for (final step in recipe.steps) {
@@ -427,7 +432,7 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
     if (_completedDishes.contains(dishIndex)) {
       return;
     }
-    
+
     final key = _stepKey(dishIndex, stepNumber);
     final totalSeconds = (minutes <= 0 ? 1 : minutes) * 60;
     final startFrom = _remainingSeconds[key] ?? totalSeconds;
@@ -533,21 +538,21 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
   void _scrollToStep(int stepNumber) {
     // 检查widget是否仍然mounted
     if (!mounted) return;
-    
+
     // 使用当前dishIndex和stepNumber构建唯一key
     final keyString = _stepKey(_currentIndex, stepNumber);
     final key = _stepKeys[keyString];
-    
+
     if (key != null && key.currentContext != null) {
       final context = key.currentContext!;
-      
+
       // 检查context是否仍然有效
       if (!context.mounted) return;
-      
+
       // 尝试获取Scrollable，如果不存在则返回
       final scrollable = Scrollable.maybeOf(context);
       if (scrollable == null) return;
-      
+
       try {
         // 使用try-catch捕获所有可能的滚动错误
         Scrollable.ensureVisible(
@@ -595,7 +600,9 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
                 _isVoiceModeActive ? Icons.mic : Icons.mic_none,
                 color: _isVoiceModeActive ? Colors.red : null,
               ),
-              tooltip: _isVoiceModeActive ? 'Exit Voice Mode' : 'Enter Voice Mode',
+              tooltip: _isVoiceModeActive
+                  ? 'Exit Voice Mode'
+                  : 'Enter Voice Mode',
             ),
           ],
         );
@@ -606,11 +613,7 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
   /// 处理语音命令
   Future<void> _handleVoiceCommand(String commandText) async {
     final commandType = _voiceAssistant.recognizeCommand(commandText);
-    
-    // 清除 HUD 文字，准备下一次识别
-    setState(() {
-      _lastRecognizedWords = "";
-    });
+    // HUD 文字由 onResult 统一更新为最终识别结果，此处不再清除
 
     switch (commandType) {
       case VoiceCommandType.nextStep:
@@ -924,6 +927,19 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
       _gestureService.startListening((type) {
         if (!mounted) return;
 
+        // 防抖：距上次有效手势不足冷却时间则忽略，防止一次挥手触发多次
+        final now = DateTime.now();
+        if (_lastGestureTime != null) {
+          final difference = now.difference(_lastGestureTime!);
+          if (difference < _gestureCooldown) {
+            debugPrint(
+              '[RecipePage] Gesture ignored (Cooling down): ${difference.inMilliseconds}ms',
+            );
+            return;
+          }
+        }
+        _lastGestureTime = now;
+
         switch (type) {
           case GestureType.nextStep:
             // ➡️ 右挥：下一步
@@ -950,39 +966,43 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
               // 简单逻辑：如果有计时器在跑就暂停，否则就开始
               final key = _stepKey(_currentIndex, currentStep.stepNumber);
               if (_runningTimers.containsKey(key)) {
-                 _pauseTimer(_currentIndex, currentStep.stepNumber);
-                 debugPrint('[RecipePage] Gesture: Pause Timer');
-                 ScaffoldMessenger.of(context).showSnackBar(
-                   SnackBar(
-                     content: const Text('⏸️ Timer Paused'),
-                     duration: const Duration(milliseconds: 500),
-                     behavior: SnackBarBehavior.floating,
-                     margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
-                   ),
-                 );
+                _pauseTimer(_currentIndex, currentStep.stepNumber);
+                debugPrint('[RecipePage] Gesture: Pause Timer');
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('⏸️ Timer Paused'),
+                    duration: const Duration(milliseconds: 500),
+                    behavior: SnackBarBehavior.floating,
+                    margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+                  ),
+                );
               } else {
-                 // 如果是暂停状态，继续；否则重新开始
-                 // 这里简单处理为开始
-                 _startTimerForStep(_currentIndex, currentStep.stepNumber, currentStep.stepTimeMin);
-                 debugPrint('[RecipePage] Gesture: Start Timer');
-                 ScaffoldMessenger.of(context).showSnackBar(
-                   SnackBar(
-                     content: const Text('⏳ Timer Started'),
-                     duration: const Duration(milliseconds: 500),
-                     behavior: SnackBarBehavior.floating,
-                     margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
-                   ),
-                 );
+                // 如果是暂停状态，继续；否则重新开始
+                // 这里简单处理为开始
+                _startTimerForStep(
+                  _currentIndex,
+                  currentStep.stepNumber,
+                  currentStep.stepTimeMin,
+                );
+                debugPrint('[RecipePage] Gesture: Start Timer');
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('⏳ Timer Started'),
+                    duration: const Duration(milliseconds: 500),
+                    behavior: SnackBarBehavior.floating,
+                    margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+                  ),
+                );
               }
             } else {
-                 ScaffoldMessenger.of(context).showSnackBar(
-                   SnackBar(
-                     content: const Text('No timer for this step'),
-                     duration: const Duration(milliseconds: 500),
-                     behavior: SnackBarBehavior.floating,
-                     margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
-                   ),
-                 );
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Text('No timer for this step'),
+                  duration: const Duration(milliseconds: 500),
+                  behavior: SnackBarBehavior.floating,
+                  margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+                ),
+              );
             }
             break;
 
@@ -1000,7 +1020,7 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
                   margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
                 ),
               );
-              
+
               // 自动跳到下一步? 可选
               // final next = _getNextStep();
               // if (next != null) _jumpToStep(next.stepNumber);
@@ -1028,46 +1048,63 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
     _voiceAssistant.startListening(
       onResult: (text) {
         debugPrint('[RecipePage] ✅ 监听到最终结果: $text');
-        setState(() {
-          _lastRecognizedWords = text;
-          _currentSoundLevel = 0.0; // 识别完成后归零
-        });
+        _lastSpeechTime = DateTime.now();
+
+        // 1. 先处理业务逻辑
         _handleVoiceCommand(text);
-        
-        // 激进重连：识别成功后立即重启监听循环
+
+        // 2. 再更新 UI 状态（放在逻辑处理后）
+        if (mounted) {
+          setState(() {
+            _lastRecognizedWords = text;
+            _currentSoundLevel = 0.0;
+          });
+        }
+
+        // 3. 触发重连（onResult 表示本次会话结束，必须重启才能听下一句）
         _reconnectVoiceDelayed();
       },
       onPartialResult: (text) {
-        if (mounted) {
+        _lastSpeechTime = DateTime.now();
+        if (mounted && _lastRecognizedWords != text) {
           setState(() {
             _lastRecognizedWords = text;
           });
         }
       },
       onSoundLevelUpdate: (level) {
-        // 关键：实时同步音量分贝，用于驱动声波
+        // 节流：仅当变化超过阈值时更新，避免 setState 过于频繁阻塞主线程
         if (mounted && _isVoiceModeActive) {
-          setState(() {
-            _currentSoundLevel = level;
-          });
+          if ((_currentSoundLevel - level).abs() > 0.5) {
+            setState(() {
+              _currentSoundLevel = level;
+            });
+          }
         }
       },
       onError: (error) {
         debugPrint('[RecipePage] 语音识别错误: $error');
-        // 几乎所有非永久性错误都尝试自动重连，以保证持续监听
-        if (_isVoiceModeActive && !error.contains('error_permission')) {
+        if (!_isVoiceModeActive) return;
+        if (error.contains('error_permission')) {
+          if (mounted) _toggleVoiceMode();
+          _showOtterMessage("Mic permission lost! 🚫");
+        } else {
           _reconnectVoiceDelayed();
         }
       },
     );
   }
 
+  /// 延迟重连：先显式 stop 再 start，避免底层麦克风未释放导致死锁
   void _reconnectVoiceDelayed() {
     _voiceReconnectTimer?.cancel();
     if (!_isVoiceModeActive) return;
-    
-    _voiceReconnectTimer = Timer(const Duration(milliseconds: 300), () {
-      if (mounted && _isVoiceModeActive && !_voiceAssistant.isListening) {
+
+    // 1000ms 给系统麦克风释放资源的时间，避免 "Busy" / "Already listening"
+    _voiceReconnectTimer = Timer(const Duration(milliseconds: 1000), () {
+      if (!mounted || !_isVoiceModeActive) return;
+      _voiceAssistant.stopListening();
+      if (mounted && _isVoiceModeActive) {
         debugPrint('[RecipeGuard] 正在重启监听循环...');
         _startVoiceListening();
       }
@@ -1082,10 +1119,22 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
         timer.cancel();
         return;
       }
-      
-      if (!_voiceAssistant.isListening) {
-        debugPrint('[VoiceHeartbeat] 💓 检测到麦克风静默，正在强制唤醒...');
-        _startVoiceListening();
+
+      final bool isActuallyListening = _voiceAssistant.isListening;
+
+      // 策略 1：插件报告未在听 -> 使用带 stop 的安全重连
+      if (!isActuallyListening) {
+        debugPrint('[VoiceHeartbeat] 💓 检测到麦克风状态为关闭，正在强制唤醒...');
+        _reconnectVoiceDelayed();
+        return;
+      }
+
+      // 策略 2（可选）：长时间无响应时主动重启以防假死
+      final diff = DateTime.now().difference(_lastSpeechTime ?? DateTime.now());
+      if (diff.inSeconds > 20) {
+        debugPrint('[VoiceHeartbeat] 💓 20秒无响应，主动重启服务以防假死...');
+        _reconnectVoiceDelayed();
+        _lastSpeechTime = DateTime.now();
       }
     });
   }
@@ -1105,14 +1154,18 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
     setState(() {
       final isRunning = _isDishTotalTimerRunning[index] ?? false;
       _isDishTotalTimerRunning[index] = !isRunning;
-      
+
       if (_isDishTotalTimerRunning[index] == true) {
         _dishTotalTimers[index]?.cancel();
-        _dishTotalTimers[index] = Timer.periodic(const Duration(seconds: 1), (timer) {
+        _dishTotalTimers[index] = Timer.periodic(const Duration(seconds: 1), (
+          timer,
+        ) {
           if (mounted) {
             setState(() {
-              final currentDuration = _dishTotalDurations[index] ?? Duration.zero;
-              _dishTotalDurations[index] = currentDuration + const Duration(seconds: 1);
+              final currentDuration =
+                  _dishTotalDurations[index] ?? Duration.zero;
+              _dishTotalDurations[index] =
+                  currentDuration + const Duration(seconds: 1);
             });
           } else {
             timer.cancel();
@@ -1134,7 +1187,10 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
   }
 
   /// 显示动作反馈
-  void _showActionFeedback(IconData icon, {Color color = const Color(0xFF6B4F4F)}) {
+  void _showActionFeedback(
+    IconData icon, {
+    Color color = const Color(0xFF6B4F4F),
+  }) {
     _feedbackTimer?.cancel();
     setState(() {
       _feedbackIcon = icon;
@@ -1150,7 +1206,10 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
   }
 
   /// ✅ 让小 Otter 说话
-  void _showOtterMessage(String message, {OtterTooltipType type = OtterTooltipType.actionHint}) {
+  void _showOtterMessage(
+    String message, {
+    OtterTooltipType type = OtterTooltipType.actionHint,
+  }) {
     _localOtterKey.currentState?.showMessage(message, type: type);
   }
 
@@ -1160,16 +1219,12 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
     final duration = _dishTotalDurations[index] ?? Duration.zero;
     final isRunning = _isDishTotalTimerRunning[index] ?? false;
     final ink = const Color(0xFF6B4F4F);
-    
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          Icon(
-            Icons.timer_outlined,
-            color: ink.withOpacity(0.8),
-            size: 24,
-          ),
+          Icon(Icons.timer_outlined, color: ink.withOpacity(0.8), size: 24),
           const SizedBox(width: 12),
           Text(
             'Cooking Time: ${_formatDuration(duration)}',
@@ -1199,101 +1254,101 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
     final recipe = widget.menu.recipes[index];
     final steps = recipe.steps;
     final theme = Theme.of(context);
-      
-      return SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // 头部：emoji + 简介 + 时间卡路里
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    color: Colors.transparent,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: recipe.category != null
-                        ? Image.asset(
-                            recipe.categoryImagePath,
-                            width: 64,
-                            height: 64,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              // 如果图片加载失败，显示 emoji
-                              return Center(
-                                child: Text(
-                                  recipe.emoji,
-                                  style: const TextStyle(fontSize: 34),
-                                ),
-                              );
-                            },
-                          )
-                        : Center(
-                            child: Text(
-                              recipe.emoji,
-                              style: const TextStyle(fontSize: 34),
-                            ),
-                          ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        recipe.title,
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 24, // 增大标题字体
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.access_time,
-                            size: 16, // 增大图标
-                            color: Colors.grey[600],
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${recipe.cookingTimeMin} min',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: Colors.grey[700],
-                              fontSize: 15, // 增大字体
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Icon(
-                            Icons.local_fire_department,
-                            size: 16, // 增大图标
-                            color: Colors.grey[600],
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${recipe.totalCaloriesEstimate.toStringAsFixed(0)} kcal',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: Colors.grey[700],
-                              fontSize: 15, // 增大字体
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
 
-            const SizedBox(height: 20),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // 头部：emoji + 简介 + 时间卡路里
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: recipe.category != null
+                      ? Image.asset(
+                          recipe.categoryImagePath,
+                          width: 64,
+                          height: 64,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            // 如果图片加载失败，显示 emoji
+                            return Center(
+                              child: Text(
+                                recipe.emoji,
+                                style: const TextStyle(fontSize: 34),
+                              ),
+                            );
+                          },
+                        )
+                      : Center(
+                          child: Text(
+                            recipe.emoji,
+                            style: const TextStyle(fontSize: 34),
+                          ),
+                        ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      recipe.title,
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 24, // 增大标题字体
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.access_time,
+                          size: 16, // 增大图标
+                          color: Colors.grey[600],
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${recipe.cookingTimeMin} min',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: Colors.grey[700],
+                            fontSize: 15, // 增大字体
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Icon(
+                          Icons.local_fire_department,
+                          size: 16, // 增大图标
+                          color: Colors.grey[600],
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${recipe.totalCaloriesEstimate.toStringAsFixed(0)} kcal',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: Colors.grey[700],
+                            fontSize: 15, // 增大字体
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 20),
 
           // 可折叠的原材料列表 - 使用与 home 页一致的便签样式（带胶带和锯齿边框）
           Stack(
@@ -1327,7 +1382,8 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
                     InkWell(
                       onTap: () {
                         setState(() {
-                          final current = _ingredientsExpandedByIndex[index] ?? true;
+                          final current =
+                              _ingredientsExpandedByIndex[index] ?? true;
                           _ingredientsExpandedByIndex[index] = !current;
                         });
                       },
@@ -1568,11 +1624,14 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
                         physics: const PageScrollPhysics(),
                         onPageChanged: (index) {
                           // 清理旧recipe的keys，避免GlobalKey冲突
-                          _stepKeys.removeWhere((key, _) => key.startsWith('${_currentIndex}:'));
-                          
+                          _stepKeys.removeWhere(
+                            (key, _) => key.startsWith('${_currentIndex}:'),
+                          );
+
                           setState(() {
                             _currentIndex = index;
-                            _currentFocusedStepNumber = 1; // Reset to first step
+                            _currentFocusedStepNumber =
+                                1; // Reset to first step
                           });
                           // 烹饪模式：滑动食谱后自动滚动到第一个步骤
                           if (!widget.isViewMode) {
@@ -1618,7 +1677,7 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
                   ),
                 ),
               ),
-            
+
             // Visual HUD (Listening words)
             if (_isVoiceModeActive)
               Positioned(
@@ -1627,7 +1686,10 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
                 bottom: 100, // 稍微上提一点，避开底部按钮
                 child: Center(
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 10,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.black54,
                       borderRadius: BorderRadius.circular(20),
@@ -1635,7 +1697,11 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.mic, color: Colors.redAccent, size: 16),
+                        const Icon(
+                          Icons.mic,
+                          color: Colors.redAccent,
+                          size: 16,
+                        ),
                         const SizedBox(width: 8),
                         _VoiceWaveform(
                           isListening: _isVoiceModeActive,
@@ -1643,7 +1709,9 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
                         ),
                         const SizedBox(width: 12),
                         Text(
-                          _lastRecognizedWords.isEmpty ? "Listening..." : _lastRecognizedWords,
+                          _lastRecognizedWords.isEmpty
+                              ? "Listening..."
+                              : _lastRecognizedWords,
                           style: GoogleFonts.kalam(
                             color: Colors.white,
                             fontSize: 16,
@@ -1672,16 +1740,18 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
                     )
                   : null)
             : _buildBottomControls(context),
-        floatingActionButton: !widget.isViewMode ? OtterFloatingNav(
-          key: _localOtterKey,
-          selectedIndex: 1, // Cooking is in Recipes tab
-          isListening: _isVoiceModeActive,
-          onItemTapped: (index) {
-            // 在烹饪模式点击导航，通常是想切换页面
-            Navigator.pop(context);
-            mainScaffoldKey.currentState?.switchTab(index);
-          },
-        ) : null,
+        floatingActionButton: !widget.isViewMode
+            ? OtterFloatingNav(
+                key: _localOtterKey,
+                selectedIndex: 1, // Cooking is in Recipes tab
+                isListening: _isVoiceModeActive,
+                onItemTapped: (index) {
+                  // 在烹饪模式点击导航，通常是想切换页面
+                  Navigator.pop(context);
+                  mainScaffoldKey.currentState?.switchTab(index);
+                },
+              )
+            : null,
         floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       ),
     );
@@ -1719,11 +1789,12 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
 
     // 烹饪模式才显示指针（当前步骤高亮）；View Mode 模式不显示
     final showPointer = !widget.isViewMode;
-    final isFocused = showPointer && _currentFocusedStepNumber == step.stepNumber;
+    final isFocused =
+        showPointer && _currentFocusedStepNumber == step.stepNumber;
 
     // 为每个步骤分配或获取一个 GlobalKey (用于语音/跳转时的滚动)
     final stepKeyString = _stepKey(effectiveDishIndex, step.stepNumber);
-    
+
     final existingKey = _stepKeys[stepKeyString];
     if (existingKey == null) {
       _stepKeys[stepKeyString] = GlobalKey();
@@ -1847,7 +1918,9 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: isCompleted ? Colors.grey[400] : null,
                         fontSize: 16,
-                        fontWeight: isFocused ? FontWeight.w600 : FontWeight.normal,
+                        fontWeight: isFocused
+                            ? FontWeight.w600
+                            : FontWeight.normal,
                       ),
                     ),
                   ),
@@ -1894,7 +1967,7 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
   }) {
     // 如果菜品已完成，计时器不可交互
     final isDishCompleted = _completedDishes.contains(dishIndex);
-    
+
     // State-specific styling
     Color backgroundColor;
     Color borderColor;
@@ -1911,7 +1984,7 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
       iconColor = Colors.grey.shade600;
       textColor = Colors.grey.shade700;
       icon = Icons.timer_off;
-      
+
       if (remaining != null) {
         if (remaining <= 0) {
           final overtimeSeconds = -remaining;
@@ -2696,10 +2769,10 @@ class _VoiceWaveform extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const int barCount = 7;
-    
+
     // 将插件返回的 soundLevel (一般是 -2 到 10) 映射到 0.0 - 1.0 的比例
     // 基础补偿，确保有微弱跳动
-    final double normalizedLevel = isListening 
+    final double normalizedLevel = isListening
         ? ((soundLevel + 2) / 12).clamp(0.05, 1.0)
         : 0.0;
 
@@ -2708,36 +2781,31 @@ class _VoiceWaveform extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.center,
-        children: List.generate(
-          barCount,
-          (index) {
-            // 为不同位置的条设置不同的灵敏度权重，形成中间高两边低的波浪感
-            final double weight = 1.0 - ((index - (barCount - 1) / 2).abs() / (barCount / 2));
-            final double heightScale = normalizedLevel * weight;
-            
-            // 基础高度 4，最大跳动高度 24
-            final double height = 4 + (24 * heightScale);
-            
-            return AnimatedContainer(
-              duration: const Duration(milliseconds: 80), // 极短的延迟实现灵敏响应
-              width: 3,
-              height: height,
-              margin: const EdgeInsets.symmetric(horizontal: 1.5),
-              decoration: BoxDecoration(
-                color: isListening 
-                    ? color.withOpacity(0.6 + 0.4 * heightScale) 
-                    : color.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(2),
-                boxShadow: isListening && heightScale > 0.3 ? [
-                  BoxShadow(
-                    color: color.withOpacity(0.3),
-                    blurRadius: 4,
-                  )
-                ] : null,
-              ),
-            );
-          },
-        ),
+        children: List.generate(barCount, (index) {
+          // 为不同位置的条设置不同的灵敏度权重，形成中间高两边低的波浪感
+          final double weight =
+              1.0 - ((index - (barCount - 1) / 2).abs() / (barCount / 2));
+          final double heightScale = normalizedLevel * weight;
+
+          // 基础高度 4，最大跳动高度 24
+          final double height = 4 + (24 * heightScale);
+
+          return AnimatedContainer(
+            duration: const Duration(milliseconds: 80), // 极短的延迟实现灵敏响应
+            width: 3,
+            height: height,
+            margin: const EdgeInsets.symmetric(horizontal: 1.5),
+            decoration: BoxDecoration(
+              color: isListening
+                  ? color.withOpacity(0.6 + 0.4 * heightScale)
+                  : color.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(2),
+              boxShadow: isListening && heightScale > 0.3
+                  ? [BoxShadow(color: color.withOpacity(0.3), blurRadius: 4)]
+                  : null,
+            ),
+          );
+        }),
       ),
     );
   }
