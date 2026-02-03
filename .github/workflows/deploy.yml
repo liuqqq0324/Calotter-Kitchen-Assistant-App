@@ -66,11 +66,13 @@ jobs:
           JAR_NAME=$(ls -t *.jar | head -1)
           echo "Starting $JAR_NAME ..."
           
-          # 4. 后台启动 (带上数据库密码)
+          # 4. 后台启动 (带上数据库密码 和 AI 配置)
           nohup java -jar $JAR_NAME \
             --spring.datasource.url=jdbc:postgresql://localhost:5432/calotter \
             --spring.datasource.username=postgres \
             --spring.datasource.password=${{ secrets.DB_PASSWORD }} \
+            --spring.ai.google.genai.api-key=${{ secrets.GEMINI_API_KEY }} \
+            --spring.ai.google.genai.project-id=${{ secrets.GEMINI_PROJECT_ID }} \
             > app.log 2>&1 &
             
           echo "Deployment finished successfully!"
