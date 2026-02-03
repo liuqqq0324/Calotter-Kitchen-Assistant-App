@@ -615,13 +615,13 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
         : null;
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           'Daily Nutrition Targets',
           style: GoogleFonts.kalam(
-            fontSize: 20,
+            fontSize: 32,
             fontWeight: FontWeight.bold,
             color: const Color(0xFF6B4F4F), // River Deep Brown - 与 Profile 页面一致
           ),
@@ -655,6 +655,8 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                 rotation: rotation,
                 tapeTop: tapeTop,
                 tapeWidth: tapeWidth,
+                labelFontSize: 26,
+                valueFontSize: 24,
               );
             }
 
@@ -854,6 +856,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
 
   /// 便签样式信息卡片，使用 Sticky1 或 Sticky2 作为背景，带透明胶带效果
   /// Sticky1 和 Sticky2 尺寸不同，胶带位置/大小需分开配置
+  /// [labelFontSize] [valueFontSize] 可选，用于 Nutrition 页等需要更大字体的场景
   Widget _buildStickyNote({
     required String label,
     required String value,
@@ -867,8 +870,12 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
     double verticalOffset = 0,
     double horizontalOffset = 0,
     BoxFit imageFit = BoxFit.cover,
+    double? labelFontSize,
+    double? valueFontSize,
   }) {
     final displayValue = value.isNotEmpty ? value : 'Not set';
+    final labelSize = labelFontSize ?? 17.0;
+    final valueSize = valueFontSize ?? 22.0;
     final stickyContent = Container(
       width: width,
       height: height,
@@ -896,7 +903,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                   Text(
                     label,
                     style: GoogleFonts.kalam(
-                      fontSize: 17,
+                      fontSize: labelSize,
                       fontWeight: FontWeight.bold,
                       color: const Color(0xFF6B4F4F),
                     ),
@@ -906,7 +913,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                   Text(
                     displayValue,
                     style: GoogleFonts.kalam(
-                      fontSize: 22,
+                      fontSize: valueSize,
                       color: const Color(0xFF6B4F4F).withOpacity(0.9),
                     ),
                     overflow: TextOverflow.ellipsis,
@@ -1398,14 +1405,14 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                   Center(
                     child: _isSavingGoal
                         ? const CircularProgressIndicator()
-                         : GestureDetector(
-                             onTap: _saveHealthGoal,
-                             child: Image.asset(
-                               'assets/profile_passport/Save Goal Button.png',
-                                width: 110, // 缩小到原来的 1/2
-                               fit: BoxFit.contain,
-                             ),
-                           ),
+                        : SketchyButton(
+                            text: 'Save Goal',
+                            onPressed: _saveHealthGoal,
+                            backgroundColor: Colors.blue.shade50,
+                            borderColor: const Color(0xFF6B4F4F),
+                            textColor: const Color(0xFF6B4F4F),
+                            fontSize: 20,
+                          ),
                   ),
                 ],
               ),
@@ -1416,23 +1423,22 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
     );
   }
 
-  // Build Nutrition Page (Page 2)
+  // Build Nutrition Page (Page 2) - 仅保留 Daily Nutrition Targets，不再显示 Nutrition 标题
   Widget _buildNutritionPage(BuildContext context) {
     return RefreshIndicator(
       onRefresh: _loadUserData,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 16.0),
+        padding: const EdgeInsets.only(left: 12.0, right: 12.0, top: 0, bottom: 16.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            _sectionTitle('Nutrition'),
             if (_healthInfo != null &&
                 (_healthInfo!['dailyEnergy'] != null ||
                     _healthInfo!['dailyProtein'] != null ||
                     _healthInfo!['dailyFat'] != null ||
                     _healthInfo!['dailyCarbohydrates'] != null))
-              _buildNutritionTargets()
+              Center(child: _buildNutritionTargets())
             else
               Center(
                 child: Padding(
