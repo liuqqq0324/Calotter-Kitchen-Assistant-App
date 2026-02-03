@@ -14,10 +14,10 @@ const Color _kOverlayTint = Color(0xFFF3E5AB); // 纸张泛黄蒙版
 const Color _kSeaweedGreen = Color(0xFF4E785E); // 加载指示器颜色
 
 /// 字体大小缩放（整体放大）
-const double _kFontSizeTitle = 28.0;   // 标题（原 22）
+const double _kFontSizeTitle = 28.0; // 标题（原 22）
 const double _kFontSizeSubtitle = 22.0; // 副标题/按钮（原 18）
-const double _kFontSizeLabel = 20.0;   // 标签（原 16）
-const double _kFontSizeBody = 19.0;    // 正文/输入框（原 ~14）
+const double _kFontSizeLabel = 20.0; // 标签（原 16）
+const double _kFontSizeBody = 19.0; // 正文/输入框（原 ~14）
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -72,12 +72,14 @@ class _SettingsPageState extends State<SettingsPage> {
         } else {
           _selectedBirthdate = null;
         }
-        _heightController.text = data['profile']?['height']
+        _heightController.text =
+            data['profile']?['height']
                 ?.toString()
                 .replaceAll(' cm', '')
                 .trim() ??
             '';
-        _weightController.text = data['profile']?['weight']
+        _weightController.text =
+            data['profile']?['weight']
                 ?.toString()
                 .replaceAll(' kg', '')
                 .trim() ??
@@ -255,9 +257,7 @@ class _SettingsPageState extends State<SettingsPage> {
           // 内容层: WoodBoard 仅包裹表单和按钮（较小范围），木纹为底层全屏背景
           _isLoading
               ? const Center(
-                  child: CircularProgressIndicator(
-                    color: _kSeaweedGreen,
-                  ),
+                  child: CircularProgressIndicator(color: _kSeaweedGreen),
                 )
               : SingleChildScrollView(
                   physics: const NeverScrollableScrollPhysics(),
@@ -273,268 +273,368 @@ class _SettingsPageState extends State<SettingsPage> {
                       child: Transform.translate(
                         offset: const Offset(0, -56),
                         child: Builder(
-                      builder: (context) {
-                        final w = MediaQuery.of(context).size.width + 70;
-                        return Transform.scale(
-                          scale: 0.95,
-                          alignment: Alignment.center,
-                          child: Container(
-                          width: w,
-                          height: 840,
-                          decoration: const BoxDecoration(
-                            image: DecorationImage(
-                              image: AssetImage(
-                                'assets/profile_passport/WoodBoard.png',
-                              ),
-                              fit: BoxFit.fill,
-                            ),
-                          ),
-                          padding: EdgeInsets.fromLTRB(
-                            w * 0.09,
-                            52,
-                            w * 0.09,
-                            66,
-                          ),
-                          child: Transform.translate(
-                            offset: const Offset(0, 60),
-                            child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // Basic Info 表单
-                            SketchyCard(
-                              backgroundColor: _kPaperWhite,
-                              borderColor: _kPassportBrown,
-                              borderWidth: 2.5,
-                              padding: const EdgeInsets.all(18),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  _buildLabel('User name'),
-                                  TextField(
-                                    controller: _usernameController,
-                                    decoration: _inputDecoration(),
-                                    style: GoogleFonts.kalam(
-                                      fontSize: _kFontSizeBody,
-                                      color: _kPassportBrown,
+                          builder: (context) {
+                            final w = MediaQuery.of(context).size.width + 70;
+                            return Transform.scale(
+                              scale: 0.95,
+                              alignment: Alignment.center,
+                              child: Container(
+                                width: w,
+                                height: 840,
+                                decoration: const BoxDecoration(
+                                  image: DecorationImage(
+                                    image: AssetImage(
+                                      'assets/profile_passport/WoodBoard.png',
                                     ),
+                                    fit: BoxFit.fill,
                                   ),
-                                  const SizedBox(height: 14),
-                                  _buildLabel('Email'),
-                                  TextField(
-                                    controller: _emailController,
-                                    decoration: _inputDecoration(),
-                                    style: GoogleFonts.kalam(
-                                      fontSize: _kFontSizeBody,
-                                      color: _kPassportBrown,
-                                    ),
-                                    keyboardType: TextInputType.emailAddress,
-                                  ),
-                                  const SizedBox(height: 14),
-                                  // Gender 与 Birthdate 同一行
-                                  Row(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                ),
+                                padding: EdgeInsets.fromLTRB(
+                                  w * 0.09,
+                                  52,
+                                  w * 0.09,
+                                  66,
+                                ),
+                                child: Transform.translate(
+                                  offset: const Offset(0, 60),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Expanded(
+                                      // Basic Info 表单
+                                      SketchyCard(
+                                        backgroundColor: _kPaperWhite,
+                                        borderColor: _kPassportBrown,
+                                        borderWidth: 2.5,
+                                        padding: const EdgeInsets.all(18),
                                         child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
-                                            _buildLabel('Gender'),
-                                            DropdownButtonFormField<String>(
-                                              value: (_selectedGender == '1' || _selectedGender == '2')
-                                                  ? _selectedGender
-                                                  : null,
-                                              decoration: _inputDecoration().copyWith(
-                                                contentPadding: const EdgeInsets.symmetric(
-                                                  horizontal: 16,
-                                                  vertical: 16,
-                                                ),
+                                            _buildLabel('User name'),
+                                            TextField(
+                                              controller: _usernameController,
+                                              decoration: _inputDecoration(),
+                                              style: GoogleFonts.kalam(
+                                                fontSize: _kFontSizeBody,
+                                                color: _kPassportBrown,
                                               ),
-                                              dropdownColor: _kPaperWhite,
-                                              items: [
-                                                DropdownMenuItem(
-                                                  value: '1',
-                                                  child: Text(
-                                                    'Male',
-                                                    style: GoogleFonts.kalam(
-                                                      fontSize: _kFontSizeBody,
-                                                      color: _kPassportBrown,
-                                                    ),
+                                            ),
+                                            const SizedBox(height: 14),
+                                            _buildLabel('Email'),
+                                            TextField(
+                                              controller: _emailController,
+                                              decoration: _inputDecoration(),
+                                              style: GoogleFonts.kalam(
+                                                fontSize: _kFontSizeBody,
+                                                color: _kPassportBrown,
+                                              ),
+                                              keyboardType:
+                                                  TextInputType.emailAddress,
+                                            ),
+                                            const SizedBox(height: 14),
+                                            // Gender 与 Birthdate 同一行
+                                            Row(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Expanded(
+                                                  child: Column(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    children: [
+                                                      _buildLabel('Gender'),
+                                                      DropdownButtonFormField<
+                                                        String
+                                                      >(
+                                                        value:
+                                                            (_selectedGender ==
+                                                                    '1' ||
+                                                                _selectedGender ==
+                                                                    '2')
+                                                            ? _selectedGender
+                                                            : null,
+                                                        decoration: _inputDecoration()
+                                                            .copyWith(
+                                                              contentPadding:
+                                                                  const EdgeInsets.symmetric(
+                                                                    horizontal:
+                                                                        16,
+                                                                    vertical:
+                                                                        16,
+                                                                  ),
+                                                            ),
+                                                        dropdownColor:
+                                                            _kPaperWhite,
+                                                        items: [
+                                                          DropdownMenuItem(
+                                                            value: '1',
+                                                            child: Text(
+                                                              'Male',
+                                                              style: GoogleFonts.kalam(
+                                                                fontSize:
+                                                                    _kFontSizeBody,
+                                                                color:
+                                                                    _kPassportBrown,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                          DropdownMenuItem(
+                                                            value: '2',
+                                                            child: Text(
+                                                              'Female',
+                                                              style: GoogleFonts.kalam(
+                                                                fontSize:
+                                                                    _kFontSizeBody,
+                                                                color:
+                                                                    _kPassportBrown,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ],
+                                                        onChanged: (value) {
+                                                          setState(
+                                                            () =>
+                                                                _selectedGender =
+                                                                    value,
+                                                          );
+                                                        },
+                                                        hint: Text(
+                                                          'Select',
+                                                          style: GoogleFonts.kalam(
+                                                            fontSize:
+                                                                _kFontSizeBody,
+                                                            color:
+                                                                _kPassportBrown
+                                                                    .withOpacity(
+                                                                      0.7,
+                                                                    ),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
                                                   ),
                                                 ),
-                                                DropdownMenuItem(
-                                                  value: '2',
-                                                  child: Text(
-                                                    'Female',
-                                                    style: GoogleFonts.kalam(
-                                                      fontSize: _kFontSizeBody,
-                                                      color: _kPassportBrown,
-                                                    ),
+                                                const SizedBox(width: 12),
+                                                Expanded(
+                                                  child: Column(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    children: [
+                                                      _buildLabel('Birthdate'),
+                                                      InkWell(
+                                                        onTap: () async {
+                                                          final DateTime?
+                                                          picked = await showDatePicker(
+                                                            context: context,
+                                                            initialDate:
+                                                                _selectedBirthdate ??
+                                                                DateTime.now()
+                                                                    .subtract(
+                                                                      const Duration(
+                                                                        days:
+                                                                            365 *
+                                                                            25,
+                                                                      ),
+                                                                    ),
+                                                            firstDate: DateTime(
+                                                              1900,
+                                                            ),
+                                                            lastDate:
+                                                                DateTime.now(),
+                                                            helpText:
+                                                                'Select birthdate',
+                                                          );
+                                                          if (picked != null &&
+                                                              picked !=
+                                                                  _selectedBirthdate &&
+                                                              mounted) {
+                                                            setState(
+                                                              () =>
+                                                                  _selectedBirthdate =
+                                                                      picked,
+                                                            );
+                                                          }
+                                                        },
+                                                        child: Container(
+                                                          padding:
+                                                              const EdgeInsets.symmetric(
+                                                                horizontal: 16,
+                                                                vertical: 16,
+                                                              ),
+                                                          decoration: BoxDecoration(
+                                                            border: Border.all(
+                                                              color: _kPassportBrown
+                                                                  .withOpacity(
+                                                                    0.7,
+                                                                  ),
+                                                            ),
+                                                            borderRadius:
+                                                                BorderRadius.circular(
+                                                                  8,
+                                                                ),
+                                                          ),
+                                                          child: Row(
+                                                            mainAxisAlignment:
+                                                                MainAxisAlignment
+                                                                    .spaceBetween,
+                                                            children: [
+                                                              Expanded(
+                                                                child: Text(
+                                                                  _selectedBirthdate !=
+                                                                          null
+                                                                      ? '${_selectedBirthdate!.year}-${_selectedBirthdate!.month.toString().padLeft(2, '0')}-${_selectedBirthdate!.day.toString().padLeft(2, '0')}'
+                                                                      : 'Select',
+                                                                  style: GoogleFonts.kalam(
+                                                                    fontSize:
+                                                                        _kFontSizeBody,
+                                                                    color:
+                                                                        _selectedBirthdate !=
+                                                                            null
+                                                                        ? _kPassportBrown
+                                                                        : _kPassportBrown.withOpacity(
+                                                                            0.5,
+                                                                          ),
+                                                                  ),
+                                                                  overflow:
+                                                                      TextOverflow
+                                                                          .ellipsis,
+                                                                ),
+                                                              ),
+                                                              Icon(
+                                                                Icons
+                                                                    .calendar_today,
+                                                                size: 24,
+                                                                color:
+                                                                    _kPassportBrown,
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
                                                   ),
                                                 ),
                                               ],
-                                              onChanged: (value) {
-                                                setState(() => _selectedGender = value);
-                                              },
-                                              hint: Text(
-                                                'Select',
+                                            ),
+                                            const SizedBox(height: 3),
+                                            // Height 与 Weight 同一行
+                                            Row(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Expanded(
+                                                  child: Column(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    children: [
+                                                      _buildLabel('Height'),
+                                                      TextField(
+                                                        controller:
+                                                            _heightController,
+                                                        decoration:
+                                                            _inputDecoration(
+                                                              suffixText: 'cm',
+                                                            ),
+                                                        style: GoogleFonts.kalam(
+                                                          fontSize:
+                                                              _kFontSizeBody,
+                                                          color:
+                                                              _kPassportBrown,
+                                                        ),
+                                                        keyboardType:
+                                                            const TextInputType.numberWithOptions(
+                                                              decimal: true,
+                                                            ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 12),
+                                                Expanded(
+                                                  child: Column(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    children: [
+                                                      _buildLabel('Weight'),
+                                                      TextField(
+                                                        controller:
+                                                            _weightController,
+                                                        decoration:
+                                                            _inputDecoration(
+                                                              suffixText: 'kg',
+                                                            ),
+                                                        style: GoogleFonts.kalam(
+                                                          fontSize:
+                                                              _kFontSizeBody,
+                                                          color:
+                                                              _kPassportBrown,
+                                                        ),
+                                                        keyboardType:
+                                                            const TextInputType.numberWithOptions(
+                                                              decimal: true,
+                                                            ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(height: 0),
+                                      _buildSettingsCard(
+                                        icon: Icons.lock_outline,
+                                        title: 'Change Password',
+                                        onTap: () {
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                'Change Password (To be implemented)',
                                                 style: GoogleFonts.kalam(
                                                   fontSize: _kFontSizeBody,
-                                                  color: _kPassportBrown.withOpacity(0.7),
                                                 ),
                                               ),
+                                              duration: const Duration(
+                                                milliseconds: 800,
+                                              ),
                                             ),
-                                          ],
-                                        ),
+                                          );
+                                        },
                                       ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            _buildLabel('Birthdate'),
-                                            InkWell(
-                                              onTap: () async {
-                                                final DateTime? picked = await showDatePicker(
-                                                  context: context,
-                                                  initialDate: _selectedBirthdate ??
-                                                      DateTime.now()
-                                                          .subtract(const Duration(days: 365 * 25)),
-                                                  firstDate: DateTime(1900),
-                                                  lastDate: DateTime.now(),
-                                                  helpText: 'Select birthdate',
-                                                );
-                                                if (picked != null &&
-                                                    picked != _selectedBirthdate &&
-                                                    mounted) {
-                                                  setState(() => _selectedBirthdate = picked);
-                                                }
-                                              },
-                                              child: Container(
-                                                padding: const EdgeInsets.symmetric(
-                                                    horizontal: 16, vertical: 16),
-                                                decoration: BoxDecoration(
-                                                  border: Border.all(
-                                                      color: _kPassportBrown.withOpacity(0.7)),
-                                                  borderRadius: BorderRadius.circular(8),
-                                                ),
-                                                child: Row(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment.spaceBetween,
-                                                  children: [
-                                                    Expanded(
-                                                      child: Text(
-                                                        _selectedBirthdate != null
-                                                            ? '${_selectedBirthdate!.year}-${_selectedBirthdate!.month.toString().padLeft(2, '0')}-${_selectedBirthdate!.day.toString().padLeft(2, '0')}'
-                                                            : 'Select',
-                                                        style: GoogleFonts.kalam(
-                                                          fontSize: _kFontSizeBody,
-                                                          color: _selectedBirthdate != null
-                                                              ? _kPassportBrown
-                                                              : _kPassportBrown.withOpacity(0.5),
-                                                        ),
-                                                        overflow: TextOverflow.ellipsis,
-                                                      ),
-                                                    ),
-                                                    Icon(Icons.calendar_today,
-                                                        size: 24, color: _kPassportBrown),
-                                                  ],
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
+                                      const SizedBox(height: 0),
+                                      _buildSettingsCard(
+                                        icon: Icons.logout,
+                                        title: 'Log out',
+                                        titleColor: Colors.red.shade700,
+                                        onTap: () => _showLogoutDialog(),
+                                      ),
+                                      const SizedBox(height: 0),
+                                      _buildSettingsCard(
+                                        icon: Icons.delete_outline,
+                                        title: 'Delete Account',
+                                        titleColor: Colors.red.shade700,
+                                        onTap: () => _showDeleteAccountDialog(),
                                       ),
                                     ],
                                   ),
-                                  const SizedBox(height: 3),
-                                  // Height 与 Weight 同一行
-                                  Row(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            _buildLabel('Height'),
-                                            TextField(
-                                              controller: _heightController,
-                                              decoration: _inputDecoration(suffixText: 'cm'),
-                                              style: GoogleFonts.kalam(
-                                                fontSize: _kFontSizeBody,
-                                                color: _kPassportBrown,
-                                              ),
-                                              keyboardType:
-                                                  const TextInputType.numberWithOptions(decimal: true),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            _buildLabel('Weight'),
-                                            TextField(
-                                              controller: _weightController,
-                                              decoration: _inputDecoration(suffixText: 'kg'),
-                                              style: GoogleFonts.kalam(
-                                                fontSize: _kFontSizeBody,
-                                                color: _kPassportBrown,
-                                              ),
-                                              keyboardType:
-                                                  const TextInputType.numberWithOptions(decimal: true),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 0),
-                            _buildSettingsCard(
-                              icon: Icons.lock_outline,
-                              title: 'Change Password',
-                              onTap: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      'Change Password (To be implemented)',
-                                      style: GoogleFonts.kalam(fontSize: _kFontSizeBody),
-                                    ),
-                                    duration: const Duration(milliseconds: 800),
-                                  ),
-                                );
-                              },
-                            ),
-                            const SizedBox(height: 0),
-                            _buildSettingsCard(
-                              icon: Icons.logout,
-                              title: 'Log out',
-                              titleColor: Colors.red.shade700,
-                              onTap: () => _showLogoutDialog(),
-                            ),
-                            const SizedBox(height: 0),
-                            _buildSettingsCard(
-                              icon: Icons.delete_outline,
-                              title: 'Delete Account',
-                              titleColor: Colors.red.shade700,
-                              onTap: () => _showDeleteAccountDialog(),
-                            ),
-                          ],
-                            ),
-                          ),
+                            );
+                          },
                         ),
-                        );
-                      },
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ),
         ],
       ),
     );
@@ -625,9 +725,7 @@ class _SettingsPageState extends State<SettingsPage> {
     if (mounted) {
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(
-          builder: (context) => const LandingPage(),
-        ),
+        MaterialPageRoute(builder: (context) => const LandingPage()),
         (route) => false,
       );
       Navigator.push(

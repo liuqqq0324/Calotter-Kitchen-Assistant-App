@@ -10,10 +10,7 @@ import '../../../services/business/user_service.dart';
 const Color _kPassportBrown = Color(0xFF6B4F4F);
 
 class ProfileEditPage extends StatefulWidget {
-  /// When true, only show Basic Info section (used from Settings).
-  final bool showOnlyBasicInfo;
-
-  const ProfileEditPage({super.key, this.showOnlyBasicInfo = false});
+  const ProfileEditPage({super.key});
 
   @override
   State<ProfileEditPage> createState() => _ProfileEditPageState();
@@ -339,7 +336,10 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                 backgroundColor: Colors.white,
                 borderColor: _kPassportBrown,
                 borderWidth: 2.0,
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
                 child: Row(
                   children: [
                     Expanded(
@@ -370,7 +370,9 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                 controller: inputController,
                 decoration: InputDecoration(
                   hintText: 'Add $title',
-                  hintStyle: GoogleFonts.kalam(color: _kPassportBrown.withOpacity(0.6)),
+                  hintStyle: GoogleFonts.kalam(
+                    color: _kPassportBrown.withOpacity(0.6),
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                     borderSide: BorderSide(color: _kPassportBrown),
@@ -403,7 +405,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
       elevation: 0,
       iconTheme: const IconThemeData(color: _kPassportBrown),
       title: Text(
-        widget.showOnlyBasicInfo ? 'Basic Info' : 'Edit Profile',
+        'Edit Profile',
         style: GoogleFonts.kalam(
           fontSize: 22,
           fontWeight: FontWeight.bold,
@@ -427,10 +429,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
     );
   }
 
-  InputDecoration _inputDecoration({
-    String? hintText,
-    String? suffixText,
-  }) {
+  InputDecoration _inputDecoration({String? hintText, String? suffixText}) {
     return InputDecoration(
       hintText: hintText,
       suffixText: suffixText,
@@ -475,19 +474,6 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
       kCurrentUser.gender = _selectedGender ?? '';
       kCurrentUser.height = heightController.text;
       kCurrentUser.weight = weightController.text;
-
-      if (widget.showOnlyBasicInfo) {
-        if (!mounted) return;
-        Navigator.pop(context, true);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Basic info saved', style: GoogleFonts.kalam()),
-            backgroundColor: Colors.green.shade300,
-            duration: const Duration(milliseconds: 800),
-          ),
-        );
-        return;
-      }
 
       final prefsResult = await UserService.updateUserPreferences(
         cuisineTypes: kCurrentUser.preferences,
@@ -566,9 +552,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (!widget.showOnlyBasicInfo)
-                    const SectionTitle('Basic Info'),
-                  if (!widget.showOnlyBasicInfo) const SizedBox(height: 8),
+                  const SectionTitle('Basic Info'),
                   const SizedBox(height: 8),
                   _buildLabel('User name'),
                   TextField(
@@ -600,11 +584,17 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                     items: [
                       DropdownMenuItem(
                         value: '1',
-                        child: Text('Male', style: GoogleFonts.kalam(color: _kPassportBrown)),
+                        child: Text(
+                          'Male',
+                          style: GoogleFonts.kalam(color: _kPassportBrown),
+                        ),
                       ),
                       DropdownMenuItem(
                         value: '2',
-                        child: Text('Female', style: GoogleFonts.kalam(color: _kPassportBrown)),
+                        child: Text(
+                          'Female',
+                          style: GoogleFonts.kalam(color: _kPassportBrown),
+                        ),
                       ),
                     ],
                     onChanged: (value) {
@@ -614,7 +604,9 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                     },
                     hint: Text(
                       'Select Gender',
-                      style: GoogleFonts.kalam(color: _kPassportBrown.withOpacity(0.7)),
+                      style: GoogleFonts.kalam(
+                        color: _kPassportBrown.withOpacity(0.7),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 14),
@@ -623,22 +615,32 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                     onTap: () async {
                       final DateTime? picked = await showDatePicker(
                         context: context,
-                        initialDate: _selectedBirthdate ??
-                            DateTime.now().subtract(const Duration(days: 365 * 25)),
+                        initialDate:
+                            _selectedBirthdate ??
+                            DateTime.now().subtract(
+                              const Duration(days: 365 * 25),
+                            ),
                         firstDate: DateTime(1900),
                         lastDate: DateTime.now(),
                         helpText: 'Select birthdate',
                       );
-                      if (picked != null && picked != _selectedBirthdate && mounted) {
+                      if (picked != null &&
+                          picked != _selectedBirthdate &&
+                          mounted) {
                         setState(() {
                           _selectedBirthdate = picked;
                         });
                       }
                     },
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 14,
+                      ),
                       decoration: BoxDecoration(
-                        border: Border.all(color: _kPassportBrown.withOpacity(0.7)),
+                        border: Border.all(
+                          color: _kPassportBrown.withOpacity(0.7),
+                        ),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(
@@ -654,7 +656,11 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                                   : _kPassportBrown.withOpacity(0.5),
                             ),
                           ),
-                          Icon(Icons.calendar_today, size: 20, color: _kPassportBrown),
+                          Icon(
+                            Icons.calendar_today,
+                            size: 20,
+                            color: _kPassportBrown,
+                          ),
                         ],
                       ),
                     ),
@@ -665,7 +671,9 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                     controller: heightController,
                     decoration: _inputDecoration(suffixText: 'cm'),
                     style: GoogleFonts.kalam(color: _kPassportBrown),
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                   ),
                   const SizedBox(height: 14),
                   _buildLabel('Weight'),
@@ -673,13 +681,13 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                     controller: weightController,
                     decoration: _inputDecoration(suffixText: 'kg'),
                     style: GoogleFonts.kalam(color: _kPassportBrown),
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                   ),
                 ],
               ),
             ),
-            if (widget.showOnlyBasicInfo) const SizedBox(height: 24),
-            if (!widget.showOnlyBasicInfo) ...[
             const SizedBox(height: 20),
             SketchyCard(
               backgroundColor: Colors.blue.shade50,
@@ -723,7 +731,6 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
               ),
             ),
             const SizedBox(height: 24),
-            ],
           ],
         ),
       ),
