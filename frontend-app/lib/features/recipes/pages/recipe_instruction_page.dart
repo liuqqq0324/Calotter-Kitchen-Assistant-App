@@ -1060,9 +1060,7 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
             _currentSoundLevel = 0.0;
           });
         }
-
-        // 3. 触发重连（onResult 表示本次会话结束，必须重启才能听下一句）
-        _reconnectVoiceDelayed();
+        // 重连由 onStatus('done'/'notListening') 统一触发，此处不再调用
       },
       onPartialResult: (text) {
         _lastSpeechTime = DateTime.now();
@@ -1073,12 +1071,19 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
         }
       },
       onSoundLevelUpdate: (level) {
-        // 节流：仅当变化超过阈值时更新，避免 setState 过于频繁阻塞主线程
         if (mounted && _isVoiceModeActive) {
           if ((_currentSoundLevel - level).abs() > 0.5) {
             setState(() {
               _currentSoundLevel = level;
             });
+          }
+        }
+      },
+      onStatus: (status) {
+        if (status == 'done' || status == 'notListening') {
+          if (mounted && _isVoiceModeActive) {
+            debugPrint('[RecipePage] ⚡ 检测到会话结束，立即安排无缝重启...');
+            _reconnectVoiceDelayed();
           }
         }
       },
@@ -1095,17 +1100,15 @@ class _RecipeInstructionPageState extends State<RecipeInstructionPage>
     );
   }
 
-  /// 延迟重连：先显式 stop 再 start，避免底层麦克风未释放导致死锁
+  /// 延迟重连：onStatus 触发后极短延迟重启，消灭空窗期
   void _reconnectVoiceDelayed() {
     _voiceReconnectTimer?.cancel();
     if (!_isVoiceModeActive) return;
 
-    // 1000ms 给系统麦克风释放资源的时间，避免 "Busy" / "Already listening"
-    _voiceReconnectTimer = Timer(const Duration(milliseconds: 1000), () {
+    _voiceReconnectTimer = Timer(const Duration(milliseconds: 100), () {
       if (!mounted || !_isVoiceModeActive) return;
-      _voiceAssistant.stopListening();
-      if (mounted && _isVoiceModeActive) {
-        debugPrint('[RecipeGuard] 正在重启监听循环...');
+      if (!_voiceAssistant.isListening) {
+        debugPrint('[RecipePage] 🔄 正在执行无缝重启...');
         _startVoiceListening();
       }
     });
