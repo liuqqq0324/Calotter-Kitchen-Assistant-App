@@ -109,10 +109,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                   ),
                 ],
               ),
-              Divider(
-                height: 1,
-                color: deepBrown.withOpacity(0.2),
-              ),
+              Divider(height: 1, color: deepBrown.withOpacity(0.2)),
               const SizedBox(height: 12),
               Wrap(
                 spacing: 12,
@@ -123,10 +120,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                     child: SizedBox(
                       width: 64,
                       height: 64,
-                      child: Image.asset(
-                        opt.path,
-                        fit: BoxFit.contain,
-                      ),
+                      child: Image.asset(opt.path, fit: BoxFit.contain),
                     ),
                   );
                 }).toList(),
@@ -137,10 +131,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                   onPressed: () => Navigator.pop(context),
                   child: Text(
                     'Cancel',
-                    style: GoogleFonts.kalam(
-                      fontSize: 16,
-                      color: deepBrown,
-                    ),
+                    style: GoogleFonts.kalam(fontSize: 16, color: deepBrown),
                   ),
                 ),
               ),
@@ -733,13 +724,13 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
         : null;
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           'Daily Nutrition Targets',
           style: GoogleFonts.kalam(
-            fontSize: 20,
+            fontSize: 32,
             fontWeight: FontWeight.bold,
             color: const Color(0xFF6B4F4F),
           ),
@@ -776,6 +767,8 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                 rotation: rotation,
                 tapeTop: tapeTop,
                 tapeWidth: tapeWidth,
+                labelFontSize: 26,
+                valueFontSize: 24,
               );
             }
 
@@ -975,6 +968,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
 
   /// 便签样式信息卡片，使用 Sticky1 或 Sticky2 作为背景，带透明胶带效果
   /// Sticky1 和 Sticky2 尺寸不同，胶带位置/大小需分开配置
+  /// [labelFontSize] [valueFontSize] 可选，用于 Nutrition 页等需要更大字体的场景
   Widget _buildStickyNote({
     required String label,
     required String value,
@@ -988,8 +982,12 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
     double verticalOffset = 0,
     double horizontalOffset = 0,
     BoxFit imageFit = BoxFit.cover,
+    double? labelFontSize,
+    double? valueFontSize,
   }) {
     final displayValue = value.isNotEmpty ? value : 'Not set';
+    final labelSize = labelFontSize ?? 17.0;
+    final valueSize = valueFontSize ?? 22.0;
     final stickyContent = Container(
       width: width,
       height: height,
@@ -1017,7 +1015,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                   Text(
                     label,
                     style: GoogleFonts.kalam(
-                      fontSize: 17,
+                      fontSize: labelSize,
                       fontWeight: FontWeight.bold,
                       color: const Color(0xFF6B4F4F),
                     ),
@@ -1027,7 +1025,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                   Text(
                     displayValue,
                     style: GoogleFonts.kalam(
-                      fontSize: 22,
+                      fontSize: valueSize,
                       color: const Color(0xFF6B4F4F).withOpacity(0.9),
                     ),
                     overflow: TextOverflow.ellipsis,
@@ -1409,260 +1407,261 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                   vertical: 0,
                 ),
                 child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header: 头像（左） + 用户名与邮箱（右），头像可点击更换
-                  Padding(
-                    padding: const EdgeInsets.only(
-                      left: 4,
-                      right: 14,
-                      top: 6,
-                      bottom: 4,
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        GestureDetector(
-                          onTap: _showAvatarPicker,
-                          child: Transform.translate(
-                            offset: const Offset(-12, 0),
-                            child: Transform.rotate(
-                              angle: -0.25, // ✅ 增大倾斜角度从 -0.15 到 -0.25
-                              child: SizedBox(
-                                width: 150,
-                                height: 150,
-                                child: Image.asset(
-                                  AvatarConfig.getPath(_selectedAvatarId),
-                                  fit: BoxFit.contain,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header: 头像（左） + 用户名与邮箱（右），头像可点击更换
+                    Padding(
+                      padding: const EdgeInsets.only(
+                        left: 4,
+                        right: 14,
+                        top: 6,
+                        bottom: 4,
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          GestureDetector(
+                            onTap: _showAvatarPicker,
+                            child: Transform.translate(
+                              offset: const Offset(-12, 0),
+                              child: Transform.rotate(
+                                angle: -0.25, // ✅ 增大倾斜角度从 -0.15 到 -0.25
+                                child: SizedBox(
+                                  width: 150,
+                                  height: 150,
+                                  child: Image.asset(
+                                    AvatarConfig.getPath(_selectedAvatarId),
+                                    fit: BoxFit.contain,
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Transform.translate(
-                            offset: const Offset(0, -8),
-                            child: Stack(
-                              clipBehavior: Clip.none,
-                            children: [
-                              // 两层笔刷：PaintBrush1 底层，PaintBrush2 上层，负边距扩大面积
-                              Positioned(
-                                left: -28,
-                                top: -22,
-                                right: -28,
-                                bottom: -22,
-                                child: Opacity(
-                                  opacity: 0.30,
-                                  child: Image.asset(
-                                    'assets/profile_passport/PaintBrush1.png',
-                                    fit: BoxFit.fill,
-                                  ),
-                                ),
-                              ),
-                              Positioned(
-                                left: -12,
-                                top: -8,
-                                right: -12,
-                                bottom: -8,
-                                child: Opacity(
-                                  opacity: 0.50,
-                                  child: Image.asset(
-                                    'assets/profile_passport/PaintBrush2.png',
-                                    fit: BoxFit.fill,
-                                  ),
-                                ),
-                              ),
-                              // 用户名与邮箱叠在笔刷之上，笔刷容器包裹
-                              Padding(
-                                padding: const EdgeInsets.fromLTRB(
-                                  28,
-                                  4,
-                                  12,
-                                  20,
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      user.username,
-                                      style: GoogleFonts.caveat(
-                                        fontSize: 36,
-                                        fontWeight: FontWeight.bold,
-                                        color: const Color(
-                                          0xFF6B4F4F,
-                                        ).withOpacity(0.8),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Transform.translate(
+                              offset: const Offset(0, -8),
+                              child: Stack(
+                                clipBehavior: Clip.none,
+                                children: [
+                                  // 两层笔刷：PaintBrush1 底层，PaintBrush2 上层，负边距扩大面积
+                                  Positioned(
+                                    left: -28,
+                                    top: -22,
+                                    right: -28,
+                                    bottom: -22,
+                                    child: Opacity(
+                                      opacity: 0.30,
+                                      child: Image.asset(
+                                        'assets/profile_passport/PaintBrush1.png',
+                                        fit: BoxFit.fill,
                                       ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
                                     ),
-                                    const SizedBox(height: 2),
-                                    FittedBox(
-                                      fit: BoxFit.scaleDown,
-                                      alignment: Alignment.centerLeft,
-                                      child: Text(
-                                        user.email,
-                                        style: GoogleFonts.kalam(
-                                          fontSize: 15,
-                                          color: Colors.grey[600],
+                                  ),
+                                  Positioned(
+                                    left: -12,
+                                    top: -8,
+                                    right: -12,
+                                    bottom: -8,
+                                    child: Opacity(
+                                      opacity: 0.50,
+                                      child: Image.asset(
+                                        'assets/profile_passport/PaintBrush2.png',
+                                        fit: BoxFit.fill,
+                                      ),
+                                    ),
+                                  ),
+                                  // 用户名与邮箱叠在笔刷之上，笔刷容器包裹
+                                  Padding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                      28,
+                                      4,
+                                      12,
+                                      20,
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          user.username,
+                                          style: GoogleFonts.caveat(
+                                            fontSize: 36,
+                                            fontWeight: FontWeight.bold,
+                                            color: const Color(
+                                              0xFF6B4F4F,
+                                            ).withOpacity(0.8),
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                         ),
-                                        maxLines: 1,
-                                      ),
+                                        const SizedBox(height: 2),
+                                        FittedBox(
+                                          fit: BoxFit.scaleDown,
+                                          alignment: Alignment.centerLeft,
+                                          child: Text(
+                                            user.email,
+                                            style: GoogleFonts.kalam(
+                                              fontSize: 15,
+                                              color: Colors.grey[600],
+                                            ),
+                                            maxLines: 1,
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                  ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 0),
+                    // 四个便签 + Settings/Invite：散乱但有秩序的贴纸布局
+                    SizedBox(
+                      height: 450,
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final w = constraints.maxWidth;
+                          final h = 450.0;
+                          final stickyW = w * 0.46;
+                          final stickyH = 140.0;
+                          final settingsBtnW = (w * 0.84).clamp(0.0, 320.0);
+                          final inviteBtnW = (w * 0.55).clamp(0.0, 180.0);
+                          return Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              // 木板边缘装饰图标：左侧3个、右侧2个、上侧2个
+                              ..._buildProfileEdgeIcons(w, h),
+                              // Birthdate
+                              Positioned(
+                                left: w * 0.06,
+                                top: h * 0.01,
+                                child: _buildStickyNote(
+                                  label: 'Birthdate',
+                                  value: birthdate,
+                                  stickyAsset:
+                                      'assets/profile_passport/Sticky1.png',
+                                  width: stickyW,
+                                  height: stickyH,
+                                  rotation: 0.10,
+                                  tapeTop: 5,
+                                  tapeWidth: 42,
+                                ),
+                              ),
+                              // Gender
+                              Positioned(
+                                left: w * 0.46,
+                                top: h * -0.08,
+                                child: _buildStickyNote(
+                                  label: 'Gender',
+                                  value: _getGenderDisplay(user.gender),
+                                  stickyAsset:
+                                      'assets/profile_passport/Sticky2.png',
+                                  width: stickyW,
+                                  height: stickyH,
+                                  rotation: 0.35,
+                                  tapeTop: -5,
+                                  tapeWidth: 40,
+                                  imageFit: BoxFit.contain,
+                                ),
+                              ),
+                              // Weight
+                              Positioned(
+                                left: w * 0.04,
+                                top: h * 0.38,
+                                child: _buildStickyNote(
+                                  label: 'Weight',
+                                  value: user.weight.isNotEmpty
+                                      ? (user.weight.endsWith(' kg')
+                                            ? user.weight
+                                            : '${user.weight} kg')
+                                      : '',
+                                  stickyAsset:
+                                      'assets/profile_passport/Sticky2.png',
+                                  width: stickyW,
+                                  height: stickyH,
+                                  rotation: -0.12,
+                                  tapeTop: -5,
+                                  tapeWidth: 40,
+                                  imageFit: BoxFit.contain,
+                                ),
+                              ),
+                              // Height
+                              Positioned(
+                                left: w * 0.50,
+                                top: h * 0.29,
+                                child: _buildStickyNote(
+                                  label: 'Height',
+                                  value: user.height.isNotEmpty
+                                      ? (user.height.endsWith(' cm')
+                                            ? user.height
+                                            : '${user.height} cm')
+                                      : '',
+                                  stickyAsset:
+                                      'assets/profile_passport/Sticky1.png',
+                                  width: stickyW,
+                                  height: stickyH,
+                                  rotation: -0.32,
+                                  tapeTop: 5,
+                                  tapeWidth: 42,
+                                ),
+                              ),
+                              // Settings
+                              Positioned(
+                                left: w * -0.14,
+                                top: h * 0.6,
+                                child: _TiltOnTapButton(
+                                  onTap: () async {
+                                    final result = await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            const SettingsPage(),
+                                      ),
+                                    );
+                                    if (result == true && mounted) {
+                                      _loadUserData();
+                                    }
+                                  },
+                                  child: Image.asset(
+                                    'assets/profile_passport/Settings.png',
+                                    width: settingsBtnW,
+                                    fit: BoxFit.contain,
+                                  ),
+                                ),
+                              ),
+                              // Invite
+                              Positioned(
+                                left: w * 0.5,
+                                top: h * 0.58,
+                                child: _TiltOnTapButton(
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            const HouseholdManagePage(),
+                                      ),
+                                    );
+                                  },
+                                  child: Image.asset(
+                                    'assets/profile_passport/Invite.png',
+                                    width: inviteBtnW,
+                                    fit: BoxFit.contain,
+                                  ),
                                 ),
                               ),
                             ],
-                            ),
-                          ),
-                        ),
-                      ],
+                          );
+                        },
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 0),
-                  // 四个便签 + Settings/Invite：散乱但有秩序的贴纸布局
-                  SizedBox(
-                    height: 450,
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        final w = constraints.maxWidth;
-                        final h = 450.0;
-                        final stickyW = w * 0.46;
-                        final stickyH = 140.0;
-                        final settingsBtnW = (w * 0.84).clamp(0.0, 320.0);
-                        final inviteBtnW = (w * 0.55).clamp(0.0, 180.0);
-                        return Stack(
-                          clipBehavior: Clip.none,
-                          children: [
-                            // 木板边缘装饰图标：左侧3个、右侧2个、上侧2个
-                            ..._buildProfileEdgeIcons(w, h),
-                            // Birthdate
-                            Positioned(
-                              left: w * 0.06,
-                              top: h * 0.01,
-                              child: _buildStickyNote(
-                                label: 'Birthdate',
-                                value: birthdate,
-                                stickyAsset:
-                                    'assets/profile_passport/Sticky1.png',
-                                width: stickyW,
-                                height: stickyH,
-                                rotation: 0.10,
-                                tapeTop: 5,
-                                tapeWidth: 42,
-                              ),
-                            ),
-                            // Gender
-                            Positioned(
-                              left: w * 0.46,
-                              top: h * -0.08,
-                              child: _buildStickyNote(
-                                label: 'Gender',
-                                value: _getGenderDisplay(user.gender),
-                                stickyAsset:
-                                    'assets/profile_passport/Sticky2.png',
-                                width: stickyW,
-                                height: stickyH,
-                                rotation: 0.35,
-                                tapeTop: -5,
-                                tapeWidth: 40,
-                                imageFit: BoxFit.contain,
-                              ),
-                            ),
-                            // Weight
-                            Positioned(
-                              left: w * 0.04,
-                              top: h * 0.38,
-                              child: _buildStickyNote(
-                                label: 'Weight',
-                                value: user.weight.isNotEmpty
-                                    ? (user.weight.endsWith(' kg')
-                                          ? user.weight
-                                          : '${user.weight} kg')
-                                    : '',
-                                stickyAsset:
-                                    'assets/profile_passport/Sticky2.png',
-                                width: stickyW,
-                                height: stickyH,
-                                rotation: -0.12,
-                                tapeTop: -5,
-                                tapeWidth: 40,
-                                imageFit: BoxFit.contain,
-                              ),
-                            ),
-                            // Height
-                            Positioned(
-                              left: w * 0.50,
-                              top: h * 0.29,
-                              child: _buildStickyNote(
-                                label: 'Height',
-                                value: user.height.isNotEmpty
-                                    ? (user.height.endsWith(' cm')
-                                          ? user.height
-                                          : '${user.height} cm')
-                                    : '',
-                                stickyAsset:
-                                    'assets/profile_passport/Sticky1.png',
-                                width: stickyW,
-                                height: stickyH,
-                                rotation: -0.32,
-                                tapeTop: 5,
-                                tapeWidth: 42,
-                              ),
-                            ),
-                            // Settings
-                            Positioned(
-                              left: w * -0.14,
-                              top: h * 0.6,
-                              child: _TiltOnTapButton(
-                                onTap: () async {
-                                  final result = await Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          const SettingsPage(),
-                                    ),
-                                  );
-                                  if (result == true && mounted) {
-                                    _loadUserData();
-                                  }
-                                },
-                                child: Image.asset(
-                                  'assets/profile_passport/Settings.png',
-                                  width: settingsBtnW,
-                                  fit: BoxFit.contain,
-                                ),
-                              ),
-                            ),
-                            // Invite
-                            Positioned(
-                              left: w * 0.5,
-                              top: h * 0.58,
-                              child: _TiltOnTapButton(
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          const HouseholdManagePage(),
-                                    ),
-                                  );
-                                },
-                                child: Image.asset(
-                                  'assets/profile_passport/Invite.png',
-                                  width: inviteBtnW,
-                                  fit: BoxFit.contain,
-                                ),
-                              ),
-                            ),
-                          ],
-                        );
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                ],
+                    const SizedBox(height: 20),
+                  ],
                 ),
               ),
             ),
@@ -1759,13 +1758,13 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                   Center(
                     child: _isSavingGoal
                         ? const CircularProgressIndicator()
-                        : GestureDetector(
-                            onTap: _saveHealthGoal,
-                            child: Image.asset(
-                              'assets/profile_passport/Save Goal Button.png',
-                              width: 110, // 缩小到原来的 1/2
-                              fit: BoxFit.contain,
-                            ),
+                        : SketchyButton(
+                            text: 'Save Goal',
+                            onPressed: _saveHealthGoal,
+                            backgroundColor: Colors.blue.shade50,
+                            borderColor: const Color(0xFF6B4F4F),
+                            textColor: const Color(0xFF6B4F4F),
+                            fontSize: 20,
                           ),
                   ),
                 ],
@@ -1777,23 +1776,27 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
     );
   }
 
-  // Build Nutrition Page (Page 2)
+  // Build Nutrition Page (Page 2) - 仅保留 Daily Nutrition Targets，不再显示 Nutrition 标题
   Widget _buildNutritionPage(BuildContext context) {
     return RefreshIndicator(
       onRefresh: _loadUserData,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 16.0),
+        padding: const EdgeInsets.only(
+          left: 12.0,
+          right: 12.0,
+          top: 0,
+          bottom: 16.0,
+        ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            _sectionTitle('Nutrition'),
             if (_healthInfo != null &&
                 (_healthInfo!['dailyEnergy'] != null ||
                     _healthInfo!['dailyProtein'] != null ||
                     _healthInfo!['dailyFat'] != null ||
                     _healthInfo!['dailyCarbohydrates'] != null))
-              _buildNutritionTargets()
+              Center(child: _buildNutritionTargets())
             else
               Center(
                 child: Padding(
@@ -2369,10 +2372,7 @@ class _TiltOnTapButton extends StatefulWidget {
   final VoidCallback onTap;
   final Widget child;
 
-  const _TiltOnTapButton({
-    required this.onTap,
-    required this.child,
-  });
+  const _TiltOnTapButton({required this.onTap, required this.child});
 
   @override
   State<_TiltOnTapButton> createState() => _TiltOnTapButtonState();
