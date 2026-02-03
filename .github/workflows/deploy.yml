@@ -39,40 +39,48 @@ jobs:
         target: "/opt/calotter"
         strip_components: 3
 
-    # 5. 远程重启服务 (防自杀版：按端口关闭)
+    # 5. 远程重启服务 (防自杀版：按端口关闭 + 环境变量注入)
     - name: Restart Application
       uses: appleboy/ssh-action@master
+      env:
+        # 把 Secrets 注入到当前 step，这样 envs 才能把它们传到远程脚本
+        DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        GEMINI_PROJECT_ID: ${{ secrets.GEMINI_PROJECT_ID }}
+        GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
       with:
         host: ${{ secrets.SERVER_HOST }}
         username: ${{ secrets.SERVER_USER }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
+        # 把这几个变量从 runner 传到远程服务器的脚本环境
+        envs: DB_PASSWORD,GEMINI_API_KEY,GEMINI_PROJECT_ID,GROQ_API_KEY
         script: |
           echo "Deployment script started..."
           
-          # 1. 释放 8080 端口 (确保 fuser 工具已安装，没有就装一个)
-          echo "Freeing port 8080..."
-          # 尝试安装 psmisc (包含 fuser)，防止报错
-          sudo apt-get update && sudo apt-get install -y psmisc
-          # 杀掉占用 8080 的进程
-          sudo fuser -k 8080/tcp || true
+          # 在服务器里把传进来的变量变成真正的“环境变量”，System.getenv() 才能读到
+          export DB_PASSWORD=$DB_PASSWORD
+          export GEMINI_API_KEY=$GEMINI_API_KEY
+          export GEMINI_PROJECT_ID=$GEMINI_PROJECT_ID
+          export GROQ_API_KEY=$GROQ_API_KEY
           
-          # 等待端口彻底释放
+          # 释放 8080 端口
+          echo "Freeing port 8080..."
+          sudo apt-get update && sudo apt-get install -y psmisc
+          sudo fuser -k 8080/tcp || true
           sleep 5
           
-          # 2. 进入目录
+          # 进入目录
           cd /opt/calotter
           
-          # 3. 找到最新的 jar 包
+          # 找到最新的 jar 包
           JAR_NAME=$(ls -t *.jar | head -1)
           echo "Starting $JAR_NAME ..."
           
-          # 4. 后台启动 (带上数据库密码 和 AI 配置)
+          # 后台启动（API Key 等已通过 export 注入，程序从环境变量读取，无需写在命令里）
           nohup java -jar $JAR_NAME \
             --spring.datasource.url=jdbc:postgresql://localhost:5432/calotter \
             --spring.datasource.username=postgres \
-            --spring.datasource.password=${{ secrets.DB_PASSWORD }} \
-            --spring.ai.google.genai.api-key=${{ secrets.GEMINI_API_KEY }} \
-            --spring.ai.google.genai.project-id=${{ secrets.GEMINI_PROJECT_ID }} \
+            --spring.datasource.password=$DB_PASSWORD \
             > app.log 2>&1 &
             
           echo "Deployment finished successfully!"
