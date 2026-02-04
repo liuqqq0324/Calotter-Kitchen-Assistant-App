@@ -1740,27 +1740,6 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                 );
               },
             ),
-            if (_healthInfo != null &&
-                (_healthInfo!['dailyEnergy'] != null ||
-                    _healthInfo!['dailyProtein'] != null ||
-                    _healthInfo!['dailyFat'] != null ||
-                    _healthInfo!['dailyCarbohydrates'] != null))
-              Center(child: _buildNutritionTargets())
-            else
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Text(
-                    'Set a health goal to see nutrition targets',
-                    style: GoogleFonts.kalam(
-                      fontSize: 14,
-                      color: const Color(
-                        0xFF6B4F4F,
-                      ).withOpacity(0.8), // River Deep Brown - 与 Profile 页面一致
-                    ),
-                  ),
-                ),
-              ),
           ],
         ),
           ),
