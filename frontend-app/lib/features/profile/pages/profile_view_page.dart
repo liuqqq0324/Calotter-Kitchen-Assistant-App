@@ -87,10 +87,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                 child: SizedBox(
                   width: 64,
                   height: 64,
-                  child: Image.asset(
-                    opt.path,
-                    fit: BoxFit.contain,
-                  ),
+                  child: Image.asset(opt.path, fit: BoxFit.contain),
                 ),
               );
             }).toList(),
@@ -499,60 +496,96 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
   Widget _buildGoalTypeSelector() {
     return Column(
       children: [
-        _buildGoalTypeOption('MAINTENANCE', 'Maintain Health', Colors.green),
+        _buildGoalTypeOption(
+          'MAINTENANCE',
+          'Maintain Health',
+          Colors.green,
+          'assets/profile_passport/bounder1.png',
+        ),
         const SizedBox(height: 10),
-        _buildGoalTypeOption('LOSE_FAT', 'Lose Weight', Colors.orange),
+        _buildGoalTypeOption(
+          'LOSE_FAT',
+          'Lose Weight',
+          Colors.orange,
+          'assets/profile_passport/bounder2.png',
+        ),
         const SizedBox(height: 10),
-        _buildGoalTypeOption('MUSCLE_GAIN', 'Build Muscle', Colors.blue),
+        _buildGoalTypeOption(
+          'MUSCLE_GAIN',
+          'Build Muscle',
+          Colors.blue,
+          'assets/profile_passport/bounder3.png',
+        ),
       ],
     );
   }
 
-  Widget _buildGoalTypeOption(String value, String label, Color color) {
+  Widget _buildGoalTypeOption(
+    String value,
+    String label,
+    Color color,
+    String borderImagePath,
+  ) {
     final isSelected = _selectedGoalType == value;
-    return SketchyCard(
-      // ✅ 统一风格：选中状态用温暖米棕色，整体保持棕色系
-      backgroundColor:
-          isSelected ? const Color(0xFFF5EDE0) : Colors.white, // 淡棕纸色
-      borderColor: const Color(0xFF6B4F4F), // River Deep Brown - 与出生日期一致
-      borderWidth: 2.0,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    return GestureDetector(
       onTap: () {
         setState(() {
           _selectedGoalType = value;
         });
       },
-      child: Row(
+      child: Stack(
         children: [
-          Container(
-            width: 24, // 增大单选框从 20 到 24
-            height: 24,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-               color: isSelected
-                   ? const Color(0xFF6B4F4F)
-                   : Colors.transparent, // 选中时用深棕色填充
-              border: Border.all(
-                 color: const Color(0xFF6B4F4F), // 边框统一深棕色
-                width: 2.5,
+          // 背景图片层 - 向左偏移以对齐内容
+          Positioned.fill(
+            child: Transform.translate(
+              offset: const Offset(-40, 0), // 向左偏移 40px
+              child: Image.asset(
+                borderImagePath,
+                fit: BoxFit.contain,
+                alignment: Alignment.center,
               ),
             ),
-            child: isSelected
-                ? const Icon(Icons.check, size: 16, color: Colors.white) // 增大 Check 图标从 14 到 16
-                : null,
           ),
-          const SizedBox(width: 14), // 增大间距从 12 到 14
-          Expanded(
-            child: Text(
-              label,
-              style: GoogleFonts.kalam(
-                fontSize: 18, // 调大字体从 15 到 18
-                 fontWeight:
-                     isSelected ? FontWeight.bold : FontWeight.normal, // 选中时加粗
-                 color: const Color(
-                   0xFF6B4F4F,
-                 ), // 文本始终保持棕色
-              ),
+          // 内容层
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: [
+                Container(
+                  width: 24, // 增大单选框从 20 到 24
+                  height: 24,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isSelected
+                        ? const Color(0xFF6B4F4F)
+                        : Colors.transparent, // 选中时用深棕色填充
+                    border: Border.all(
+                      color: const Color(0xFF6B4F4F), // 边框统一深棕色
+                      width: 2.5,
+                    ),
+                  ),
+                  child: isSelected
+                      ? const Icon(
+                          Icons.check,
+                          size: 16,
+                          color: Colors.white,
+                        ) // 增大 Check 图标从 14 到 16
+                      : null,
+                ),
+                const SizedBox(width: 14), // 增大间距从 12 到 14
+                Expanded(
+                  child: Text(
+                    label,
+                    style: GoogleFonts.kalam(
+                      fontSize: 18, // 调大字体从 15 到 18
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.normal, // 选中时加粗
+                      color: const Color(0xFF6B4F4F), // 文本始终保持棕色
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -609,12 +642,15 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
     }
 
     // 四行：Energy 靠左、Protein 靠右、Fat 靠左、Carbs 靠右；便签稍大，可部分重叠但不挡信息，一屏内可见
-    final Map<String, String>? energy =
-        dailyEnergy != null ? {'label': 'Energy', 'value': '${dailyEnergy.toInt()} kcal'} : null;
-    final Map<String, String>? protein =
-        dailyProtein != null ? {'label': 'Protein', 'value': '${dailyProtein.toInt()} g'} : null;
-    final Map<String, String>? fat =
-        dailyFat != null ? {'label': 'Fat', 'value': '${dailyFat.toInt()} g'} : null;
+    final Map<String, String>? energy = dailyEnergy != null
+        ? {'label': 'Energy', 'value': '${dailyEnergy.toInt()} kcal'}
+        : null;
+    final Map<String, String>? protein = dailyProtein != null
+        ? {'label': 'Protein', 'value': '${dailyProtein.toInt()} g'}
+        : null;
+    final Map<String, String>? fat = dailyFat != null
+        ? {'label': 'Fat', 'value': '${dailyFat.toInt()} g'}
+        : null;
     final Map<String, String>? carbs = dailyCarbohydrates != null
         ? {'label': 'Carbs', 'value': '${dailyCarbohydrates.toInt()} g'}
         : null;
@@ -638,7 +674,10 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
             // 左右间距拉大，便签宽度限制在各自半区，不重叠、不挡信息
             const double horizontalPadding = 28.0;
             final contentWidth = maxWidth - horizontalPadding * 2;
-            final noteWidth = (contentWidth * 0.48).clamp(140.0, 220.0); // 左/右各占半区约一半，中间留空
+            final noteWidth = (contentWidth * 0.48).clamp(
+              140.0,
+              220.0,
+            ); // 左/右各占半区约一半，中间留空
             const double noteHeight = 168.0;
             const double rowOverlap = 92.0; // 每行下移量，稍松散
 
@@ -800,8 +839,8 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
   }
 
   /// 便签旋转角度（弧度）：左列逆时针 -5°，右列顺时针 +5°（参考图布局）
-  static const double _stickyLeftRot = -0.087;  // -5°
-  static const double _stickyRightRot = 0.087;  // +5°
+  static const double _stickyLeftRot = -0.087; // -5°
+  static const double _stickyRightRot = 0.087; // +5°
 
   /// 便签样式信息卡片，使用 Sticky1 或 Sticky2 作为背景，带透明胶带效果
   /// Sticky1 和 Sticky2 尺寸不同，胶带位置/大小需分开配置
@@ -880,25 +919,25 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
             right: 0,
             child: Center(
               child: Container(
-                  width: tapeWidth,
-                  height: tapeHeight,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF5EDE0).withOpacity(0.85), // 米白色
-                    borderRadius: BorderRadius.circular(2),
-                    border: Border.all(
-                      color: const Color(0xFFE5D9C8).withOpacity(0.6), // 米白偏深描边
-                      width: 0.5,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 2,
-                        offset: const Offset(0, 1),
-                      ),
-                    ],
+                width: tapeWidth,
+                height: tapeHeight,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF5EDE0).withOpacity(0.85), // 米白色
+                  borderRadius: BorderRadius.circular(2),
+                  border: Border.all(
+                    color: const Color(0xFFE5D9C8).withOpacity(0.6), // 米白偏深描边
+                    width: 0.5,
                   ),
-                  child: CustomPaint(painter: _StickyTapeTexturePainter()),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 2,
+                      offset: const Offset(0, 1),
+                    ),
+                  ],
                 ),
+                child: CustomPaint(painter: _StickyTapeTexturePainter()),
+              ),
             ),
           ),
         ],
@@ -926,39 +965,74 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
       Positioned(
         left: -4,
         top: h * -0.02,
-        child: Image.asset('$base/profile_icon1.png', width: _edgeIconSize, height: _edgeIconSize, fit: BoxFit.contain),
+        child: Image.asset(
+          '$base/profile_icon1.png',
+          width: _edgeIconSize,
+          height: _edgeIconSize,
+          fit: BoxFit.contain,
+        ),
       ),
       Positioned(
         left: -4,
         top: h * 0.22,
-        child: Image.asset('$base/profile_icon2.png', width: _edgeIconSize, height: _edgeIconSize, fit: BoxFit.contain),
+        child: Image.asset(
+          '$base/profile_icon2.png',
+          width: _edgeIconSize,
+          height: _edgeIconSize,
+          fit: BoxFit.contain,
+        ),
       ),
       Positioned(
         left: -4,
         top: h * 0.44,
-        child: Image.asset('$base/profile_icon3.png', width: _edgeIconSize, height: _edgeIconSize, fit: BoxFit.contain),
+        child: Image.asset(
+          '$base/profile_icon3.png',
+          width: _edgeIconSize,
+          height: _edgeIconSize,
+          fit: BoxFit.contain,
+        ),
       ),
       // 右侧边缘 2 个
       Positioned(
         right: -4,
         top: h * 0.02,
-        child: Image.asset('$base/profile_icon4.png', width: _edgeIconSize, height: _edgeIconSize, fit: BoxFit.contain),
+        child: Image.asset(
+          '$base/profile_icon4.png',
+          width: _edgeIconSize,
+          height: _edgeIconSize,
+          fit: BoxFit.contain,
+        ),
       ),
       Positioned(
         right: -4,
         top: h * 0.36,
-        child: Image.asset('$base/profile_icon5.png', width: _edgeIconSize, height: _edgeIconSize, fit: BoxFit.contain),
+        child: Image.asset(
+          '$base/profile_icon5.png',
+          width: _edgeIconSize,
+          height: _edgeIconSize,
+          fit: BoxFit.contain,
+        ),
       ),
       // 上侧边缘 2 个
       Positioned(
         left: w * 0.18,
         top: -8,
-        child: Image.asset('$base/profile_icon6.png', width: _edgeIconSize, height: _edgeIconSize, fit: BoxFit.contain),
+        child: Image.asset(
+          '$base/profile_icon6.png',
+          width: _edgeIconSize,
+          height: _edgeIconSize,
+          fit: BoxFit.contain,
+        ),
       ),
       Positioned(
         left: w * 0.62,
         top: -8,
-        child: Image.asset('$base/profile_icon1.png', width: _edgeIconSize, height: _edgeIconSize, fit: BoxFit.contain),
+        child: Image.asset(
+          '$base/profile_icon1.png',
+          width: _edgeIconSize,
+          height: _edgeIconSize,
+          fit: BoxFit.contain,
+        ),
       ),
     ];
   }
@@ -1063,7 +1137,12 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
               children: [
                 // Header: 头像（左） + 用户名与邮箱（右），头像可点击更换
                 Padding(
-                  padding: const EdgeInsets.only(left: 4, right: 14, top: 6, bottom: 4),
+                  padding: const EdgeInsets.only(
+                    left: 4,
+                    right: 14,
+                    top: 6,
+                    bottom: 4,
+                  ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
@@ -1089,7 +1168,12 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                         child: WashedBrushBackground(
                           seed: 42,
                           color: const Color(0xE8F5EDE0), // 米白色
-                          padding: const EdgeInsets.fromLTRB(20, 4, 12, 20), // 上少下多，文字上移，总高度不变笔刷不缩短
+                          padding: const EdgeInsets.fromLTRB(
+                            20,
+                            4,
+                            12,
+                            20,
+                          ), // 上少下多，文字上移，总高度不变笔刷不缩短
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisSize: MainAxisSize.min,
@@ -1099,8 +1183,9 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                                 style: GoogleFonts.caveat(
                                   fontSize: 36,
                                   fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF6B4F4F)
-                                      .withOpacity(0.8),
+                                  color: const Color(
+                                    0xFF6B4F4F,
+                                  ).withOpacity(0.8),
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -1149,7 +1234,8 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                             child: _buildStickyNote(
                               label: 'Birthdate',
                               value: birthdate,
-                              stickyAsset: 'assets/profile_passport/Sticky1.png',
+                              stickyAsset:
+                                  'assets/profile_passport/Sticky1.png',
                               width: stickyW,
                               height: stickyH,
                               rotation: 0.10,
@@ -1164,7 +1250,8 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                             child: _buildStickyNote(
                               label: 'Gender',
                               value: _getGenderDisplay(user.gender),
-                              stickyAsset: 'assets/profile_passport/Sticky2.png',
+                              stickyAsset:
+                                  'assets/profile_passport/Sticky2.png',
                               width: stickyW,
                               height: stickyH,
                               rotation: 0.35,
@@ -1184,7 +1271,8 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                                         ? user.weight
                                         : '${user.weight} kg')
                                   : '',
-                              stickyAsset: 'assets/profile_passport/Sticky2.png',
+                              stickyAsset:
+                                  'assets/profile_passport/Sticky2.png',
                               width: stickyW,
                               height: stickyH,
                               rotation: -0.12,
@@ -1204,7 +1292,8 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                                         ? user.height
                                         : '${user.height} cm')
                                   : '',
-                              stickyAsset: 'assets/profile_passport/Sticky1.png',
+                              stickyAsset:
+                                  'assets/profile_passport/Sticky1.png',
                               width: stickyW,
                               height: stickyH,
                               rotation: -0.32,
@@ -1244,7 +1333,8 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => const HouseholdManagePage(),
+                                    builder: (context) =>
+                                        const HouseholdManagePage(),
                                   ),
                                 );
                               },
@@ -1309,8 +1399,10 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                   builder: (context, constraints) {
                     final maxWidth = constraints.maxWidth;
                     // 缩小 BMI 贴纸尺寸：宽度占 55%，高度略减
-                    final noteWidth =
-                        (maxWidth * 0.55).clamp(0.0, 320.0); // 贴纸宽度占 55%
+                    final noteWidth = (maxWidth * 0.55).clamp(
+                      0.0,
+                      320.0,
+                    ); // 贴纸宽度占 55%
                     return Align(
                       alignment: Alignment.topRight,
                       child: _buildStickyNote(
@@ -1329,42 +1421,53 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
               },
             ),
             const SizedBox(height: 20),
-            // 使用毛笔笔刷背景包裹 Health Goal 区域，使其与 Profile 页用户名区域风格统一
-            WashedBrushBackground(
-              color: const Color(0xE8F5EDE0), // 米白色水洗笔触
-              seed: 18,
-              padding: const EdgeInsets.fromLTRB(18, 10, 18, 18),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Health Goal',
-                    style: GoogleFonts.kalam(
-                      fontSize: 20, // 与 Nutrition Targets 保持一致
-                      fontWeight: FontWeight.bold,
-                      color: const Color(
-                        0xFF6B4F4F,
-                      ), // River Deep Brown - 与 Profile 页面一致
-                    ),
+            // 使用图片边框作为 Health Goal 区域的背景
+            Stack(
+              children: [
+                // 背景图片层
+                Positioned.fill(
+                  child: Image.asset(
+                    'assets/images/Health Goal bounder.png',
+                    fit: BoxFit.contain,
+                    alignment: Alignment.center,
                   ),
-                  const SizedBox(height: 12),
-                  _buildGoalTypeSelector(),
-                  const SizedBox(height: 16),
-                  Center(
-                    child: _isSavingGoal
-                        ? const CircularProgressIndicator()
-                        : SketchyButton(
-                            text: 'Save Goal',
-                            onPressed: _saveHealthGoal,
-                            backgroundColor: Colors.blue.shade50,
-                            borderColor: const Color(0xFF6B4F4F),
-                            textColor: const Color(0xFF6B4F4F),
-                            fontSize: 20,
-                          ),
+                ),
+                // 内容层
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 10, 18, 18),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Health Goal',
+                        style: GoogleFonts.kalam(
+                          fontSize: 20, // 与 Nutrition Targets 保持一致
+                          fontWeight: FontWeight.bold,
+                          color: const Color(
+                            0xFF6B4F4F,
+                          ), // River Deep Brown - 与 Profile 页面一致
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildGoalTypeSelector(),
+                      const SizedBox(height: 16),
+                      Center(
+                        child: _isSavingGoal
+                            ? const CircularProgressIndicator()
+                            : GestureDetector(
+                                onTap: _saveHealthGoal,
+                                child: Image.asset(
+                                  'assets/profile_passport/Save Goal Button.png',
+                                  width: 110, // 缩小到原来的 1/2
+                                  fit: BoxFit.contain,
+                                ),
+                              ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ],
         ),
@@ -1378,7 +1481,12 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
       onRefresh: _loadUserData,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.only(left: 12.0, right: 12.0, top: 0, bottom: 16.0),
+        padding: const EdgeInsets.only(
+          left: 12.0,
+          right: 12.0,
+          top: 0,
+          bottom: 16.0,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
@@ -1620,10 +1728,16 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
         Text(
           'Tastes',
           style: GoogleFonts.kalam(
+<<<<<<< HEAD
             fontSize: 20,
             fontWeight: FontWeight.w700,
             color: _kFilterDeepBrown,
           ),
+=======
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ), // 调大 14 -> 16
+>>>>>>> origin/chase/flutter-v1.4-android-fea-userui
         ),
         const SizedBox(height: 8),
         Wrap(
@@ -1649,10 +1763,16 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
         Text(
           'Cuisines',
           style: GoogleFonts.kalam(
+<<<<<<< HEAD
             fontSize: 20,
             fontWeight: FontWeight.w700,
             color: _kFilterDeepBrown,
           ),
+=======
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ), // 调大 14 -> 16
+>>>>>>> origin/chase/flutter-v1.4-android-fea-userui
         ),
         const SizedBox(height: 8),
         Wrap(
@@ -1784,7 +1904,8 @@ class _StickyTapeTexturePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = const Color(0xFFE5D9C8).withOpacity(0.35) // 米白系纹理
+      ..color = const Color(0xFFE5D9C8)
+          .withOpacity(0.35) // 米白系纹理
       ..strokeWidth = 0.5
       ..style = PaintingStyle.stroke;
     for (double y = 2; y < size.height; y += 3) {
