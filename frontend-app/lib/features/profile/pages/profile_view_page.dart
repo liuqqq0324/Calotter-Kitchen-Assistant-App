@@ -494,60 +494,93 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
   Widget _buildGoalTypeSelector() {
     return Column(
       children: [
-        _buildGoalTypeOption('MAINTENANCE', 'Maintain Health', Colors.green),
+        _buildGoalTypeOption(
+          'MAINTENANCE',
+          'Maintain Health',
+          Colors.green,
+          'assets/profile_passport/bounder1.png',
+        ),
         const SizedBox(height: 10),
-        _buildGoalTypeOption('LOSE_FAT', 'Lose Weight', Colors.orange),
+        _buildGoalTypeOption(
+          'LOSE_FAT',
+          'Lose Weight',
+          Colors.orange,
+          'assets/profile_passport/bounder2.png',
+        ),
         const SizedBox(height: 10),
-        _buildGoalTypeOption('MUSCLE_GAIN', 'Build Muscle', Colors.blue),
+        _buildGoalTypeOption(
+          'MUSCLE_GAIN',
+          'Build Muscle',
+          Colors.blue,
+          'assets/profile_passport/bounder3.png',
+        ),
       ],
     );
   }
 
-  Widget _buildGoalTypeOption(String value, String label, Color color) {
+  Widget _buildGoalTypeOption(
+    String value,
+    String label,
+    Color color,
+    String borderImagePath,
+  ) {
     final isSelected = _selectedGoalType == value;
-    return SketchyCard(
-      // ✅ 统一风格：选中状态用温暖米棕色，整体保持棕色系
-      backgroundColor:
-          isSelected ? const Color(0xFFF5EDE0) : Colors.white, // 淡棕纸色
-      borderColor: const Color(0xFF6B4F4F), // River Deep Brown - 与出生日期一致
-      borderWidth: 2.0,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    return GestureDetector(
       onTap: () {
         setState(() {
           _selectedGoalType = value;
         });
       },
-      child: Row(
+      child: Stack(
         children: [
-          Container(
-            width: 24, // 增大单选框从 20 到 24
-            height: 24,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-               color: isSelected
-                   ? const Color(0xFF6B4F4F)
-                   : Colors.transparent, // 选中时用深棕色填充
-              border: Border.all(
-                 color: const Color(0xFF6B4F4F), // 边框统一深棕色
-                width: 2.5,
+          // 背景图片层 - 向左偏移以对齐内容
+          Positioned.fill(
+            child: Transform.translate(
+              offset: const Offset(-40, 0), // 向左偏移 40px
+              child: Image.asset(
+                borderImagePath,
+                fit: BoxFit.contain,
+                alignment: Alignment.center,
               ),
             ),
-            child: isSelected
-                ? const Icon(Icons.check, size: 16, color: Colors.white) // 增大 Check 图标从 14 到 16
-                : null,
           ),
-          const SizedBox(width: 14), // 增大间距从 12 到 14
-          Expanded(
-            child: Text(
-              label,
-              style: GoogleFonts.kalam(
-                fontSize: 18, // 调大字体从 15 到 18
-                 fontWeight:
-                     isSelected ? FontWeight.bold : FontWeight.normal, // 选中时加粗
-                 color: const Color(
-                   0xFF6B4F4F,
-                 ), // 文本始终保持棕色
-              ),
+          // 内容层
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: [
+                Container(
+                  width: 24, // 增大单选框从 20 到 24
+                  height: 24,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isSelected
+                        ? const Color(0xFF6B4F4F)
+                        : Colors.transparent, // 选中时用深棕色填充
+                    border: Border.all(
+                      color: const Color(0xFF6B4F4F), // 边框统一深棕色
+                      width: 2.5,
+                    ),
+                  ),
+                  child: isSelected
+                      ? const Icon(Icons.check, size: 16, color: Colors.white) // 增大 Check 图标从 14 到 16
+                      : null,
+                ),
+                const SizedBox(width: 14), // 增大间距从 12 到 14
+                Expanded(
+                  child: Text(
+                    label,
+                    style: GoogleFonts.kalam(
+                      fontSize: 18, // 调大字体从 15 到 18
+                      fontWeight:
+                          isSelected ? FontWeight.bold : FontWeight.normal, // 选中时加粗
+                      color: const Color(
+                        0xFF6B4F4F,
+                      ), // 文本始终保持棕色
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -1373,42 +1406,53 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
               },
             ),
             const SizedBox(height: 20),
-            // 使用毛笔笔刷背景包裹 Health Goal 区域，使其与 Profile 页用户名区域风格统一
-            WashedBrushBackground(
-              color: const Color(0xE8F5EDE0), // 米白色水洗笔触
-              seed: 18,
-              padding: const EdgeInsets.fromLTRB(18, 10, 18, 18),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Health Goal',
-                    style: GoogleFonts.kalam(
-                      fontSize: 20, // 与 Nutrition Targets 保持一致
-                      fontWeight: FontWeight.bold,
-                      color: const Color(
-                        0xFF6B4F4F,
-                      ), // River Deep Brown - 与 Profile 页面一致
-                    ),
+            // 使用图片边框作为 Health Goal 区域的背景
+            Stack(
+              children: [
+                // 背景图片层
+                Positioned.fill(
+                  child: Image.asset(
+                    'assets/images/Health Goal bounder.png',
+                    fit: BoxFit.contain,
+                    alignment: Alignment.center,
                   ),
-                  const SizedBox(height: 12),
-                  _buildGoalTypeSelector(),
-                  const SizedBox(height: 16),
-                  Center(
-                    child: _isSavingGoal
-                        ? const CircularProgressIndicator()
-                         : GestureDetector(
-                             onTap: _saveHealthGoal,
-                             child: Image.asset(
-                               'assets/profile_passport/Save Goal Button.png',
-                                width: 110, // 缩小到原来的 1/2
-                               fit: BoxFit.contain,
-                             ),
-                           ),
+                ),
+                // 内容层
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 10, 18, 18),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Health Goal',
+                        style: GoogleFonts.kalam(
+                          fontSize: 20, // 与 Nutrition Targets 保持一致
+                          fontWeight: FontWeight.bold,
+                          color: const Color(
+                            0xFF6B4F4F,
+                          ), // River Deep Brown - 与 Profile 页面一致
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildGoalTypeSelector(),
+                      const SizedBox(height: 16),
+                      Center(
+                        child: _isSavingGoal
+                            ? const CircularProgressIndicator()
+                            : GestureDetector(
+                                onTap: _saveHealthGoal,
+                                child: Image.asset(
+                                  'assets/profile_passport/Save Goal Button.png',
+                                  width: 110, // 缩小到原来的 1/2
+                                  fit: BoxFit.contain,
+                                ),
+                              ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ],
         ),
