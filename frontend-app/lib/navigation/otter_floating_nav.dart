@@ -23,10 +23,14 @@ class OtterFloatingNav extends StatefulWidget {
 }
 
 class OtterFloatingNavState extends State<OtterFloatingNav>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   bool _isExpanded = false;
   late AnimationController _animationController;
   late Animation<double> _expandAnimation;
+
+  // 点击时缓慢抖动
+  late AnimationController _shakeController;
+  late Animation<double> _shakeAnimation;
 
   // 🔥 添加位置状态，支持拖动
   Offset _position = Offset.zero; // 相对于初始位置的偏移
@@ -46,6 +50,34 @@ class OtterFloatingNavState extends State<OtterFloatingNav>
       parent: _animationController,
       curve: Curves.easeInOutCubic,
     );
+
+    // 点击缓慢抖动：约 ±4.5° 左右摆两次后回正，总时长 600ms
+    _shakeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    const double wobbleRad = 0.08;
+    _shakeAnimation =
+        TweenSequence<double>([
+          TweenSequenceItem(
+            tween: Tween(begin: 0.0, end: -wobbleRad),
+            weight: 25,
+          ),
+          TweenSequenceItem(
+            tween: Tween(begin: -wobbleRad, end: wobbleRad),
+            weight: 25,
+          ),
+          TweenSequenceItem(
+            tween: Tween(begin: wobbleRad, end: -wobbleRad * 0.5),
+            weight: 25,
+          ),
+          TweenSequenceItem(
+            tween: Tween(begin: -wobbleRad * 0.5, end: 0.0),
+            weight: 25,
+          ),
+        ]).animate(
+          CurvedAnimation(parent: _shakeController, curve: Curves.easeInOut),
+        );
 
     // 初始化时检查并显示提示
     _checkAndShowTooltip();
@@ -123,7 +155,11 @@ class OtterFloatingNavState extends State<OtterFloatingNav>
   }
 
   /// ✅ 公开方法：从外部显示临时消息
-  void showMessage(String message, {OtterTooltipType type = OtterTooltipType.actionHint, Duration duration = const Duration(seconds: 3)}) {
+  void showMessage(
+    String message, {
+    OtterTooltipType type = OtterTooltipType.actionHint,
+    Duration duration = const Duration(seconds: 3),
+  }) {
     if (!mounted) return;
     setState(() {
       _currentTooltipMessage = message;
@@ -143,10 +179,13 @@ class OtterFloatingNavState extends State<OtterFloatingNav>
   @override
   void dispose() {
     _animationController.dispose();
+    _shakeController.dispose();
     super.dispose();
   }
 
   void _toggleMenu() {
+    // 点击时触发缓慢抖动
+    _shakeController.forward(from: 0);
     setState(() {
       _isExpanded = !_isExpanded;
       if (_isExpanded) {
@@ -245,22 +284,31 @@ class OtterFloatingNavState extends State<OtterFloatingNav>
               child: SizedBox(
                 width: 120,
                 height: 120,
-                child: widget.isListening
-                    ? TweenAnimationBuilder<double>(
-                        tween: Tween(begin: 1.0, end: 1.1),
-                        duration: const Duration(milliseconds: 800),
-                        builder: (context, scale, child) {
-                          return Transform.scale(
-                            scale: scale,
-                            child: _buildOtterImage(),
-                          );
-                        },
-                        onEnd: () {
-                          // 循环缩放动画
-                          setState(() {});
-                        },
-                      )
-                    : _buildOtterImage(),
+                child: AnimatedBuilder(
+                  animation: _shakeAnimation,
+                  builder: (context, child) {
+                    return Transform.rotate(
+                      angle: _shakeAnimation.value,
+                      child: child,
+                    );
+                  },
+                  child: widget.isListening
+                      ? TweenAnimationBuilder<double>(
+                          tween: Tween(begin: 1.0, end: 1.1),
+                          duration: const Duration(milliseconds: 800),
+                          builder: (context, scale, child) {
+                            return Transform.scale(
+                              scale: scale,
+                              child: _buildOtterImage(),
+                            );
+                          },
+                          onEnd: () {
+                            // 循环缩放动画
+                            setState(() {});
+                          },
+                        )
+                      : _buildOtterImage(),
+                ),
               ),
             ),
           ),

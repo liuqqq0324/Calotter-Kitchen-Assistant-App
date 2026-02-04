@@ -1202,15 +1202,11 @@ class _InventoryPageState extends State<InventoryPage>
 
                       // 处理 AddItemPage (ReviewPage) 返回的指令
                       if (result == 'recipe') {
-                        // 如果用户想生成食谱，跳转 Tab
                         context
                             .findAncestorStateOfType<MainScaffoldState>()
                             ?.switchTab(1);
                       } else {
-                        // 否则 (比如返回 'kitchen' 或 null)，只需刷新当前页
-                        setState(() {
-                          // 触发 build，重新拉取全局数据并显示
-                        });
+                        setState(() {});
                       }
                     },
                     backgroundColor: Colors.orange.shade100,
