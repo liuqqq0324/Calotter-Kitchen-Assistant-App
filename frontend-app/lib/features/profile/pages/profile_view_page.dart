@@ -776,9 +776,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
             spacing: 8,
             runSpacing: 8,
             children: [
-              ...show.map(
-                (v) => _buildSummaryChip(_formatToTitleCase(v)),
-              ),
+              ...show.map((v) => _buildSummaryChip(_formatToTitleCase(v))),
               if (remaining > 0) _buildSummaryChip('+$remaining'),
             ],
           ),
@@ -816,9 +814,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
       spacing: 8,
       runSpacing: 8,
       children: [
-        ...show.map(
-          (item) => _buildSummaryChip(_formatToTitleCase(item)),
-        ),
+        ...show.map((item) => _buildSummaryChip(_formatToTitleCase(item))),
         if (remaining > 0) _buildSummaryChip('+$remaining'),
       ],
     );
@@ -1523,7 +1519,12 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
       onRefresh: _loadUserData,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.only(left: 12.0, right: 12.0, top: 0, bottom: 16.0),
+        padding: const EdgeInsets.only(
+          left: 12.0,
+          right: 12.0,
+          top: 0,
+          bottom: 16.0,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1573,10 +1574,16 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
     required bool selected,
     required ValueChanged<bool> onSelected,
   }) {
-    final selectedFill =
-        Color.lerp(_kFilterLightBeige, _kFilterTerracotta, 0.52)!;
-    final selectedBorder =
-        Color.lerp(_kFilterTerracotta, _kFilterDeepBrown, 0.25)!;
+    final selectedFill = Color.lerp(
+      _kFilterLightBeige,
+      _kFilterTerracotta,
+      0.52,
+    )!;
+    final selectedBorder = Color.lerp(
+      _kFilterTerracotta,
+      _kFilterDeepBrown,
+      0.25,
+    )!;
     return FilterChip(
       label: Text(
         label,
@@ -1592,24 +1599,18 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
       selectedColor: selectedFill,
       checkmarkColor: _kFilterDeepBrown,
       side: BorderSide(
-        color: selected
-            ? selectedBorder
-            : _kFilterDeepBrown.withOpacity(0.3),
+        color: selected ? selectedBorder : _kFilterDeepBrown.withOpacity(0.3),
         width: 1.2,
       ),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       showCheckmark: false,
     );
   }
 
   /// 折叠时已选内容展示用 chip，与展开时 Filter 风格一致（只读、无勾选）
   Widget _buildSummaryChip(String label) {
-    final fill =
-        Color.lerp(_kFilterLightBeige, _kFilterTerracotta, 0.52)!;
-    final border =
-        Color.lerp(_kFilterTerracotta, _kFilterDeepBrown, 0.25)!;
+    final fill = Color.lerp(_kFilterLightBeige, _kFilterTerracotta, 0.52)!;
+    final border = Color.lerp(_kFilterTerracotta, _kFilterDeepBrown, 0.25)!;
     return Chip(
       label: Text(
         label,
@@ -1620,13 +1621,8 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
         ),
       ),
       backgroundColor: fill,
-      side: BorderSide(
-        color: border.withOpacity(0.85),
-        width: 1.1,
-      ),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-      ),
+      side: BorderSide(color: border.withOpacity(0.85), width: 1.1),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
     );
   }
 
@@ -1728,16 +1724,10 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
         Text(
           'Tastes',
           style: GoogleFonts.kalam(
-<<<<<<< HEAD
             fontSize: 20,
             fontWeight: FontWeight.w700,
             color: _kFilterDeepBrown,
           ),
-=======
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ), // 调大 14 -> 16
->>>>>>> origin/chase/flutter-v1.4-android-fea-userui
         ),
         const SizedBox(height: 8),
         Wrap(
@@ -1763,16 +1753,10 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
         Text(
           'Cuisines',
           style: GoogleFonts.kalam(
-<<<<<<< HEAD
             fontSize: 20,
             fontWeight: FontWeight.w700,
             color: _kFilterDeepBrown,
           ),
-=======
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ), // 调大 14 -> 16
->>>>>>> origin/chase/flutter-v1.4-android-fea-userui
         ),
         const SizedBox(height: 8),
         Wrap(
