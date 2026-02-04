@@ -40,6 +40,11 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
   // 头像：默认 otter，点击可更换
   String _selectedAvatarId = AvatarConfig.defaultAvatar;
 
+  // 与 Recipe Filter 页一致的配色（选项 chip、边框、保存按钮）
+  static const Color _kFilterLightBeige = Color(0xFFFFFFF0);
+  static const Color _kFilterDeepBrown = Color(0xFF6B4F4F);
+  static const Color _kFilterTerracotta = Color(0xFFD68C5E);
+
   // 兜底过敏原列表，防止 API 返回为空
   static const List<String> _fallbackAllergens = [
     'Peanut',
@@ -703,19 +708,17 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
   Widget _buildPreferencesSummary() {
     if (_tastes.isEmpty && _cuisines.isEmpty) {
       return Text(
-        'No preferences set. Tap "Edit" to add preferences.',
+        'No preferences set. Tap to add preferences.',
         style: GoogleFonts.kalam(
           fontSize: 14,
-          color: const Color(
-            0xFF6B4F4F,
-          ).withOpacity(0.8), // River Deep Brown - 与 Profile 页面一致
+          color: _kFilterDeepBrown.withOpacity(0.8),
         ).copyWith(fontStyle: FontStyle.italic),
       );
     }
 
     Widget chips(String label, List<String> values) {
       if (values.isEmpty) return const SizedBox.shrink();
-      final show = values.take(2).toList(); // ✅ 最多显示2项
+      final show = values.take(2).toList();
       final remaining = values.length - show.length;
 
       return Column(
@@ -724,11 +727,9 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
           Text(
             label,
             style: GoogleFonts.kalam(
-              fontSize: 14, // 调大 13 -> 14
-              fontWeight: FontWeight.bold,
-              color: const Color(
-                0xFF6B4F4F,
-              ), // River Deep Brown - 与 Profile 页面一致
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: _kFilterDeepBrown,
             ),
           ),
           const SizedBox(height: 8),
@@ -737,34 +738,9 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
             runSpacing: 8,
             children: [
               ...show.map(
-                (v) => Chip(
-                  backgroundColor: Colors.grey.shade200,
-                  label: Text(
-                    _formatToTitleCase(v),
-                    style: GoogleFonts.kalam(
-                      fontSize: 13, // 调大 12 -> 13
-                      color: const Color(
-                        0xFF6B4F4F,
-                      ).withOpacity(0.8), // River Deep Brown - 与 Profile 页面一致
-                    ),
-                  ),
-                  side: BorderSide(color: Colors.grey.shade400),
-                ),
+                (v) => _buildSummaryChip(_formatToTitleCase(v)),
               ),
-              if (remaining > 0)
-                Chip(
-                  backgroundColor: Colors.grey.shade200,
-                  label: Text(
-                    '+$remaining',
-                    style: GoogleFonts.kalam(
-                      fontSize: 13, // 调大 12 -> 13
-                      color: const Color(
-                        0xFF6B4F4F,
-                      ).withOpacity(0.8), // River Deep Brown - 与 Profile 页面一致
-                    ),
-                  ),
-                  side: BorderSide(color: Colors.grey.shade400),
-                ),
+              if (remaining > 0) _buildSummaryChip('+$remaining'),
             ],
           ),
         ],
@@ -782,16 +758,14 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
     );
   }
 
-  // ✅ 构建项目摘要（最多显示2项，超过显示+n，使用 Chip 风格）
+  // 构建项目摘要（最多显示2项，超过显示+n，与展开时 Filter 风格一致）
   Widget _buildItemsSummary(List<String> items) {
     if (items.isEmpty) {
       return Text(
         'No items',
         style: GoogleFonts.kalam(
-          fontSize: 12,
-          color: const Color(
-            0xFF6B4F4F,
-          ).withOpacity(0.8), // River Deep Brown - 与 Profile 页面一致
+          fontSize: 14,
+          color: _kFilterDeepBrown.withOpacity(0.8),
         ),
       );
     }
@@ -804,34 +778,9 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
       runSpacing: 8,
       children: [
         ...show.map(
-          (item) => Chip(
-            backgroundColor: Colors.grey.shade200,
-            label: Text(
-              _formatToTitleCase(item),
-              style: GoogleFonts.kalam(
-                fontSize: 13, // 调大 12 -> 13
-                color: const Color(
-                  0xFF6B4F4F,
-                ).withOpacity(0.8), // River Deep Brown - 与 Profile 页面一致
-              ),
-            ),
-            side: BorderSide(color: Colors.grey.shade400),
-          ),
+          (item) => _buildSummaryChip(_formatToTitleCase(item)),
         ),
-        if (remaining > 0)
-          Chip(
-            backgroundColor: Colors.grey.shade200,
-            label: Text(
-              '+$remaining',
-              style: GoogleFonts.kalam(
-                fontSize: 13, // 调大 12 -> 13
-                color: const Color(
-                  0xFF6B4F4F,
-                ).withOpacity(0.8), // River Deep Brown - 与 Profile 页面一致
-              ),
-            ),
-            side: BorderSide(color: Colors.grey.shade400),
-          ),
+        if (remaining > 0) _buildSummaryChip('+$remaining'),
       ],
     );
   }
@@ -1460,13 +1409,13 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
     );
   }
 
-  // Build Preferences Page (Page 3)
+  // Build Preferences Page (Page 3) - 位置与 Daily Nutrition Targets 一致（top: 0，左右 12）
   Widget _buildPreferencesPage(BuildContext context) {
     return RefreshIndicator(
       onRefresh: _loadUserData,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 16.0),
+        padding: const EdgeInsets.only(left: 12.0, right: 12.0, top: 0, bottom: 16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1510,6 +1459,69 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
     );
   }
 
+  /// 与 Recipe Filter 页一致的 FilterChip 样式（Kalam、边框、选中色）
+  Widget _buildThemedFilterChip({
+    required String label,
+    required bool selected,
+    required ValueChanged<bool> onSelected,
+  }) {
+    final selectedFill =
+        Color.lerp(_kFilterLightBeige, _kFilterTerracotta, 0.52)!;
+    final selectedBorder =
+        Color.lerp(_kFilterTerracotta, _kFilterDeepBrown, 0.25)!;
+    return FilterChip(
+      label: Text(
+        label,
+        style: GoogleFonts.kalam(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: _kFilterDeepBrown,
+        ),
+      ),
+      selected: selected,
+      onSelected: onSelected,
+      backgroundColor: _kFilterLightBeige,
+      selectedColor: selectedFill,
+      checkmarkColor: _kFilterDeepBrown,
+      side: BorderSide(
+        color: selected
+            ? selectedBorder
+            : _kFilterDeepBrown.withOpacity(0.3),
+        width: 1.2,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+      showCheckmark: false,
+    );
+  }
+
+  /// 折叠时已选内容展示用 chip，与展开时 Filter 风格一致（只读、无勾选）
+  Widget _buildSummaryChip(String label) {
+    final fill =
+        Color.lerp(_kFilterLightBeige, _kFilterTerracotta, 0.52)!;
+    final border =
+        Color.lerp(_kFilterTerracotta, _kFilterDeepBrown, 0.25)!;
+    return Chip(
+      label: Text(
+        label,
+        style: GoogleFonts.kalam(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: _kFilterDeepBrown,
+        ),
+      ),
+      backgroundColor: fill,
+      side: BorderSide(
+        color: border.withOpacity(0.85),
+        width: 1.1,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+    );
+  }
+
   // 核心辅助方法：构建可折叠的编辑区域
   Widget _buildExpandableSection({
     required String id,
@@ -1528,15 +1540,15 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
           title: Text(
             title,
             style: GoogleFonts.kalam(
-              fontSize: 18, // 调大折叠栏标题从 16 到 18
+              fontSize: 22,
               fontWeight: FontWeight.w600,
-              color: const Color(0xFF6B4F4F),
+              color: _kFilterDeepBrown,
             ),
           ),
           subtitle: isExpanded ? null : subtitle,
           trailing: Icon(
             isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-            color: const Color(0xFF6B4F4F),
+            color: _kFilterDeepBrown,
           ),
           onTap: () {
             setState(() {
@@ -1547,10 +1559,10 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
         if (isExpanded) ...[
           const SizedBox(height: 8),
           SketchyCard(
-            backgroundColor: Colors.white.withOpacity(0.5),
-            borderColor: const Color(0xFF6B4F4F),
-            borderWidth: 1.5,
-            padding: const EdgeInsets.all(16),
+            backgroundColor: _kFilterLightBeige,
+            borderColor: _kFilterDeepBrown,
+            borderWidth: 2.5,
+            padding: const EdgeInsets.all(18),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1561,24 +1573,29 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                   children: [
                     TextButton(
                       onPressed: () => setState(() => _expandedSection = null),
-                      child: Text('Cancel', style: GoogleFonts.kalam()),
+                      child: Text(
+                        'Cancel',
+                        style: GoogleFonts.kalam(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: _kFilterDeepBrown,
+                        ),
+                      ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 12),
                     _isSavingPrefs
                         ? const SizedBox(
                             width: 20,
                             height: 20,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : TextButton(
+                        : SketchyButton(
+                            text: 'Save',
                             onPressed: onSave,
-                            child: Text(
-                              'Save',
-                              style: GoogleFonts.kalam(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.blue,
-                              ),
-                            ),
+                            backgroundColor: _kFilterLightBeige,
+                            borderColor: _kFilterDeepBrown,
+                            textColor: _kFilterDeepBrown,
+                            fontSize: 18,
                           ),
                   ],
                 ),
@@ -1591,7 +1608,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
     );
   }
 
-  // 偏好设置编辑 UI
+  // 偏好设置编辑 UI（与 Recipe Filter 一致的 section 标题 + chip 样式）
   Widget _buildPreferencesEditUI() {
     final standard = StandardLibraryService.getStandardPreferences();
     final tasteOptions = standard['tastes'] ?? [];
@@ -1602,7 +1619,11 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
       children: [
         Text(
           'Tastes',
-          style: GoogleFonts.kalam(fontSize: 16, fontWeight: FontWeight.bold), // 调大 14 -> 16
+          style: GoogleFonts.kalam(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: _kFilterDeepBrown,
+          ),
         ),
         const SizedBox(height: 8),
         Wrap(
@@ -1610,11 +1631,8 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
           runSpacing: 8,
           children: tasteOptions.map((taste) {
             final isSelected = _tastes.contains(taste);
-            return FilterChip(
-              label: Text(
-                _formatToTitleCase(taste),
-                style: GoogleFonts.kalam(fontSize: 14), // 调大 12 -> 14
-              ),
+            return _buildThemedFilterChip(
+              label: _formatToTitleCase(taste),
               selected: isSelected,
               onSelected: (val) {
                 setState(() {
@@ -1630,7 +1648,11 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
         const SizedBox(height: 16),
         Text(
           'Cuisines',
-          style: GoogleFonts.kalam(fontSize: 16, fontWeight: FontWeight.bold), // 调大 14 -> 16
+          style: GoogleFonts.kalam(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: _kFilterDeepBrown,
+          ),
         ),
         const SizedBox(height: 8),
         Wrap(
@@ -1638,11 +1660,8 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
           runSpacing: 8,
           children: cuisineOptions.map((cuisine) {
             final isSelected = _cuisines.contains(cuisine);
-            return FilterChip(
-              label: Text(
-                _formatToTitleCase(cuisine),
-                style: GoogleFonts.kalam(fontSize: 14), // 调大 12 -> 14
-              ),
+            return _buildThemedFilterChip(
+              label: _formatToTitleCase(cuisine),
               selected: isSelected,
               onSelected: (val) {
                 setState(() {
@@ -1659,7 +1678,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
     );
   }
 
-  // 饮食习惯编辑 UI
+  // 饮食习惯编辑 UI（与 Recipe Filter 一致的 chip 样式）
   Widget _buildDietHabitsEditUI() {
     final options = StandardLibraryService.getStandardDietHabits();
 
@@ -1670,8 +1689,8 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
         final value = option['value']!;
         final label = option['label']!;
         final isSelected = kCurrentUser.dietHabits.contains(value);
-        return FilterChip(
-          label: Text(label, style: GoogleFonts.kalam(fontSize: 14)), // 调大 12 -> 14
+        return _buildThemedFilterChip(
+          label: label,
           selected: isSelected,
           onSelected: (val) {
             setState(() {
@@ -1686,7 +1705,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
     );
   }
 
-  // 过敏原编辑 UI
+  // 过敏原编辑 UI（与 Recipe Filter 一致的 chip 样式）
   Widget _buildAllergiesEditUI() {
     // 优先使用 API 返回的标准库，如果为空则使用兜底列表
     final List<String> options = _standardAllergens.isNotEmpty
@@ -1701,11 +1720,8 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
       runSpacing: 8,
       children: options.map((name) {
         final isSelected = kCurrentUser.allergies.contains(name);
-        return FilterChip(
-          label: Text(
-            _formatToTitleCase(name),
-            style: GoogleFonts.kalam(fontSize: 14), // 调大 12 -> 14
-          ),
+        return _buildThemedFilterChip(
+          label: _formatToTitleCase(name),
           selected: isSelected,
           onSelected: (val) {
             setState(() {
