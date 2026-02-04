@@ -9,7 +9,6 @@ import '../../../data/models/user_profile.dart';
 
 import '../../../shared/widgets/common/sketchy_card.dart';
 import '../../../shared/widgets/common/sketchy_button.dart';
-import '../../../shared/widgets/common/sketchy_border.dart';
 import '../../../shared/widgets/common/passport_page_view.dart';
 import '../../../shared/widgets/common/washed_brush_background.dart';
 import '../../../services/business/user_service.dart';
@@ -44,6 +43,12 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
   static const Color _kFilterLightBeige = Color(0xFFFFFFF0);
   static const Color _kFilterDeepBrown = Color(0xFF6B4F4F);
   static const Color _kFilterTerracotta = Color(0xFFD68C5E);
+
+  // 四个 section 选中态专用色：Tastes / Cuisines / Diet Habits / Allergies
+  static const Color _kSectionTastesSelected = Color(0xFFF4D06F);
+  static const Color _kSectionCuisinesSelected = Color(0xFFD4B2B5);
+  static const Color _kSectionDietHabitsSelected = Color(0xFF4A7C7A);
+  static const Color _kSectionAllergiesSelected = Color(0xFFE8D0B5);
 
   // 兜底过敏原列表，防止 API 返回为空
   static const List<String> _fallbackAllergens = [
@@ -770,7 +775,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
       );
     }
 
-    Widget chips(String label, List<String> values) {
+    Widget chips(String label, List<String> values, Color sectionColor) {
       if (values.isEmpty) return const SizedBox.shrink();
       final show = values.take(2).toList();
       final remaining = values.length - show.length;
@@ -791,8 +796,17 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
             spacing: 8,
             runSpacing: 8,
             children: [
-              ...show.map((v) => _buildSummaryChip(_formatToTitleCase(v))),
-              if (remaining > 0) _buildSummaryChip('+$remaining'),
+              ...show.map(
+                (v) => _buildSummaryChip(
+                  _formatToTitleCase(v),
+                  sectionColor: sectionColor,
+                ),
+              ),
+              if (remaining > 0)
+                _buildSummaryChip(
+                  '+$remaining',
+                  sectionColor: sectionColor,
+                ),
             ],
           ),
         ],
@@ -802,16 +816,16 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        chips('Tastes', _tastes),
+        chips('Tastes', _tastes, _kSectionTastesSelected),
         if (_tastes.isNotEmpty && _cuisines.isNotEmpty)
           const SizedBox(height: 12),
-        chips('Cuisines', _cuisines),
+        chips('Cuisines', _cuisines, _kSectionCuisinesSelected),
       ],
     );
   }
 
   // 构建项目摘要（最多显示2项，超过显示+n，与展开时 Filter 风格一致）
-  Widget _buildItemsSummary(List<String> items) {
+  Widget _buildItemsSummary(List<String> items, {Color? sectionColor}) {
     if (items.isEmpty) {
       return Text(
         'No items',
@@ -829,8 +843,14 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
       spacing: 8,
       runSpacing: 8,
       children: [
-        ...show.map((item) => _buildSummaryChip(_formatToTitleCase(item))),
-        if (remaining > 0) _buildSummaryChip('+$remaining'),
+        ...show.map(
+          (item) => _buildSummaryChip(
+            _formatToTitleCase(item),
+            sectionColor: sectionColor,
+          ),
+        ),
+        if (remaining > 0)
+          _buildSummaryChip('+$remaining', sectionColor: sectionColor),
       ],
     );
   }
@@ -1896,14 +1916,12 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
         padding: const EdgeInsets.only(
           left: 12.0,
           right: 12.0,
-          top: 0,
+          top: 52.0,
           bottom: 16.0,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 已删除：_sectionTitle('Preferences')，用户要求去掉左上角多出的 Preferences
-
             // 1. Preferences Section (Tastes & Cuisines)
             _buildExpandableSection(
               id: 'preferences',
@@ -1920,7 +1938,10 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
             _buildExpandableSection(
               id: 'diet',
               title: 'Diet Habits',
-              subtitle: _buildItemsSummary(kCurrentUser.dietHabits),
+              subtitle: _buildItemsSummary(
+                kCurrentUser.dietHabits,
+                sectionColor: _kSectionDietHabitsSelected,
+              ),
               expandedChild: _buildDietHabitsEditUI(),
               onSave: _saveDietHabits,
             ),
@@ -1932,7 +1953,10 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
             _buildExpandableSection(
               id: 'allergies',
               title: 'Allergies',
-              subtitle: _buildItemsSummary(kCurrentUser.allergies),
+              subtitle: _buildItemsSummary(
+                kCurrentUser.allergies,
+                sectionColor: _kSectionAllergiesSelected,
+              ),
               expandedChild: _buildAllergiesEditUI(),
               onSave: _saveAllergies,
             ),
@@ -1943,35 +1967,33 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
   }
 
   /// 与 Recipe Filter 页一致的 FilterChip 样式（Kalam、边框、选中色）
+  /// [sectionSelectedColor] 为 null 时使用默认 terracotta 系；否则用该色作为该 section 选中态
   Widget _buildThemedFilterChip({
     required String label,
     required bool selected,
     required ValueChanged<bool> onSelected,
+    Color? sectionSelectedColor,
   }) {
-    final selectedFill = Color.lerp(
-      _kFilterLightBeige,
-      _kFilterTerracotta,
-      0.52,
-    )!;
-    final selectedBorder = Color.lerp(
-      _kFilterTerracotta,
-      _kFilterDeepBrown,
-      0.25,
-    )!;
+    final selectedFill =
+        sectionSelectedColor ??
+        Color.lerp(_kFilterLightBeige, _kFilterTerracotta, 0.52)!;
+    final selectedBorder = sectionSelectedColor != null
+        ? Color.lerp(sectionSelectedColor, _kFilterDeepBrown, 0.35)!
+        : Color.lerp(_kFilterTerracotta, _kFilterDeepBrown, 0.25)!;
     return FilterChip(
       label: Text(
         label,
         style: GoogleFonts.kalam(
-          fontSize: 14,
+          fontSize: 17,
           fontWeight: FontWeight.w600,
-          color: _kFilterDeepBrown,
+          color: selected ? Colors.white : _kFilterDeepBrown,
         ),
       ),
       selected: selected,
       onSelected: onSelected,
       backgroundColor: _kFilterLightBeige,
       selectedColor: selectedFill,
-      checkmarkColor: _kFilterDeepBrown,
+      checkmarkColor: selected ? Colors.white : _kFilterDeepBrown,
       side: BorderSide(
         color: selected ? selectedBorder : _kFilterDeepBrown.withOpacity(0.3),
         width: 1.2,
@@ -1982,16 +2004,21 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
   }
 
   /// 折叠时已选内容展示用 chip，与展开时 Filter 风格一致（只读、无勾选）
-  Widget _buildSummaryChip(String label) {
-    final fill = Color.lerp(_kFilterLightBeige, _kFilterTerracotta, 0.52)!;
-    final border = Color.lerp(_kFilterTerracotta, _kFilterDeepBrown, 0.25)!;
+  /// [sectionColor] 为 null 时用默认色；否则用该 section 的选中色
+  Widget _buildSummaryChip(String label, {Color? sectionColor}) {
+    final fill =
+        sectionColor ??
+        Color.lerp(_kFilterLightBeige, _kFilterTerracotta, 0.52)!;
+    final border = sectionColor != null
+        ? Color.lerp(sectionColor, _kFilterDeepBrown, 0.35)!
+        : Color.lerp(_kFilterTerracotta, _kFilterDeepBrown, 0.25)!;
     return Chip(
       label: Text(
         label,
         style: GoogleFonts.kalam(
-          fontSize: 14,
+          fontSize: 17,
           fontWeight: FontWeight.w600,
-          color: _kFilterDeepBrown,
+          color: Colors.white,
         ),
       ),
       backgroundColor: fill,
@@ -2018,7 +2045,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
           title: Text(
             title,
             style: GoogleFonts.kalam(
-              fontSize: 22,
+              fontSize: 26,
               fontWeight: FontWeight.w600,
               color: _kFilterDeepBrown,
             ),
@@ -2027,6 +2054,8 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
           trailing: Icon(
             isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
             color: _kFilterDeepBrown,
+            size: 40,
+            weight: 700,
           ),
           onTap: () {
             setState(() {
@@ -2120,6 +2149,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                     _tastes.remove(taste);
                 });
               },
+              sectionSelectedColor: _kSectionTastesSelected,
             );
           }).toList(),
         ),
@@ -2149,6 +2179,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                     _cuisines.remove(cuisine);
                 });
               },
+              sectionSelectedColor: _kSectionCuisinesSelected,
             );
           }).toList(),
         ),
@@ -2178,6 +2209,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                 kCurrentUser.dietHabits.remove(value);
             });
           },
+          sectionSelectedColor: _kSectionDietHabitsSelected,
         );
       }).toList(),
     );
@@ -2210,6 +2242,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
               }
             });
           },
+          sectionSelectedColor: _kSectionAllergiesSelected,
         );
       }).toList(),
     );
