@@ -495,6 +495,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
 
   Widget _buildGoalTypeSelector() {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.center, // 居中对齐
       children: [
         _buildGoalTypeOption(
           'MAINTENANCE',
@@ -527,69 +528,78 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
     String borderImagePath,
   ) {
     final isSelected = _selectedGoalType == value;
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedGoalType = value;
-        });
-      },
-      child: Stack(
-        children: [
-          // 背景图片层 - 向左偏移以对齐内容
-          Positioned.fill(
-            child: Transform.translate(
-              offset: const Offset(-40, 0), // 向左偏移 40px
-              child: Image.asset(
-                borderImagePath,
-                fit: BoxFit.contain,
-                alignment: Alignment.center,
-              ),
-            ),
-          ),
-          // 内容层
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Row(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // 使用与 BMI 相同的宽度（减去左右 padding）
+        final optionWidth = constraints.maxWidth - 24.0;
+        return GestureDetector(
+          onTap: () {
+            setState(() {
+              _selectedGoalType = value;
+            });
+          },
+          child: SizedBox(
+            width: optionWidth, // 与 BMI 宽度一致
+            child: Stack(
               children: [
-                Container(
-                  width: 24, // 增大单选框从 20 到 24
-                  height: 24,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: isSelected
-                        ? const Color(0xFF6B4F4F)
-                        : Colors.transparent, // 选中时用深棕色填充
-                    border: Border.all(
-                      color: const Color(0xFF6B4F4F), // 边框统一深棕色
-                      width: 2.5,
-                    ),
+                // 背景图片层 - 居中对齐
+                Positioned.fill(
+                  child: Image.asset(
+                    borderImagePath,
+                    fit: BoxFit.contain,
+                    alignment: Alignment.center,
                   ),
-                  child: isSelected
-                      ? const Icon(
-                          Icons.check,
-                          size: 16,
-                          color: Colors.white,
-                        ) // 增大 Check 图标从 14 到 16
-                      : null,
                 ),
-                const SizedBox(width: 14), // 增大间距从 12 到 14
-                Expanded(
-                  child: Text(
-                    label,
-                    style: GoogleFonts.kalam(
-                      fontSize: 18, // 调大字体从 15 到 18
-                      fontWeight: isSelected
-                          ? FontWeight.bold
-                          : FontWeight.normal, // 选中时加粗
-                      color: const Color(0xFF6B4F4F), // 文本始终保持棕色
-                    ),
+                // 内容层
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ), // 与 BMI padding 一致
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center, // 居中对齐
+                    mainAxisSize: MainAxisSize.min, // 不占据全部宽度
+                    children: [
+                      Container(
+                        width: 24, // 增大单选框从 20 到 24
+                        height: 24,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isSelected
+                              ? const Color(0xFF6B4F4F)
+                              : Colors.transparent, // 选中时用深棕色填充
+                          border: Border.all(
+                            color: const Color(0xFF6B4F4F), // 边框统一深棕色
+                            width: 2.5,
+                          ),
+                        ),
+                        child: isSelected
+                            ? const Icon(
+                                Icons.check,
+                                size: 16,
+                                color: Colors.white,
+                              ) // 增大 Check 图标从 14 到 16
+                            : null,
+                      ),
+                      const SizedBox(width: 14), // 增大间距从 12 到 14
+                      Text(
+                        label,
+                        style: GoogleFonts.kalam(
+                          fontSize: 18, // 调大字体从 15 到 18
+                          fontWeight: isSelected
+                              ? FontWeight.bold
+                              : FontWeight.normal, // 选中时加粗
+                          color: const Color(0xFF6B4F4F), // 文本始终保持棕色
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -655,92 +665,97 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
         ? {'label': 'Carbs', 'value': '${dailyCarbohydrates.toInt()} g'}
         : null;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          'Daily Nutrition Targets',
-          style: GoogleFonts.kalam(
-            fontSize: 32,
-            fontWeight: FontWeight.bold,
-            color: const Color(0xFF6B4F4F), // River Deep Brown - 与 Profile 页面一致
+    return Transform.translate(
+      offset: const Offset(0, 30), // 整体向下移动 30 像素
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'Daily Nutrition Targets',
+            style: GoogleFonts.kalam(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: const Color(
+                0xFF6B4F4F,
+              ), // River Deep Brown - 与 Profile 页面一致
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final maxWidth = constraints.maxWidth;
-            // 左右间距拉大，便签宽度限制在各自半区，不重叠、不挡信息
-            const double horizontalPadding = 28.0;
-            final contentWidth = maxWidth - horizontalPadding * 2;
-            final noteWidth = (contentWidth * 0.48).clamp(
-              140.0,
-              220.0,
-            ); // 左/右各占半区约一半，中间留空
-            const double noteHeight = 168.0;
-            const double rowOverlap = 92.0; // 每行下移量，稍松散
+          const SizedBox(height: 8),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final maxWidth = constraints.maxWidth;
+              // 左右间距拉大，便签宽度限制在各自半区，不重叠、不挡信息
+              const double horizontalPadding = 28.0;
+              final contentWidth = maxWidth - horizontalPadding * 2;
+              final noteWidth = (contentWidth * 0.48).clamp(
+                140.0,
+                220.0,
+              ); // 左/右各占半区约一半，中间留空
+              const double noteHeight = 168.0;
+              const double rowOverlap = 92.0; // 每行下移量，稍松散
 
-            Widget sticky(Map<String, String>? metric, int index) {
-              if (metric == null) return const SizedBox.shrink();
-              final useSticky1 = index.isEven;
-              final asset = useSticky1
-                  ? 'assets/profile_passport/Sticky1.png'
-                  : 'assets/profile_passport/Sticky2.png';
-              final rotation = useSticky1 ? _stickyLeftRot : _stickyRightRot;
-              final tapeTop = useSticky1 ? 5.0 : -5.0;
-              final tapeWidth = useSticky1 ? 42.0 : 40.0;
-              return _buildStickyNote(
-                label: metric['label']!,
-                value: metric['value']!,
-                stickyAsset: asset,
-                width: noteWidth,
-                height: noteHeight,
-                rotation: rotation,
-                tapeTop: tapeTop,
-                tapeWidth: tapeWidth,
-                labelFontSize: 26,
-                valueFontSize: 24,
+              Widget sticky(Map<String, String>? metric, int index) {
+                if (metric == null) return const SizedBox.shrink();
+                final useSticky1 = index.isEven;
+                final asset = useSticky1
+                    ? 'assets/profile_passport/Sticky1.png'
+                    : 'assets/profile_passport/Sticky2.png';
+                final rotation = useSticky1 ? _stickyLeftRot : _stickyRightRot;
+                final tapeTop = useSticky1 ? 5.0 : -5.0;
+                final tapeWidth = useSticky1 ? 42.0 : 40.0;
+                return _buildStickyNote(
+                  label: metric['label']!,
+                  value: metric['value']!,
+                  stickyAsset: asset,
+                  width: noteWidth,
+                  height: noteHeight,
+                  rotation: rotation,
+                  tapeTop: tapeTop,
+                  tapeWidth: tapeWidth,
+                  labelFontSize: 26,
+                  valueFontSize: 24,
+                );
+              }
+
+              final stackHeight = 3 * rowOverlap + noteHeight; // 松散布局，总高约 444
+
+              return SizedBox(
+                height: stackHeight,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    // 第一行：Energy 靠左，留出左边距
+                    Positioned(
+                      left: horizontalPadding,
+                      top: 0,
+                      child: sticky(energy, 0),
+                    ),
+                    // 第二行：Protein 靠右，留出右边距
+                    Positioned(
+                      right: horizontalPadding,
+                      top: rowOverlap,
+                      child: sticky(protein, 1),
+                    ),
+                    // 第三行：Fat 靠左
+                    Positioned(
+                      left: horizontalPadding,
+                      top: rowOverlap * 2,
+                      child: sticky(fat, 2),
+                    ),
+                    // 第四行：Carbs 靠右
+                    Positioned(
+                      right: horizontalPadding,
+                      top: rowOverlap * 3,
+                      child: sticky(carbs, 3),
+                    ),
+                  ],
+                ),
               );
-            }
-
-            final stackHeight = 3 * rowOverlap + noteHeight; // 松散布局，总高约 444
-
-            return SizedBox(
-              height: stackHeight,
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  // 第一行：Energy 靠左，留出左边距
-                  Positioned(
-                    left: horizontalPadding,
-                    top: 0,
-                    child: sticky(energy, 0),
-                  ),
-                  // 第二行：Protein 靠右，留出右边距
-                  Positioned(
-                    right: horizontalPadding,
-                    top: rowOverlap,
-                    child: sticky(protein, 1),
-                  ),
-                  // 第三行：Fat 靠左
-                  Positioned(
-                    left: horizontalPadding,
-                    top: rowOverlap * 2,
-                    child: sticky(fat, 2),
-                  ),
-                  // 第四行：Carbs 靠右
-                  Positioned(
-                    right: horizontalPadding,
-                    top: rowOverlap * 3,
-                    child: sticky(carbs, 3),
-                  ),
-                ],
-              ),
-            );
-          },
-        ),
-      ],
+            },
+          ),
+        ],
+      ),
     );
   }
 
@@ -841,6 +856,8 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
   /// 便签样式信息卡片，使用 Sticky1 或 Sticky2 作为背景，带透明胶带效果
   /// Sticky1 和 Sticky2 尺寸不同，胶带位置/大小需分开配置
   /// [labelFontSize] [valueFontSize] 可选，用于 Nutrition 页等需要更大字体的场景
+  /// [isHorizontal] 可选，true 时标签和数值在同一行显示（用于 BMI 等场景）
+  /// [showTape] 可选，false 时不显示胶带（用于 BMI 等不需要胶带的场景）
   Widget _buildStickyNote({
     required String label,
     required String value,
@@ -856,6 +873,8 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
     BoxFit imageFit = BoxFit.cover,
     double? labelFontSize,
     double? valueFontSize,
+    bool isHorizontal = false,
+    bool showTape = true,
   }) {
     final displayValue = value.isNotEmpty ? value : 'Not set';
     final labelSize = labelFontSize ?? 17.0;
@@ -879,63 +898,90 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                 ),
               ),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    label,
-                    style: GoogleFonts.kalam(
-                      fontSize: labelSize,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF6B4F4F),
+              child: isHorizontal
+                  ? Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          label,
+                          style: GoogleFonts.kalam(
+                            fontSize: labelSize,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF6B4F4F),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          displayValue,
+                          style: GoogleFonts.kalam(
+                            fontSize: valueSize,
+                            color: const Color(0xFF6B4F4F).withOpacity(0.9),
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                      ],
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          label,
+                          style: GoogleFonts.kalam(
+                            fontSize: labelSize,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF6B4F4F),
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          displayValue,
+                          style: GoogleFonts.kalam(
+                            fontSize: valueSize,
+                            color: const Color(0xFF6B4F4F).withOpacity(0.9),
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
                     ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    displayValue,
-                    style: GoogleFonts.kalam(
-                      fontSize: valueSize,
-                      color: const Color(0xFF6B4F4F).withOpacity(0.9),
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
             ),
           ),
-          // 2. 透明胶带：Sticky1/Sticky2 分别配置位置和尺寸
-          Positioned(
-            top: tapeTop,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: Container(
-                width: tapeWidth,
-                height: tapeHeight,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF5EDE0).withOpacity(0.85), // 米白色
-                  borderRadius: BorderRadius.circular(2),
-                  border: Border.all(
-                    color: const Color(0xFFE5D9C8).withOpacity(0.6), // 米白偏深描边
-                    width: 0.5,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 2,
-                      offset: const Offset(0, 1),
+          // 2. 透明胶带：Sticky1/Sticky2 分别配置位置和尺寸（可选）
+          if (showTape)
+            Positioned(
+              top: tapeTop,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: Container(
+                  width: tapeWidth,
+                  height: tapeHeight,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF5EDE0).withOpacity(0.85), // 米白色
+                    borderRadius: BorderRadius.circular(2),
+                    border: Border.all(
+                      color: const Color(0xFFE5D9C8).withOpacity(0.6), // 米白偏深描边
+                      width: 0.5,
                     ),
-                  ],
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 2,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
+                  ),
+                  child: CustomPaint(painter: _StickyTapeTexturePainter()),
                 ),
-                child: CustomPaint(painter: _StickyTapeTexturePainter()),
               ),
             ),
-          ),
         ],
       ),
     );
@@ -1025,6 +1071,138 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
         top: -8,
         child: Image.asset(
           '$base/profile_icon1.png',
+          width: _edgeIconSize,
+          height: _edgeIconSize,
+          fit: BoxFit.contain,
+        ),
+      ),
+    ];
+  }
+
+  // Health 页面的边缘图标 - 复用 Profile 页面的图标
+  List<Widget> _buildHealthEdgeIcons(double w, double h) {
+    const base = 'assets/profile_passport';
+    // 使用固定位置值，避免依赖屏幕高度百分比
+    return [
+      // 左侧边缘 3 个
+      Positioned(
+        left: -4,
+        top: 100.0, // 再向下移动 50
+        child: Image.asset(
+          '$base/profile_icon1.png',
+          width: _edgeIconSize,
+          height: _edgeIconSize,
+          fit: BoxFit.contain,
+        ),
+      ),
+      Positioned(
+        left: -4,
+        top: 200.0, // 再向下移动 50
+        child: Image.asset(
+          '$base/profile_icon2.png',
+          width: _edgeIconSize,
+          height: _edgeIconSize,
+          fit: BoxFit.contain,
+        ),
+      ),
+      Positioned(
+        left: -4,
+        top: 300.0, // 再向下移动 50
+        child: Image.asset(
+          '$base/profile_icon3.png',
+          width: _edgeIconSize,
+          height: _edgeIconSize,
+          fit: BoxFit.contain,
+        ),
+      ),
+      Positioned(
+        left: -4,
+        top: 400.0, // 左侧最下方新增
+        child: Image.asset(
+          '$base/profile_icon6.png',
+          width: _edgeIconSize,
+          height: _edgeIconSize,
+          fit: BoxFit.contain,
+        ),
+      ),
+      // 右侧边缘 3 个
+      Positioned(
+        right: -4,
+        top: 120.0, // 再向下移动 50
+        child: Image.asset(
+          '$base/profile_icon4.png',
+          width: _edgeIconSize,
+          height: _edgeIconSize,
+          fit: BoxFit.contain,
+        ),
+      ),
+      Positioned(
+        right: -4,
+        top: 220.0, // 再向下移动 50
+        child: Image.asset(
+          '$base/profile_icon5.png',
+          width: _edgeIconSize,
+          height: _edgeIconSize,
+          fit: BoxFit.contain,
+        ),
+      ),
+      Positioned(
+        right: -4,
+        top: 320.0, // 再向下移动 50
+        child: Image.asset(
+          '$base/profile_icon1.png',
+          width: _edgeIconSize,
+          height: _edgeIconSize,
+          fit: BoxFit.contain,
+        ),
+      ),
+      Positioned(
+        right: -4,
+        top: 420.0, // 右侧最下方新增
+        child: Image.asset(
+          '$base/profile_icon2.png',
+          width: _edgeIconSize,
+          height: _edgeIconSize,
+          fit: BoxFit.contain,
+        ),
+      ),
+      // 顶部边缘 2 个
+      Positioned(
+        left: w * 0.15,
+        top: 10.0, // 从 -8 向下移动 18
+        child: Image.asset(
+          '$base/profile_icon3.png',
+          width: _edgeIconSize,
+          height: _edgeIconSize,
+          fit: BoxFit.contain,
+        ),
+      ),
+      Positioned(
+        left: w * 0.75,
+        top: 10.0, // 从 -8 向下移动 18
+        child: Image.asset(
+          '$base/profile_icon4.png',
+          width: _edgeIconSize,
+          height: _edgeIconSize,
+          fit: BoxFit.contain,
+        ),
+      ),
+      // 底部边缘 2 个
+      Positioned(
+        left: w * 0.20,
+        bottom: 0.0,
+        child: Image.asset(
+          '$base/profile_icon5.png',
+          width: _edgeIconSize,
+          height: _edgeIconSize,
+          fit: BoxFit.contain,
+        ),
+      ),
+      Positioned(
+        left: w * 0.70,
+        bottom: 0.0,
+        child: Image.asset(
+          '$base/profile_icon6.png',
           width: _edgeIconSize,
           height: _edgeIconSize,
           fit: BoxFit.contain,
@@ -1358,162 +1536,358 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
   // Build Health Page (Page 1)
   Widget _buildHealthPage(BuildContext context) {
     final user = _getUserProfile();
+    final screenSize = MediaQuery.of(context).size;
 
     return RefreshIndicator(
       onRefresh: _loadUserData,
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // BMI 显示（右上角贴纸）
-            Builder(
-              builder: (context) {
-                dynamic bmiValue = _healthInfo?['bmi'];
-                if (bmiValue == null &&
-                    user.height.isNotEmpty &&
-                    user.weight.isNotEmpty) {
-                  try {
-                    final height = double.tryParse(
-                      user.height.replaceAll(' cm', '').trim(),
-                    );
-                    final weight = double.tryParse(
-                      user.weight.replaceAll(' kg', '').trim(),
-                    );
-                    if (height != null && weight != null && height > 0) {
-                      final heightM = height / 100.0;
-                      bmiValue = weight / (heightM * heightM);
-                    }
-                  } catch (e) {
-                    // Ignore
-                  }
-                }
-
-                // 使用与 Profile 页相同的便签样式展示 BMI，统一手账感
-                return LayoutBuilder(
+      child: Stack(
+        children: [
+          // 内容层
+          SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 12.0,
+              vertical: 16.0,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // BMI、Health Goal 和 Save Goal 作为一个整体，使用同一个背景框
+                LayoutBuilder(
                   builder: (context, constraints) {
                     final maxWidth = constraints.maxWidth;
-                    // 缩小 BMI 贴纸尺寸：宽度占 55%，高度略减
-                    final noteWidth = (maxWidth * 0.55).clamp(
-                      0.0,
-                      320.0,
-                    ); // 贴纸宽度占 55%
-                    return Align(
-                      alignment: Alignment.topRight,
-                      child: _buildStickyNote(
-                        label: 'BMI',
-                        value: _formatBmi(bmiValue),
-                        stickyAsset: 'assets/profile_passport/Sticky1.png',
-                        width: noteWidth,
-                        height: 120,
-                        rotation: 0.10,
-                        tapeTop: 5,
-                        tapeWidth: 42,
-                      ),
+                    final containerWidth = maxWidth - 24.0; // 减去左右 padding
+                    return Builder(
+                      builder: (context) {
+                        // 计算 BMI 值
+                        dynamic bmiValue = _healthInfo?['bmi'];
+                        if (bmiValue == null &&
+                            user.height.isNotEmpty &&
+                            user.weight.isNotEmpty) {
+                          try {
+                            final height = double.tryParse(
+                              user.height.replaceAll(' cm', '').trim(),
+                            );
+                            final weight = double.tryParse(
+                              user.weight.replaceAll(' kg', '').trim(),
+                            );
+                            if (height != null &&
+                                weight != null &&
+                                height > 0) {
+                              final heightM = height / 100.0;
+                              bmiValue = weight / (heightM * heightM);
+                            }
+                          } catch (e) {
+                            // Ignore
+                          }
+                        }
+
+                        return Center(
+                          child: SizedBox(
+                            width: containerWidth,
+                            child: Stack(
+                              children: [
+                                // 背景图片层 - 整个区域的背景
+                                Positioned.fill(
+                                  child: Image.asset(
+                                    'assets/images/Bounder_health goal.png',
+                                    fit: BoxFit.fill, // 填充整个区域，可能会拉伸
+                                    alignment: Alignment.center,
+                                  ),
+                                ),
+                                // 内容层 - 包含 BMI、Health Goal 和 Save Goal
+                                Transform.translate(
+                                  offset: const Offset(0, 65), // 向下移动 30px
+                                  child: Padding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                      18,
+                                      10,
+                                      18,
+                                      80,
+                                    ), // 增加底部 padding 让背景更长
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center, // 居中对齐
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        // BMI 显示（使用 bounder1.png 作为背景）
+                                        Center(
+                                          child: LayoutBuilder(
+                                            builder: (context, constraints) {
+                                              // 使用与选项相同的宽度（减去左右 padding）
+                                              final optionWidth =
+                                                  constraints.maxWidth - 24.0;
+                                              return SizedBox(
+                                                width: optionWidth,
+                                                child: Stack(
+                                                  children: [
+                                                    // BMI 背景图片层 - 居中对齐
+                                                    Positioned.fill(
+                                                      child: Image.asset(
+                                                        'assets/profile_passport/bounder1.png',
+                                                        fit: BoxFit.contain,
+                                                        alignment:
+                                                            Alignment.center,
+                                                      ),
+                                                    ),
+                                                    // BMI 内容层
+                                                    Padding(
+                                                      padding:
+                                                          const EdgeInsets.symmetric(
+                                                            horizontal: 16,
+                                                            vertical: 12,
+                                                          ),
+                                                      child: Row(
+                                                        mainAxisAlignment:
+                                                            MainAxisAlignment
+                                                                .center,
+                                                        mainAxisSize:
+                                                            MainAxisSize.min,
+                                                        children: [
+                                                          Text(
+                                                            'BMI',
+                                                            style: GoogleFonts.kalam(
+                                                              fontSize: 18,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold,
+                                                              color:
+                                                                  const Color(
+                                                                    0xFF6B4F4F,
+                                                                  ),
+                                                            ),
+                                                          ),
+                                                          const SizedBox(
+                                                            width: 8,
+                                                          ),
+                                                          Text(
+                                                            _formatBmi(
+                                                              bmiValue,
+                                                            ),
+                                                            style: GoogleFonts.kalam(
+                                                              fontSize: 22,
+                                                              color:
+                                                                  const Color(
+                                                                    0xFF6B4F4F,
+                                                                  ).withOpacity(
+                                                                    0.9,
+                                                                  ),
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                        ),
+                                        const SizedBox(height: 16),
+                                        Center(
+                                          child: Text(
+                                            'Health Goal',
+                                            style: GoogleFonts.kalam(
+                                              fontSize:
+                                                  20, // 与 Nutrition Targets 保持一致
+                                              fontWeight: FontWeight.bold,
+                                              color: const Color(
+                                                0xFF6B4F4F,
+                                              ), // River Deep Brown - 与 Profile 页面一致
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 12),
+                                        _buildGoalTypeSelector(),
+                                        const SizedBox(height: 24), // 增加间距
+                                        Center(
+                                          child: _isSavingGoal
+                                              ? const CircularProgressIndicator()
+                                              : GestureDetector(
+                                                  onTap: _saveHealthGoal,
+                                                  child: Image.asset(
+                                                    'assets/profile_passport/Save Goal Button.png',
+                                                    width: 110, // 缩小到原来的 1/2
+                                                    fit: BoxFit.contain,
+                                                  ),
+                                                ),
+                                        ),
+                                        const SizedBox(
+                                          height: 40,
+                                        ), // 增加底部间距，拉长背景图
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
                     );
                   },
-                );
-              },
-            ),
-            const SizedBox(height: 20),
-            // 使用图片边框作为 Health Goal 区域的背景
-            Stack(
-              children: [
-                // 背景图片层
-                Positioned.fill(
-                  child: Image.asset(
-                    'assets/images/Health Goal bounder.png',
-                    fit: BoxFit.contain,
-                    alignment: Alignment.center,
-                  ),
-                ),
-                // 内容层
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(18, 10, 18, 18),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Health Goal',
-                        style: GoogleFonts.kalam(
-                          fontSize: 20, // 与 Nutrition Targets 保持一致
-                          fontWeight: FontWeight.bold,
-                          color: const Color(
-                            0xFF6B4F4F,
-                          ), // River Deep Brown - 与 Profile 页面一致
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      _buildGoalTypeSelector(),
-                      const SizedBox(height: 16),
-                      Center(
-                        child: _isSavingGoal
-                            ? const CircularProgressIndicator()
-                            : GestureDetector(
-                                onTap: _saveHealthGoal,
-                                child: Image.asset(
-                                  'assets/profile_passport/Save Goal Button.png',
-                                  width: 110, // 缩小到原来的 1/2
-                                  fit: BoxFit.contain,
-                                ),
-                              ),
-                      ),
-                    ],
-                  ),
                 ),
               ],
             ),
-          ],
-        ),
+          ),
+          // 边缘图标层 - 复用 Profile 页面的图标
+          ..._buildHealthEdgeIcons(screenSize.width, screenSize.height),
+        ],
       ),
     );
   }
 
   // Build Nutrition Page (Page 2) - 仅保留 Daily Nutrition Targets，不再显示 Nutrition 标题
   Widget _buildNutritionPage(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
     return RefreshIndicator(
       onRefresh: _loadUserData,
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.only(
-          left: 12.0,
-          right: 12.0,
-          top: 0,
-          bottom: 16.0,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            if (_healthInfo != null &&
-                (_healthInfo!['dailyEnergy'] != null ||
-                    _healthInfo!['dailyProtein'] != null ||
-                    _healthInfo!['dailyFat'] != null ||
-                    _healthInfo!['dailyCarbohydrates'] != null))
-              Center(child: _buildNutritionTargets())
-            else
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Text(
-                    'Set a health goal to see nutrition targets',
-                    style: GoogleFonts.kalam(
-                      fontSize: 14,
-                      color: const Color(
-                        0xFF6B4F4F,
-                      ).withOpacity(0.8), // River Deep Brown - 与 Profile 页面一致
-                    ),
-                  ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return Stack(
+            children: [
+              // 内容层
+              SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.only(
+                  left: 12.0,
+                  right: 12.0,
+                  top: 0,
+                  bottom: 16.0,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    if (_healthInfo != null &&
+                        (_healthInfo!['dailyEnergy'] != null ||
+                            _healthInfo!['dailyProtein'] != null ||
+                            _healthInfo!['dailyFat'] != null ||
+                            _healthInfo!['dailyCarbohydrates'] != null))
+                      Center(child: _buildNutritionTargets())
+                    else
+                      Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Text(
+                            'Set a health goal to see nutrition targets',
+                            style: GoogleFonts.kalam(
+                              fontSize: 14,
+                              color: const Color(0xFF6B4F4F).withOpacity(
+                                0.8,
+                              ), // River Deep Brown - 与 Profile 页面一致
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
-          ],
-        ),
+              // 边缘图标层 - Nutrition 页面的图标
+              ..._buildNutritionEdgeIcons(
+                screenSize.width,
+                constraints.maxHeight > 0
+                    ? constraints.maxHeight
+                    : screenSize.height,
+              ),
+            ],
+          );
+        },
       ),
     );
   }
 
-  // Build Preferences Page (Page 3) - 位置与 Daily Nutrition Targets 一致（top: 0，左右 12）
+  // Nutrition 页面的边缘图标
+  List<Widget> _buildNutritionEdgeIcons(double w, double h) {
+    const base = 'assets/profile_passport';
+    return [
+      // 左侧边缘 2 个
+      Positioned(
+        left: -4,
+        top: 100.0,
+        child: Image.asset(
+          '$base/profile_icon1.png',
+          width: _edgeIconSize,
+          height: _edgeIconSize,
+          fit: BoxFit.contain,
+        ),
+      ),
+      Positioned(
+        left: -4,
+        top: 250.0,
+        child: Image.asset(
+          '$base/profile_icon2.png',
+          width: _edgeIconSize,
+          height: _edgeIconSize,
+          fit: BoxFit.contain,
+        ),
+      ),
+      // 右侧边缘 2 个
+      Positioned(
+        right: -4,
+        top: 120.0,
+        child: Image.asset(
+          '$base/profile_icon3.png',
+          width: _edgeIconSize,
+          height: _edgeIconSize,
+          fit: BoxFit.contain,
+        ),
+      ),
+      Positioned(
+        right: -4,
+        top: 270.0,
+        child: Image.asset(
+          '$base/profile_icon4.png',
+          width: _edgeIconSize,
+          height: _edgeIconSize,
+          fit: BoxFit.contain,
+        ),
+      ),
+      // 顶部边缘 1 个
+      Positioned(
+        left: w * 0.45,
+        top: 10.0,
+        child: Image.asset(
+          '$base/profile_icon5.png',
+          width: _edgeIconSize,
+          height: _edgeIconSize,
+          fit: BoxFit.contain,
+        ),
+      ),
+      // 底部边缘 3 个 - 使用 bottom 定位，确保在 Stack 外部显示
+      Positioned(
+        left: w * 0.15,
+        bottom: 20.0,
+        child: Image.asset(
+          '$base/profile_icon1.png',
+          width: _edgeIconSize,
+          height: _edgeIconSize,
+          fit: BoxFit.contain,
+        ),
+      ),
+      Positioned(
+        left: w * 0.45,
+        bottom: 20.0,
+        child: Image.asset(
+          '$base/profile_icon2.png',
+          width: _edgeIconSize,
+          height: _edgeIconSize,
+          fit: BoxFit.contain,
+        ),
+      ),
+      Positioned(
+        left: w * 0.75,
+        bottom: 20.0,
+        child: Image.asset(
+          '$base/profile_icon3.png',
+          width: _edgeIconSize,
+          height: _edgeIconSize,
+          fit: BoxFit.contain,
+        ),
+      ),
+    ];
+  }
+
+  // Build Preferences Page (Page 3)
   Widget _buildPreferencesPage(BuildContext context) {
     return RefreshIndicator(
       onRefresh: _loadUserData,
