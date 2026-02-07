@@ -4,6 +4,7 @@ import com.calotter.user.domain.entity.HealthGoal;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -19,10 +20,11 @@ import java.util.Map;
 
 /**
  * Groq AI 营养建议服务实现
+ * API Key：优先读配置（含 application.yml 中的 ${GROQ_API_KEY}），为空时从环境变量 GROQ_API_KEY 兜底。
  */
 @Slf4j
 @Service
-public class GroqAiNutritionRecommendationService implements AiNutritionRecommendationService {
+public class GroqAiNutritionRecommendationService implements AiNutritionRecommendationService, InitializingBean {
     
     @Value("${ai.api.groq.api-key:}")
     private String apiKey;
@@ -35,6 +37,18 @@ public class GroqAiNutritionRecommendationService implements AiNutritionRecommen
     
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final RestTemplate restTemplate = new RestTemplate();
+
+    /** 优先用配置/yml，为空时从环境变量 GROQ_API_KEY 兜底，兼容部署时 export 注入 */
+    @Override
+    public void afterPropertiesSet() {
+        if (apiKey == null || apiKey.isBlank()) {
+            String fromEnv = System.getenv("GROQ_API_KEY");
+            if (fromEnv != null && !fromEnv.isBlank()) {
+                apiKey = fromEnv;
+                log.info("Groq API key loaded from environment GROQ_API_KEY");
+            }
+        }
+    }
     
     private static final String SYSTEM_PROMPT = String.join("\n",
             "You are a professional nutritionist AI assistant.",
