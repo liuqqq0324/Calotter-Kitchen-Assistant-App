@@ -397,8 +397,9 @@ UPDATE ref_standard_ingredients SET dietary_tags = COALESCE(dietary_tags, '{}') 
 UPDATE ref_standard_ingredients SET dietary_tags = COALESCE(dietary_tags, '{}') || ARRAY['NUT'] WHERE name IN ('Almond Milk', 'Coconut') AND (dietary_tags IS NULL OR NOT ('NUT' = ANY(dietary_tags)));
 UPDATE ref_standard_ingredients SET dietary_tags = COALESCE(dietary_tags, '{}') || ARRAY['ANIMAL_PRODUCT'] WHERE name IN ('Honey') AND (dietary_tags IS NULL OR NOT ('ANIMAL_PRODUCT' = ANY(dietary_tags)));
 
--- 调料标签：HIGH_SODIUM(高钠), HIGH_SUGAR(高糖), ALCOHOL(酒精), GLUTEN(麸质), SOY(大豆)
+-- 调料标签：HIGH_SODIUM(高钠), HIGH_SUGAR(高糖), ALCOHOL(酒精), GLUTEN(麸质), SOY(大豆), HIGH_FAT(高脂)
 UPDATE ref_standard_spices SET dietary_tags = COALESCE(dietary_tags, '{}') || ARRAY['HIGH_SODIUM'] WHERE name IN ('Salt', 'Soy Sauce', 'Oyster Sauce', 'Bean Paste') AND (dietary_tags IS NULL OR NOT ('HIGH_SODIUM' = ANY(dietary_tags)));
+UPDATE ref_standard_spices SET dietary_tags = COALESCE(dietary_tags, '{}') || ARRAY['HIGH_FAT'] WHERE name IN ('Sesame Oil', 'Olive Oil', 'Vegetable Oil', 'Coconut Oil', 'Canola Oil') AND (dietary_tags IS NULL OR NOT ('HIGH_FAT' = ANY(dietary_tags)));
 UPDATE ref_standard_spices SET dietary_tags = COALESCE(dietary_tags, '{}') || ARRAY['HIGH_SUGAR'] WHERE name IN ('Sugar', 'Honey', 'Maple Syrup', 'Ketchup', 'BBQ Sauce') AND (dietary_tags IS NULL OR NOT ('HIGH_SUGAR' = ANY(dietary_tags)));
 UPDATE ref_standard_spices SET dietary_tags = COALESCE(dietary_tags, '{}') || ARRAY['ALCOHOL'] WHERE name IN ('Cooking Wine') AND (dietary_tags IS NULL OR NOT ('ALCOHOL' = ANY(dietary_tags)));
 UPDATE ref_standard_spices SET dietary_tags = COALESCE(dietary_tags, '{}') || ARRAY['GLUTEN'] WHERE name IN ('Soy Sauce', 'Oyster Sauce') AND (dietary_tags IS NULL OR NOT ('GLUTEN' = ANY(dietary_tags)));

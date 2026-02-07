@@ -223,24 +223,10 @@ class OtterFloatingNavState extends State<OtterFloatingNav>
               },
             ),
 
-          // 🦦 提示气泡（在海獭按钮上方）
-          if (_currentTooltipMessage != null)
-            Positioned(
-              right: 16 + _position.dx - 120, // 调整位置，使气泡在海獭按钮上方居中（气泡宽度约240）
-              bottom: 16 + _position.dy + 80, // 在海獭按钮上方
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxWidth: screenSize.width * 0.7, // 最大宽度为屏幕的70%
-                ),
-                child: OtterTooltipWithArrow(
-                  message: _currentTooltipMessage!,
-                  type: _currentTooltipType,
-                  arrowPosition: ArrowPosition.bottom,
-                  onDismiss: _hideTooltip,
-                  autoHideDuration: const Duration(seconds: 5),
-                ),
-              ),
-            ),
+          // 🦦 提示气泡（在海獭按钮上方），约束在屏幕内
+          if (_currentTooltipMessage != null) ...[
+            _buildTooltipPositioned(screenSize, safeArea),
+          ],
 
           // 🔥 海獭浮动按钮 - 支持拖动
           Positioned(
@@ -313,6 +299,48 @@ class OtterFloatingNavState extends State<OtterFloatingNav>
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// 构建提示气泡，并约束在屏幕范围内不溢出
+  Widget _buildTooltipPositioned(Size screenSize, EdgeInsets safeArea) {
+    const double tooltipPadding = 16.0;
+    const double estimatedTooltipHeight = 100.0; // 约 3 行文字 + 内边距
+    final double maxTooltipWidth = screenSize.width * 0.7;
+
+    // 期望位置：在海獭按钮上方居中（气泡视觉中心约在按钮中心）
+    double right = 16 + _position.dx - 120;
+    double bottom = 16 + _position.dy + 110; // 与悬浮按钮的垂直间距（原 80，加大以更清晰）
+
+    // 水平约束：right 表示气泡右缘到屏幕右缘的距离
+    // 右缘不超出：right >= tooltipPadding
+    // 左缘不超出：气泡左缘 = 屏幕宽 - right - 气泡宽 >= tooltipPadding => right <= 屏幕宽 - 最大宽 - tooltipPadding
+    final double minRight = tooltipPadding;
+    final double maxRight =
+        screenSize.width - maxTooltipWidth - tooltipPadding;
+    right = right.clamp(minRight, maxRight);
+
+    // 垂直约束：bottom 表示气泡下缘到屏幕下缘的距离
+    // 上缘不超出：气泡顶 = 屏幕高 - bottom - 气泡高 >= safeArea.top + tooltipPadding
+    final double maxBottom = screenSize.height -
+        safeArea.top -
+        tooltipPadding -
+        estimatedTooltipHeight;
+    bottom = bottom.clamp(0.0, maxBottom);
+
+    return Positioned(
+      right: right,
+      bottom: bottom,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxTooltipWidth),
+        child: OtterTooltipWithArrow(
+          message: _currentTooltipMessage!,
+          type: _currentTooltipType,
+          arrowPosition: ArrowPosition.bottom,
+          onDismiss: _hideTooltip,
+          autoHideDuration: const Duration(seconds: 5),
+        ),
       ),
     );
   }
