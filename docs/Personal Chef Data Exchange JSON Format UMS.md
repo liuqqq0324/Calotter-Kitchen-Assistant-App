@@ -1,6 +1,7 @@
 ---
 date: 2025-11-26
-version: 1
+lastUpdated: 2026-02-08
+version: 2
 tags:
   - api
   - documentation
@@ -8,9 +9,10 @@ tags:
   - GroupProject
 ---
 
+### 图例与统一响应
 
-
-### `F` represents *Frontend app*, `B` represents *Backend app*, `A` represents *AI-Engine* (e.g., `F -> B` refers to frontend app is sending data to backend API).
+- **`F`** = Frontend，**`B`** = Backend，**`A`** = AI-Engine（如 `F -> B` 表示前端请求后端 API）。
+- **统一响应包装**：后端所有接口返回 `Result<T>` 格式：`{ "code": 200, "message": "操作成功", "data": <T> }`。错误时 `code` 为非 2xx，`message` 为错误说明。下文中的响应示例为 `data` 字段内容或与 `Result` 一致的结构。
 
 # A. Prompt JSON
 
@@ -46,6 +48,7 @@ tags:
     "cuisine_preferences": ["chinese", "japanese"],
     "taste_preferences": ["light", "umami"],
     "avoid_ingredients": ["coriander"],
+    "diet_habits": ["vegetarian"],
     "allergies": []
   },
   "generation_settings": {
@@ -241,97 +244,103 @@ tags:
 
 
 # C. UMS (User Management Service)
+
+后端同时支持路径前缀 `/api/user` 与 `/api/ums/user`，以下以 `/api/user` 为例。
+
 ## 1. Registration Request (F -> B)
 
-- Request method and path: `POST /api/ums/auth/register`
-- Request header: Context-Type: application/json
+- Request method and path: `POST /api/user/register`（或 `POST /api/ums/user/register`）
+- Request header: Content-Type: application/json
 - Request body:
 
-## 1. Registration Request (F -> B)
-
 - Request method and path: `POST /api/ums/auth/register`
-- Request header: Context-Type: application/json
+- Request header: Content-Type: application/json
 - Request body:
 
 ```JSON
 {
 	"username": "UserName",
 	"password": "UserPassword123",
-	"confirmPassword": "UserPassword123",
 	"email": "user.email@example.com"
 }
 ```
 
+> **Note**: 后端仅校验 `username`、`password`、`email`。若前端需要二次确认密码，可在前端校验 `confirmPassword` 与 `password` 一致后再提交，不传给后端。
+
 
 ## 2. Registration Response (B -> F)
+
+`Result.data` 为认证信息（与登录响应一致）：
+
 ```JSON
 {
-	"userId": 2345678765678,
-	"message": "User registered successfully"
+	"userId": 1,
+	"token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+	"username": "UserName",
+	"email": "user.email@example.com",
+	"role": "USER",
+	"householdId": null
 }
 ```
 
 ## 3. Login Request (F -> B)
-- Request method and path: `POST /api/ums/auth/login`
-- Request header: Context-Type: application/json
+
+- Request method and path: `POST /api/user/login`（或 `POST /api/ums/user/login`）
+- Request header: Content-Type: application/json
 - Request body:
+
 ```JSON
 {
-	"identifier": "UsernameOrEmail",
+	"usernameOrEmail": "UsernameOrEmail",
 	"password": "UserPassword123"
 }
 ```
 
 ## 4. Login Response (B -> F)
+
+`Result.data` 为认证信息：
+
 ```JSON
 {
-	"userId": 2345678765678,
-	"token": {
-		"accessToken": "56ncieni-oenlnoicsjoijjfofoi",
-		"expiresIn": 3000
-	}
+	"userId": 1,
+	"token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+	"username": "UserName",
+	"email": "user.email@example.com",
+	"role": "USER",
+	"householdId": 1
 }
 ```
 
 ## 5. Logout Request (F -> B)
 
-Request method and path: POST /api/ums/auth/logout
-
-Request header:
-
-Authorization: Bearer
-
-Context-Type: application/json
+- Request method and path: `POST /api/user/logout`（或 `POST /api/ums/user/logout`）
+- Request header: `Authorization: Bearer <accessToken>`
+- Request header: `Content-Type: application/json`
 
 > **Note**: The Authorization header should contain the current access token.
 
 ## 6. Logout Response (B -> F)
 
-```json
-{
-	"message": "Logged out successfully"
-}
-```
+`Result.data` 为字符串，如 `"Logged out successfully"`。
 
 > **Note**: After logout, the frontend should clear the stored token and user ID from local storage.
 
 ## 7. User Brief Info Request (F -> B)
 
-Request method and path: GET /api/ums/user?id=2345678765678
-
-Request header:
-
-Authorization: Bearer
-
-Context-Type: application/json
+- Request method and path: `GET /api/user?id=<userId>`（或 `GET /api/ums/user?id=<userId>`）
+- Request header: `Authorization: Bearer <accessToken>`
+- Request header: `Content-Type: application/json`
 
 ## 8. User Brief Info Response (B -> F)
 
+`Result.data` 结构：
+
 ```json
 {
-	"userId": 2345678765678,
+	"userId": 1,
 	"userName": "UserName",
 	"email": "user.email@example.com",
+	"role": "USER",
 	"profile": {
 		"age": 28,
 		"height": 178,
@@ -345,13 +354,9 @@ Context-Type: application/json
 
 ## 9. Update User Brief Info Request (F -> B)
 
-Request method and path: PUT /api/ums/user?id=2345678765678
-
-Request header:
-
-Authorization: Bearer
-
-Context-Type: application/json
+- Request method and path: `PUT /api/user?id=<userId>`（或 `PUT /api/ums/user?id=<userId>`）
+- Request header: `Authorization: Bearer <accessToken>`
+- Request header: `Content-Type: application/json`
 
 Request body:
 
@@ -382,13 +387,9 @@ Request body:
 
 ## 11. Get User Preferences Request (F -> B)
 
-Request method and path: GET /api/ums/user/preferences?id=2345678765678
-
-Request header:
-
-Authorization: Bearer
-
-Context-Type: application/json
+- Request method and path: `GET /api/user/preferences?userId=<userId>`（或 `/api/ums/user/preferences?userId=<userId>`）
+- Request header: `Authorization: Bearer <accessToken>`
+- Request header: `Content-Type: application/json`
 
 ## 12. Get User Preferences Response (B -> F)
 
@@ -406,13 +407,9 @@ Context-Type: application/json
 
 ## 13. Update User Preferences Request (F -> B)
 
-Request method and path: PUT /api/ums/user/preferences?id=2345678765678
-
-Request header:
-
-Authorization: Bearer
-
-Context-Type: application/json
+- Request method and path: `PUT /api/user/preferences?userId=<userId>`（或 `/api/ums/user/preferences?userId=<userId>`）
+- Request header: `Authorization: Bearer <accessToken>`
+- Request header: `Content-Type: application/json`
 
 Request body:
 
@@ -434,68 +431,52 @@ Request body:
 }
 ```
 
-## 15. Get User Taboos Request (F -> B)
+## 15. Get User Taboos / Diet Habits Request (F -> B)
 
-Request method and path: GET /api/ums/user/taboos?id=2345678765678
+- Request method and path: `GET /api/user/diet-habits?userId=<userId>`（后端使用 diet-habits 表示饮食禁忌/习惯）
+- Request header: `Authorization: Bearer <accessToken>`
+- Request header: `Content-Type: application/json`
 
-Request header:
+## 16. Get User Taboos / Diet Habits Response (B -> F)
 
-Authorization: Bearer
-
-Context-Type: application/json
-
-## 16. Get User Taboos Response (B -> F)
+`Result.data` 结构（后端字段为 `dietHabits`）：
 
 ```json
 {
-	"userId": 2345678765678,
-	"taboos": [
-		"pork",
-		"beef"
+	"userId": 1,
+	"dietHabits": [
+		"vegetarian",
+		"no_pork"
 	]
 }
 ```
 
-## 17. Update User Taboos Request (F -> B)
+## 17. Update User Taboos / Diet Habits Request (F -> B)
 
-Request method and path: PUT /api/ums/user/taboos?id=2345678765678
-
-Request header:
-
-Authorization: Bearer
-
-Context-Type: application/json
-
-Request body:
+- Request method and path: `PUT /api/user/diet-habits?userId=<userId>`
+- Request header: `Authorization: Bearer <accessToken>`
+- Request header: `Content-Type: application/json`
+- Request body:
 
 ```json
 {
-	"taboos": [
-		"pork",
-		"beef",
-		"alcohol"
+	"dietHabits": [
+		"vegetarian",
+		"no_pork",
+		"no_alcohol"
 	]
 }
 ```
 
-## 18. Update User Taboos Response (B -> F)
+## 18. Update User Taboos / Diet Habits Response (B -> F)
 
-```json
-{
-	"userId": 2345678765678,
-	"message": "User taboos updated successfully"
-}
-```
+`Result.data` 为更新后的 `{ "userId": <id>, "dietHabits": [...] }` 结构。
 
 ## 19. Get User Allergies Request (F -> B)
 
-Request method and path: GET /api/ums/user/allergies?id=2345678765678
-
-Request header:
-
-Authorization: Bearer
-
-Context-Type: application/json
+- Request method and path: `GET /api/user/allergies?userId=<userId>`（或 `/api/ums/user/allergies?userId=<userId>`）
+- Request header: `Authorization: Bearer <accessToken>`
+- Request header: `Content-Type: application/json`
 
 ## 20. Get User Allergies Response (B -> F)
 
@@ -512,13 +493,9 @@ Context-Type: application/json
 
 ## 21. Update User Allergies Request (F -> B)
 
-Request method and path: PUT /api/ums/user/allergies?id=2345678765678
-
-Request header:
-
-Authorization: Bearer
-
-Context-Type: application/json
+- Request method and path: `PUT /api/user/allergies?userId=<userId>`（或 `/api/ums/user/allergies?userId=<userId>`）
+- Request header: `Authorization: Bearer <accessToken>`
+- Request header: `Content-Type: application/json`
 
 Request body:
 
@@ -542,19 +519,23 @@ Request body:
 }
 ```
 
-## 
-
 # D. IMS (Inventory Management Service)
+
 ## 1. Add to Inventory Request (F -> B)
+
+（见后端 `POST /api/inventory/ingredients`，请求体为 `IngredientRequest`。）
 
 # E. CMS (Cooking Management Service)
 
+（见后端 `POST /api/cooking/start`、`POST /api/cooking/finish` 等。）
+
 # F. RMS (Recipe Management Service)
+
 ## 1. Generate Menus (F -> B)
-- Request method and path: `POST /api/recipes/generate`
-- Request header:
-  - Authorization: Bearer `<accessToken>`
-  - Content-Type: application/json
+
+- Request method and path: `POST /api/ai/generate-menus?householdId=<householdId>`（可选查询参数 `householdId`，用于自动填充库存/偏好）
+- Request header: `Authorization: Bearer <accessToken>`
+- Request header: `Content-Type: application/json`
 - Request body:
 
 ```JSON
@@ -588,6 +569,7 @@ Request body:
     "cuisine_preferences": ["chinese", "japanese"],
     "taste_preferences": ["light", "umami"],
     "avoid_ingredients": ["coriander"],
+    "diet_habits": ["vegetarian"],
     "allergies": []
   },
   "generation_settings": {
@@ -753,10 +735,10 @@ Request body:
 ```
 
 ## 2. Get Default Recipe Preferences (F -> B)
-- Request method and path: GET /api/recipes/preferences/default
-- Request header:
-	- Authorization: Bearer <accessToken>
-- Response (B -> F):
+
+- Request method and path: `GET /api/recipes/default-filter?householdId=<householdId>`
+- Request header: `Authorization: Bearer <accessToken>`
+- Response (B -> F) 为 `Result.data`，结构同下方 JSON：
 
 ```JSON
 {
@@ -770,6 +752,7 @@ Request body:
     "cuisine_preferences": ["chinese", "japanese"],
     "taste_preferences": ["light"],
     "avoid_ingredients": [],
+    "diet_habits": [],
     "allergies": []
   },
   "calorie_target": {
@@ -780,10 +763,10 @@ Request body:
 ```
 
 ## 3. Get Favorite Recipes List (F -> B)
-- Request method and path: GET /api/users/me/favorite-recipes
-- Request header:
-	- Authorization: Bearer <accessToken>
-- Response (B -> F):
+
+- Request method and path: `GET /api/recipes/favorites?householdId=<householdId>`
+- Request header: `Authorization: Bearer <accessToken>`
+- Response (B -> F) 为 `Result.data`（收藏菜谱列表）：
 
 ```JSON
 {
@@ -811,10 +794,10 @@ Request body:
 ```
 
 ## 4. Get Favorite Recipe Detail (F -> B)
-- Request method and path: GET /api/users/me/favorite-recipes/{recipeId}
-- Request header:
-	- Authorization: Bearer <accessToken>
-- Response (B -> F):
+
+- Request method and path: 由收藏列表接口返回完整菜谱信息；或通过烹饪/菜谱相关接口根据 `recipeId`/`dishId` 获取详情。
+- Request header: `Authorization: Bearer <accessToken>`
+- Response (B -> F) 示例结构：
 
 ```JSON
 {
@@ -865,12 +848,12 @@ Request body:
 }
 ```
 
-## 5. Add favourite Recipe (F -> B)
-- Request method and path: POST /api/users/me/favorite-recipes
-- Request header:
-	- Authorization: Bearer <accessToken>
-	- Content-Type: application/json
-- Request body:
+## 5. Add / Toggle Favorite Recipe (F -> B)
+
+- Request method and path: `POST /api/recipes/favorite?householdId=<householdId>&recipeId=<recipeId>`（或按后端实际参数：若为“切换收藏”则同一接口可添加/取消）
+- Request header: `Authorization: Bearer <accessToken>`
+- Request header: `Content-Type: application/json`
+- Request body（若后端要求 body）：
 
 ```JSON
 {
@@ -932,10 +915,10 @@ Request body:
 ```
 
 ## 7. Remove Favorite Recipe (F -> B)
-- Request method and path: DELETE /api/users/me/favorite-recipes/{recipeId}
-- Request header:
-	- Authorization: Bearer <accessToken>
-- Response (B -> F):
+
+- Request method and path: `POST /api/recipes/favorite?householdId=<householdId>&recipeId=<recipeId>`（若为 toggle，再次调用即取消收藏）；或 `DELETE /api/recipes/favorite?householdId=...&recipeId=...`（以实际后端为准）
+- Request header: `Authorization: Bearer <accessToken>`
+- Response (B -> F)：
 
 ```JSON
 {
