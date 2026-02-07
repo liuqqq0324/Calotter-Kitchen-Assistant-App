@@ -3,10 +3,10 @@ import 'package:personal_sous_chef/core/theme/fallback_google_fonts.dart';
 
 /// 提示类型
 enum OtterTooltipType {
-  welcome,      // 欢迎提示
-  guide,        // 功能引导
-  pageHint,    // 页面特定提示
-  actionHint,   // 操作提示
+  welcome, // 欢迎提示
+  guide, // 功能引导
+  pageHint, // 页面特定提示
+  actionHint, // 操作提示
 }
 
 /// 海獭提示气泡组件
@@ -44,22 +44,18 @@ class _OtterTooltipState extends State<OtterTooltip>
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
-    
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeInOut,
-    ));
-    
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, -0.1),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeOutCubic,
-    ));
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, -0.1), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _animationController,
+            curve: Curves.easeOutCubic,
+          ),
+        );
 
     _animationController.forward();
 
@@ -128,10 +124,7 @@ class _OtterTooltipState extends State<OtterTooltip>
             decoration: BoxDecoration(
               color: _getBackgroundColor(),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: _getBorderColor(),
-                width: 2,
-              ),
+              border: Border.all(color: _getBorderColor(), width: 2),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.1),
@@ -250,28 +243,15 @@ class OtterTooltipWithArrow extends StatelessWidget {
   }
 }
 
-enum ArrowPosition {
-  top,
-  bottom,
-  left,
-  right,
-}
+enum ArrowPosition { top, bottom, left, right }
 
-enum ArrowDirection {
-  up,
-  down,
-  left,
-  right,
-}
+enum ArrowDirection { up, down, left, right }
 
 class _ArrowPainter extends CustomPainter {
   final Color color;
   final ArrowDirection direction;
 
-  _ArrowPainter({
-    required this.color,
-    required this.direction,
-  });
+  _ArrowPainter({required this.color, required this.direction});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -280,7 +260,7 @@ class _ArrowPainter extends CustomPainter {
       ..style = PaintingStyle.fill;
 
     final path = Path();
-    
+
     if (direction == ArrowDirection.down) {
       path.moveTo(0, 0);
       path.lineTo(size.width / 2, size.height);
@@ -292,7 +272,7 @@ class _ArrowPainter extends CustomPainter {
       path.lineTo(size.width, size.height);
       path.close();
     }
-    
+
     canvas.drawPath(path, paint);
   }
 

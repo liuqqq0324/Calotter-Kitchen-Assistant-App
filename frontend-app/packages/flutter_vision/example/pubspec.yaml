@@ -1,12 +1,25 @@
-name: flutter_vision_example
-description: Demonstrates how to use the flutter_vision plugin.
-
+name: personal_sous_chef
+description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
-publish_to: "none" # Remove this line if you wish to publish to pub.dev
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+
+# The following defines the version and build number for your application.
+# A version number is three numbers separated by dots, like 1.2.43
+# followed by an optional build number separated by a +.
+# Both the version and the builder number may be overridden in flutter
+# build by specifying --build-name and --build-number, respectively.
+# In Android, build-name is used as versionName while build-number used as versionCode.
+# Read more about Android versioning at https://developer.android.com/studio/publish/versioning
+# In iOS, build-name is used as CFBundleShortVersionString while build-number is used as CFBundleVersion.
+# Read more about iOS versioning at
+# https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
+# In Windows, build-name is used as the major, minor, and patch parts
+# of the product and file versions while build-number is used as the build suffix.
+version: 1.0.0+1
 
 environment:
-  sdk: ">=2.17.1 <3.0.0"
+  sdk: ^3.10.1
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -15,28 +28,72 @@ environment:
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
 dependencies:
-  camera: ^0.9.8+1
-  cupertino_icons: ^1.0.5
   flutter:
     sdk: flutter
-  flutter_vision:
-    path: ../
-  image_picker: ^0.8.6+3
+
+
+  # The following adds the Cupertino Icons font to your application.
+  # Use with the CupertinoIcons class for iOS style icons.
+  cupertino_icons: ^1.0.8
+  
+  # Video player for background videos
+  video_player: ^2.8.2
+  
+  # Animated text kit for handwriting effect
+  animated_text_kit: ^4.2.2
+
+  # Network requests
+  http: ^1.2.2
+  shared_preferences: ^2.5.4
+
+  # ONNX Runtime for Flutter (YOLO image recognition)
+  # 使用微软官方库，完全离线本地推理，无需联网
+  onnxruntime: ^1.4.1
+
+  image_picker: ^1.0.4
+  image: ^4.7.2 
+
+  path_provider: ^2.1.1
+
+  # Google Fonts
+  google_fonts: ^6.2.1
+
+  # QR Code generation
+  qr_flutter: ^4.1.0
+
+  # QR Code scanning
+  mobile_scanner: ^7.1.4
+
+  # Voice control for cooking
+  speech_to_text: ^7.3.0
+  flutter_tts: ^3.8.0
+  permission_handler: ^11.3.1  # 用于运行时权限请求
+  
+  # Screen wake lock for focus mode / cooking mode
+  wakelock_plus: ^1.2.8
+
+  # Gesture control for cooking
+  camera: ^0.10.5+5
+  google_mlkit_pose_detection: ^0.14.0
+
 
 dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
   # activated in the `analysis_options.yaml` file located at the root of your
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
-  flutter_lints: ^2.0.1
-  flutter_test:
-    sdk: flutter
+  flutter_lints: ^6.0.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
-# The following section is specific to Flutter.
+
+# The following section is specific to Flutter packages.
 flutter:
+
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.
@@ -44,14 +101,67 @@ flutter:
 
   # To add assets to your application, add an assets section, like this:
   assets:
+    - assets/videos/
     - assets/
-    - assets/labels.txt
-    - assets/yolov5n.tflite
-    - assets/tessdata/
+    - assets/icons/
+    - assets/icons/FRUIT/
+    - assets/icons/VEG/
+    - assets/icons/MEAT/
+    - assets/icons/GRAIN/
+    - assets/icons/DAIRY/
+    - assets/icons/OTHER/
+    - assets/dish_category/
+    - assets/images/sketch_paper_transparent.png
+    - assets/images/frame_0.png
+    - assets/images/frame_2.png
+    - assets/images/inventory_container.png
+    - assets/images/title.png
+    - assets/images/confirm_filters.png
+    - assets/images/generate_recipes_button.png
+    - assets/images/filter_button.png
+    - assets/wood_background.png
+    - assets/avatar/
+    - assets/profile_passport/
+    - assets/profile_passport/Save Goal Button.png
+    - assets/images/dish_intake_icon.png
+    - assets/images/add_food_icon.png
+    - assets/images/otter_floating_transparent.png
+    - assets/images/Shell.png
+    - assets/images/Bounder_health goal.png
+    - assets/fonts/
+    - assets/fonts/caveat/
+    - assets/models/
+    # ONNX 模型文件（YOLO 图像识别）- 77 个类别，输出 81 通道
+    - assets/models/best.onnx
+  fonts:
+    - family: Caveat
+      fonts:
+        - asset: assets/fonts/caveat/Caveat-Regular.ttf
+        - asset: assets/fonts/caveat/Caveat-Bold.ttf
+        - asset: assets/fonts/caveat/Caveat-SemiBold.ttf
+        - asset: assets/fonts/caveat/Caveat-Medium.ttf
+    - family: Pangolin
+      fonts:
+        - asset: font/Pangolin/Pangolin-Regular.ttf
+    - family: Kalam
+      fonts:
+        - asset: font/Pangolin/Kalam/Kalam-Light.ttf
+          weight: 300
+        - asset: font/Pangolin/Kalam/Kalam-Regular.ttf
+          weight: 400
+        - asset: font/Pangolin/Kalam/Kalam-Bold.ttf
+          weight: 700
+    - family: PatrickHand
+      fonts:
+        - asset: font/Pangolin/Patrick_Hand/PatrickHand-Regular.ttf
+
+
   # An image asset can refer to one or more resolution-specific "variants", see
-  # https://flutter.dev/assets-and-images/#resolution-aware.
+  # https://flutter.dev/to/resolution-aware-images
+
   # For details regarding adding assets from package dependencies, see
-  # https://flutter.dev/assets-and-images/#from-packages
+  # https://flutter.dev/to/asset-from-package
+
   # To add custom fonts to your application, add a fonts section here,
   # in this "flutter" section. Each entry in this list should have a
   # "family" key with the font family name, and a "fonts" key with a
@@ -70,4 +180,4 @@ flutter:
   #         weight: 700
   #
   # For details regarding fonts from package dependencies,
-  # see https://flutter.dev/custom-fonts/#from-packages
+  # see https://flutter.dev/to/font-from-package
