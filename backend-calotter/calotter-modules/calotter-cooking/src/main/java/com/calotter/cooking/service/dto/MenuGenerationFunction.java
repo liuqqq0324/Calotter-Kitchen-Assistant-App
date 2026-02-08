@@ -19,7 +19,7 @@ import java.util.List;
 @AllArgsConstructor
 public class MenuGenerationFunction {
     
-    // 移除 description，字段名 menus 已经很清楚
+
     @JsonProperty(required = true)
     private List<MenuOption> menus;
     
@@ -28,11 +28,11 @@ public class MenuGenerationFunction {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class MenuOption {
-        // 移除 description，字段名和类型已经很清楚
+
         @JsonProperty(required = true)
         private Integer menuId;
         
-        // 移除 description，字段名 recipes 已经很清楚
+
         @JsonProperty(required = true)
         private List<RecipeOption> recipes;
     }

@@ -50,7 +50,7 @@ public class SpringAiGeminiMenuGenerationService implements AiMenuGenerationServ
      * 执行实际的生成逻辑
      */
     private List<MenuDTO> executeGeneration(RecipeGenerationFilter filter) {
-        // 使用极简输入构建（节省 Token）
+
         String userInput = buildMinimalInput(filter);
         log.debug("User input: {}", userInput);
         
