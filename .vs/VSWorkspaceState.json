@@ -1,0 +1,13 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\backend-calotter",
+    "\\frontend-app",
+    "\\frontend-app\\lib",
+    "\\frontend-app\\lib\\features",
+    "\\frontend-app\\lib\\features\\recipes",
+    "\\frontend-app\\lib\\features\\recipes\\pages"
+  ],
+  "SelectedNode": "\\backend-calotter\\run_init_sql.py",
+  "PreviewInSolutionExplorer": false
+}

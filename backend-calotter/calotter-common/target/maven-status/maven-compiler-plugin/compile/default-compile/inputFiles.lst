@@ -1,0 +1,11 @@
+D:\files\NewFolder_2\code\A-team-PersonalSousChef\backend-calotter\calotter-common\src\main\java\com\calotter\common\config\JpaAuditingConfig.java
+D:\files\NewFolder_2\code\A-team-PersonalSousChef\backend-calotter\calotter-common\src\main\java\com\calotter\common\core\domain\BaseEntity.java
+D:\files\NewFolder_2\code\A-team-PersonalSousChef\backend-calotter\calotter-common\src\main\java\com\calotter\common\core\domain\entity\RefAllergen.java
+D:\files\NewFolder_2\code\A-team-PersonalSousChef\backend-calotter\calotter-common\src\main\java\com\calotter\common\core\domain\entity\StandardIngredient.java
+D:\files\NewFolder_2\code\A-team-PersonalSousChef\backend-calotter\calotter-common\src\main\java\com\calotter\common\core\domain\entity\StandardSpice.java
+D:\files\NewFolder_2\code\A-team-PersonalSousChef\backend-calotter\calotter-common\src\main\java\com\calotter\common\core\domain\entity\StandardUtensil.java
+D:\files\NewFolder_2\code\A-team-PersonalSousChef\backend-calotter\calotter-common\src\main\java\com\calotter\common\core\domain\PreferenceStandardLibrary.java
+D:\files\NewFolder_2\code\A-team-PersonalSousChef\backend-calotter\calotter-common\src\main\java\com\calotter\common\core\PageResult.java
+D:\files\NewFolder_2\code\A-team-PersonalSousChef\backend-calotter\calotter-common\src\main\java\com\calotter\common\core\repository\StandardIngredientRepository.java
+D:\files\NewFolder_2\code\A-team-PersonalSousChef\backend-calotter\calotter-common\src\main\java\com\calotter\common\core\Result.java
+D:\files\NewFolder_2\code\A-team-PersonalSousChef\backend-calotter\calotter-common\src\main\java\com\calotter\common\exception\GlobalExceptionHandler.java

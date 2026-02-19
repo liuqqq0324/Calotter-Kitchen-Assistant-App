@@ -1,0 +1,86 @@
+spring:
+  application:
+    name: calotter
+  
+  datasource:
+    url: jdbc:postgresql://localhost:5432/calotter
+    username: postgres
+    password: 123
+    driver-class-name: org.postgresql.Driver
+
+  # SQL 初始化配置 (data.sql)
+  sql:
+    init:
+      mode: always
+      
+  # JPA 配置
+  jpa:
+    # ✅ 修正点：这行必须放在 jpa 下面，缩进两个空格
+    # 作用：让 data.sql 在 Hibernate 建表之后再执行
+    defer-datasource-initialization: true
+    
+    hibernate:
+      # update: 保留数据，只更新表结构
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        use_sql_comments: true
+  
+  # Spring AI Google GenAI 配置
+  ai:
+    # 🔥 禁用自动重试
+    retry:
+      max-attempts: 1
+      enabled: false
+    google:
+      genai:
+        project-id: ${GEMINI_PROJECT_ID}
+        api-key: ${GEMINI_API_KEY:}
+        chat:
+          options:
+            model: gemini-2.5-flash-lite
+            temperature: 0.8
+            top-p: 0.95
+
+  # 营养估算器配置 (属于 spring 配置的一部分吗？看缩进似乎是自定义的，建议检查这里)
+  # 如果 com.calotter.config.NutritionConfig 读取的是 spring.nutrition，那保持这样
+  nutrition:
+    provider: groq
+    gemini:
+      base-url: https://generativelanguage.googleapis.com
+      api-key: ${GEMINI_API_KEY:}
+      model: gemini-2.5-flash
+    groq:
+      base-url: https://api.groq.com
+      api-key: ${GROQ_API_KEY:}
+      model: llama-3.3-70b-versatile
+
+server:
+  port: 8080
+  address: 0.0.0.0  # 🔥 监听所有网络接口
+
+logging:
+  level:
+    root: INFO
+    com.calotter: DEBUG
+    org.hibernate.SQL: WARN
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN
+
+jwt:
+  key: YourSuperSecretKeyForJWTTokenGenerationThatShouldBeAtLeast32CharactersLong!
+  issuer: CalotterBackend
+  audience: CalotterFrontend
+  expiration: 3000
+
+# 自定义 AI API 配置 (通常读取 ai.api.mode)
+# 注意：这里不能放在 spring 下面，它是根节点
+ai:
+  api:
+    mode: spring-ai-gemini
+    groq:
+      api-key: ${GROQ_API_KEY:}
+      url: https://api.groq.com/openai/v1/chat/completions
+      model: llama-3.3-70b-versatile
