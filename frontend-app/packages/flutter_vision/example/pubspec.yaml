@@ -100,60 +100,11 @@ flutter:
   uses-material-design: true
 
   # To add assets to your application, add an assets section, like this:
+  # 仅保留 example 目录下存在的资源，避免 flutter analyze 报 asset_does_not_exist
   assets:
-    - assets/videos/
     - assets/
-    - assets/icons/
-    - assets/icons/FRUIT/
-    - assets/icons/VEG/
-    - assets/icons/MEAT/
-    - assets/icons/GRAIN/
-    - assets/icons/DAIRY/
-    - assets/icons/OTHER/
-    - assets/dish_category/
-    - assets/images/sketch_paper_transparent.png
-    - assets/images/frame_0.png
-    - assets/images/frame_2.png
-    - assets/images/inventory_container.png
-    - assets/images/title.png
-    - assets/images/confirm_filters.png
-    - assets/images/generate_recipes_button.png
-    - assets/images/filter_button.png
-    - assets/wood_background.png
-    - assets/avatar/
-    - assets/profile_passport/
-    - assets/profile_passport/Save Goal Button.png
-    - assets/images/dish_intake_icon.png
-    - assets/images/add_food_icon.png
-    - assets/images/otter_floating_transparent.png
-    - assets/images/Shell.png
-    - assets/images/Bounder_health goal.png
-    - assets/fonts/
-    - assets/fonts/caveat/
-    - assets/models/
-    # ONNX 模型文件（YOLO 图像识别）- 77 个类别，输出 81 通道
-    - assets/models/best.onnx
-  fonts:
-    - family: Caveat
-      fonts:
-        - asset: assets/fonts/caveat/Caveat-Regular.ttf
-        - asset: assets/fonts/caveat/Caveat-Bold.ttf
-        - asset: assets/fonts/caveat/Caveat-SemiBold.ttf
-        - asset: assets/fonts/caveat/Caveat-Medium.ttf
-    - family: Pangolin
-      fonts:
-        - asset: font/Pangolin/Pangolin-Regular.ttf
-    - family: Kalam
-      fonts:
-        - asset: font/Pangolin/Kalam/Kalam-Light.ttf
-          weight: 300
-        - asset: font/Pangolin/Kalam/Kalam-Regular.ttf
-          weight: 400
-        - asset: font/Pangolin/Kalam/Kalam-Bold.ttf
-          weight: 700
-    - family: PatrickHand
-      fonts:
-        - asset: font/Pangolin/Patrick_Hand/PatrickHand-Regular.ttf
+    - assets/labels.txt
+    - assets/tessdata_config.json
 
 
   # An image asset can refer to one or more resolution-specific "variants", see
