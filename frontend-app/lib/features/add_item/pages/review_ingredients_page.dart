@@ -373,6 +373,44 @@ class _ReviewIngredientsPageState extends State<ReviewIngredientsPage> {
     }
   }
 
+  /// 以底部弹窗形式打开编辑页，与 inventory_page 一致：透明背景 + inventory_container 自定义形状
+  Future<Object?> _showEditIngredientSheet(Ingredient item, {bool isNew = false}) {
+    return showModalBottomSheet<Object?>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.9,
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/images/inventory_container.png'),
+            fit: BoxFit.fill,
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 顶部拖拽条
+            Padding(
+              padding: const EdgeInsets.only(top: 12, bottom: 4),
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            Expanded(
+              child: EditIngredientPage(ingredient: item, isNew: isNew),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return SizedBox.expand(
@@ -505,13 +543,7 @@ class _ReviewIngredientsPageState extends State<ReviewIngredientsPage> {
                 unitOptions:
                     _ingredientAllowedUnits[item.name] ?? ['g', 'pcs', 'ml'],
                 onTap: () async {
-                  final result = await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          EditIngredientPage(ingredient: item, isNew: false),
-                    ),
-                  );
+                  final result = await _showEditIngredientSheet(item, isNew: false);
                   if (!mounted) return;
                   if (result == true) {
                     await _loadAllowedUnitsForIngredient(item.name);
@@ -607,15 +639,7 @@ class _ReviewIngredientsPageState extends State<ReviewIngredientsPage> {
                     unit: 'pcs',
                     imagePlaceholder: '📝',
                   );
-                  final result = await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => EditIngredientPage(
-                        ingredient: newIngredient,
-                        isNew: true,
-                      ),
-                    ),
-                  );
+                  final result = await _showEditIngredientSheet(newIngredient, isNew: true);
                   if (!mounted) return;
                   if (result == true) {
                     setState(() => _detectedItems.add(newIngredient));
