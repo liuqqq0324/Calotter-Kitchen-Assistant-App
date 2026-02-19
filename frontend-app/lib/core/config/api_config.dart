@@ -12,7 +12,7 @@ class ApiConfig {
 
   // static const String serverIp = "3.107.97.174"; // IP 换成AWS 公网 IP
   // static const String serverIp = "10.0.2.2"; // Android 模拟器使用此 IP（默认）
-  static const String serverIp = "172.24.12.53"; // 真机调试时使用此 IP
+  static const String serverIp = "172.24.12.53"; // 真机调试时使用此 IP （电脑的真实IP）
 
   // ⚠️ 后端是单体应用，所有服务都在 8080 端口
   // Java 后端端口 (查看 Java 项目终端显示的 http://0.0.0.0:xxxx)
