@@ -37,6 +37,16 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+
+    // 解决 onnxruntime 和 sherpa_onnx 的原生库冲突
+    packaging {
+        jniLibs {
+            pickFirsts += listOf("lib/arm64-v8a/libonnxruntime.so")
+            pickFirsts += listOf("lib/armeabi-v7a/libonnxruntime.so")
+            pickFirsts += listOf("lib/x86/libonnxruntime.so")
+            pickFirsts += listOf("lib/x86_64/libonnxruntime.so")
+        }
+    }
 }
 
 flutter {

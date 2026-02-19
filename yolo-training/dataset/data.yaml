@@ -1,0 +1,28 @@
+# YOLO 数据集配置文件
+# 请根据你的实际数据集路径和类别信息修改此文件
+
+# 数据集根目录（绝对路径或相对路径）
+# 如果使用相对路径，请确保相对于此 yaml 文件的位置
+path: D:/files/NewFolder_2/code/A-team-PersonalSousChef/yolo-training/dataset
+
+# 训练集路径（相对于 path）
+train: images/train
+
+# 验证集路径（相对于 path）
+val: images/valid
+
+# 测试集路径（可选，相对于 path）
+# test: images/test
+
+# 类别数量
+nc: 1
+
+# 类别名称列表
+names:
+  0: hand_gesture  # 手势类别（根据你的实际类别修改）
+
+# 注意：
+# 1. 确保 train 和 val 路径下的图片和标签文件存在
+# 2. 标签文件应该是 .txt 格式，与图片同名
+# 3. 如果从 Roboflow 下载，通常已经包含正确的目录结构
+

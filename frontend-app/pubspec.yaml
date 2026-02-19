@@ -31,9 +31,54 @@ dependencies:
   flutter:
     sdk: flutter
 
+
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
+  
+  # Video player for background videos
+  video_player: ^2.8.2
+  
+  # Animated text kit for handwriting effect
+  animated_text_kit: ^4.2.2
+
+  # Network requests
+  http: ^1.2.2
+  shared_preferences: ^2.5.4
+
+  # TFLite + flutter_vision (YOLO 图像识别)；本地化以修复 Android namespace 构建错误
+  flutter_vision:
+    path: ./packages/flutter_vision
+
+  # 云端识别兜底 (Gemini 视觉)
+  google_generative_ai: ^0.4.0
+
+  image_picker: ^1.0.7
+  image: ^4.7.2 
+
+  path_provider: ^2.1.1
+
+  # Google Fonts
+  google_fonts: ^6.2.1
+
+  # QR Code generation
+  qr_flutter: ^4.1.0
+
+  # QR Code scanning
+  mobile_scanner: ^7.1.4
+
+  # Voice control for cooking
+  speech_to_text: ^7.3.0
+  flutter_tts: ^3.8.0
+  permission_handler: ^11.3.1  # 用于运行时权限请求
+  
+  # Screen wake lock for focus mode / cooking mode
+  wakelock_plus: ^1.2.8
+
+  # Gesture control for cooking
+  camera: ^0.10.5+5
+  google_mlkit_pose_detection: ^0.14.0
+
 
 dev_dependencies:
   flutter_test:
@@ -58,9 +103,61 @@ flutter:
   uses-material-design: true
 
   # To add assets to your application, add an assets section, like this:
-  # assets:
-  #   - images/a_dot_burr.jpeg
-  #   - images/a_dot_ham.jpeg
+  assets:
+    - assets/videos/
+    - assets/
+    - assets/icons/
+    - assets/icons/FRUIT/
+    - assets/icons/VEG/
+    - assets/icons/MEAT/
+    - assets/icons/GRAIN/
+    - assets/icons/DAIRY/
+    - assets/icons/OTHER/
+    - assets/dish_category/
+    - assets/images/sketch_paper_transparent.png
+    - assets/images/frame_0.png
+    - assets/images/frame_2.png
+    - assets/images/inventory_container.png
+    - assets/images/title.png
+    - assets/images/confirm_filters.png
+    - assets/images/generate_recipes_button.png
+    - assets/images/filter_button.png
+    - assets/wood_background.png
+    - assets/avatar/
+    - assets/profile_passport/
+    - assets/profile_passport/Save Goal Button.png
+    - assets/images/dish_intake_icon.png
+    - assets/images/add_food_icon.png
+    - assets/images/otter_floating_transparent.png
+    - assets/images/Shell.png
+    - assets/images/Bounder_health goal.png
+    - assets/fonts/
+    - assets/fonts/caveat/
+    - assets/models/
+    - assets/models/yolo.tflite
+    - assets/models/label.txt
+  fonts:
+    - family: Caveat
+      fonts:
+        - asset: assets/fonts/caveat/Caveat-Regular.ttf
+        - asset: assets/fonts/caveat/Caveat-Bold.ttf
+        - asset: assets/fonts/caveat/Caveat-SemiBold.ttf
+        - asset: assets/fonts/caveat/Caveat-Medium.ttf
+    - family: Pangolin
+      fonts:
+        - asset: font/Pangolin/Pangolin-Regular.ttf
+    - family: Kalam
+      fonts:
+        - asset: font/Pangolin/Kalam/Kalam-Light.ttf
+          weight: 300
+        - asset: font/Pangolin/Kalam/Kalam-Regular.ttf
+          weight: 400
+        - asset: font/Pangolin/Kalam/Kalam-Bold.ttf
+          weight: 700
+    - family: PatrickHand
+      fonts:
+        - asset: font/Pangolin/Patrick_Hand/PatrickHand-Regular.ttf
+
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
