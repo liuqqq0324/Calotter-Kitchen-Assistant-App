@@ -1,101 +1,109 @@
 # Personal Sous Chef
 
-**Personal Sous Chef** is a full-stack “smart kitchen” system: a **Flutter** mobile app talks to a **Spring Boot** modular monolith backed by **PostgreSQL**, with optional **YOLOv8** training for on-device ingredient detection. It supports households, pantry inventory, AI-assisted menu generation, cooking sessions, nutrition logging, and multimodal cooking assistance (voice, pose gestures, camera + local TFLite + optional cloud vision).
-
-This README is written from the **actual files in this repository** (compose files, Maven modules, `application.yml`, workflows, and app config). For a longer Chinese narrative (risks, module map), see [`PROJECT_OVERVIEW.md`](./PROJECT_OVERVIEW.md)—but you do **not** need it to run the project.
+A **home-kitchen assistant** delivered mainly as a **mobile app**: manage pantry and leftovers, generate **AI-backed menus** from what you have, follow **step-by-step cooking**, and track **nutrition**. Households let family members share one kitchen context (inventory, leftovers, invites).
 
 ---
 
-## What is in this repository?
+## What the product does (features)
 
-| Path | Role |
-|------|------|
-| [`frontend-app/`](./frontend-app/) | Flutter client (HTTP API, auth persistence, camera, STT/TTS, pose, `flutter_vision` YOLO, `google_generative_ai`). |
-| [`backend-calotter/`](./backend-calotter/) | Maven multi-module Spring Boot **3.2.0** API (`calotter-start` is the runnable entry). |
-| [`yolo-training/`](./yolo-training/) | Python + Ultralytics YOLOv8 train / validate / infer scripts and dataset layout. |
-| [`docker-compose.yml`](./docker-compose.yml) (repo root) | Alternate Postgres stack: DB `souschef_db`, user `chef`, port `5432`. Mounts `./database/init.sql`—**that path is not present in the repo as checked**; fix or remove the volume before `docker compose up`. |
-| [`backend-calotter/docker-compose.yml`](./backend-calotter/docker-compose.yml) | **Recommended for local backend dev**: Postgres 15, DB `calotter`, user `postgres`, password `123`, port `5432`, container `calotter_postgres`. |
-| [`.github/workflows/deploy.yml`](./.github/workflows/deploy.yml) | CI: Maven build in `backend-calotter`, SCP JAR to server, SSH restart on port **8080** with env-injected secrets. Trigger branch is currently **`yhua`**. |
+### Account and profile
+- **Sign up / sign in** — Create an account; credentials and session data are persisted on the device so you can reopen the app quickly.
+- **Diet and health** — Set allergies, diet habits, ingredients to avoid, and health goals (e.g. daily calories). These feed **AI menu generation** and **nutrition targets**.
 
-Submodule READMEs: [`backend-calotter/README.md`](./backend-calotter/README.md) (very detailed, includes API list and DB notes), [`yolo-training/README.md`](./yolo-training/README.md). The stock [`frontend-app/README.md`](./frontend-app/README.md) is still the default Flutter stub.
+### Household collaboration
+- **Create or join a household** — Start a household or join another with an **invite code** or **QR scan** (as implemented in the app).
+- **Switch active household** — Inventory, leftovers, and invites follow the **currently selected** household when a user belongs to more than one.
+- **Member management** — Owners can invite or remove members (exact UI flows are in the household screens).
 
----
+### Pantry inventory
+- **Ingredients** — Pick from a **standard catalog**, set quantity, unit, storage (e.g. fridge / freezer), optional expiry.
+- **Spices and utensils** — Same pattern; used when generating menus and cooking so the app knows **what you have at home**.
+- **Leftovers** — After a meal, uneaten food can be stored as leftovers; later you can log how much you ate and tie it to nutrition and remaining quantity.
 
-## Architecture (backend)
+### AI menus and cooking
+- **Generate menus** — Uses household stock, servings, tastes, allergies, and health goals to propose **multiple menu options** (requires a **configured backend** with AI keys).
+- **Start cooking** — Opens a **cooking session** with step-by-step instructions and ingredients.
+- **Finish cooking** — Confirms completion; the backend updates stock, creates or updates leftovers as designed, and records nutrition when that flow runs.
 
-Maven parent [`backend-calotter/pom.xml`](./backend-calotter/pom.xml): **Java 17**, Spring Boot **3.2.0**, PostgreSQL driver **42.7.1**, Lombok, JJWT **0.12.3**.
+### Nutrition and health
+- **Today’s intake** — See what you logged today from recipes, leftovers, or manual entries.
+- **Manual snacks / meals** — Enter a food name and rough portion; the server **estimates** calories and macros and stores a log.
+- **Leftover intake** — Pick a household leftover and use a **percentage slider**; nutrition and leftover weight update together.
+- **Daily / weekly views** — Compare **targets vs consumed** to pace your week.
 
-Modules (see also backend README):
+### Smart assistance while cooking (on cooking-related screens)
+- **Voice** — Hands-free commands for next/previous step, timers, etc. (**Microphone** permission required.)
+- **Gestures** — Camera-based simple gestures to move through steps (**Camera** permission required.)
+- **Photo ingredient recognition** — Take a photo to suggest ingredients (local model and/or cloud vision, depending on build and configuration).
 
-- **`calotter-common`** — shared types, `Result<T>`, global exception handling, auditing helpers, standard-library entities.
-- **`calotter-user`** — users, households, JWT utilities, Spring Security configuration (verify policy in code before production).
-- **`calotter-inventory`** — ingredients, spices, utensils, leftovers; standard-catalog lookups.
-- **`calotter-cooking`** — AI menu generation (Spring AI + Gemini), cooking workflow, dishes/sessions, favorites.
-- **`calotter-health`** — `NutritionLog`, `DailyNutrientAggregate`, `/api/nutrition` and `/api/intake`, Groq-based manual nutrition estimation, async listeners for aggregates.
-- **`calotter-start`** — `CalotterApplication`, `application.yml`, `DotenvConfig` (loads `.env`).
-
-**Typical request path:** HTTP → Controller → `@Transactional` Service → JPA Repository → PostgreSQL → JSON wrapped in `Result<T>` (`code`, `message`, `data`).
-
-**Events:** e.g. cooking completion publishes `CookingSessionCompletedEvent`; health module creates nutrition logs and publishes `NutritionLogCreatedEvent`; a transactional after-commit async listener updates daily aggregates (see `NutritionLogEventListener`, `@Profile("!test")`).
-
----
-
-## Architecture (frontend)
-
-- **SDK:** Dart **`^3.10.1`** ([`frontend-app/pubspec.yaml`](./frontend-app/pubspec.yaml)).
-- **Networking / state:** `http`, `shared_preferences` (token, user id, household id via `AuthService` and API services under `lib/services/`).
-- **Multimodal:** `camera`, `google_mlkit_pose_detection`, `speech_to_text`, `flutter_tts`, `permission_handler`, `wakelock_plus`, `image_picker`, etc.
-- **Vision:** local **`flutter_vision`** path package ([`frontend-app/packages/flutter_vision`](./frontend-app/packages/flutter_vision)); optional cloud vision via **`google_generative_ai`**.
-- **Backend base URL:** [`frontend-app/lib/core/config/api_config.dart`](./frontend-app/lib/core/config/api_config.dart) — set `serverIp` to:
-  - **`10.0.2.2`** for Android emulator → host `localhost`.
-  - Your machine’s **LAN IP** for a physical device on the same Wi‑Fi.
-  - A public host if you deploy the API.
+### Model training (team / advanced)
+- The **`yolo-training`** folder is for **retraining** ingredient-detection models. Typical end users only install a **prebuilt app** and do not need this.
 
 ---
 
-## Prerequisites
+## How end users typically use it
 
-| Component | Version / notes |
-|-----------|------------------|
-| JDK | **17** (matches `pom.xml`). |
-| Maven | 3.6+ recommended. |
-| Docker | For Postgres via compose. |
-| Flutter | Compatible with **Dart SDK ^3.10.1** (`flutter --version`). |
-| Python | 3.x for `yolo-training` and optional SQL helpers under backend. |
+1. **Install the app** — From your team’s build (APK/TestFlight/internal store) or a published store listing.
+2. **Register and sign in** — On first use, set **allergies** and basic **health goals** so AI and nutrition stay safe and meaningful.
+3. **Create or join a household** — First user creates a household and shares the invite; others join via code or QR.
+4. **Add pantry items** — In inventory, add ingredients, spices, and utensils; add expiry dates where it helps you use food in time.
+5. **Generate a menu** — On the recipe generation screen, set people, taste, time, etc., then generate and pick a menu to cook.
+6. **Cook and finish** — Follow steps; use **voice or gestures** if you want hands-free control; complete the **finish** flow so stock and leftovers stay accurate.
+7. **Log nutrition when needed** — Add manual items for snacks/takeout; log leftover portions with the slider; check daily/weekly summaries occasionally.
+
+If you only use a **team-hosted server**, you do not need the developer steps below—your admin must give you a reachable **API base URL** baked into or configurable for your build.
 
 ---
 
-## Quick start: backend + database
+## Technical overview
 
-### 1) Start PostgreSQL (recommended compose)
+| Layer | Technology | Location |
+|-------|------------|----------|
+| Mobile app | Flutter (Dart SDK **^3.10.1**), HTTP, local preferences, camera, speech, pose ML Kit, local YOLO via `flutter_vision`, optional Gemini client | `frontend-app/` |
+| API server | **Java 17**, **Spring Boot 3.2.0**, Spring Data JPA, PostgreSQL, Spring AI (Gemini) for menus, Groq-style HTTP for manual nutrition estimates | `backend-calotter/` |
+| Database | PostgreSQL **15** (Docker) | `backend-calotter/docker-compose.yml` (recommended for local dev) |
+| Training | Python, Ultralytics YOLOv8 | `yolo-training/` |
 
-From [`backend-calotter/docker-compose.yml`](./backend-calotter/docker-compose.yml):
+Backend is a **modular monolith**: `calotter-common`, `calotter-user`, `calotter-inventory`, `calotter-cooking`, `calotter-health`, runnable **`calotter-start`**. APIs return a JSON envelope **`Result<T>`** (`code`, `message`, `data`). Deeper architecture and API tables: [`backend-calotter/README.md`](./backend-calotter/README.md) and [`PROJECT_OVERVIEW.md`](./PROJECT_OVERVIEW.md) (Chinese, broader project notes).
+
+---
+
+## Repository layout
+
+| Path | Purpose |
+|------|---------|
+| `frontend-app/` | Flutter application source |
+| `backend-calotter/` | Maven multi-module Spring Boot API |
+| `yolo-training/` | Dataset + scripts to train/validate YOLO models |
+| `docker-compose.yml` (repo root) | Alternate Postgres (`souschef_db` / user `chef`). Default Spring config targets DB **`calotter`** — align credentials or prefer backend compose only. Root compose references `./database/init.sql`; if that file is missing, remove the volume line or add the script before `docker compose up`. |
+| `.github/workflows/deploy.yml` | CI: build JAR under `backend-calotter`, deploy to a server (branch and secrets are defined in the workflow file). |
+
+---
+
+## Developer quick start
+
+### Prerequisites
+- **JDK 17**, **Maven 3.6+**, **Docker** (for Postgres), **Flutter** compatible with the app’s `pubspec.yaml` SDK constraint.
+
+### 1) Database (recommended)
 
 ```bash
 cd backend-calotter
 docker compose up -d
 ```
 
-This exposes **5432** with database **`calotter`**, user **`postgres`**, password **`123`** (development defaults from the file).
+Default from [`backend-calotter/docker-compose.yml`](./backend-calotter/docker-compose.yml): database **`calotter`**, user **`postgres`**, password **`123`**, port **5432**. Matches the JDBC URL in [`calotter-start/.../application.yml`](./backend-calotter/calotter-start/src/main/resources/application.yml).
 
-**Port conflict:** If another Postgres already uses 5432, stop it or change the host port mapping in compose and align `spring.datasource.url` in `application.yml`.
-
-### 2) Configure AI keys (menu + manual nutrition)
-
-Copy the template and fill keys **without committing `.env`**:
+### 2) Environment variables (AI)
 
 ```bash
 cd backend-calotter
 cp env.template .env
-# Edit .env: at least GEMINI_API_KEY and GROQ_API_KEY (see env.template comments)
+# Edit .env — at minimum GEMINI_API_KEY and GROQ_API_KEY (see env.template).
+# If your Google setup requires it, set GEMINI_PROJECT_ID as well.
 ```
 
-[`backend-calotter/env.template`](./backend-calotter/env.template) documents:
-
-- **`GEMINI_API_KEY`** — Spring AI Gemini (menu generation; `application.yml` also references `GEMINI_PROJECT_ID` for Google GenAI—set it if your account requires a project id).
-- **`GROQ_API_KEY`** — manual nutrition estimation. The health module reads **`ai.nutrition.*`** in Java (`GroqManualNutritionEstimator`, `AiNutritionEstimatorConfig`); `application.yml` also contains a **`spring.nutrition`** block—if Groq fails to pick up the key, align properties or rely on **`GROQ_API_KEY`** in `.env` / the process environment (the config class checks both).
-
-[`DotenvConfig`](./backend-calotter/calotter-start/src/main/java/com/calotter/config/DotenvConfig.java) searches for `.env` relative to the working directory / project tree when the app starts; keeping `.env` under **`backend-calotter/`** matches the template instructions.
+Do **not** commit `.env`. Spring loads it via [`DotenvConfig`](./backend-calotter/calotter-start/src/main/java/com/calotter/config/DotenvConfig.java) when present under `backend-calotter/`.
 
 ### 3) Run the API
 
@@ -104,24 +112,9 @@ cd backend-calotter/calotter-start
 mvn spring-boot:run
 ```
 
-Default listen: **`0.0.0.0:8080`** ([`application.yml`](./backend-calotter/calotter-start/src/main/resources/application.yml)).
+Default: **http://0.0.0.0:8080**. JPA **`ddl-auto: update`** plus **`data.sql`** seed standard catalogs on startup (see `application.yml`).
 
-**Schema & seed data:**
-
-- JPA **`ddl-auto: update`** creates/updates tables.
-- **`spring.sql.init.mode: always`** + **`defer-datasource-initialization: true`** runs [`data.sql`](./backend-calotter/calotter-start/src/main/resources/data.sql) after Hibernate schema generation (standard allergens, ingredients, spices, utensils, etc.).
-
-Full rebuild / TRUNCATE workflows and curl examples are documented in [`backend-calotter/README.md`](./backend-calotter/README.md).
-
-### 4) Root `docker-compose.yml` (optional)
-
-The root file starts **`souschef_db`** / user **`chef`**—**different credentials** from `backend-calotter/docker-compose.yml`. The default Spring config points at **`calotter`** on localhost; if you use the root compose, either change JDBC URL/username/password to match **or** only use the backend compose for consistency.
-
-Also verify `./database/init.sql` exists if you keep the `volumes` entry; the repository snapshot used for this README did **not** include a `database/` tree—remove or add that file before `docker compose up` at the repo root.
-
----
-
-## Quick start: Flutter app
+### 4) Run the Flutter app
 
 ```bash
 cd frontend-app
@@ -129,95 +122,35 @@ flutter pub get
 flutter run
 ```
 
-**Point the app at your API:**
+Point the client at your API in [`frontend-app/lib/core/config/api_config.dart`](./frontend-app/lib/core/config/api_config.dart):
 
-1. Edit [`frontend-app/lib/core/config/api_config.dart`](./frontend-app/lib/core/config/api_config.dart): `serverIp` and `port` (`8080` by default).
-2. Physical device: phone and PC must share a network; OS firewall must allow inbound **8080** on the host running Spring Boot.
+- **Android emulator → host machine:** `serverIp = "10.0.2.2"`, port **8080**.
+- **Physical device:** use your PC’s **LAN IP**; phone and PC must be on the same Wi‑Fi; host firewall must allow **8080**.
 
-**Permissions:** camera, microphone, and possibly storage/photos are used for scanning and multimodal features—grant them when prompted.
+Grant **camera** and **microphone** where the OS prompts, for gesture/voice features.
 
-**Cloud Gemini in the app:** the Flutter file may contain a **client-side API key placeholder** for cloud vision / “expert” features. **Do not ship production builds with a committed key**; prefer runtime configuration (e.g. `--dart-define`, remote config) and rotate any key that was ever committed to git.
+### 5) Optional: train YOLO
 
----
-
-## Quick start: YOLO training
-
-See [`yolo-training/README.md`](./yolo-training/README.md).
-
-```bash
-cd yolo-training
-pip install ultralytics
-# Prepare dataset/ per README, then:
-python train.py
-```
-
-Training exports under `runs/` (Ultralytics defaults). Integrating new weights into the mobile app is project-specific (TFLite assets + `flutter_vision`); align label indices with backend standard ingredients where applicable (backend README mentions `yolo_labels_config.dart` / `ingredient_icon_config.dart` alignment).
+Follow [`yolo-training/README.md`](./yolo-training/README.md) (`pip install ultralytics`, prepare `dataset/`, run `train.py`).
 
 ---
 
-## CI / deployment
+## Security and privacy (short)
 
-[`.github/workflows/deploy.yml`](./.github/workflows/deploy.yml):
-
-- Runs **`mvn -B clean install -DskipTests`** in **`./backend-calotter`**.
-- Copies `calotter-start/target/*.jar` to **`/opt/calotter`** on the server.
-- SSH step frees **8080**, then `nohup java -jar …` with JDBC URL `jdbc:postgresql://localhost:5432/calotter` and password from **`DB_PASSWORD`** secret.
-
-**Secrets referenced:** `SERVER_HOST`, `SERVER_USER`, `SSH_PRIVATE_KEY`, `DB_PASSWORD`, `GEMINI_API_KEY`, `GEMINI_PROJECT_ID`, `GROQ_API_KEY`.
-
-To use this pipeline in your fork, retarget the `on.push.branches` list and mirror secrets in GitHub.
+- Do not share passwords or invite codes with untrusted people.  
+- Keep **API keys and DB passwords** in environment variables or a secret manager; never commit them to git.  
+- **Rotate** any key that was ever committed by mistake.  
+- Review Spring Security / JWT settings before exposing the API to the public internet; prefer **HTTPS** in production.  
+- For client-side cloud keys (e.g. Gemini in Flutter), prefer **build-time defines** or remote config instead of hardcoding keys in source.
 
 ---
 
-## API surface (short)
+## More documentation
 
-All JSON APIs observed in code use the shared **`Result<T>`** envelope.
+| Document | Contents |
+|----------|----------|
+| [`backend-calotter/README.md`](./backend-calotter/README.md) | Detailed backend setup, DB reset, API listing, ER notes |
+| [`PROJECT_OVERVIEW.md`](./PROJECT_OVERVIEW.md) | Chinese project-wide overview and risks |
+| [`yolo-training/README.md`](./yolo-training/README.md) | Training parameters and troubleshooting |
 
-Representative routes (non-exhaustive; full list in [`backend-calotter/README.md`](./backend-calotter/README.md)):
-
-| Area | Base path | Examples |
-|------|-----------|----------|
-| Users / auth | `/api/user` | `POST /register`, `POST /login`, preferences, allergies, health goal. |
-| Households | `/api/household` | Create/join/leave/switch, invite codes. |
-| Inventory | `/api/inventory` | CRUD for ingredients/spices/utensils/leftovers; standard catalog `GET` endpoints. |
-| AI & cooking | `/api/ai`, `/api/cooking`, `/api/recipes` | `POST /api/ai/generate-menus`, start/finish cooking, favorites. |
-| Nutrition | `/api/nutrition`, `/api/intake` | Weekly/daily summaries, manual logs, leftover logs, today’s intakes, dish slider APIs. |
-
-**Client usage:** many endpoints accept **`userId`** (and sometimes `householdId`) as query parameters. Treat authorization as **application-level** until you verify Spring Security filter rules in `calotter-user`—do not assume server-side isolation from IDs alone.
-
----
-
-## Practical troubleshooting
-
-| Symptom | What to check |
-|---------|----------------|
-| Flutter “connection refused” | Backend running? `serverIp` correct? Emulator → `10.0.2.2`; real device → LAN IP; server `server.address` is `0.0.0.0` in `application.yml`. |
-| Postgres auth errors | JDBC URL must match **the** compose file you started (`calotter`+`postgres`/`123` vs `souschef_db`+`chef`). |
-| AI menu or manual nutrition fails | `.env` or OS env: `GEMINI_API_KEY`, `GROQ_API_KEY`, and `GEMINI_PROJECT_ID` if required. |
-| Standard tables empty | Ensure `data.sql` ran (see `spring.sql.init` + `defer-datasource-initialization`); backend README has `psql` / Python fallbacks. |
-| Port 8080 busy | Stop other services or override `server.port` for local runs; deployment script kills listeners on 8080 on the server. |
-| Root compose fails on init.sql | Add `database/init.sql` or remove the `./database/init.sql` bind mount from root `docker-compose.yml`. |
-
----
-
-## Security & hygiene (read before production)
-
-1. **Secrets:** rotate any API key or DB password that ever appeared in git history. Prefer environment variables or a secret manager; never commit `.env`.
-2. **JWT / Spring Security:** review `SecurityConfig` and JWT filter behavior—development setups sometimes use permissive rules; lock down before exposing the API publicly.
-3. **CORS / HTTPS:** front channel is plain HTTP in dev config; use TLS and strict CORS in production.
-4. **Scheduler / async:** health module runs scheduled jobs (e.g. leftover conversion) and async listeners—understand DB load and idempotency when scaling horizontally.
-
----
-
-## Contributing / docs map
-
-- **Deep backend + API catalog + DB reset recipes:** [`backend-calotter/README.md`](./backend-calotter/README.md)  
-- **Training pipeline & GPU tips:** [`yolo-training/README.md`](./yolo-training/README.md)  
-- **Chinese high-level overview + risk notes:** [`PROJECT_OVERVIEW.md`](./PROJECT_OVERVIEW.md)  
-- **License:** add a `LICENSE` file at the repo root if you open-source this project.
-
----
-
-## License
-
-No root `LICENSE` file was present when this README was generated. Add one appropriate to your organization before public distribution.
+Add a root **`LICENSE`** if you distribute or open-source the project.
